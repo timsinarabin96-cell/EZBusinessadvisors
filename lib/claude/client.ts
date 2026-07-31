@@ -10,7 +10,14 @@
 // =============================================================================
 
 import Anthropic from '@anthropic-ai/sdk'
-import { CLAUDE_MODELS, type AgentContextPayload, type ClaudeModelName } from '@/types/ai'
+import { type AgentContextPayload, type ClaudeModelName } from '@/types/ai'
+
+/**
+ * Default Claude model for agent turns.
+ * Pinned to a widely-available, cost-effective Sonnet 3.5 checkpoint (per
+ * product owner). Requires a valid ANTHROPIC_API_KEY to be consumed.
+ */
+const DEFAULT_MODEL = 'claude-3-5-sonnet-20241022' as const
 
 /** Thrown when ANTHROPIC_API_KEY is missing or misconfigured. */
 export class ClaudeConfigError extends Error {
@@ -69,7 +76,7 @@ export async function complete({
   context,
   history = [],
   system,
-  model = CLAUDE_MODELS.fast,
+  model = DEFAULT_MODEL,
   maxTokens = 1024,
   jsonMode = false,
 }: {

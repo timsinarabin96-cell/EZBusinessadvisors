@@ -35,3 +35,8 @@ next-env.d.ts
 
 # test / coverage
 /coverage
+
+# stray env backups (may hold secrets)
+.env.local.save
+.env.*.save
+.env.local.safe
