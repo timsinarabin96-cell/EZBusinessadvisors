@@ -21,6 +21,7 @@ const NAV = [
   { href: '/dashboard/social', label: 'Social Media', icon: '📣' },
   { href: '/dashboard/training', label: 'Training', icon: '🎓' },
   { href: '/dashboard/agents', label: 'Agents', icon: '🤖' },
+  { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
 ]
 
 export default function AppShell({
