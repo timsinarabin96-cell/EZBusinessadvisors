@@ -43,8 +43,8 @@ export interface AgentResult {
 
 /** Model identifiers we default to. Kept narrow for typing + cost control. */
 export const CLAUDE_MODELS = {
-  /** Default for most agent turns (per product owner). */
-  fast: 'claude-3-5-sonnet-20241022',
+  /** Default for most agent turns. Current non-deprecated Sonnet release. */
+  fast: 'claude-sonnet-4-5',
   /** Larger context / reasoning for document & recast analysis. */
   flagship: 'claude-sonnet-4-5',
 } as const

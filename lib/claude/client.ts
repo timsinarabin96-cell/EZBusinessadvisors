@@ -14,10 +14,12 @@ import { type AgentContextPayload, type ClaudeModelName } from '@/types/ai'
 
 /**
  * Default Claude model for agent turns.
- * Pinned to a widely-available, cost-effective Sonnet 3.5 checkpoint (per
- * product owner). Requires a valid ANTHROPIC_API_KEY to be consumed.
+ * Uses a current, non-deprecated Sonnet release (claude-sonnet-4-5) that is
+ * available on default Anthropic billing. The previously-pinned 3.5 checkpoint
+ * (claude-3-5-sonnet-20241022) returns HTTP 404 not_found_error as the 3.5
+ * generation is near end-of-life.
  */
-const DEFAULT_MODEL = 'claude-3-5-sonnet-20241022' as const
+const DEFAULT_MODEL = 'claude-sonnet-4-5' as const
 
 /** Thrown when ANTHROPIC_API_KEY is missing or misconfigured. */
 export class ClaudeConfigError extends Error {
