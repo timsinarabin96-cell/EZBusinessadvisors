@@ -1,0 +1,113 @@
+import { supabase } from '@/lib/supabase/client'
+
+// ---------------------------------------------------------------------------
+// Listings CRUD — configured to the REAL listings schema (probed live):
+//   id, agent_id, business_name, headline, industry, location_general,
+//   description, asking_price, annual_revenue, sde, ebitda, inventory_value,
+//   ffe_value, real_estate_included, reason_for_sale, status, created_at,
+//   updated_at, image_urls, primary_image_url, featured_image_url
+// ---------------------------------------------------------------------------
+
+export interface Listing {
+  id: string
+  agent_id: string | null
+  business_name: string | null
+  headline: string | null
+  industry: string | null
+  location_general: string | null
+  description: string | null
+  asking_price: number | null
+  annual_revenue: number | null
+  sde: number | null
+  ebitda: number | null
+  inventory_value: number | null
+  ffe_value: number | null
+  real_estate_included: boolean | null
+  reason_for_sale: string | null
+  status: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  image_urls: string[] | null
+  primary_image_url: string | null
+  featured_image_url: string | null
+}
+
+export type ListingInput = Partial<Omit<Listing, 'id' | 'created_at' | 'updated_at'>>
+
+export const LISTING_STATUSES = ['active', 'under_contract', 'sold', 'off_market', 'draft']
+
+export async function fetchListings(status?: string): Promise<Listing[]> {
+  let query = supabase.from('listings').select('*')
+  if (status) query = query.eq('status', status)
+  const { data, error } = await query.order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('fetchListings error:', error)
+    throw new Error(error.message || 'Failed to load listings')
+  }
+  return (data as Listing[]) || []
+}
+
+export async function fetchListing(id: string): Promise<Listing | null> {
+  const { data, error } = await supabase.from('listings').select('*').eq('id', id).single()
+  if (error) {
+    console.error('fetchListing error:', error)
+    throw new Error(error.message || 'Failed to load listing')
+  }
+  return (data as Listing) || null
+}
+
+export async function createListing(input: ListingInput): Promise<Listing> {
+  const { data, error } = await supabase
+    .from('listings')
+    .insert({ ...input, status: input.status || 'active' })
+    .select()
+    .single()
+  if (error) {
+    console.error('createListing error:', error)
+    throw new Error(error.message || 'Failed to create listing')
+  }
+  return data as Listing
+}
+
+export async function updateListing(id: string, input: ListingInput): Promise<Listing> {
+  const { data, error } = await supabase
+    .from('listings')
+    .update({ ...input, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) {
+    console.error('updateListing error:', error)
+    throw new Error(error.message || 'Failed to update listing')
+  }
+  return data as Listing
+}
+
+export async function deleteListing(id: string): Promise<void> {
+  const { error } = await supabase.from('listings').delete().eq('id', id)
+  if (error) {
+    console.error('deleteListing error:', error)
+    throw new Error(error.message || 'Failed to delete listing')
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Format helpers
+// ---------------------------------------------------------------------------
+export const fmtMoney = (n: number | null | undefined): string => {
+  if (n === null || n === undefined || isNaN(n)) return '—'
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
+}
+
+export const fmtMoneyCompact = (n: number | null | undefined): string => {
+  if (n === null || n === undefined || isNaN(n)) return '—'
+  if (Math.abs(n) >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2).replace(/\.00$/, '') + 'M'
+  if (Math.abs(n) >= 1_000) return '$' + Math.round(n / 1_000) + 'K'
+  return '$' + n
+}
+
+export const fmtNum = (n: number | null | undefined): string => {
+  if (n === null || n === undefined || isNaN(n)) return '—'
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(n)
+}
