@@ -6,6 +6,8 @@ import { Listing, fetchListings, createListing, updateListing, deleteListing, fm
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
 import ListingFormModal from './ListingFormModal'
+import { queueAutoPosts } from '@/lib/services/social'
+import { supabase } from '@/lib/supabase/client'
 
 export default function ListingsDashboard() {
   const toast = useToast()
@@ -33,8 +35,31 @@ export default function ListingsDashboard() {
       await updateListing(editing.id, input)
       toast('Listing updated', 'success')
     } else {
-      await createListing(input)
+      const created = await createListing(input)
       toast('Listing created', 'success')
+      // Auto-post to connected social platforms on new listing upload (fire-and-forget).
+      try {
+        const { data } = await supabase.auth.getUser()
+        if (data.user?.id) {
+          const queued = await queueAutoPosts(data.user.id, {
+            id: created.id,
+            business_name: created.business_name,
+            headline: created.headline,
+            industry: created.industry,
+            location_general: created.location_general,
+            asking_price: created.asking_price,
+            annual_revenue: created.annual_revenue,
+            sde: created.sde,
+            image_urls: created.image_urls,
+            primary_image_url: created.primary_image_url,
+          })
+          if (queued.length > 0) {
+            toast(`Social: queued ${queued.length} post(s)`, 'success')
+          }
+        }
+      } catch {
+        // Auto-post failure should never block listing creation.
+      }
     }
     setShowForm(false)
     setEditing(null)

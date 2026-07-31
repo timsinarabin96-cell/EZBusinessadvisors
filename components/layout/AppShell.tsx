@@ -18,6 +18,7 @@ const NAV = [
   { href: '/agencies', label: 'Agency Admin', icon: '🏛️' },
   { href: '/billing', label: 'Billing', icon: '💳' },
   { href: '/sync', label: 'BizBuySell', icon: '🔄' },
+  { href: '/dashboard/social', label: 'Social Media', icon: '📣' },
   { href: '/dashboard/training', label: 'Training', icon: '🎓' },
   { href: '/dashboard/agents', label: 'Agents', icon: '🤖' },
 ]
