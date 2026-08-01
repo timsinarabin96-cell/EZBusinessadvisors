@@ -2,6 +2,7 @@
 
 import AppShell from '@/components/layout/AppShell'
 import EmailSettings from '@/components/settings/EmailSettings'
+import LicenseSettings from '@/components/settings/LicenseSettings'
 
 export default function SettingsPage() {
   return (
@@ -15,8 +16,10 @@ export default function SettingsPage() {
         >
           Settings
         </h1>
-        <p style={{ color: 'var(--muted)', marginBottom: 24 }}>Manage your notification and email preferences.</p>
+        <p style={{ color: 'var(--muted)', marginBottom: 24 }}>Manage your notification, email, and licensing preferences.</p>
         <EmailSettings />
+        <div style={{ height: 24 }} />
+        <LicenseSettings />
       </div>
     </AppShell>
   )

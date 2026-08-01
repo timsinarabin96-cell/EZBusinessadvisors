@@ -22,6 +22,15 @@ interface FormState {
   reason_for_sale: string
   status: string
   real_estate_included: boolean
+  property_value: string
+  property_description: string
+  square_footage: string
+  land_acres: string
+  year_built: string
+  property_address: string
+  property_city: string
+  property_state: string
+  property_zip: string
 }
 
 const numOrNull = (s: string): number | null => (s === '' ? null : Number(s))
@@ -40,6 +49,15 @@ export default function ListingFormModal({ listing, onClose, onSubmit }: Listing
     reason_for_sale: listing?.reason_for_sale || '',
     status: listing?.status || 'active',
     real_estate_included: listing?.real_estate_included || false,
+    property_value: listing?.property_value ? String(listing.property_value) : '',
+    property_description: listing?.property_description || '',
+    square_footage: listing?.square_footage ? String(listing.square_footage) : '',
+    land_acres: listing?.land_acres ? String(listing.land_acres) : '',
+    year_built: listing?.year_built ? String(listing.year_built) : '',
+    property_address: listing?.property_address || '',
+    property_city: listing?.property_city || '',
+    property_state: listing?.property_state || '',
+    property_zip: listing?.property_zip || '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -65,6 +83,15 @@ export default function ListingFormModal({ listing, onClose, onSubmit }: Listing
         reason_for_sale: form.reason_for_sale || null,
         status: form.status,
         real_estate_included: form.real_estate_included,
+        property_value: form.real_estate_included ? numOrNull(form.property_value) : null,
+        property_description: form.real_estate_included ? form.property_description.trim() || null : null,
+        square_footage: form.real_estate_included ? numOrNull(form.square_footage) : null,
+        land_acres: form.real_estate_included ? numOrNull(form.land_acres) : null,
+        year_built: form.real_estate_included && form.year_built ? Number(form.year_built) : null,
+        property_address: form.real_estate_included ? form.property_address.trim() || null : null,
+        property_city: form.real_estate_included ? form.property_city.trim() || null : null,
+        property_state: form.real_estate_included ? form.property_state.trim().toUpperCase() || null : null,
+        property_zip: form.real_estate_included ? form.property_zip.trim() || null : null,
       })
     } catch (err: any) {
       setError(err.message || 'Failed to save listing')
@@ -145,6 +172,61 @@ export default function ListingFormModal({ listing, onClose, onSubmit }: Listing
             <input type="checkbox" checked={form.real_estate_included} onChange={(e) => set('real_estate_included', e.target.checked)} />
             <label style={{ fontSize: 14, color: 'var(--text)' }}>Real estate included in sale</label>
           </div>
+
+          {form.real_estate_included && (
+            <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 16, marginBottom: 20, background: 'var(--cream)' }}>
+              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--gold-dark)', fontWeight: 700, marginBottom: 12 }}>Property Details</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label className="label">Property Value</label>
+                  <input className="input" type="number" value={form.property_value} onChange={(e) => set('property_value', e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Square Footage</label>
+                  <input className="input" type="number" value={form.square_footage} onChange={(e) => set('square_footage', e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Land (acres)</label>
+                  <input className="input" type="number" step="0.01" value={form.land_acres} onChange={(e) => set('land_acres', e.target.value)} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label className="label">Year Built</label>
+                  <input className="input" type="number" value={form.year_built} onChange={(e) => set('year_built', e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">Address</label>
+                  <input className="input" value={form.property_address} onChange={(e) => set('property_address', e.target.value)} placeholder="Street address" />
+                </div>
+                <div>
+                  <label className="label">City</label>
+                  <input className="input" value={form.property_city} onChange={(e) => set('property_city', e.target.value)} />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label className="label">State</label>
+                  <input className="input" value={form.property_state} onChange={(e) => set('property_state', e.target.value)} maxLength={2} placeholder="NC" />
+                </div>
+                <div>
+                  <label className="label">ZIP</label>
+                  <input className="input" value={form.property_zip} onChange={(e) => set('property_zip', e.target.value)} maxLength={10} />
+                </div>
+                <div>
+                  <label className="label">Property Description</label>
+                  <input className="input" value={form.property_description} onChange={(e) => set('property_description', e.target.value)} placeholder="e.g. 12,000 sq ft warehouse on 2 acres" />
+                </div>
+              </div>
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--navy)', color: '#fff', fontSize: 14 }}>
+                <strong>Auto Total Value:</strong>{' '}
+                {(numOrNull(form.asking_price) || 0) + (numOrNull(form.property_value) || 0) > 0
+                  ? `$${((numOrNull(form.asking_price) || 0) + (numOrNull(form.property_value) || 0)).toLocaleString()}`
+                  : '$0 — enter a price or property value'
+                }
+              </div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>

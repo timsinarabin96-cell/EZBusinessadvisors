@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client'
 //   description, asking_price, annual_revenue, sde, ebitda, inventory_value,
 //   ffe_value, real_estate_included, reason_for_sale, status, created_at,
 //   updated_at, image_urls, primary_image_url, featured_image_url
+//   + real-estate option (property_value, square_footage, ..., total_value)
 // ---------------------------------------------------------------------------
 
 export interface Listing {
@@ -30,6 +31,17 @@ export interface Listing {
   image_urls: string[] | null
   primary_image_url: string | null
   featured_image_url: string | null
+  // Real-estate option (see sql/document_compliance_realestate_schema.sql)
+  property_value: number | null
+  property_description: string | null
+  square_footage: number | null
+  land_acres: number | null
+  year_built: number | null
+  property_address: string | null
+  property_city: string | null
+  property_state: string | null
+  property_zip: string | null
+  total_value: number | null
 }
 
 export type ListingInput = Partial<Omit<Listing, 'id' | 'created_at' | 'updated_at'>>

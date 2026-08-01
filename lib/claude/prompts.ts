@@ -22,17 +22,30 @@ Guardrails:
 - Flag anything that looks inconsistent or incomplete rather than silently assuming it is correct.`
 
 /**
- * Builds the full system prompt for a given agent kind.
- * Optionally inject the conversation context into the system prompt.
+ * Legal-compliance guardrail appended to prompt builders that touch licensing,
+ * real estate, or regulatory matters. Advisory-only; never legal advice.
  */
-export function buildSystemPrompt(kind: AgentKind): string {
+export const LEGAL_COMPLIANCE_GUARD = `
+Legal & Compliance Guardrails:
+- You are decision-support, NOT a licensed attorney. You never give definitive legal advice, guarantee outcomes, or declare that an action is "legal" or "illegal" without qualification.
+- Frame everything as considerations, common regulatory patterns, and verification steps. State-specific law varies: never invent statutes, commission caps, license numbers, or filing deadlines.
+- Note the brokerage distinction: brokering a business that transfers REAL PROPERTY or involves LICENSED ACTIVITY may implicate a real-estate broker license, whereas a pure asset sale may not — confirm with counsel.
+- When a matter is genuinely uncertain, say so plainly and recommend consulting a licensed attorney in the relevant state.
+- Never draft language that could be mistaken for an executed legal instrument without a clear "draft for review by an attorney — not for execution" caveat.`
+
+/**
+ * Builds the full system prompt for a given agent kind, optionally appending
+ * the legal-compliance guardrail (used for training/document/legal topics).
+ */
+export function buildSystemPrompt(kind: AgentKind, opts?: { legal?: boolean }): string {
   const body: Record<AgentKind, string> = {
     lead: LEAD_SYSTEM,
     training: TRAINING_SYSTEM,
     document: DOCUMENT_SYSTEM,
     support: SUPPORT_SYSTEM,
   }
-  return `${CORE_PERSONA}\n\n${body[kind]}${CONFIDENTIALITY_GUARD}`
+  const guard = opts?.legal ? LEGAL_COMPLIANCE_GUARD : ''
+  return `${CORE_PERSONA}\n\n${body[kind]}${CONFIDENTIALITY_GUARD}${guard}`
 }
 
 /** Lead agent — qualify and prioritize buyer/seller leads. */
