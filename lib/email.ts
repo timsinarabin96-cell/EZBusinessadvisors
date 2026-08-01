@@ -41,6 +41,7 @@ export type EmailKind =
   | 'social_post_success'
   | 'social_post_failure'
   | 'due_diligence_reminder'
+  | 'password_reset'
   | 'generic'
 
 export interface EmailOptions {
@@ -156,6 +157,15 @@ export const emailTemplates = {
     return { subject, html: shell(subject, body, { label: 'Open due diligence', href: `${APP_URL}/due-diligence` }) }
   },
 
+  passwordReset() {
+    const subject = 'Reset your CONCORD password'
+    const body = `
+      <p>We received a request to reset your password for your CONCORD Deal Platform account.</p>
+      <p>If this was you, click the button below to choose a new password. This link is valid for a limited time.</p>
+      <p style="font-size:13px;color:#8a8678;">If you didn't request this, you can safely ignore this email — your password will not change.</p>`
+    return { subject, html: shell(subject, body) }
+  },
+
   generic(opts: { title: string; message: string }) {
     const subject = opts.title
     return { subject, html: shell(opts.title, `<p>${esc(opts.message)}</p>`) }
@@ -265,6 +275,7 @@ export async function notify(
     case 'social_post_success': built = emailTemplates.socialPostSuccess(payload); break
     case 'social_post_failure': built = emailTemplates.socialPostFailure(payload); break
     case 'due_diligence_reminder': built = emailTemplates.dueDiligenceReminder(payload); break
+    case 'password_reset': built = emailTemplates.passwordReset(); break
     case 'generic': built = emailTemplates.generic({ title: payload.title || 'Notification', message: payload.message || '' }); break
   }
   return sendEmail({ to, subject: built.subject, html: built.html, kind, meta: payload })

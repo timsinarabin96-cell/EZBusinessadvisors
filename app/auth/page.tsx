@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -66,7 +67,7 @@ export default function AuthPage() {
           />
         </div>
         
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '8px' }}>
           <label style={{ display: 'block', marginBottom: '4px' }}>Password</label>
           <input
             type="password"
@@ -76,6 +77,12 @@ export default function AuthPage() {
             required
             minLength={6}
           />
+        </div>
+
+        <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+          <Link href="/auth/forgot-password" style={{ fontSize: '13px', color: '#3b82f6', textDecoration: 'none' }}>
+            Forgot Password?
+          </Link>
         </div>
 
         <button
