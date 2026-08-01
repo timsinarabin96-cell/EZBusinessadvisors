@@ -117,10 +117,15 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   // Document analysis and lead scoring benefit from the larger model; the rest
   // run fast/cheap on haiku. json mode forces the lead agent to output score JSON.
+  //
+  // Legal-compliance: the DOCUMENT and TRAINING agents regularly touch real-estate
+  // transfers, licensed-activity disclosures, and drafted legal language, so they
+  // get the state-aware legal guardrail auto-appended. Lead/support stay lean.
   const model: ClaudeModelName =
     agent === 'document' ? CLAUDE_MODELS.flagship : CLAUDE_MODELS.fast
 
-  const system = buildSystemPrompt(agent)
+  const legal = agent === 'document' || agent === 'training'
+  const system = buildSystemPrompt(agent, { legal })
 
   // Normalize history into the client's expected (user/assistant) shape,
   // appended after the message as the live instruction.
