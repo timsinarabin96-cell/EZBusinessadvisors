@@ -55,8 +55,14 @@ export async function POST(req: Request) {
 /** GET /api/email/send?preview=<kind> — returns a rendered template for preview. */
 export async function GET(req: Request) {
   const url = new URL(req.url)
-  const kind = (url.searchParams.get('preview') || 'generic') as EmailKind
-  const t = (emailTemplates as any)[kind]
+  const inputKind = (url.searchParams.get('preview') || 'generic') as EmailKind
+  // emailTemplates uses camelCase keys; kinds use snake_case.
+  const camel =
+    inputKind
+      .split('_')
+      .map((seg, i) => (i === 0 ? seg : seg[0]?.toUpperCase() + seg.slice(1)))
+      .join('')
+  const t = (emailTemplates as any)[camel]
   if (!t || typeof t !== 'function') {
     return NextResponse.json({ ok: false, error: 'Unknown template kind' }, { status: 400 })
   }

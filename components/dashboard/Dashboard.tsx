@@ -8,6 +8,8 @@ import {
   fetchDashboardStats, fetchPipelineFunnel, fetchRecentActivity, fetchUpcomingTasks,
 } from '@/lib/dashboard'
 import { Card, CardHeader, StatCard, LoadingState } from '@/components/ui'
+import LiveFeed from '@/components/dashboard/LiveFeed'
+import { useRealtimeListener } from '@/lib/realtime'
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -31,15 +33,28 @@ export default function Dashboard() {
     })()
   }, [])
 
+  // Realtime refresh — when deals/leads/listings change, re-pull stats.
+  const refresh = () => {
+    fetchDashboardStats().then(setStats).catch(() => {})
+    fetchPipelineFunnel().then(setFunnel).catch(() => {})
+  }
+  useRealtimeListener('deals', refresh)
+  useRealtimeListener('seller_leads', refresh)
+  useRealtimeListener('buyer_leads', refresh)
+  useRealtimeListener('listings', refresh)
+
   if (loading) return <LoadingState label="Loading dashboard..." />
 
   return (
     <div>
-      <header style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 26 }}>Dashboard</h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>
-          Concord Deal Platform overview — {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-        </p>
+      <header style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 26 }}>Dashboard</h1>
+          <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>
+            Concord Deal Platform overview — {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+        </div>
+        <LiveFeed />
       </header>
 
       {/* Stat cards */}
