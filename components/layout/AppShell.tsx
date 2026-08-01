@@ -23,6 +23,7 @@ const NAV = [
   { href: '/billing', label: 'Billing', icon: '💳' },
   { href: '/sync', label: 'BizBuySell', icon: '🔄' },
   { href: '/dashboard/social', label: 'Social Media', icon: '📣' },
+  { href: '/dashboard/newspaper', label: 'Weekly Newspaper', icon: '📰' },
   { href: '/dashboard/training', label: 'Training', icon: '🎓' },
   { href: '/dashboard/agents', label: 'Agents', icon: '🤖' },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
