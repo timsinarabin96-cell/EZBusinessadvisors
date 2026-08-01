@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ToastProvider } from '@/components/ui/Toast'
+import SearchBar from '@/components/search/SearchBar'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
@@ -13,6 +14,7 @@ const NAV = [
   { href: '/cim', label: 'CIM Generator', icon: '📑' },
   { href: '/bov', label: 'BOV Generator', icon: '⚖️' },
   { href: '/leads', label: 'Lead Management', icon: '🎯' },
+  { href: '/dashboard/search', label: 'Search', icon: '🔍' },
   { href: '/documents', label: 'Documents', icon: '📁' },
   { href: '/due-diligence', label: 'Due Diligence', icon: '🔍' },
   { href: '/agencies', label: 'Agency Admin', icon: '🏛️' },
@@ -116,8 +118,16 @@ export default function AppShell({
         </aside>
 
         {/* Main */}
-        <main style={{ flex: 1, minWidth: 0, padding: '32px 40px' }}>
-          {children}
+        <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          {/* Top header with global search */}
+          <div style={{ padding: '14px 40px', borderBottom: '1px solid var(--line)', background: '#fff', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ width: '100%', maxWidth: 420 }}>
+              <SearchBar backdrop />
+            </div>
+          </div>
+          <div style={{ padding: '32px 40px' }}>
+            {children}
+          </div>
         </main>
       </div>
     </ToastProvider>
