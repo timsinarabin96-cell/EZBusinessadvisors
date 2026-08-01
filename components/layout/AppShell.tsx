@@ -29,6 +29,9 @@ const NAV = [
   { href: '/dashboard/social', label: 'Social Media', icon: '📣' },
   { href: '/dashboard/newspaper', label: 'Weekly Newspaper', icon: '📰' },
   { href: '/dashboard/training', label: 'Training', icon: '🎓' },
+  { href: '/dashboard/onboarding', label: 'Onboarding', icon: '🚀' },
+  { href: '/dashboard/certificates', label: 'Certificates', icon: '🏆' },
+  { href: '/dashboard/certified-brokers', label: 'Certified Brokers', icon: '🎖️' },
   { href: '/dashboard/agents', label: 'Agents', icon: '🤖' },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
 ]

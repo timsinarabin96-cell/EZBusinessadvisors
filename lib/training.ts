@@ -62,6 +62,10 @@ export interface TrainingCertificate {
   module_id: string
   certificate_url: string | null
   issued_at: string | null
+  verification_code?: string | null
+  verified_at?: string | null
+  template?: string
+  certificate_key?: string | null
 }
 
 export interface TrainingUpload {
@@ -161,14 +165,30 @@ export async function fetchCertificates(brokerId: string): Promise<TrainingCerti
   return (data as TrainingCertificate[]) || []
 }
 
-export async function saveCertificate(brokerId: string, moduleId: string, certUrl?: string) {
+// Generate a short, human-readable verification code + a base64 payload for QR.
+function makeVerificationPayload(brokerId: string, moduleId: string, issuedAt: string) {
+  const code = Array.from({ length: 8 }, () =>
+    'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]
+  ).join('')
+  const key = Buffer.from(
+    JSON.stringify({ broker: brokerId, module: moduleId, issued: issuedAt, code })
+  ).toString('base64')
+  return { code, key }
+}
+
+export async function saveCertificate(brokerId: string, moduleId: string, certUrl?: string, template = 'gold') {
+  const issuedAt = new Date().toISOString()
+  const { code, key } = makeVerificationPayload(brokerId, moduleId, issuedAt)
   const { data, error } = await supabase
     .from('training_certificates')
     .upsert({
       broker_id: brokerId,
       module_id: moduleId,
       certificate_url: certUrl ?? null,
-      issued_at: new Date().toISOString(),
+      issued_at: issuedAt,
+      verification_code: code,
+      certificate_key: key,
+      template,
     }, { onConflict: 'broker_id,module_id' })
     .select()
     .single()
@@ -176,10 +196,11 @@ export async function saveCertificate(brokerId: string, moduleId: string, certUr
   return data
 }
 
-// Helper: if all lessons in a module are complete, issue a certificate
-export async function ensureModuleCertificate(brokerId: string, module: TrainingModule, lessons: TrainingLesson[], progress: TrainingProgress[]) {
-  if (!lessonModuleComplete(lessons, progress)) return
-  await saveCertificate(brokerId, module.id)
+// Helper: if all lessons in a module are complete, issue a certificate.
+// Returns the resulting TrainingCertificate (or null if not yet complete).
+export async function ensureModuleCertificate(brokerId: string, module: TrainingModule, lessons: TrainingLesson[], progress: TrainingProgress[], template = 'gold') {
+  if (!lessonModuleComplete(lessons, progress)) return null
+  return (await saveCertificate(brokerId, module.id, undefined, template)) as TrainingCertificate
 }
 
 export function lessonModuleComplete(lessons: TrainingLesson[], progress: TrainingProgress[]): boolean {
@@ -207,4 +228,54 @@ export async function createUpload(input: { broker_id: string; title: string; fi
   }).select().single()
   if (error) throw new Error(error.message || 'Failed to upload')
   return data
+}
+
+// --- Certificate verification ---
+export interface CertificateVerification {
+  valid: boolean
+  reason?: string
+  certificate?: TrainingCertificate & { broker_name?: string | null; broker_email?: string | null; module_title?: string | null }
+}
+
+// Look up a certificate by its human-readable verification code.
+export async function verifyCertificateByCode(code: string): Promise<CertificateVerification> {
+  const { data, error } = await supabase
+    .from('training_certificates')
+    .select('*, profiles(full_name, email), training_modules(title)')
+    .eq('verification_code', code)
+    .maybeSingle()
+  if (error) throw new Error(error.message || 'Failed to verify certificate')
+  if (!data || !data.id) return { valid: false, reason: 'No certificate matches this code.' }
+  const cert = data as TrainingCertificate & {
+    profiles?: { full_name: string | null; email: string | null } | null
+    training_modules?: { title: string | null } | null
+  }
+  return {
+    valid: true,
+    certificate: {
+      ...cert,
+      broker_name: cert.profiles?.full_name ?? null,
+      broker_email: cert.profiles?.email ?? null,
+      module_title: cert.training_modules?.title ?? null,
+    },
+  }
+}
+
+// --- Certified brokers roster (via the certified_brokers view) ---
+export interface CertifiedBroker {
+  broker_id: string
+  full_name: string | null
+  email: string | null
+  avatar_url: string | null
+  modules_certified: number
+  last_certified_at: string | null
+}
+
+export async function fetchCertifiedBrokers(): Promise<CertifiedBroker[]> {
+  const { data, error } = await supabase
+    .from('certified_brokers')
+    .select('*')
+    .order('modules_certified', { ascending: false })
+  if (error) throw new Error(error.message || 'Failed to load certified brokers')
+  return (data as CertifiedBroker[]) || []
 }

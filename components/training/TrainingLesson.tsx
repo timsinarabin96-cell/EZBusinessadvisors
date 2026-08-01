@@ -46,9 +46,31 @@ export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: s
     try {
       const brokerId = getBrokerId()
       await markLessonComplete(brokerId, lesson.id, score >= 80 ? 5 : 4)
-      const lessons = await import('@/lib/training').then((m) => m.fetchLessons(lesson.module_id))
-      const prog = await import('@/lib/training').then((m) => m.fetchProgress(brokerId))
-      if (module) await ensureModuleCertificate(brokerId, module, lessons, prog)
+      const m = await import('@/lib/training')
+      const lessons = await m.fetchLessons(lesson.module_id)
+      const prog = await m.fetchProgress(brokerId)
+      const brokerName = (window.localStorage.getItem('concord_broker_name') || '').trim()
+      const brokerEmail = (window.localStorage.getItem('concord_broker_email') || '').trim()
+
+      // If this lesson completes the module, issue the certificate server-side
+      // (writes with service role + fires the certificate email + QR code).
+      if (m.lessonModuleComplete(lessons, prog)) {
+        const res = await fetch('/api/certificates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            brokerId,
+            moduleId: module?.id || lesson.module_id,
+            moduleTitle: module?.title || undefined,
+            brokerName: brokerName || undefined,
+            brokerEmail: brokerEmail || undefined,
+          }),
+        })
+        await res.json()
+      } else {
+        // keep the old inline record as a fallback if the API is unavailable
+        if (module) await m.ensureModuleCertificate(brokerId, module, lessons, prog)
+      }
       toast(score >= 80 ? 'Lesson complete — great score! 🎉' : 'Lesson saved. Retake quiz to score 80%+ for a better rating.', 'success')
     } catch (e) {
       toast('Failed to save progress: ' + (e as Error).message, 'error')
