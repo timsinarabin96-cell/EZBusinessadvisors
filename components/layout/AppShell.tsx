@@ -18,6 +18,7 @@ const NAV = [
   { href: '/dashboard/search', label: 'Search', icon: '🔍' },
   { href: '/documents', label: 'Documents', icon: '📁' },
   { href: '/due-diligence', label: 'Due Diligence', icon: '🔍' },
+  { href: '/dashboard/portal', label: 'Client Portal', icon: '👥' },
   { href: '/agencies', label: 'Agency Admin', icon: '🏛️' },
   { href: '/billing', label: 'Billing', icon: '💳' },
   { href: '/sync', label: 'BizBuySell', icon: '🔄' },
