@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Listing } from '@/lib/listings'
 import { fmt$ } from '@/lib/recast'
 
-/** Card for public listing marketplace. */
+/** Card for public listing marketplace. Uses next/image for optimized AVIF/WebP delivery. */
 export default function PublicListingCard({ listing }: { listing: Listing }) {
   const img = listing.primary_image_url || listing.featured_image_url
   return (
@@ -14,7 +15,13 @@ export default function PublicListingCard({ listing }: { listing: Listing }) {
     >
       <div style={{ height: 180, background: '#1a1a2e', position: 'relative', overflow: 'hidden' }}>
         {img ? (
-          <img src={img} alt={listing.business_name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <Image
+            src={img}
+            alt={listing.business_name || ''}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            style={{ objectFit: 'cover' }}
+          />
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(201,168,76,0.5)', fontSize: 40 }}>🏢</div>
         )}
