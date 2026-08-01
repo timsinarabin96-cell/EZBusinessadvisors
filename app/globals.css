@@ -15,6 +15,7 @@
   --line: #e5e0d3;
   --text: #2b2b3a;
   --muted: #7a7a8a;
+  --muted-2: #a0a0ad;
 }
 
 * { box-sizing: border-box; }

@@ -8,6 +8,7 @@ import SearchBar from '@/components/search/SearchBar'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: '📈' },
   { href: '/pipeline', label: 'Deal Pipeline', icon: '🔄' },
   { href: '/listings', label: 'Listings', icon: '🏢' },
   { href: '/recast', label: 'Financial Recast', icon: '📊' },
