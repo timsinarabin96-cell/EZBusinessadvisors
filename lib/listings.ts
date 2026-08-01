@@ -34,7 +34,7 @@ export interface Listing {
 
 export type ListingInput = Partial<Omit<Listing, 'id' | 'created_at' | 'updated_at'>>
 
-export const LISTING_STATUSES = ['active', 'under_contract', 'sold', 'off_market', 'draft']
+export const LISTING_STATUSES = ['draft', 'active', 'pending_sale', 'under_contract', 'sold', 'withdrawn']
 
 export async function fetchListings(status?: string): Promise<Listing[]> {
   let query = supabase.from('listings').select('*')
