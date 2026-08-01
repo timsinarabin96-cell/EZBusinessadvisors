@@ -17,6 +17,15 @@ export interface Agency {
   about: string | null
   is_active: boolean | null
   created_at?: string | null
+  // Trial / plan lifecycle (added by multi_tenant_schema.sql)
+  trial_start_date?: string | null
+  trial_end_date?: string | null
+  trial_active?: boolean | null
+  paid_plan_active?: boolean | null
+  plan_type?: string | null
+  grace_end_date?: string | null
+  locked_at?: string | null
+  archive_at?: string | null
 }
 
 export type AgencyRole = 'admin' | 'broker' | 'associate'
