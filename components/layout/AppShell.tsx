@@ -33,6 +33,7 @@ const NAV = [
   { href: '/dashboard/certificates', label: 'Certificates', icon: '🏆' },
   { href: '/dashboard/certified-brokers', label: 'Certified Brokers', icon: '🎖️' },
   { href: '/dashboard/agents', label: 'Agents', icon: '🤖' },
+  { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️' },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
 ]
 
