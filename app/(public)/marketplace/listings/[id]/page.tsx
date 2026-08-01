@@ -25,6 +25,30 @@ export default function ListingDetailPage({ params }: { params: { id: string } }
     }).catch((e) => { setLoading(false) })
   }, [params.id])
 
+  useEffect(() => {
+    const el = document.querySelector('#ld-listing')
+    if (el) el.remove()
+    if (!listing) return
+    const obj = {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: listing.business_name,
+      description: listing.headline || undefined,
+      image: listing.primary_image_url || undefined,
+      priceRange: listing.asking_price ? `$${listing.asking_price.toLocaleString()}` : undefined,
+      address: listing.location_general ? {
+        '@type': 'PostalAddress',
+        addressRegion: listing.location_general,
+      } : undefined,
+    }
+    const s = document.createElement('script')
+    s.type = 'application/ld+json'
+    s.id = 'ld-listing'
+    s.text = JSON.stringify(obj)
+    document.head.appendChild(s)
+    return () => { const e2 = document.querySelector('#ld-listing'); if (e2) e2.remove() }
+  }, [listing])
+
   if (loading) return <LoadingState label="Loading listing..." />
 
   if (!listing) {

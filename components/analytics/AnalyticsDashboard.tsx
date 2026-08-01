@@ -20,6 +20,7 @@ import {
 } from '@/lib/analytics'
 import { Card, CardHeader, StatCard, LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
+import { exportAnalyticsPdf } from '@/lib/analyticsPdf'
 
 const COLORS = ['#0b1f3a', '#c9a84c', '#3b82f6', '#8b5cf6', '#06b6d4', '#f59e0b']
 
@@ -74,6 +75,17 @@ export default function AnalyticsDashboard() {
     downloadCSV('lead-funnel.csv', toCSV(['Stage', 'Count', '%'], funnel.map((f) => [f.stage, f.count, `${f.pct}%`])))
     toast('Lead funnel CSV downloaded', 'success')
   }
+  const exportPDF = () => {
+    try {
+      exportAnalyticsPdf({
+        overview, pipelineValue, funnel, brokers, revenue, comparison, compareMode,
+        generatedAt: new Date(),
+      })
+      toast('Analytics report PDF downloaded', 'success')
+    } catch {
+      toast('PDF export failed', 'error')
+    }
+  }
 
   if (loading) return <LoadingState label="Crunching analytics…" />
 
@@ -127,8 +139,9 @@ export default function AnalyticsDashboard() {
             <ExportBtn onClick={exportRevenueCSV} label="Revenue" />
             <ExportBtn onClick={exportBrokerCSV} label="Brokers" />
             <ExportBtn onClick={exportLeadFunnelCSV} label="Funnel" />
+            <ExportBtn onClick={exportPDF} label="PDF" gold />
           </div>
-          <span style={{ fontSize: 12, color: 'var(--muted-2)' }}>CSV export</span>
+          <span style={{ fontSize: 12, color: 'var(--muted-2)' }}>CSV + PDF export</span>
         </div>
       </Card>
 
@@ -261,9 +274,16 @@ function EmptyBox({ label }: { label: string }) {
   return <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: 20 }}>{label}</div>
 }
 
-function ExportBtn({ onClick, label }: { onClick: () => void; label: string }) {
+function ExportBtn({ onClick, label, gold }: { onClick: () => void; label: string; gold?: boolean }) {
   return (
-    <button onClick={onClick} style={{ padding: '7px 12px', border: '1px solid var(--gold)', background: 'transparent', color: 'var(--navy)', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
+    <button
+      onClick={onClick}
+      style={
+        gold
+          ? { padding: '7px 12px', border: '1px solid var(--navy)', background: 'var(--navy)', color: '#fff', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 700 }
+          : { padding: '7px 12px', border: '1px solid var(--gold)', background: 'transparent', color: 'var(--navy)', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }
+      }
+    >
       {label} ⤓
     </button>
   )
