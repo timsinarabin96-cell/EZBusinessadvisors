@@ -9,6 +9,7 @@
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
+import { createServerClient } from '@/lib/supabase/server'
 import type { AgentContextPayload, AgentKind } from '@/types/ai'
 
 // Reused type shapes (kept local to avoid pulling UI-heavy libs into this module).
@@ -77,11 +78,15 @@ async function getListingDocs(listingId: string): Promise<string[]> {
     .filter(Boolean)
 }
 
-/** Fetch all published training modules + their lessons (non-published filtered). */
+/** Fetch all published training modules + their lessons (non-published filtered).
+ * Uses the server (service-role) client so curriculum stays readable even
+ * though the tables only grant `for select to authenticated` (RLS). The agent
+ * route runs server-side, so the service key never reaches the browser. */
 async function getTrainingLibrary(): Promise<{ modules: TrainingModuleRow[]; lessons: TrainingLessonRow[] }> {
+  const db = createServerClient() ?? supabase
   const [mRes, lRes] = await Promise.all([
-    supabase.from('training_modules').select('*').order('order', { ascending: true }),
-    supabase.from('training_lessons').select('*'),
+    db.from('training_modules').select('*').order('order', { ascending: true }),
+    db.from('training_lessons').select('*'),
   ])
   const modules = ((mRes.data as TrainingModuleRow[]) || []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   const lessons = ((lRes.data as TrainingLessonRow[]) || [])

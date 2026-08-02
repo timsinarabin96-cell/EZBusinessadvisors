@@ -80,53 +80,41 @@ export interface TrainingUpload {
 
 // --- Modules + lessons ---
 export async function fetchModules(): Promise<TrainingModule[]> {
-  const { data, error } = await supabase
-    .from('training_modules')
-    .select('*')
-    .eq('is_published', true)
-    .order('order', { ascending: true })
-  if (error) throw new Error(error.message || 'Failed to load training modules')
-  return (data as TrainingModule[]) || []
+  // Server-side route uses the service-role client to bypass RLS (training
+  // content is `select to authenticated` only). Never hit the anon client here.
+  const res = await fetch('/api/training')
+  if (!res.ok) throw new Error('Failed to load training modules')
+  const json = await res.json()
+  return (json.modules as TrainingModule[]) || []
 }
 
 export async function fetchModule(id: string): Promise<TrainingModule | null> {
-  const { data, error } = await supabase
-    .from('training_modules')
-    .select('*')
-    .eq('id', id)
-    .single()
-  if (error) return null
-  return (data as TrainingModule) || null
+  const res = await fetch(`/api/training?id=${encodeURIComponent(id)}`)
+  if (!res.ok) return null
+  const json = await res.json()
+  return (json.modules?.[0] as TrainingModule) || null
 }
 
 export async function fetchLessons(moduleId: string): Promise<TrainingLesson[]> {
-  const { data, error } = await supabase
-    .from('training_lessons')
-    .select('*')
-    .eq('module_id', moduleId)
-    .eq('is_published', true)
-    .order('order', { ascending: true })
-  if (error) throw new Error(error.message || 'Failed to load lessons')
-  return (data as TrainingLesson[]) || []
+  const res = await fetch(`/api/training?module=${encodeURIComponent(moduleId)}&include=lessons`)
+  if (!res.ok) return []
+  const json = await res.json()
+  const mod = json.modules?.[0]
+  return (mod?.lessons as TrainingLesson[]) || []
 }
 
 export async function fetchLesson(id: string): Promise<TrainingLesson | null> {
-  const { data, error } = await supabase
-    .from('training_lessons')
-    .select('*')
-    .eq('id', id)
-    .single()
-  if (error) return null
-  return (data as TrainingLesson) || null
+  const res = await fetch(`/api/training?lesson=${encodeURIComponent(id)}`)
+  if (!res.ok) return null
+  const json = await res.json()
+  return (json.lesson as TrainingLesson) || null
 }
 
 export async function fetchQuiz(lessonId: string): Promise<QuizQuestion[]> {
-  const { data, error } = await supabase
-    .from('training_quiz_questions')
-    .select('*')
-    .eq('lesson_id', lessonId)
-  if (error) throw new Error(error.message || 'Failed to load quiz')
-  return (data as QuizQuestion[]) || []
+  const res = await fetch(`/api/training?quiz=${encodeURIComponent(lessonId)}`)
+  if (!res.ok) return []
+  const json = await res.json()
+  return (json.quizQuestions as QuizQuestion[]) || []
 }
 
 // --- Progress ---
