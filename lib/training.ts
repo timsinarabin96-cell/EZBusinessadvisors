@@ -118,12 +118,17 @@ export async function fetchQuiz(lessonId: string): Promise<QuizQuestion[]> {
 }
 
 // --- Progress ---
+// Read helpers return empty results on RLS/permission errors rather than
+// throwing, so a stale/expired session never blanks out a training page.
 export async function fetchProgress(brokerId: string): Promise<TrainingProgress[]> {
   const { data, error } = await supabase
     .from('training_progress')
     .select('*')
     .eq('broker_id', brokerId)
-  if (error) throw new Error(error.message || 'Failed to load progress')
+  if (error) {
+    console.warn('fetchProgress failed (non-fatal):', error.message)
+    return []
+  }
   return (data as TrainingProgress[]) || []
 }
 
@@ -149,7 +154,10 @@ export async function fetchCertificates(brokerId: string): Promise<TrainingCerti
     .from('training_certificates')
     .select('*')
     .eq('broker_id', brokerId)
-  if (error) throw new Error(error.message || 'Failed to load certificates')
+  if (error) {
+    console.warn('fetchCertificates failed (non-fatal):', error.message)
+    return []
+  }
   return (data as TrainingCertificate[]) || []
 }
 
@@ -202,7 +210,10 @@ export async function fetchUploads(brokerId?: string): Promise<TrainingUpload[]>
   let q = supabase.from('training_uploads').select('*').order('uploaded_at', { ascending: false })
   if (brokerId) q = q.eq('broker_id', brokerId)
   const { data, error } = await q
-  if (error) throw new Error(error.message || 'Failed to load uploads')
+  if (error) {
+    console.warn('fetchUploads failed (non-fatal):', error.message)
+    return []
+  }
   return (data as TrainingUpload[]) || []
 }
 

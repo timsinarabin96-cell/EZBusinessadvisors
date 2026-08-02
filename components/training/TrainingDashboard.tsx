@@ -18,15 +18,31 @@ export default function TrainingDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const [m, p, c, u] = await Promise.all([
-          fetchModules(), fetchProgress(getBrokerId()), fetchCertificates(getBrokerId()), fetchUploads(),
-        ])
-        setModules(m); setProgress(p); setCerts(c); setUploads(u)
+        // Load modules INDEPENDENTLY of the aux calls so the module grid
+        // always renders even if progress/certs/uploads fail (they hit the
+        // anon client + RLS and can throw when the session is stale). If any
+        // sibling Promise rejects, Promise.all discards ALL results including
+        // the 10 modules — that was the root cause of the blank dashboard.
+        const m = await fetchModules()
+        setModules(m)
       } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
+        console.error('Failed to load modules:', e)
+        setModules([])
       }
+      setLoading(false)
+
+      const safe = <T,>(p: Promise<T>, fallback: T) => p.catch((e) => {
+        console.warn('Aux training fetch failed (non-fatal):', e)
+        return fallback
+      })
+      const [p, c, u] = await Promise.all([
+        safe(fetchProgress(getBrokerId()), []),
+        safe(fetchCertificates(getBrokerId()), []),
+        safe(fetchUploads(), []),
+      ])
+      setProgress(p)
+      setCerts(c)
+      setUploads(u)
     })()
   }, [])
 

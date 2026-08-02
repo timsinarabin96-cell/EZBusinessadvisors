@@ -20,20 +20,30 @@ export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: s
 
   useEffect(() => {
     (async () => {
+      const brokerId = getBrokerId()
+      // Load the lesson (+ quiz) independently so the RLS-affected anon
+      // progress fetch can't blank out the whole page when it fails.
+      let l: TrainingLesson | null = null
+      let q: QuizQuestion[] = []
       try {
-        const brokerId = getBrokerId()
-        const [l, q, p] = await Promise.all([fetchLesson(lessonId), fetchQuiz(lessonId), fetchProgress(brokerId)])
-        setLesson(l); setQuiz(q); setProgress(p)
-        if (l) {
-          // prefetch module for certificate issuance later
-          const mod = await import('@/lib/training').then((m) => m.fetchModule(l.module_id))
-          setModule(mod)
-        }
+        ;[l, q] = await Promise.all([fetchLesson(lessonId), fetchQuiz(lessonId)])
       } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
+        console.error('Failed to load lesson/quiz:', e)
       }
+
+      const safe = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
+        p.catch((e) => { console.warn('Aux lesson fetch failed (non-fatal):', e); return fallback })
+      const [p] = await Promise.all([safe(fetchProgress(brokerId), [])])
+
+      setLesson(l)
+      setQuiz(q)
+      setProgress(p)
+      if (l) {
+        // prefetch module for certificate issuance later
+        const mod = await import('@/lib/training').then((m) => m.fetchModule(l.module_id))
+        setModule(mod)
+      }
+      setLoading(false)
     })()
   }, [lessonId])
 

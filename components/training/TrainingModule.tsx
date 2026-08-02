@@ -21,21 +21,30 @@ export default function TrainingModule({ moduleId }: { moduleId: string }) {
 
   useEffect(() => {
     (async () => {
+      const brokerId = getBrokerId()
+      // Load module + lessons independently so RLS-affected progress/cert
+      // fetches (anon client) can't blank out the whole page on failure.
+      let m: TrainingModuleType | null = null
+      let l: TrainingLesson[] = []
       try {
-        const brokerId = getBrokerId()
-        const [m, l, p, c] = await Promise.all([
-          fetchModule(moduleId), fetchLessons(moduleId), fetchProgress(brokerId), fetchCertificates(brokerId),
-        ])
-        const completedIds = new Set(p.filter((x) => x.completed).map((x) => x.lesson_id))
-        setModule(m)
-        setLessons(l.map((lesson) => ({ ...lesson, completed: completedIds.has(lesson.id) })))
-        setProgress(p)
-        setCerts(c)
+        ;[m, l] = await Promise.all([fetchModule(moduleId), fetchLessons(moduleId)])
       } catch (e) {
-        console.error(e)
-      } finally {
-        setLoading(false)
+        console.error('Failed to load module/lessons:', e)
       }
+
+      const safe = <T,>(p: Promise<T>, fallback: T): Promise<T> =>
+        p.catch((e) => { console.warn('Aux module fetch failed (non-fatal):', e); return fallback })
+      const [p, c] = await Promise.all([
+        safe(fetchProgress(brokerId), []),
+        safe(fetchCertificates(brokerId), []),
+      ])
+
+      const completedIds = new Set(p.filter((x) => x.completed).map((x) => x.lesson_id))
+      setModule(m)
+      setLessons((l || []).map((lesson) => ({ ...lesson, completed: completedIds.has(lesson.id) })))
+      setProgress(p)
+      setCerts(c)
+      setLoading(false)
     })()
   }, [moduleId])
 
