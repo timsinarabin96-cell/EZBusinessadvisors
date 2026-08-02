@@ -58,6 +58,7 @@ export interface StudioDesignData {
     website: string
     address: string
     body?: string
+    cta?: string
   }
   sides: 'front' | 'back'
   qr: { enabled: boolean; url: string }
