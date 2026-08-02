@@ -32,6 +32,13 @@ export interface UnifiedLead {
   phone: string | null
   status: string
   created_at?: string | null
+  // Buyer-lead enrichment (financials + desired business type)
+  desired_business_type?: string | null
+  budget_range?: string | null
+  funds_available?: number | null
+  financing_method?: string | null
+  preferred_location?: string | null
+  notes?: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -75,9 +82,126 @@ export async function fetchAllLeads(): Promise<UnifiedLead[]> {
   return rows
 }
 
-// ---------------------------------------------------------------------------
-// Create / Update / Delete (per kind)
-// ---------------------------------------------------------------------------
+// Curated list of common business types for buyer leads.
+export const BUSINESS_TYPES = [
+  'Retail', 'Restaurant / Food Service', 'Home Health', 'Medical / Dental',
+  'Manufacturing', 'Professional Services', 'Construction', 'Automotive',
+  'Real Estate / Property', 'Technology / IT', 'Cleaning / Janitorial',
+  'Distribution / Wholesale', 'Fitness / Wellness', 'Beauty / Salon',
+  'Transportation / Logistics', 'E-commerce', 'Other',
+]
+
+export async function fetchBuyerLeads(): Promise<UnifiedLead[]> {
+  const { data, error } = await supabase
+    .from('buyer_leads')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) {
+    console.error('fetchBuyerLeads error:', error)
+    return []
+  }
+  return (data || []).map((r) => ({
+    kind: 'buyer' as LeadKind, id: r.id, business_name: null,
+    email: r.email, phone: r.phone, status: r.status || 'new', created_at: r.created_at,
+    desired_business_type: r.desired_business_type || null,
+    budget_range: r.budget_range || null,
+    funds_available: r.funds_available ?? null,
+    financing_method: r.financing_method || null,
+    preferred_location: r.preferred_location || null,
+    notes: r.notes || null,
+  }))
+}
+
+// --- Match buyer leads to a listing by business type ------------------
+// Returns buyer leads whose desired business type overlaps the listing's
+// industry (fuzzy: both directions contain, plus keyword token overlap).
+// Normalizes common short forms (e.g. "restaurant" vs "food service").
+const TYPE_SYNONYMS: Record<string, string[]> = {
+  restaurant: ['restaurant', 'food', 'food service', 'cafe', 'bar', 'diner', 'catering'],
+  'home health': ['home health', 'homecare', 'home care', 'healthcare', 'nursing'],
+  medical: ['medical', 'dental', 'clinic', 'doctor', 'healthcare'],
+  retail: ['retail', 'store', 'shop', 'boutique', 'convenience'],
+  manufacturing: ['manufacturing', 'factory', 'production', 'plant'],
+}
+function typeTokens(t?: string | null): string[] {
+  const raw = (t || '').toLowerCase()
+  const out = new Set<string>()
+  for (const [key, syns] of Object.entries(TYPE_SYNONYMS)) {
+    if (syns.some((s) => raw.includes(s)) || raw.includes(key)) {
+      syns.forEach((s) => out.add(s))
+      out.add(key)
+    }
+  }
+  raw.split(/[^a-z0-9]+/).filter(Boolean).forEach((w) => out.add(w))
+  return [...out]
+}
+function typesOverlap(a?: string | null, b?: string | null): boolean {
+  if (!a || !b) return false
+  const ta = typeTokens(a)
+  const tb = typeTokens(b)
+  return ta.some((x) => tb.includes(x))
+}
+
+export async function matchBuyerLeads(listingIndustry?: string | null): Promise<UnifiedLead[]> {
+  const leads = await fetchBuyerLeads()
+  if (!listingIndustry) return []
+  return leads.filter((l) => typesOverlap(l.desired_business_type, listingIndustry))
+}
+
+export async function createBuyerLead(input: {
+  email?: string; phone?: string; status?: LeadStatus
+  desired_business_type?: string; budget_range?: string; funds_available?: number
+  financing_method?: string; preferred_location?: string; notes?: string
+}): Promise<UnifiedLead> {
+  const payload: Record<string, unknown> = {
+    email: input.email || null,
+    phone: input.phone || null,
+    status: input.status || 'new',
+    desired_business_type: input.desired_business_type || null,
+    budget_range: input.budget_range || null,
+    funds_available: input.funds_available ?? null,
+    financing_method: input.financing_method || null,
+    preferred_location: input.preferred_location || null,
+    notes: input.notes || null,
+  }
+  const { data, error } = await supabase.from('buyer_leads').insert(payload).select().single()
+  if (error) {
+    console.error('createBuyerLead error:', error)
+    throw new Error(error.message || 'Failed to create buyer lead')
+  }
+  return {
+    kind: 'buyer', id: data.id, business_name: null,
+    email: data.email, phone: data.phone, status: data.status || 'new', created_at: data.created_at,
+    desired_business_type: data.desired_business_type, budget_range: data.budget_range,
+    funds_available: data.funds_available, financing_method: data.financing_method,
+    preferred_location: data.preferred_location, notes: data.notes,
+  }
+}
+
+export async function updateBuyerLead(id: string, input: Partial<Parameters<typeof createBuyerLead>[0]>): Promise<UnifiedLead> {
+  const payload: Record<string, unknown> = {}
+  if (input.email !== undefined) payload.email = input.email || null
+  if (input.phone !== undefined) payload.phone = input.phone || null
+  if (input.status !== undefined) payload.status = input.status
+  if (input.desired_business_type !== undefined) payload.desired_business_type = input.desired_business_type || null
+  if (input.budget_range !== undefined) payload.budget_range = input.budget_range || null
+  if (input.funds_available !== undefined) payload.funds_available = input.funds_available ?? null
+  if (input.financing_method !== undefined) payload.financing_method = input.financing_method || null
+  if (input.preferred_location !== undefined) payload.preferred_location = input.preferred_location || null
+  if (input.notes !== undefined) payload.notes = input.notes || null
+  const { data, error } = await supabase.from('buyer_leads').update(payload).eq('id', id).select().single()
+  if (error) {
+    console.error('updateBuyerLead error:', error)
+    throw new Error(error.message || 'Failed to update buyer lead')
+  }
+  return {
+    kind: 'buyer', id: data.id, business_name: null,
+    email: data.email, phone: data.phone, status: data.status || 'new', created_at: data.created_at,
+    desired_business_type: data.desired_business_type, budget_range: data.budget_range,
+    funds_available: data.funds_available, financing_method: data.financing_method,
+    preferred_location: data.preferred_location, notes: data.notes,
+  }
+}
 export async function createLead(kind: LeadKind, input: {
   business_name?: string; email?: string; phone?: string; status?: LeadStatus
 }): Promise<UnifiedLead> {

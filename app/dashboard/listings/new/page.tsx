@@ -12,6 +12,8 @@ import AppShell from '@/components/layout/AppShell'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { createListing } from '@/lib/listings'
 import { startWorkflow } from '@/lib/workflow'
+import { matchBuyerLeads, UnifiedLead } from '@/lib/leads2'
+import MatchedBuyersModal from '@/components/leads/MatchedBuyersModal'
 
 const numOrNull = (s: string): number | null => (s === '' ? null : Number(s))
 
@@ -35,6 +37,8 @@ function NewListingForm() {
     asking_price: '', annual_revenue: '', sde: '', ebitda: '', reason_for_sale: '',
   })
   const [busy, setBusy] = useState(false)
+  const [matched, setMatched] = useState<UnifiedLead[] | null>(null)
+  const [justCreated, setJustCreated] = useState<any>(null)
 
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -56,12 +60,31 @@ function NewListingForm() {
         reason_for_sale: form.reason_for_sale || null,
         status: 'draft',
       })
+      // Auto-match buyer leads to this listing's industry/business type.
+      const matches = await matchBuyerLeads(form.industry || null)
+      setJustCreated(listing)
+      if (matches.length > 0) {
+        setMatched(matches)
+        return // hold: show the popup before navigating away
+      }
       await startWorkflow(listing.id)
       toast('Listing created — starting workflow')
       router.push(`/dashboard/listings/${listing.id}/workflow`)
     } catch (err: any) {
       toast(err.message || 'Failed to create listing', 'error')
       setBusy(false)
+    }
+  }
+
+  const handleMatchesDone = async (goToWorkflow: boolean) => {
+    if (!justCreated) return
+    setMatched(null)
+    if (goToWorkflow) {
+      try { await startWorkflow(justCreated.id) } catch {}
+      router.push(`/dashboard/listings/${justCreated.id}/workflow`)
+    } else {
+      toast('Listing created')
+      router.push('/dashboard/listings')
     }
   }
 
@@ -104,6 +127,15 @@ function NewListingForm() {
           {busy ? 'Creating…' : 'Create listing & start workflow →'}
         </button>
       </div>
+
+      {/* Auto-matched buyer leads popup */}
+      {matched && justCreated && (
+        <MatchedBuyersModal
+          matches={matched}
+          listingIndustry={form.industry}
+          onDone={handleMatchesDone}
+        />
+      )}
     </div>
   )
 }
