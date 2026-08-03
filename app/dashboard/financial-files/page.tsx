@@ -17,6 +17,11 @@ import OneClickUpload from '@/components/financial/OneClickUpload'
 import AutoGenerationDashboard from '@/components/financial/AutoGenerationDashboard'
 import AllDocumentsView from '@/components/financial/AllDocumentsView'
 import type { AutoGenerateResult } from '@/lib/autoGenerateTypes'
+import UniversalDocumentUpload, { type AnalyzeResponse } from '@/components/financial/UniversalDocumentUpload'
+import FinancialIntelligenceDashboard from '@/components/financial/FinancialIntelligenceDashboard'
+import FinancialSummaryView from '@/components/financial/FinancialSummaryView'
+import type { FinancialIntelligence } from '@/lib/ai/types'
+import type { FinancialSummaryReport } from '@/lib/ai/summaryGenerator'
 import {
   FinancialDoc, fetchFinancialFiles, fetchDealOptions,
   deleteFinancialFile, getUserId, getAccessToken,
@@ -49,6 +54,9 @@ function FinancialFilesDashboard() {
   // Auto-generation state
   const [genResult, setGenResult] = useState<AutoGenerateResult | null>(null)
   const [running, setRunning] = useState(false)
+  // Financial Intelligence state
+  const [intel, setIntel] = useState<FinancialIntelligence | null>(null)
+  const [summary, setSummary] = useState<FinancialSummaryReport | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -153,6 +161,39 @@ function FinancialFilesDashboard() {
           </div>
         ))}
       </div>
+
+      {/* FINANCIAL INTELLIGENCE */}
+      <Card style={{ marginBottom: 22 }}>
+        <CardHeader title="Financial Intelligence (AI)" subtitle="Claude reads ANY financial document — detects type, extracts SDE/EBITDA/add-backs/ratios, and generates a comprehensive summary + dashboard" />
+        <div style={{ padding: 18 }}>
+          <UniversalDocumentUpload
+            onAnalyzed={(r: AnalyzeResponse) => {
+              setIntel(r.intelligence)
+              setSummary(r.report)
+              toast('Financial intelligence generated', 'success')
+              load()
+            }}
+          />
+
+          {intel && (
+            <div style={{ marginTop: 22, borderTop: '1px solid var(--line)', paddingTop: 18 }}>
+              <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: 'var(--navy)', fontSize: 16, marginBottom: 14 }}>
+                📊 Intelligence for {intel.listingName}
+              </div>
+              <FinancialIntelligenceDashboard intel={intel} />
+            </div>
+          )}
+
+          {summary && (
+            <div style={{ marginTop: 22, borderTop: '1px solid var(--line)', paddingTop: 18 }}>
+              <div style={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: 'var(--navy)', fontSize: 16, marginBottom: 14 }}>
+                📄 Comprehensive Financial Summary
+              </div>
+              <FinancialSummaryView report={summary} />
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* AUTO-GENERATE PIPELINE */}
       <Card style={{ marginBottom: 22 }}>

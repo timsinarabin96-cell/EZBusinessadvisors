@@ -17,10 +17,59 @@
 
 import type { Listing } from '@/lib/listings'
 import type { YearFinancials } from '@/lib/recast'
+import type {
+  UniversalDocType,
+  UniversalDocTypeInfo,
+} from '@/lib/ai/types'
+import { UNIVERSAL_DOC_TYPE_INFO } from '@/lib/ai/types'
 import { autoTagCategory, type FinancialCategory, type FinancialDoc } from '@/lib/financialFiles'
 
 // ---------------------------------------------------------------------------
-// 1) File-type detection (mirrors lib/financialFiles auto-tagging)
+// 1) Universal file-type detection — ALL 15+ supported document types.
+//    Client-safe mirror of the server rules in lib/ai/documentAnalyzer.ts so
+//    the upload UI auto-tags before (and agrees with) server-side analysis.
+// ---------------------------------------------------------------------------
+const UNIVERSAL_RULES: { type: UniversalDocType; re: RegExp }[] = [
+  { type: 'tax_return_1040', re: /1040|form\s*1040|individual\s*tax/i },
+  { type: 'tax_return_1120', re: /1120|form\s*1120|corporate\s*tax|1120s|c-corp\s*tax/i },
+  { type: 'tax_return_1065', re: /1065|form\s*1065|partnership\s*tax|llc\s*tax/i },
+  { type: 'tax_return_k1', re: /k-?1|schedule\s*k-?1|partner\s*k-?1/i },
+  { type: 'payroll_report', re: /payroll|941|w-?2/i },
+  { type: 'inventory_report', re: /inventory|stock\s*count|sku/i },
+  { type: 'balance_sheet', re: /balance\s*sheet|statement\s*of\s*financial\s*position/i },
+  { type: 'cash_flow', re: /cash\s*flow|statement\s*of\s*cash/i },
+  { type: 'bank_statement', re: /bank\s*stmnt|bank\s*statement|statement\s*of\s*account|\.qfx|\.ofx/i },
+  { type: 'sales_report', re: /sales\s*report|revenue\s*report|sales\s*by/i },
+  { type: 'ap_report', re: /accounts?\s*payable|ap\s*aging|ap\s*report|payables|ap\s*overview/i },
+  { type: 'ar_report', re: /accounts?\s*receivable|ar\s*report|receivables|aging/i },
+  { type: 'financial_projections', re: /projection|pro\s*forma|financial\s*projection/i },
+  { type: 'budget_report', re: /budget/i },
+  { type: 'forecast_report', re: /forecast/i },
+  { type: 'business_plan', re: /business\s*plan/i },
+  { type: 'executive_summary', re: /executive\s*summary|overview\s*sheet/i },
+  { type: 'pnl', re: /pnl|p&l|profit\s*(and|&)\s*loss|income\s*statement|trial\s*balance/i },
+]
+
+export function detectUniversalDocTypeClient(fileName: string): UniversalDocType {
+  const n = fileName.toLowerCase()
+  for (const r of UNIVERSAL_RULES) if (r.re.test(n)) return r.type
+  if (/tax|return/i.test(n)) return 'tax_return_1120'
+  return 'pnl'
+}
+
+export function universalInfoClient(t: UniversalDocType): UniversalDocTypeInfo {
+  return UNIVERSAL_DOC_TYPE_INFO[t]
+}
+
+// ---------------------------------------------------------------------------
+// 2) Universal doc label group for the dropzone / KPI display.
+// ---------------------------------------------------------------------------
+export const UNIVERSAL_TYPE_SHORT_LABELS: Record<UniversalDocType, string> = Object.fromEntries(
+  (Object.keys(UNIVERSAL_DOC_TYPE_INFO) as UniversalDocType[]).map((t) => [t, UNIVERSAL_DOC_TYPE_INFO[t].short]),
+) as Record<UniversalDocType, string>
+
+// ---------------------------------------------------------------------------
+// 3) File-type detection (mirrors lib/financialFiles auto-tagging)
 // ---------------------------------------------------------------------------
 export interface DetectedFileType {
   category: FinancialCategory
@@ -50,7 +99,7 @@ export function detectFinancialFileType(fileName: string): DetectedFileType {
 }
 
 // ---------------------------------------------------------------------------
-// 2) CSV extraction — lightweight header-based parser (shared with recast)
+// 4) CSV extraction — lightweight header-based parser (shared with recast)
 // ---------------------------------------------------------------------------
 export interface ExtractedFinancialRow {
   year: number
@@ -113,7 +162,7 @@ export function extractFinancialCsv(csvText: string, fallbackYear = new Date().g
 }
 
 // ---------------------------------------------------------------------------
-// 3) Deterministic 3-year financial history + derived metrics
+// 5) Deterministic 3-year financial history + derived metrics
 // ---------------------------------------------------------------------------
 const HIST_LABELS = ['−2y', '−1y', 'current'] as const
 
@@ -173,7 +222,7 @@ export function buildFinancialHistory(
 }
 
 // ---------------------------------------------------------------------------
-// 4) Multiples + summary metrics
+// 6) Multiples + summary metrics
 // ---------------------------------------------------------------------------
 export interface FinancialMetrics {
   askingPrice: number
@@ -230,7 +279,7 @@ export function computeFinancialMetrics(listing: Listing): FinancialMetrics {
 }
 
 // ---------------------------------------------------------------------------
-// 5) Pipeline grouping — which uploaded docs feed which generated output
+// 7) Pipeline grouping — which uploaded docs feed which generated output
 // ---------------------------------------------------------------------------
 export function groupUploadedDocs(files: FinancialDoc[]) {
   const source = files.filter((f) => f.category !== 'generated_document')
