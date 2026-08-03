@@ -30,6 +30,8 @@ export type FinancialStatus =
   | 'recast_done'
   | 'bov_done'
   | 'cim_done'
+  | 'bli_done'
+  | 'failed'
 
 export interface FinancialDoc {
   id: string
@@ -80,6 +82,8 @@ export const STATUS_LABELS: Record<FinancialStatus, string> = {
   recast_done: 'Recast Done',
   bov_done: 'BOV Done',
   cim_done: 'CIM Done',
+  bli_done: 'BLI Done',
+  failed: 'Failed',
 }
 
 export const STATUS_COLORS: Record<FinancialStatus, string> = {
@@ -88,6 +92,8 @@ export const STATUS_COLORS: Record<FinancialStatus, string> = {
   recast_done: '#a8872f',
   bov_done: '#0e7490',
   cim_done: '#16a34a',
+  bli_done: '#7c3aed',
+  failed: '#dc2626',
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +214,15 @@ export async function getUserId(): Promise<string | null> {
   try {
     const { data } = await supabase.auth.getUser()
     return data?.user?.id || null
+  } catch {
+    return null
+  }
+}
+
+export async function getAccessToken(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession()
+    return data?.session?.access_token || null
   } catch {
     return null
   }

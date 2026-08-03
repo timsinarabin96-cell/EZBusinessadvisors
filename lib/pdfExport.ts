@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import type { CimContent } from '@/lib/cim'
 import type { BovContent } from '@/lib/bov'
 import type { RecastResult, RecastYearResult } from '@/lib/recast'
+import type { BliContent } from '@/lib/bli'
 
 // ---------------------------------------------------------------------------
 // PDF export for CIM, BOV and Recast reports with the gold/navy investment-
@@ -16,7 +17,7 @@ const CREAM: [number, number, number] = [247, 246, 242]
 const TEXT: [number, number, number] = [43, 43, 58]
 const MUTED: [number, number, number] = [122, 122, 138]
 
-export function exportCimToPdf(content: CimContent): void {
+export function exportCimToPdf(content: CimContent, opts?: { returnBytes?: boolean }): Uint8Array | void {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const W = doc.internal.pageSize.getWidth() // 595
   const H = doc.internal.pageSize.getHeight() // 842
@@ -133,6 +134,9 @@ export function exportCimToPdf(content: CimContent): void {
     dy += 15
   }
 
+  if (opts?.returnBytes) {
+    return new Uint8Array(doc.output('arraybuffer'))
+  }
   doc.save(`${content.title.replace(/[^a-z0-9]+/gi, '_')}_CIM_v1.pdf`)
 }
 
@@ -173,7 +177,7 @@ function startBovPage(doc: any, sectionTitle: string, footer = true): void {
   }
 }
 
-export function exportBovToPdf(content: BovContent): void {
+export function exportBovToPdf(content: BovContent, opts?: { returnBytes?: boolean }): Uint8Array | void {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
   const M = 56
@@ -381,6 +385,9 @@ export function exportBovToPdf(content: BovContent): void {
     dy += 12
   }
 
+  if (opts?.returnBytes) {
+    return new Uint8Array(doc.output('arraybuffer'))
+  }
   doc.save(`${content.businessName.replace(/[^a-z0-9]+/gi, '_')}_BOV.pdf`)
 }
 
@@ -398,7 +405,7 @@ const fmtR = (n: number | null | undefined, currency = '$'): string => {
   return `${currency}${sign}${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 }
 
-export function exportRecastToPdf(result: RecastResult): void {
+export function exportRecastToPdf(result: RecastResult, opts?: { returnBytes?: boolean }): Uint8Array | void {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const W = doc.internal.pageSize.getWidth() // 595
   const H = doc.internal.pageSize.getHeight() // 842
@@ -608,5 +615,102 @@ export function exportRecastToPdf(result: RecastResult): void {
     y += 14
   }
 
+  if (opts?.returnBytes) {
+    return new Uint8Array(doc.output('arraybuffer'))
+  }
   doc.save(`${result.businessName.replace(/[^a-z0-9]+/gi, '_')}_Recast_Report.pdf`)
+}
+
+// ---------------------------------------------------------------------------
+// BLI — one-page Business Listing Information summary
+// ---------------------------------------------------------------------------
+export function exportBliToPdf(content: BliContent, opts?: { returnBytes?: boolean }): Uint8Array | void {
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' })
+  const W = doc.internal.pageSize.getWidth()
+  const H = doc.internal.pageSize.getHeight()
+  const M = 56
+
+  // ---- Cover / header band ----
+  doc.setFillColor(...NAVY)
+  doc.rect(0, 0, W, H, 'F')
+  doc.setFillColor(...GOLD)
+  doc.rect(0, H * 0.38, W, 2.5, 'F')
+  doc.setTextColor(...GOLD)
+  doc.setFont('times', 'bold')
+  doc.setFontSize(30)
+  doc.text('BUSINESS LISTING INFORMATION', W / 2, H * 0.5, { align: 'center' })
+  doc.setTextColor(255, 255, 255)
+  doc.setFontSize(18)
+  doc.text(content.businessName, W / 2, H * 0.5 + 36, { align: 'center' })
+  doc.setTextColor(...GOLD)
+  doc.setFontSize(11)
+  doc.text(`${content.industry || ''}${content.location ? ' · ' + content.location : ''}`, W / 2, H * 0.5 + 58, { align: 'center' })
+  doc.setTextColor(200, 200, 210)
+  doc.setFontSize(9)
+  doc.text(`Prepared: ${content.generatedAt}`, W / 2, H * 0.5 + 76, { align: 'center' })
+  doc.setTextColor(...GOLD)
+  doc.setFontSize(9)
+  doc.text('PRIVILEGED & CONFIDENTIAL — UNDER NON-DISCLOSURE', W / 2, H - 46, { align: 'center' })
+
+  // ---- Snapshot page(s) ----
+  startBovPage(doc, 'Offer Summary')
+  let y = 104
+  const row = (label: string, value: string) => {
+    if (y > H - 70) { doc.addPage(); startBovPage(doc, 'Offer Summary'); y = 104 }
+    doc.setFont('times', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(...NAVY)
+    doc.text(label, M, y)
+    doc.setFont('times', 'normal')
+    doc.setTextColor(...TEXT)
+    doc.text(value, W - M, y, { align: 'right' })
+    doc.setTextColor(220, 216, 205)
+    doc.setLineWidth(0.6)
+    doc.line(M, y + 5, W - M, y + 5)
+    y += 22
+  }
+
+  row('Asking Price', fmt(content.askingPrice))
+  row('Annual Revenue', fmt(content.metrics.revenue))
+  row("Seller's Discretionary Earnings (SDE)", fmt(content.metrics.sde))
+  row('EBITDA', fmt(content.metrics.ebitda))
+  row('Gross Margin', content.metrics.grossMargin === null ? '—' : (content.metrics.grossMargin * 100).toFixed(0) + '%')
+  row('SDE Margin', content.metrics.sdeMargin === null ? '—' : (content.metrics.sdeMargin * 100).toFixed(0) + '%')
+  row('Price / Revenue', content.metrics.priceToRevenue === null ? '—' : content.metrics.priceToRevenue.toFixed(2) + 'x')
+  row('Price / SDE', content.metrics.priceToSde === null ? '—' : content.metrics.priceToSde.toFixed(2) + 'x')
+  row('Price / EBITDA', content.metrics.priceToEbitda === null ? '—' : content.metrics.priceToEbitda.toFixed(2) + 'x')
+  y += 8
+
+  // Investment highlights
+  doc.setFont('times', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(...NAVY)
+  doc.text('Investment Highlights', M, y)
+  y += 16
+  const highlights = content.sections.find((s) => s.id === 'investment-highlights')
+  const paras = (highlights?.subsections || []).flatMap((s) => s.body)
+  doc.setFont('times', 'normal')
+  doc.setFontSize(11)
+  doc.setTextColor(...TEXT)
+  for (const p of paras) {
+    const wrapped = doc.splitTextToSize(p, W - M * 2) as string[]
+    for (const l of wrapped) {
+      if (y > H - 70) { doc.addPage(); startBovPage(doc, 'Investment Highlights'); y = 104 }
+      doc.text(l, M, y)
+      y += 15
+    }
+    y += 6
+  }
+
+  doc.setFontSize(8.5)
+  doc.setTextColor(...MUTED)
+  doc.setFont('times', 'italic')
+  y += 14
+  if (y > H - 40) { doc.addPage(); startBovPage(doc, 'Offer Summary'); y = 104 }
+  doc.text('This summary is provided on a confidential basis for the sole purpose of evaluating a potential acquisition. Figures are derived from owner-provided financial information and are subject to change upon completion of due diligence.', M, y, { maxWidth: W - M * 2 })
+
+  if (opts?.returnBytes) {
+    return new Uint8Array(doc.output('arraybuffer'))
+  }
+  doc.save(`${content.businessName.replace(/[^a-z0-9]+/gi, '_')}_BLI.pdf`)
 }
