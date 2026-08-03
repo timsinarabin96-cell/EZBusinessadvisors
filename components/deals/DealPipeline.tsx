@@ -92,7 +92,7 @@ export default function DealPipeline() {
       })
       toast('Deal updated', 'success')
     } else {
-      await createDeal({ listing_id: input.listing_id, status: (input.status || 'loi') as DealStage, purchase_price: input.purchase_price ?? null })
+      await createDeal({ listing_id: input.listing_id, status: (input.status || 'letter_of_intent') as DealStage, purchase_price: input.purchase_price ?? null })
       toast('Deal created', 'success')
     }
     setShowForm(false)
@@ -227,7 +227,7 @@ const fmt = (n: number | null | undefined): string => {
 
 function stageColor(stage: DealStage): string {
   const map: Record<DealStage, string> = {
-    loi: '#3b82f6', under_contract: '#f59e0b', due_diligence: '#8b5cf6', closing: '#06b6d4', closed: '#22c55e',
+    letter_of_intent: '#3b82f6', under_contract: '#f59e0b', due_diligence: '#8b5cf6', closing: '#06b6d4', closed: '#22c55e',
   }
   return map[stage]
 }

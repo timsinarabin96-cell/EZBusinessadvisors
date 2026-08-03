@@ -1,7 +1,13 @@
 import { supabase } from '@/lib/supabase/client'
 
 // ---------------------------------------------------------------------------
-// Document categories
+// Document categories (UI labels) and their DB-storage mapping.
+//
+// The live `listing_documents` table has a restrictive category allow-list:
+//   nda | purchase_agreement | marketing_agreement | other
+// (and a status allow-list: pending | signed; party_type: seller | buyer).
+// The UI labels are Title Case, so we map them to the snake_case storage
+// values below, and map back on read.
 // ---------------------------------------------------------------------------
 export const DOCUMENT_CATEGORIES = [
   'Marketing Agreement',
@@ -12,6 +18,21 @@ export const DOCUMENT_CATEGORIES = [
 ] as const
 
 export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number]
+
+// UI label -> DB category (falls back to 'other' for labels not in the allow-list)
+const CATEGORY_TO_DB: Record<string, string> = {
+  'Marketing Agreement': 'marketing_agreement',
+  NDA: 'nda',
+  'Purchase Agreement': 'purchase_agreement',
+  'Due Diligence': 'other', // not in the live allow-list; stored as 'other'
+  Other: 'other',
+}
+export const toDbCategory = (label: string): string => CATEGORY_TO_DB[label] || 'other'
+export const toLabelCategory = (db: string | null | undefined): string =>
+  db === 'nda' ? 'NDA'
+  : db === 'marketing_agreement' ? 'Marketing Agreement'
+  : db === 'purchase_agreement' ? 'Purchase Agreement'
+  : 'Other'
 
 // ---------------------------------------------------------------------------
 // Types representing the real Supabase schema
@@ -191,7 +212,7 @@ export async function fetchDocumentGroups(): Promise<DocumentGroup[]> {
       parentName: nameById.get(l.listing_id || '') || 'Untitled Listing',
       fileUrl: l.file_url,
       fileName: extractName(l.file_url),
-      category: l.category,
+      category: toLabelCategory(l.category),
       uploadedBy: null,
       uploadedByName: '—',
       createdAt: l.created_at || null,
@@ -305,11 +326,14 @@ export async function uploadDocument(
     })
     if (insertError) return { success: false, error: insertError.message }
   } else {
+    // listing_documents has a NOT NULL `party_type` and a status allow-list
+    // of pending | signed, plus the restrictive category constraint above.
     const { error: insertError } = await supabase.from('listing_documents').insert({
       listing_id: target.parentId,
       file_url: publicUrl,
-      category,
-      status: 'active',
+      category: toDbCategory(category),
+      status: 'pending',
+      party_type: 'seller',
     })
     if (insertError) return { success: false, error: insertError.message }
   }

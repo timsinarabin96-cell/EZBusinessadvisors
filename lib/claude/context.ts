@@ -66,15 +66,20 @@ async function getListing(id: string): Promise<ListingRow | null> {
   return (data as ListingRow | null) ?? null
 }
 
-/** Fetch a listing's related documents (names + URLs, no raw file content). */
+/** Fetch a listing's related documents (names + URLs, no raw file content).
+ * NOTE: `listing_documents` has no `file_name` column in the live schema, so we
+ * select the columns that exist and derive a name from the URL/category. */
 async function getListingDocs(listingId: string): Promise<string[]> {
   const { data } = await supabase
     .from('listing_documents')
-    .select('file_name, category, status')
+    .select('file_url, category, status')
     .eq('listing_id', listingId)
   if (!data) return []
-  return (data as { file_name?: string | null; category?: string | null; status?: string | null }[])
-    .map((d) => [d.file_name, d.category, d.status].filter(Boolean).join(' · '))
+  return (data as { file_url?: string | null; category?: string | null; status?: string | null }[])
+    .map((d) => {
+      const name = (d.file_url || '').split('/').pop() || d.category || 'document'
+      return [name, d.category, d.status].filter(Boolean).join(' · ')
+    })
     .filter(Boolean)
 }
 
@@ -224,12 +229,15 @@ async function buildDocumentContext(listingId?: string): Promise<AgentContextPay
   } else {
     const { data } = await supabase
       .from('listing_documents')
-      .select('listing_id, file_name, category')
+      .select('listing_id, file_url, category')
       .limit(30)
     if (data?.length) {
       parts.push('RECENT DOCUMENTS INVENTORY:')
-      ;(data as { listing_id?: string | null; file_name?: string | null; category?: string | null }[])
-        .forEach((d, i) => parts.push(`${i + 1}. ${d.file_name || 'unnamed'} (listing ${d.listing_id || '?'}) · ${d.category || 'uncategorized'}`))
+      ;(data as { listing_id?: string | null; file_url?: string | null; category?: string | null }[])
+        .forEach((d, i) => {
+          const name = (d.file_url || '').split('/').pop() || 'unnamed'
+          parts.push(`${i + 1}. ${name} (listing ${d.listing_id || '?'}) · ${d.category || 'uncategorized'}`)
+        })
     }
   }
 

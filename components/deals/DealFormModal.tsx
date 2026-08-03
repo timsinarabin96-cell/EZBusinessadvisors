@@ -14,7 +14,7 @@ interface DealFormModalProps {
 export default function DealFormModal({ deal, listings, onClose, onSubmit }: DealFormModalProps) {
   const [listingId, setListingId] = useState(deal?.listing_id || listings[0]?.id || '')
   const [price, setPrice] = useState(deal?.purchase_price ? String(deal.purchase_price) : '')
-  const [status, setStatus] = useState(deal?.stage || 'loi')
+  const [status, setStatus] = useState(deal?.stage || 'letter_of_intent')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 

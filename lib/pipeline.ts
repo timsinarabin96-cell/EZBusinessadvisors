@@ -8,9 +8,14 @@ import { supabase } from '@/lib/supabase/client'
 //
 // The board uses `deals.status` as the Kanban column. Business names and
 // asking prices are resolved by joining to the linked `listings` row.
+//
+// NOTE (2026-08-03): the live `deals` table has a `deals_status_check`
+// constraint allowing: letter_of_intent, under_contract, due_diligence,
+// closing, closed. It REJECTS 'loi', 'pending', 'active', etc. So the first
+// stage is stored as `letter_of_intent` (displayed as "LOI").
 // ---------------------------------------------------------------------------
 
-export type DealStage = 'loi' | 'under_contract' | 'due_diligence' | 'closing' | 'closed'
+export type DealStage = 'letter_of_intent' | 'under_contract' | 'due_diligence' | 'closing' | 'closed'
 
 export interface Deal extends Record<string, unknown> {
   id: string
@@ -34,8 +39,9 @@ export interface PipelineItem extends EnrichedDeal {
 }
 
 // The five board columns, in order
+// NOTE: first stage is stored as `letter_of_intent` (DB constraint) but shown as "LOI".
 export const PIPELINE_STAGES: { id: DealStage; label: string }[] = [
-  { id: 'loi', label: 'LOI' },
+  { id: 'letter_of_intent', label: 'LOI' },
   { id: 'under_contract', label: 'Under Contract' },
   { id: 'due_diligence', label: 'Due Diligence' },
   { id: 'closing', label: 'Closing' },
@@ -84,7 +90,7 @@ export async function fetchPipelineDeals(): Promise<PipelineItem[]> {
 
   const items: PipelineItem[] = dealRows.map((d) => {
     const listing = d.listing_id ? listingMap[d.listing_id] : undefined
-    const status = d.status || 'loi'
+    const status = d.status || 'letter_of_intent'
     return {
       ...d,
       business_name: listing?.business_name || null,
@@ -92,7 +98,7 @@ export async function fetchPipelineDeals(): Promise<PipelineItem[]> {
       asking_price: listing?.asking_price ?? null,
       headline: listing?.headline || null,
       primary_image_url: listing?.primary_image_url || null,
-      stage: isKnownStage(status) ? status : 'loi',
+      stage: isKnownStage(status) ? status : 'letter_of_intent',
     }
   })
 
@@ -129,11 +135,16 @@ export interface DealInput {
 }
 
 export async function createDeal(input: DealInput): Promise<Deal> {
+  // `deals.listing_id` is NOT NULL in the live schema — fail fast with a
+  // helpful message instead of a cryptic Supabase constraint error.
+  if (!input.listing_id) {
+    throw new Error('A listing is required to create a deal.')
+  }
   const { data, error } = await supabase
     .from('deals')
     .insert({
-      listing_id: input.listing_id || null,
-      status: input.status || 'loi',
+      listing_id: input.listing_id,
+      status: input.status || 'letter_of_intent',
       purchase_price: input.purchase_price ?? null,
     })
     .select()

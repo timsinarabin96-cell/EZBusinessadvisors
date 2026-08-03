@@ -19,6 +19,21 @@ export const LEAD_STATUSES: { id: LeadStatus; label: string; color: string }[] =
   { id: 'not_a_fit', label: 'Not a Fit', color: '#ef4444' },
 ]
 
+// NOTE (2026-08-03): the live `seller_leads_status_check` constraint ONLY
+// allows: new | contacted | closed. The unified funnel above (qualifying /
+// qualified / handed_off / not_a_fit) is fully supported on buyer_leads but
+// NOT on seller_leads. Until the schema migration is applied, we translate
+// seller-lead writes onto the allowed set so lead management never hits a
+// constraint error. (buyer_leads already matches the unified list verbatim.)
+const SELLER_STATUS_MAP: Record<string, string> = {
+  new: 'new',
+  qualifying: 'contacted',
+  qualified: 'contacted',
+  handed_off: 'closed',
+  not_a_fit: 'closed',
+}
+export const normalizeSellerStatus = (s?: string | null): string => SELLER_STATUS_MAP[s || 'new'] || s || 'new'
+
 export const statusMeta = (s?: string | null) =>
   LEAD_STATUSES.find((x) => x.id === s) || { id: s || 'new', label: s || 'New', color: '#94a3b8' }
 
@@ -212,6 +227,7 @@ export async function createLead(kind: LeadKind, input: {
     status: input.status || 'new',
   }
   if (kind === 'seller') payload.business_name = input.business_name || ''
+  if (kind === 'seller') payload.status = normalizeSellerStatus(input.status || 'new')
 
   const { data, error } = await supabase.from(table).insert(payload).select().single()
   if (error) {
@@ -228,7 +244,7 @@ export async function updateLead(kind: LeadKind, id: string, input: {
   business_name?: string; email?: string; phone?: string; status?: LeadStatus
 }): Promise<UnifiedLead> {
   const table = kind === 'seller' ? 'seller_leads' : 'buyer_leads'
-  const payload: Record<string, unknown> = { status: input.status }
+  const payload: Record<string, unknown> = { status: kind === 'seller' ? normalizeSellerStatus(input.status) : input.status }
   if (kind === 'seller' && input.business_name !== undefined) payload.business_name = input.business_name
   if (input.email !== undefined) payload.email = input.email || null
   if (input.phone !== undefined) payload.phone = input.phone || null
@@ -255,7 +271,9 @@ export async function deleteLead(kind: LeadKind, id: string): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // Convert a lead into a deal in the pipeline.
-// - Seller lead -> creates a deal (status 'loi'); optionally ties to a listing.
+// - Seller lead -> creates a deal (status 'letter_of_intent'); optionally ties
+//   to a listing. Because `deals.listing_id` is NOT NULL, if no listing is
+//   supplied we auto-create a draft listing from the lead's business info.
 // - Buyer lead -> also creates a deal; we attach the buyer's email as the
 //   deal's only identifier since deals table has no buyer fields.
 // ---------------------------------------------------------------------------
@@ -264,9 +282,30 @@ export async function convertLeadToDeal(
   listingId?: string
 ): Promise<{ dealId: string }> {
   const dealNameBase = lead.business_name || lead.email || 'Lead'
+
+  // Resolve a listing (deals.listing_id is NOT NULL). Auto-create a draft
+  // listing from the lead when one isn't passed in.
+  let resolvedListingId = listingId
+  if (!resolvedListingId) {
+    const listingInsert: any = {
+      agent_id: (await supabase.auth.getUser()).data?.user?.id || null,
+      business_name: lead.business_name || `${dealNameBase} — Listing`,
+      headline: `Confidential — ${lead.business_name || dealNameBase}`,
+      industry: (lead as any).industry || (lead as any).desired_business_type || null,
+      status: 'draft',
+    }
+    const loc = (lead as any).location_general || (lead as any).preferred_location
+    if (loc) listingInsert.location_general = loc
+    const rev = (lead as any).revenue_range
+    if (rev) listingInsert.description = `Lead conversion from ${dealNameBase}. Revenue range: ${rev}.`
+    const { data: newListing, error: lErr } = await supabase.from('listings').insert(listingInsert).select().single()
+    if (lErr) throw new Error('Could not create a listing for this lead: ' + lErr.message)
+    resolvedListingId = newListing.id
+  }
+
   const deal = await createDeal({
-    listing_id: listingId || null,
-    status: 'loi',
+    listing_id: resolvedListingId,
+    status: 'letter_of_intent',
     purchase_price: null,
   })
   const dealId = deal.id
@@ -285,7 +324,10 @@ export async function convertLeadToDeal(
   // Mark the lead handed off
   try {
     const table = lead.kind === 'seller' ? 'seller_leads' : 'buyer_leads'
-    await supabase.from(table).update({ status: 'handed_off' }).eq('id', lead.id)
+    // Buyer leads accept 'handed_off' verbatim; seller leads map it to 'closed'
+    // (their status constraint only allows new | contacted | closed).
+    const nextStatus = lead.kind === 'seller' ? 'closed' : 'handed_off'
+    await supabase.from(table).update({ status: nextStatus }).eq('id', lead.id)
   } catch {
     // ignore
   }

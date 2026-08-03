@@ -136,15 +136,56 @@ export async function updateStatusFromAgreement(
 // ---------------------------------------------------------------------------
 
 // --- Step 1: legal docs ---
-export async function uploadListingDocument(listingId: string, doc: { document_type: string; file_name: string; file_url: string }) {
-  const { data, error } = await supabase.from('listing_documents').insert({ listing_id: listingId, ...doc }).select().single()
+//
+// NOTE (2026-08-03): the live `listing_documents` table is an e-signature doc
+// store with a restrictive `listing_documents_category_check` allow-list:
+//   nda, purchase_agreement, marketing_agreement, other
+// It has NO `file_name` column. The guided workflow needs `listing_agreement`
+// and `financial_proof`, which the constraint REJECTS. Until the schema
+// migration (sql/crm_test_fixes.sql) is applied, we map unsupported types onto
+// allowed buckets (`listing_agreement`→`other`, `financial_proof`→`other`)
+// and preserve the true type in `body_text` so Step 1 still works.
+//
+// Once the migration is applied, `listing_agreement`/`financial_proof` are
+// permitted verbatim and this mapping becomes a harmless no-op.
+const CATEGORY_FALLBACK: Record<string, string> = {
+  listing_agreement: 'other',
+  financial_proof: 'other',
+}
+
+export async function uploadListingDocument(listingId: string, doc: { document_type: string; file_name?: string; file_url: string; party_type?: string }) {
+  const category = CATEGORY_FALLBACK[doc.document_type] || doc.document_type
+  const row: any = {
+    listing_id: listingId,
+    category,
+    party_type: doc.party_type || 'seller',
+    file_url: doc.file_url,
+    status: 'pending',
+    // Preserve the true workflow type (lost by the fallback mapping) so the
+    // UI can still distinguish a listing agreement from a generic upload.
+    body_text: doc.document_type === category ? null : `doc_type=${doc.document_type}`,
+  }
+  // Try with file_name; fall back to without if the column is absent.
+  let { data, error } = await supabase.from('listing_documents').insert({ ...row, file_name: doc.file_name ?? null }).select().single()
+  if (error && /file_name/.test(error.message || '')) {
+    delete row.file_name
+    ;({ data, error } = await supabase.from('listing_documents').insert(row).select().single())
+  }
   if (error) throw error
   return data
 }
 export async function fetchListingDocuments(listingId: string): Promise<any[]> {
   try {
-    const { data } = await supabase.from('listing_documents').select('*').eq('listing_id', listingId).order('uploaded_at', { ascending: false })
-    return (data || []) as any[]
+    const { data } = await supabase.from('listing_documents').select('*').eq('listing_id', listingId).order('created_at', { ascending: false })
+    // Normalise back to the legacy `document_type` key the UI reads; recover
+    // the true type from `body_text` when it was stored by the fallback above;
+    // derive a display name when there is no `file_name` column.
+    return ((data || []) as any[]).map((d) => {
+      const storedType = /^doc_type=(.+)$/.exec(d.body_text || '')?.[1]
+      const document_type = storedType || d.category || d.document_type || 'document'
+      const name = d.file_name || ((d.file_url || '').split('/').pop()) || document_type
+      return { ...d, document_type, file_name: name }
+    })
   } catch { return [] }
 }
 

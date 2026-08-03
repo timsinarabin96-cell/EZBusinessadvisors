@@ -30,7 +30,7 @@ export interface ActivityItem {
   createdAt: string | null
 }
 
-const PENDING_STAGES = ['loi', 'under_contract', 'due_diligence', 'closing']
+const PENDING_STAGES = ['letter_of_intent', 'under_contract', 'due_diligence', 'closing']
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
   const [listings, pipelineDeals, leadStats] = await Promise.allSettled([
@@ -79,7 +79,7 @@ export async function fetchRecentActivity(): Promise<ActivityItem[]> {
       items.push({
         id: 'deal-' + d.id,
         kind: 'deal',
-        title: `Deal ${d.status || 'loi'}`,
+        title: `Deal ${d.status || 'letter_of_intent'}`,
         detail: d.purchase_price ? `$` + Math.round(d.purchase_price).toLocaleString() : 'Price TBD',
         createdAt: d.updated_at || d.created_at,
       })
@@ -98,12 +98,14 @@ export async function fetchRecentActivity(): Promise<ActivityItem[]> {
   }
   if (cimRes.status === 'fulfilled' && !cimRes.value.error) {
     for (const c of (cimRes.value.data || [])) {
-      items.push({ id: 'cim-' + c.id, kind: 'note', title: `CIM version ${c.version} ${c.status}`, detail: c.title || '', createdAt: c.created_at })
+      const v = c.version_number ?? c.version
+      items.push({ id: 'cim-' + c.id, kind: 'note', title: `CIM version ${v} ${c.status}`, detail: c.title || c.business_name || '', createdAt: c.created_at })
     }
   }
   if (bovRes.status === 'fulfilled' && !bovRes.value.error) {
     for (const b of (bovRes.value.data || [])) {
-      items.push({ id: 'bov-' + b.id, kind: 'note', title: `BOV version ${b.version} ${b.status}`, detail: b.title || '', createdAt: b.created_at })
+      const v = b.version_number ?? b.version
+      items.push({ id: 'bov-' + b.id, kind: 'note', title: `BOV version ${v} ${b.status}`, detail: b.title || b.business_name || '', createdAt: b.created_at })
     }
   }
 
