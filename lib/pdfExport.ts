@@ -136,133 +136,249 @@ export function exportCimToPdf(content: CimContent): void {
   doc.save(`${content.title.replace(/[^a-z0-9]+/gi, '_')}_CIM_v1.pdf`)
 }
 
+const CONFIDENTIAL_STAMP = 'CONFIDENTIAL — This document contains proprietary and confidential information. Any reproduction, distribution, or disclosure without prior written consent is strictly prohibited.'
+const H = 842 // A4 height (pt)
+
+// Draws the navy/gold section header band + the confidentiality footer notice
+// on the current page. Call after addPage() or at page start.
+function startBovPage(doc: any, sectionTitle: string, footer = true): void {
+  const W = doc.internal.pageSize.getWidth()
+  doc.setFillColor(255, 255, 255)
+  doc.rect(0, 0, W, H, 'F')
+  // navy header band
+  doc.setFillColor(...NAVY)
+  doc.rect(0, 0, W, 90, 'F')
+  doc.setFillColor(...GOLD)
+  doc.rect(0, 90, W, 2.5, 'F')
+  doc.setTextColor(...GOLD)
+  doc.setFont('times', 'bold')
+  doc.setFontSize(13)
+  doc.text('BROKER OPINION OF VALUE', W / 2, 32, { align: 'center' })
+  doc.setFontSize(16)
+  doc.setTextColor(255, 255, 255)
+  doc.text(sectionTitle, 56, 64)
+  if (footer) {
+    const lines = doc.splitTextToSize(CONFIDENTIAL_STAMP, W - 112) as string[]
+    doc.setFont('times', 'italic')
+    doc.setFontSize(8)
+    doc.setTextColor(...MUTED)
+    let fy = H - 30
+    for (let i = lines.length - 1; i >= 0; i--) {
+      doc.text(lines[i], 56, fy)
+      fy -= 10
+    }
+    doc.setDrawColor(...GOLD)
+    doc.setLineWidth(0.7)
+    doc.line(56, H - 42, W - 56, H - 42)
+  }
+}
+
 export function exportBovToPdf(content: BovContent): void {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
   const M = 56
 
-  // Header band
+  // ---- Cover page ----
   doc.setFillColor(...NAVY)
-  doc.rect(0, 0, W, 100, 'F')
+  doc.rect(0, 0, W, H, 'F')
+  doc.setFillColor(...GOLD)
+  doc.rect(0, H * 0.42, W, 2.5, 'F')
   doc.setTextColor(...GOLD)
   doc.setFont('times', 'bold')
-  doc.setFontSize(16)
-  doc.text('BROKER OPINION OF VALUE', M, 48)
   doc.setFontSize(12)
+  doc.text('CONFIDENTIAL', W / 2, H * 0.32, { align: 'center' })
+  doc.setFontSize(30)
+  doc.text('BROKER OPINION OF VALUE', W / 2, H * 0.5, { align: 'center' })
   doc.setTextColor(255, 255, 255)
-  doc.text(content.title, M, 72)
+  doc.setFont('times', 'normal')
+  doc.setFontSize(18)
+  doc.text(content.businessName, W / 2, H * 0.5 + 40, { align: 'center' })
+  doc.setFontSize(11)
+  doc.setTextColor(...GOLD)
+  doc.text('Prepared by Concord Deal Platform', W / 2, H * 0.5 + 66, { align: 'center' })
+  doc.setFontSize(10)
+  doc.setTextColor(200, 200, 200)
+  doc.text(`Prepared: ${content.generatedAt}  ·  For: ${content.preparedFor}`, W / 2, H * 0.5 + 86, { align: 'center' })
+  doc.setTextColor(...GOLD)
+  doc.setFontSize(9)
+  doc.text('PRIVILEGED & CONFIDENTIAL — UNDER NON-DISCLOSURE', W / 2, H - 60, { align: 'center' })
 
-  doc.setFillColor(...GOLD)
-  doc.rect(0, 100, W, 2.5, 'F')
-
-  let y = 140
-
-  doc.setFont('times', 'bold')
-  doc.setFontSize(13)
+  // ---- Table of contents ----
+  doc.addPage()
+  startBovPage(doc, 'Table of Contents')
   doc.setTextColor(...NAVY)
-  doc.text('Valuation Summary', M, y)
-  y += 20
+  doc.setFont('times', 'bold')
+  doc.setFontSize(16)
+  doc.text('Table of Contents', M, 140)
+  doc.setDrawColor(...GOLD)
+  doc.setLineWidth(2)
+  doc.line(M, 150, M + 70, 150)
+  let ty = 190
+  ;['Executive Summary', 
+    ...content.sections.map((s) => s.title)].forEach((t, i) => {
+    doc.setFont('times', 'normal')
+    doc.setFontSize(12)
+    doc.setTextColor(...NAVY)
+    doc.text(`${i + 1}.  ${t}`, M, ty)
+    ty += 28
+    if (ty > H - 80) { doc.addPage(); startBovPage(doc, 'Table of Contents'); ty = 100 }
+  })
 
+  // ---- Valuation summary snapshot page ----
+  doc.addPage()
+  startBovPage(doc, 'Valuation Summary')
+  let y = 140
+  doc.setTextColor(...NAVY)
+  doc.setFont('times', 'bold')
+  doc.setFontSize(14)
+  doc.text('Valuation Summary', M, y)
+  y += 10
+  doc.setDrawColor(...GOLD)
+  doc.setLineWidth(2)
+  doc.line(M, y, M + 70, y)
+  y += 26
   const rows: [string, string][] = [
     ['Business', content.businessName],
     ['Asking Price', fmt(content.askingPrice)],
     ['Annual Revenue', fmt(content.revenue)],
-    ['SDE', fmt(content.sde)],
-    ['EBITDA', fmt(content.ebitda)],
+    ['Normalized SDE', fmt(content.sde)],
+    ['Normalized EBITDA', fmt(content.ebitda)],
     ['Price / Revenue', content.revenueMultiple],
     ['Price / SDE', content.sdeMultiple],
     ['Price / EBITDA', content.ebitdaMultiple],
     ['Indicative Value Range', content.valuationRange],
   ]
-
   doc.setFont('times', 'normal')
   doc.setFontSize(11)
-  for (const [k, v] of rows) {
+  rows.forEach(([k, v]) => {
     doc.setTextColor(...TEXT)
     doc.text(k, M, y)
     doc.setTextColor(...GOLD_DARK)
     doc.setFont('times', 'bold')
     doc.text(v, W - M, y, { align: 'right' })
     doc.setFont('times', 'normal')
-    y += 20
+    y += 22
+  })
+
+  // ---- Full sections (each starts on a new page, auto-paginates) ----
+  for (const section of content.sections) {
+    doc.addPage()
+    startBovPage(doc, section.title)
+    let sy = 130
+    doc.setTextColor(...NAVY)
+    doc.setFont('times', 'bold')
+    doc.setFontSize(16)
+    doc.text(section.title, M, sy)
+    sy += 12
+    doc.setDrawColor(...GOLD)
+    doc.setLineWidth(2)
+    doc.line(M, sy, M + 70, sy)
+    sy += 26
+
+    for (const sub of section.subsections) {
+      if (sub.heading) {
+        doc.setTextColor(...NAVY)
+        doc.setFont('times', 'bold')
+        doc.setFontSize(13)
+        doc.text(sub.heading, M, sy)
+        sy += 22
+      }
+      doc.setFont('times', 'normal')
+      doc.setFontSize(10.5)
+      doc.setTextColor(...TEXT)
+      for (const line of sub.body) {
+        const wrapped = doc.splitTextToSize(line, W - M * 2) as string[]
+        for (const w of wrapped) {
+          if (sy > H - 70) { doc.addPage(); startBovPage(doc, section.title); sy = 90 }
+          doc.text(w, M, sy)
+          sy += 16
+        }
+        sy += 6
+      }
+      sy += 10
+    }
+
+    // Assumptions appended to the final section
+    if (section.id === 'conclusion') {
+      sy += 10
+      doc.setTextColor(...NAVY)
+      doc.setFont('times', 'bold')
+      doc.setFontSize(13)
+      doc.text('Assumptions & Methodology', M, sy)
+      sy += 20
+      doc.setFont('times', 'normal')
+      doc.setFontSize(10.5)
+      doc.setTextColor(...TEXT)
+      for (const a of content.assumptions) {
+        const lines = doc.splitTextToSize('•  ' + a, W - M * 2) as string[]
+        for (const l of lines) {
+          if (sy > H - 70) { doc.addPage(); startBovPage(doc, section.title); sy = 90 }
+          doc.text(l, M, sy)
+          sy += 15
+        }
+      }
+    }
   }
 
-  // Conclusion
-  y += 16
-  doc.setFont('times', 'bold')
-  doc.setFontSize(13)
-  doc.setTextColor(...NAVY)
-  doc.text('Conclusion', M, y)
-  y += 20
-  doc.setFont('times', 'normal')
-  doc.setFontSize(10.5)
-  doc.setTextColor(...TEXT)
-  const concl = doc.splitTextToSize(content.conclusion, W - M * 2) as string[]
-  for (const l of concl) {
-    doc.text(l, M, y)
-    y += 16
-  }
-
-  // Comparables table
-  y += 24
+  // ---- Comparable transactions page ----
   doc.addPage()
-  y = 80
+  startBovPage(doc, 'Comparable Transactions')
+  let cy = 140
   doc.setTextColor(...NAVY)
   doc.setFont('times', 'bold')
-  doc.setFontSize(13)
-  doc.text('Comparable Transactions', M, y)
-  y += 20
-
-  // Table headers
+  doc.setFontSize(14)
+  doc.text('Comparable Transactions', M, cy)
+  cy += 14
+  doc.setDrawColor(...GOLD)
+  doc.setLineWidth(2)
+  doc.line(M, cy, M + 70, cy)
+  cy += 24
   doc.setFillColor(...NAVY)
-  doc.rect(M, y - 12, W - M * 2, 20, 'F')
+  doc.rect(M, cy - 12, W - M * 2, 20, 'F')
   doc.setTextColor(...GOLD)
   doc.setFont('times', 'bold')
   doc.setFontSize(10)
   const cols = ['Business', 'Industry', 'Location', 'Price', 'Revenue', 'Multiple']
-  const colX = [M, M + 110, M + 210, M + 320, M + 420, M + 500]
-  for (let i = 0; i < cols.length; i++) doc.text(cols[i], colX[i], y)
-  y += 24
-
+  const colX = [M, M + 105, M + 205, M + 315, M + 420, M + 500]
+  for (let i = 0; i < cols.length; i++) doc.text(cols[i], colX[i], cy)
+  cy += 24
   doc.setTextColor(...TEXT)
   doc.setFont('times', 'normal')
   doc.setFontSize(10)
   for (const c of content.comparables) {
     const vals = [c.business, c.industry, c.location, fmt(c.price), fmt(c.revenue), c.multiple ? c.multiple.toFixed(2) + 'x' : 'N/A']
-    for (let i = 0; i < vals.length; i++) doc.text(vals[i], colX[i], y)
-    y += 20
-    if (y > 760) { doc.addPage(); y = 60 }
+    for (let i = 0; i < vals.length; i++) doc.text(vals[i], colX[i], cy)
+    cy += 20
+    if (cy > H - 70) { doc.addPage(); startBovPage(doc, 'Comparable Transactions'); cy = 90 }
   }
 
-  // Assumptions
-  y += 20
+  // ---- Final confidentiality / disclaimer page ----
+  doc.addPage()
+  startBovPage(doc, 'Confidentiality & Disclaimer', false)
   doc.setTextColor(...NAVY)
   doc.setFont('times', 'bold')
-  doc.setFontSize(13)
-  doc.text('Assumptions & Methodology', M, y)
-  y += 20
+  doc.setFontSize(14)
+  doc.text('Confidentiality & Disclaimer', M, 140)
+  doc.setDrawColor(...GOLD)
+  doc.setLineWidth(2)
+  doc.line(M, 150, M + 70, 150)
   doc.setFont('times', 'normal')
   doc.setFontSize(10.5)
   doc.setTextColor(...TEXT)
-  for (const a of content.assumptions) {
-    const lines = doc.splitTextToSize('•  ' + a, W - M * 2) as string[]
-    for (const l of lines) {
-      if (y > 780) { doc.addPage(); y = 60 }
-      doc.text(l, M, y)
-      y += 15
+  const par = [
+    'This Broker Opinion of Value has been prepared on a confidential basis solely for the information of the recipient in connection with the evaluation of a potential acquisition of the subject business. This document and the information contained herein are proprietary and confidential and may not be reproduced, distributed, or transmitted to any third party, in whole or in part, without the prior written consent of the seller and its advisor.',
+    'By accepting this document, the recipient agrees to (i) treat its contents as confidential, (ii) use the information solely to evaluate the potential transaction, and (iii) not utilize such information in any manner detrimental to the seller or its advisor. Neither this document nor any of its contents may be relied upon as a basis for investment, legal, tax, or accounting advice.',
+    'Disclaimer: ' + content.disclaimer,
+  ]
+  let dy = 178
+  for (const p of par) {
+    const wrapped = doc.splitTextToSize(p, W - M * 2) as string[]
+    for (const l of wrapped) {
+      if (dy > H - 70) { doc.addPage(); startBovPage(doc, 'Confidentiality & Disclaimer', false); dy = 90 }
+      doc.text(l, M, dy)
+      dy += 16
     }
-  }
-
-  // Disclaimer
-  y += 20
-  doc.setFont('times', 'italic')
-  doc.setFontSize(9.5)
-  doc.setTextColor(...MUTED)
-  const disc = doc.splitTextToSize('Disclaimer: ' + content.disclaimer, W - M * 2) as string[]
-  for (const l of disc) {
-    if (y > 790) { doc.addPage(); y = 60 }
-    doc.text(l, M, y)
-    y += 14
+    dy += 12
   }
 
   doc.save(`${content.businessName.replace(/[^a-z0-9]+/gi, '_')}_BOV.pdf`)

@@ -120,8 +120,23 @@ export default function BovGenerator() {
               <div style={{ height: 3, background: 'var(--gold)' }} />
 
               <div style={{ padding: '30px 40px' }}>
+                {/* Confidentiality notice */}
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontStyle: 'italic', backgroundColor: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 6, padding: 12, marginBottom: 24 }}>
+                  🔒 CONFIDENTIAL — This document contains proprietary and confidential information. Any reproduction, distribution, or disclosure without prior written consent is strictly prohibited.
+                </div>
+
+                {/* Table of Contents */}
+                <div className="section-title">Table of Contents</div>
+                <hr className="divider-gold" />
+                {['Executive Summary', ...content.sections.map((s) => s.title)].map((t, i) => (
+                  <div key={t} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f0ecdf', fontSize: 13.5 }}>
+                    <span>{i + 1}.  {t}</span>
+                    <span style={{ color: 'var(--gold-dark)', fontWeight: 700 }}>{String(i + 1).padStart(2, '0')}</span>
+                  </div>
+                ))}
+
                 {/* Valuation summary */}
-                <div className="section-title">Valuation Summary</div>
+                <div className="section-title" style={{ marginTop: 28 }}>Valuation Summary</div>
                 <hr className="divider-gold" />
                 {row('Business', content.businessName)}
                 {row('Asking Price', fmt(content.askingPrice))}
@@ -133,14 +148,29 @@ export default function BovGenerator() {
                 {row('Price / EBITDA', content.ebitdaMultiple)}
                 {row('Indicative Value Range', content.valuationRange)}
 
-                {/* Conclusion */}
-                <div className="section-title" style={{ marginTop: 28 }}>Conclusion</div>
-                <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--text)', backgroundColor: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 6, padding: 14 }}>
-                  {content.conclusion}
-                </p>
+                {/* Full multi-section document (10+ pages) */}
+                {content.sections.map((section, si) => (
+                  <div key={section.id} style={{ marginTop: 34, paddingTop: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ background: 'var(--navy)', color: 'var(--gold-light)', borderRadius: 4, fontSize: 12, fontWeight: 700, padding: '4px 9px' }}>{String(si + 2).padStart(2, '0')}</span>
+                      <div className="section-title" style={{ margin: 0 }}>{section.title}</div>
+                    </div>
+                    <hr className="divider-gold" />
+                    {section.subsections.map((sub, k) => (
+                      <div key={k} style={{ marginTop: sub.heading ? 16 : 8 }}>
+                        {sub.heading && (
+                          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)', margin: '0 0 6px' }}>{sub.heading}</div>
+                        )}
+                        {sub.body.map((line, j) => (
+                          <p key={j} style={{ fontSize: 13.5, lineHeight: 1.6, color: 'var(--text)', margin: '0 0 8px' }}>{line}</p>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                ))}
 
-                {/* Comparables */}
-                <div className="section-title" style={{ marginTop: 28 }}>Comparable Transactions</div>
+                {/* Comparable transactions */}
+                <div className="section-title" style={{ marginTop: 34 }}>Comparable Transactions</div>
                 <hr className="divider-gold" />
                 <div style={{ width: '100%', overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -166,11 +196,17 @@ export default function BovGenerator() {
                 </div>
 
                 {/* Assumptions */}
-                <div className="section-title" style={{ marginTop: 28 }}>Assumptions & Methodology</div>
+                <div className="section-title" style={{ marginTop: 34 }}>Assumptions & Methodology</div>
                 <hr className="divider-gold" />
                 {content.assumptions.map((a, i) => (
                   <p key={i} style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text)', margin: '8px 0' }}>• {a}</p>
                 ))}
+
+                {/* Next steps note */}
+                <div className="section-title" style={{ marginTop: 26 }}>Confidentiality & Next Steps</div>
+                <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text)', backgroundColor: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 6, padding: 14 }}>
+                  By accepting this document, you agree to treat its contents as confidential and to use the information solely to evaluate a potential acquisition. Neither this document nor its contents constitute an offer to sell. For qualified buyers: execute the Confidentiality Agreement, access the secure data room, complete management Q&amp;A, and submit an indicative offer.
+                </p>
 
                 {/* Disclaimer */}
                 <p style={{ fontSize: 11.5, color: 'var(--muted)', fontStyle: 'italic', marginTop: 24, lineHeight: 1.6, borderTop: '1px solid var(--line)', paddingTop: 16 }}>
