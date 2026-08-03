@@ -70,9 +70,17 @@ export async function fetchListing(id: string): Promise<Listing | null> {
 }
 
 export async function createListing(input: ListingInput): Promise<Listing> {
+  // listings.agent_id is NOT NULL — always stamp it with the authenticated
+  // user's id (auth.uid() at the DB layer maps to the JWT subject). This
+  // permanently fixes the "null value in column \"agent_id\"" insert error.
+  // Prefer the signed-in user; fall back to an explicit input.agent_id if a
+  // caller supplies one (e.g. service-role seeding).
+  const { data: { user } } = await supabase.auth.getUser()
+  const agentId: string | null = user?.id ?? input.agent_id ?? null
+
   const { data, error } = await supabase
     .from('listings')
-    .insert({ ...input, status: input.status || 'active' })
+    .insert({ ...input, agent_id: agentId, status: input.status || 'active' })
     .select()
     .single()
   if (error) {
