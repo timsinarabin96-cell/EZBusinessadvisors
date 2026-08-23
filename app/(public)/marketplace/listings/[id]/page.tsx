@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { normalizePublicListing, type PublicMarketplaceListing } from '@/lib/marketplace'
 import ListingDetailInteractive from '@/components/public/ListingDetailInteractive'
+import SimilarListings from '@/components/public/SimilarListings'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
 
@@ -61,6 +62,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         {listing.location_general && <p style={{ color: '#888', fontSize: 14, margin: '8px 0 0' }}>📍 {listing.location_general}</p>}
       </div>
       <ListingDetailInteractive listing={listing} />
+      <SimilarListings listing={listing} />
     </div>
   )
 }

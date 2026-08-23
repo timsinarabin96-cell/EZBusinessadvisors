@@ -5,6 +5,7 @@ import { capturePublicLead, type PublicMarketplaceListing } from '@/lib/marketpl
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fmt$ } from '@/lib/recast'
 import NdaFinancialsGate from '@/components/public/NdaFinancialsGate'
+import SbaCalculator from '@/components/public/SbaCalculator'
 
 export default function ListingDetailInteractive({ listing }: { listing: PublicMarketplaceListing }) {
   const toast = useToast()
@@ -96,6 +97,9 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
                 {listing.sde !== null && <Metric label="Seller's Discretionary Earnings" value={fmt$(listing.sde)} />}
                 {listing.ebitda !== null && <Metric label="EBITDA" value={fmt$(listing.ebitda)} />}
                 {sdeMultiple !== null && <Metric label="Asking / SDE" value={`${sdeMultiple.toFixed(2)}×`} />}
+                <div style={{ marginTop: 14 }}>
+                  <SbaCalculator askingPrice={listing.asking_price} />
+                </div>
               </>
             ) : (
               <NdaFinancialsGate listing={listing} askingPrice={listing.asking_price} />

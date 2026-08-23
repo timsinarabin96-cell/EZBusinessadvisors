@@ -1,0 +1,133 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { fetchPublicFeed, fetchAllIndustries, type PublicMarketplaceListing } from '@/lib/marketplace'
+import PublicListingCard from '@/components/public/PublicListingCard'
+
+export const dynamic = 'force-dynamic'
+
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
+
+const SLUG_TO_INDUSTRY: Record<string, string> = {
+  'laundromats': 'Laundromat',
+  'car-washes': 'Car Wash',
+  'restaurants': 'Restaurant',
+  'gas-stations': 'Gas Station',
+  'convenience-stores': 'Convenience Store',
+  'home-care': 'Home Care',
+  'e-commerce': 'E-Commerce',
+  'salons': 'Salon',
+  'barbershops': 'Barbershop',
+  'auto-repair': 'Auto Repair',
+  'dental': 'Dental',
+  'pharmacies': 'Pharmacy',
+  'hotels': 'Hotel',
+  'storage': 'Storage',
+  'warehouses': 'Warehouse',
+  'manufacturing': 'Manufacturing',
+  'cleaning': 'Cleaning',
+  'vending': 'Vending',
+  'gyms': 'Gym',
+  'daycares': 'Daycare',
+  'pet-grooming': 'Pet Grooming',
+  'liquor-stores': 'Liquor Store',
+  'bakeries': 'Bakery',
+  'coffee-shops': 'Coffee Shop',
+  'trucking': 'Trucking',
+  'plumbing': 'Plumbing',
+  'hvac': 'HVAC',
+  'print-shops': 'Printing',
+  'landscaping': 'Landscaping',
+  'janitorial': 'Janitorial',
+  'veterinary': 'Veterinary',
+  'funeral-homes': 'Funeral Home',
+  'franchises': 'Franchise',
+}
+
+function slugify(industry: string): string {
+  return industry.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+export async function generateStaticParams() {
+  const industries = await fetchAllIndustries()
+  return industries.map((industry) => ({ slug: slugify(industry) }))
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const industry = SLUG_TO_INDUSTRY[params.slug] || params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  const title = `${industry} Businesses for Sale`
+  const description = `Browse ${industry} businesses for sale. Vetted, profitable ${industry.toLowerCase()} opportunities with confidential financials available to qualified buyers.`
+  return {
+    title,
+    description,
+    alternates: { canonical: `${BASE}/marketplace/industry/${params.slug}` },
+    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/industry/${params.slug}` },
+  }
+}
+
+export default async function IndustryPage({ params }: { params: { slug: string } }) {
+  const industry = SLUG_TO_INDUSTRY[params.slug] || params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  const [all, industries] = await Promise.all([fetchPublicFeed(), fetchAllIndustries()])
+
+  const listings = all
+    .filter((l) => l.industry?.toLowerCase() === industry.toLowerCase() || l.sub_industry?.toLowerCase() === industry.toLowerCase())
+    .sort((a, b) => Number(b.is_featured) - Number(a.is_featured))
+
+  const prices = listings.map((l) => l.asking_price).filter((p): p is number => p !== null)
+  const avgPrice = prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : null
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: `${industry} Businesses for Sale`,
+    description: `Browse ${industry} businesses for sale.`,
+    url: `${BASE}/marketplace/industry/${params.slug}`,
+  }
+
+  return (
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Business Marketplace</div>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: '8px 0 0' }}>{industry} Businesses for Sale</h1>
+          <p style={{ color: '#888', fontSize: 14, marginTop: 6 }}>
+            {listings.length} available{avgPrice ? ` · avg asking ${'$' + avgPrice.toLocaleString()}` : ''}
+          </p>
+        </div>
+        <Link href="/marketplace/listings" style={{ color: '#1a1a2e', fontWeight: 700, fontFamily: 'Georgia, serif', textDecoration: 'none' }}>
+          Browse all →
+        </Link>
+      </div>
+
+      {/* Industry quick-nav */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+        {industries.slice(0, 24).map((ind) => (
+          <Link
+            key={ind}
+            href={`/marketplace/industry/${slugify(ind)}`}
+            style={{ padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 600, textDecoration: 'none', background: ind.toLowerCase() === industry.toLowerCase() ? '#1a1a2e' : '#fff', color: ind.toLowerCase() === industry.toLowerCase() ? '#c9a84c' : '#1a1a2e', border: '1px solid #ece8dc' }}
+          >
+            {ind}
+          </Link>
+        ))}
+      </div>
+
+      {listings.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 24px', background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, color: '#888' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>🏢</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>No {industry} listings right now</div>
+          <div style={{ fontSize: 14, marginTop: 8 }}>
+            Check back soon or{' '}
+            <Link href="/contact" style={{ color: '#c9a84c', fontWeight: 700 }}>contact a broker</Link> for off-market opportunities.
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+          {listings.map((l) => (
+            <PublicListingCard key={l.id} listing={l} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

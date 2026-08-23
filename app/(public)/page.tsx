@@ -128,6 +128,22 @@ export default async function HomePage() {
           </Link>
         </div>
 
+        {/* Browse by industry — SEO entry points */}
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Browse by industry</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {industries.slice(0, 20).map((ind) => (
+              <Link
+                key={ind}
+                href={`/marketplace/industry/${slugify(ind)}`}
+                style={{ padding: '7px 16px', borderRadius: 99, fontSize: 13, fontWeight: 700, textDecoration: 'none', background: '#faf9f4', color: '#1a1a2e', border: '1px solid #ece8dc' }}
+              >
+                {ind}
+              </Link>
+            ))}
+          </div>
+        </div>
+
         {featured.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 12, color: '#888' }}>
             New listings are added regularly — check back soon, or{' '}
@@ -163,6 +179,10 @@ export default async function HomePage() {
       </section>
     </div>
   )
+}
+
+function slugify(industry: string): string {
+  return industry.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
