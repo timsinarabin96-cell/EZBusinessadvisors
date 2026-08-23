@@ -8,6 +8,7 @@ import { fmt$ } from '@/lib/recast'
 export default function PublicListingCard({ listing }: { listing: PublicMarketplaceListing }) {
   const image = listing.gallery_urls[0]
   const href = `/marketplace/listings/${listing.slug || listing.id}`
+  const isNew = listing.published_at ? Date.now() - new Date(listing.published_at).getTime() < 7 * 86400000 : false
 
   return (
     <Link href={href} style={{ display: 'block', textDecoration: 'none', background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
@@ -25,8 +26,25 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
             Confidential
           </span>
         )}
+        {listing.is_featured && (
+          <span style={{ position: 'absolute', bottom: 12, left: 12, background: 'linear-gradient(135deg,#c9a84c,#a8872f)', color: '#1a1a2e', padding: '4px 12px', borderRadius: 99, fontSize: 11, fontWeight: 800 }}>
+            ★ Featured
+          </span>
+        )}
+        {isNew && (
+          <span style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(16,42,67,0.92)', color: '#fff', padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+            NEW
+          </span>
+        )}
       </div>
       <div style={{ padding: 16 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          {listing.seller_financing_available && <BadgeTone color="#0e7490">💰 Financing</BadgeTone>}
+          {listing.is_absentee_owner && <BadgeTone color="#15803d">🏖️ Absentee</BadgeTone>}
+          {listing.is_franchise && <BadgeTone color="#7c3aed">🏷️ Franchise</BadgeTone>}
+          {listing.is_relocatable && <BadgeTone color="#b45309">📦 Relocatable</BadgeTone>}
+          {listing.employees_full_time != null && <BadgeTone color="#64748b">{listing.employees_full_time} FT</BadgeTone>}
+        </div>
         <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a2e', fontFamily: 'Georgia, serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {listing.public_title}
         </div>
@@ -52,5 +70,13 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
         </div>
       </div>
     </Link>
+  )
+}
+
+function BadgeTone({ color, children }: { color: string; children: React.ReactNode }) {
+  return (
+    <span style={{ background: `${color}14`, color, border: `1px solid ${color}33`, padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+      {children}
+    </span>
   )
 }

@@ -25,6 +25,12 @@ export interface PublicMarketplaceListing {
   published_at: string | null
   show_financials: boolean
   broker_id?: string | null
+  is_absentee_owner?: boolean | null
+  is_franchise?: boolean | null
+  is_relocatable?: boolean | null
+  seller_financing_available?: boolean | null
+  established_year?: number | null
+  employees_full_time?: number | null
 }
 
 interface PublicListingFeedRow {
@@ -46,6 +52,12 @@ interface PublicListingFeedRow {
   published_at: string | null
   show_financials: boolean | null
   broker_id?: string | null
+  is_absentee_owner?: boolean | null
+  is_franchise?: boolean | null
+  is_relocatable?: boolean | null
+  seller_financing_available?: boolean | null
+  established_year?: number | null
+  employees_full_time?: number | null
 }
 
 export interface MarketplaceStats {
@@ -62,6 +74,13 @@ export interface SearchFilters {
   minPrice?: number
   maxPrice?: number
   maxRevenue?: number
+  minRevenue?: number
+  maxSdeMultiple?: number
+  absenteeOnly?: boolean
+  franchiseOnly?: boolean
+  financingAvailable?: boolean
+  relocatableOnly?: boolean
+  minEmployees?: number
 }
 
 function numberOrNull(value: number | string | null): number | null {
@@ -103,6 +122,12 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     published_at: row.published_at,
     show_financials: Boolean(row.show_financials),
     broker_id: row.broker_id || null,
+    is_absentee_owner: row.is_absentee_owner ?? null,
+    is_franchise: row.is_franchise ?? null,
+    is_relocatable: row.is_relocatable ?? null,
+    seller_financing_available: row.seller_financing_available ?? null,
+    established_year: row.established_year ?? null,
+    employees_full_time: row.employees_full_time ?? null,
   }
 }
 
@@ -143,7 +168,17 @@ export async function searchPublicListings(filters: SearchFilters = {}): Promise
     .filter((listing) => !location || listing.location_general?.toLowerCase().includes(location))
     .filter((listing) => !filters.minPrice || (listing.asking_price !== null && listing.asking_price >= filters.minPrice))
     .filter((listing) => !filters.maxPrice || (listing.asking_price !== null && listing.asking_price <= filters.maxPrice))
+    .filter((listing) => !filters.minRevenue || (listing.annual_revenue !== null && listing.annual_revenue >= filters.minRevenue))
     .filter((listing) => !filters.maxRevenue || (listing.annual_revenue !== null && listing.annual_revenue <= filters.maxRevenue))
+    .filter((listing) => {
+      if (!filters.maxSdeMultiple || listing.asking_price === null || listing.sde === null || listing.sde === 0) return true
+      return listing.asking_price / listing.sde <= filters.maxSdeMultiple
+    })
+    .filter((listing) => !filters.absenteeOnly || listing.is_absentee_owner === true)
+    .filter((listing) => !filters.franchiseOnly || listing.is_franchise === true)
+    .filter((listing) => !filters.financingAvailable || listing.seller_financing_available === true)
+    .filter((listing) => !filters.relocatableOnly || listing.is_relocatable === true)
+    .filter((listing) => !filters.minEmployees || (listing.employees_full_time != null && listing.employees_full_time >= filters.minEmployees))
     .filter((listing) => {
       if (!query) return true
       return [listing.public_title, listing.public_summary, listing.industry, listing.sub_industry]
