@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // POST /api/billing/convert-trial
@@ -26,9 +27,11 @@ const PLANS: Record<string, { monthly: number; annual: number }> = {
   enterprise: { monthly: 149, annual: 1430 },
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return unauthorizedResponse()
 
   let body: Body = { agencyId: '', planType: 'starter' }
   try {
@@ -42,6 +45,7 @@ export async function POST(req: Request) {
   if (!agencyId || !plan) {
     return NextResponse.json({ ok: false, error: 'missing agencyId or invalid plan' }, { status: 400 })
   }
+  if (!canManageAgency(authenticated, agencyId)) return forbiddenResponse()
 
   const { data: agency } = await db.from('agencies').select('*').eq('id', agencyId).maybeSingle()
   if (!agency) return NextResponse.json({ ok: false, error: 'agency not found' }, { status: 404 })

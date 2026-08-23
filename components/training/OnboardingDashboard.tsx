@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardHeader, Badge } from '@/components/ui'
 import type { OnboardingStep, OnboardingTask, OnboardingSummary } from '@/lib/onboarding'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // Agent Onboarding checklist — shows required steps with progress and lets the
 // broker mark each step complete. Reads/writes via the onboarding API (server
@@ -29,7 +30,7 @@ export default function OnboardingDashboard({ brokerId }: Props) {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/onboarding?brokerId=${encodeURIComponent(brokerId)}`)
+      const res = await authenticatedFetch(`/api/onboarding?brokerId=${encodeURIComponent(brokerId)}`)
       const json = await res.json()
       if (json.ok) {
         setSummary({
@@ -62,7 +63,7 @@ export default function OnboardingDashboard({ brokerId }: Props) {
     const next = !(existing?.completed ?? false)
     setSaving(step.id)
     try {
-      const res = await fetch('/api/onboarding', {
+      const res = await authenticatedFetch('/api/onboarding', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brokerId, stepId: step.id, completed: next }),

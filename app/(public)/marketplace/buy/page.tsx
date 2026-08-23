@@ -5,111 +5,92 @@ import Link from 'next/link'
 import { capturePublicLead } from '@/lib/marketplace'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 
+const INITIAL = {
+  name: '', email: '', phone: '', minBudget: '', maxBudget: '', availableCash: '', industries: '',
+  locations: '', financing: '', ownerInvolvement: '', timeline: '', message: '', emailAlerts: true,
+}
+
 export default function BuyPage() {
-  return (
-    <ToastProvider>
-      <BuyContent />
-    </ToastProvider>
-  )
+  return <ToastProvider><BuyContent /></ToastProvider>
 }
 
 function BuyContent() {
   const toast = useToast()
-  const [form, setForm] = useState({ name: '', email: '', phone: '', budget: '', industries: '', timeline: '', message: '' })
+  const [form, setForm] = useState(INITIAL)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.name.trim() || !form.email.trim()) { toast('Name and email are required', 'error'); return }
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!form.name.trim() || !form.email.trim()) return toast('Name and email are required', 'error')
     setSubmitting(true)
-    const res = await capturePublicLead({
-      kind: 'buyer', name: form.name, email: form.email, phone: form.phone || undefined,
-      source: 'buy_page', message: `Budget: ${form.budget || 'N/A'} | Industries: ${form.industries || 'N/A'} | Timeline: ${form.timeline || 'N/A'} | ${form.message || ''}`,
+    const result = await capturePublicLead({
+      kind: 'buyer', name: form.name, email: form.email, phone: form.phone || undefined, source: 'buyer_match_profile',
+      budget_range: [form.minBudget, form.maxBudget].filter(Boolean).join(' - '),
+      industries_interest: form.industries,
+      preferred_location: form.locations,
+      timeframe: form.timeline,
+      funds_available: form.availableCash ? Number(form.availableCash) : null,
+      financing_method: form.financing,
+      message: `Owner involvement: ${form.ownerInvolvement || 'Not specified'} | Alerts consent: ${form.emailAlerts ? 'yes' : 'no'} | ${form.message}`,
     })
     setSubmitting(false)
-    if (res.ok) {
-      setDone(true)
-      toast('Request received — a broker will contact you with matching opportunities.', 'success')
-    } else {
-      toast(res.error || 'Submission failed', 'error')
-    }
+    if (!result.ok) return toast(result.error || 'Submission failed', 'error')
+    setDone(true)
+    toast('Buyer profile saved — matching can begin.', 'success')
   }
 
-  if (done) {
-    return (
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '100px 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: 60, marginBottom: 20 }}>🤝</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: '0 0 12px' }}>Thank You</h1>
-        <p style={{ color: '#666', fontSize: 16, lineHeight: 1.6, maxWidth: 520, margin: '0 auto' }}>
-          A Concord broker will contact you with confidential opportunities matching your criteria.
-        </p>
-        <Link href="/marketplace/listings" style={{ display: 'inline-block', marginTop: 24, color: '#c9a84c', fontWeight: 700, fontFamily: 'Georgia, serif' }}>Browse listings now →</Link>
-      </div>
-    )
-  }
+  if (done) return <Success />
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
-      <div>
-        <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Buy a Business</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, color: '#1a1a2e', margin: '12px 0 16px', lineHeight: 1.15 }}>
-          Acquire an Established, <span style={{ color: '#c9a84c' }}>Profitable Business</span>
-        </h1>
-        <p style={{ color: '#666', fontSize: 16, lineHeight: 1.7, marginBottom: 28 }}>
-          Access confidential opportunities vetted by our brokers. Tell us what you're looking for and we'll connect you
-          with businesses that match your criteria, budget, and goals.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {[
-            ['🔍', 'Vetted Opportunities', 'Every listing is pre-screened by a licensed broker with verified financials.'],
-            ['🤫', 'Confidential Access', 'Off-market and exclusive opportunities not available to the general public.'],
-            ['👔', 'Dedicated Broker', 'Work one-on-one with an advisor who negotiates on your behalf.'],
-            ['📋', 'Full Due Diligence', 'Complete financials, CIM, and broker support through closing.'],
-          ].map(([icon, t, b]) => (
-            <div key={t} style={{ display: 'flex', gap: 16, alignItems: 'flex-start', padding: 18, background: '#fff', border: '1px solid #ece8dc', borderRadius: 12 }}>
-              <span style={{ fontSize: 26 }}>{icon}</span>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>{t}</div>
-                <div style={{ fontSize: 13.5, color: '#666', marginTop: 4, lineHeight: 1.5 }}>{b}</div>
-              </div>
-            </div>
-          ))}
+    <main style={{ background: '#f4f7fb', minHeight: '100vh' }}>
+      <section style={{ background: 'linear-gradient(135deg,#071827,#12395a 58%,#176b87)', color: '#fff', padding: '72px 24px 110px' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+          <div style={{ color: '#76d7ea', fontSize: 12, fontWeight: 800, letterSpacing: '.18em', textTransform: 'uppercase' }}>Acquisition Intelligence</div>
+          <h1 style={{ color: '#fff', fontSize: 'clamp(38px,6vw,68px)', lineHeight: 1.02, maxWidth: 820, margin: '14px 0 20px' }}>Describe the business you want. Let the system watch the market.</h1>
+          <p style={{ color: '#d7e7f2', maxWidth: 720, fontSize: 18, lineHeight: 1.65, margin: 0 }}>Create a confidential Buyer DNA profile. New seller-approved listings can be scored against your capital, industry, geography, financing, and operating goals.</p>
         </div>
-      </div>
+      </section>
 
-      <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 32, boxShadow: '0 8px 40px rgba(26,26,46,0.1)', position: 'sticky', top: 88 }}>
-        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 4px' }}>Tell Us What You're Looking For</h2>
-        <p style={{ fontSize: 13, color: '#888', margin: '0 0 20px' }}>Confidential. No obligation.</p>
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Field label="Full Name *"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></Field>
-          <Field label="Email *"><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></Field>
-          <Field label="Phone"><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
-          <Field label="Target Budget ($)"><input className="input" type="number" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} /></Field>
-          <Field label="Target Industries"><input className="input" value={form.industries} onChange={(e) => setForm({ ...form, industries: e.target.value })} placeholder="e.g. Business services, restaurants, manufacturing" /></Field>
-          <Field label="Timeline"><select className="select" value={form.timeline} onChange={(e) => setForm({ ...form, timeline: e.target.value })}>
-            <option value="">Select timeline…</option>
-            <option value="0-3 months">ASAP — within 3 months</option>
-            <option value="3-6 months">3–6 months</option>
-            <option value="6-12 months">6–12 months</option>
-            <option value="12+ months">Just exploring</option>
-          </select></Field>
-          <Field label="Anything else?"><textarea className="textarea" rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Acquisition goals, financing, locations…" /></Field>
-          <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: 6 }}>
-            {submitting ? 'Sending...' : 'Get Matched with Businesses'}
-          </button>
+      <section style={{ maxWidth: 1180, margin: '-62px auto 0', padding: '0 24px 80px', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 360px', gap: 24 }} className="buyer-profile-grid">
+        <form onSubmit={submit} className="card" style={{ padding: 32, background: '#fff' }}>
+          <div className="section-title">Buyer DNA Profile</div>
+          <h2 style={{ fontSize: 28, margin: '8px 0 6px' }}>Your acquisition criteria</h2>
+          <p style={{ color: 'var(--muted)', lineHeight: 1.55, margin: '0 0 26px' }}>More detail produces better match explanations and fewer irrelevant alerts.</p>
+          <div className="wf-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+            <Field label="Full name *"><input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></Field>
+            <Field label="Email *"><input className="input" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></Field>
+            <Field label="Phone"><input className="input" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></Field>
+            <Field label="Available cash"><input className="input" type="number" value={form.availableCash} onChange={(event) => setForm({ ...form, availableCash: event.target.value })} /></Field>
+            <Field label="Minimum purchase price"><input className="input" type="number" value={form.minBudget} onChange={(event) => setForm({ ...form, minBudget: event.target.value })} /></Field>
+            <Field label="Maximum purchase price"><input className="input" type="number" value={form.maxBudget} onChange={(event) => setForm({ ...form, maxBudget: event.target.value })} /></Field>
+            <Field label="Target industries" span><input className="input" value={form.industries} onChange={(event) => setForm({ ...form, industries: event.target.value })} placeholder="HVAC, manufacturing, home care, B2B services" /></Field>
+            <Field label="Target geography" span><input className="input" value={form.locations} onChange={(event) => setForm({ ...form, locations: event.target.value })} placeholder="Philadelphia metro, Eastern PA, relocatable" /></Field>
+            <Field label="Financing plan"><select className="select" value={form.financing} onChange={(event) => setForm({ ...form, financing: event.target.value })}><option value="">Select…</option><option>SBA loan</option><option>Cash</option><option>Conventional loan</option><option>Seller financing</option><option>Investor / partner capital</option></select></Field>
+            <Field label="Preferred owner involvement"><select className="select" value={form.ownerInvolvement} onChange={(event) => setForm({ ...form, ownerInvolvement: event.target.value })}><option value="">Select…</option><option>Owner-operated</option><option>Manager-run</option><option>Semi-absentee</option><option>Passive / strategic</option></select></Field>
+            <Field label="Acquisition timeline"><select className="select" value={form.timeline} onChange={(event) => setForm({ ...form, timeline: event.target.value })}><option value="">Select…</option><option>0-3 months</option><option>3-6 months</option><option>6-12 months</option><option>12+ months</option></select></Field>
+            <Field label="Experience, goals, or special requirements" span><textarea className="textarea" rows={5} value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} /></Field>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '20px 0', fontSize: 13, color: '#52606d', lineHeight: 1.5 }}><input type="checkbox" checked={form.emailAlerts} onChange={(event) => setForm({ ...form, emailAlerts: event.target.checked })} style={{ marginTop: 3 }} />Notify me when a seller-approved listing materially matches this profile. I can unsubscribe at any time.</label>
+          <button type="submit" className="btn btn-primary" disabled={submitting}>{submitting ? 'Creating profile…' : 'Create Buyer Match Profile'}</button>
         </form>
-      </div>
-    </div>
+
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[
+            ['01', 'Explainable fit score', 'See why a listing matches your budget, experience, financing, geography, and operating preference.'],
+            ['02', 'Qualification pathway', 'Complete NDA, proof of funds, financing readiness, and broker review before sensitive information is released.'],
+            ['03', 'Acquisition workspace', 'Compare opportunities, save questions, schedule advisors, and move into due diligence from one secure place.'],
+          ].map(([number, title, body]) => <div key={number} className="card" style={{ padding: 22, background: '#fff' }}><div style={{ color: '#0e7490', fontWeight: 900, fontSize: 13 }}>{number}</div><h3 style={{ fontSize: 18, margin: '8px 0' }}>{title}</h3><p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.55, margin: 0 }}>{body}</p></div>)}
+        </aside>
+      </section>
+    </main>
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="label">{label}</label>
-      {children}
-    </div>
-  )
+function Field({ label, span, children }: { label: string; span?: boolean; children: React.ReactNode }) {
+  return <label style={{ gridColumn: span ? '1 / -1' : undefined }}><span className="label">{label}</span>{children}</label>
+}
+
+function Success() {
+  return <div style={{ maxWidth: 760, margin: '0 auto', padding: '100px 24px', textAlign: 'center' }}><div style={{ fontSize: 60, marginBottom: 20 }}>◎</div><h1 style={{ fontSize: 36, margin: '0 0 12px' }}>Your acquisition profile is ready</h1><p style={{ color: '#52606d', fontSize: 16, lineHeight: 1.6 }}>A broker can review your criteria and qualified seller-approved opportunities can be matched as they enter the marketplace.</p><Link href="/marketplace/listings" style={{ display: 'inline-block', marginTop: 24, color: '#0e7490', fontWeight: 800 }}>Explore current opportunities →</Link></div>
 }

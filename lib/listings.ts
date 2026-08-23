@@ -15,6 +15,7 @@ export interface Listing {
   business_name: string | null
   headline: string | null
   industry: string | null
+  sub_industry: string | null
   location_general: string | null
   description: string | null
   asking_price: number | null
@@ -25,6 +26,30 @@ export interface Listing {
   ffe_value: number | null
   real_estate_included: boolean | null
   reason_for_sale: string | null
+  established_year: number | null
+  employees_full_time: number | null
+  employees_part_time: number | null
+  owner_hours_weekly: number | null
+  growth_opportunities: string | null
+  competitive_advantages: string | null
+  customer_concentration: string | null
+  facilities_summary: string | null
+  lease_monthly: number | null
+  lease_expires_on: string | null
+  seller_financing_available: boolean | null
+  financing_notes: string | null
+  transition_support: string | null
+  training_period_weeks: number | null
+  confidentiality_level: string | null
+  intake_source: string | null
+  review_stage: string | null
+  compliance_status: string | null
+  ai_readiness_score: number | null
+  ai_metadata: Record<string, unknown> | null
+  approved_by: string | null
+  approved_at: string | null
+  commission_split_agent: number | null
+  commission_split_brokerage: number | null
   status: string | null
   created_at?: string | null
   updated_at?: string | null

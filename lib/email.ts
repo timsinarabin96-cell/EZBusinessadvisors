@@ -35,6 +35,11 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.v
 // --- Types ------------------------------------------------------------------
 export type EmailKind =
   | 'deal_notification'
+  | 'match_alert'
+  | 'nda_request_received'
+  | 'nda_access_granted'
+  | 'nda_access_rejected'
+  | 'loi_generated'
   | 'lead_assignment'
   | 'training_certificate'
   | 'document_upload'
@@ -107,6 +112,59 @@ export const emailTemplates = {
         ${row('Price', opts.price ? '$' + Math.round(opts.price).toLocaleString() : '—')}
       </table>`
     return { subject, html: shell(subject, body, opts.dealId ? { label: 'View deal', href: `${APP_URL}/pipeline` } : undefined) }
+  },
+
+  matchAlert(opts: { name?: string; searchName?: string; businessName?: string; price?: number | null; score?: number; listingId?: string }) {
+    const subject = `New match for ${opts.searchName || 'your saved search'} 🎯`
+    const body = `
+      <p>${esc(opts.name || 'Hi')} — a new listing matches your saved search <strong>“${esc(opts.searchName || 'watchlist')}”</strong>.</p>
+      <p style="font-size:16px;"><strong>${esc(opts.businessName || 'A new business')}</strong></p>
+      <table style="font-size:14px;border-collapse:collapse;width:100%;">
+        ${row('Asking price', opts.price != null ? '$' + Math.round(opts.price).toLocaleString() : '—')}
+        ${row('Match score', opts.score != null ? opts.score + '/100' : '—')}
+      </table>
+      <p>You can dismiss this alert or adjust your saved search any time from your dashboard.</p>`
+    return {
+      subject,
+      html: shell(subject, body, opts.listingId ? { label: 'View listing', href: `${APP_URL}/marketplace/listings/${opts.listingId}` } : undefined),
+    }
+  },
+
+  ndaRequestReceived(opts: { requesterName?: string; requesterEmail?: string; businessName?: string }) {
+    const subject = `NDA access request: ${opts.requesterName || 'A buyer'} — ${opts.businessName || 'listing'}`
+    const body = `
+      <p>A buyer has signed your NDA and requested confidential access.</p>
+      <table style="font-size:14px;border-collapse:collapse;width:100%;">
+        ${row('Buyer', esc(opts.requesterName || '—'))}
+        ${row('Email', esc(opts.requesterEmail || '—'))}
+        ${row('Business', esc(opts.businessName || '—'))}
+      </table>
+      <p>Review and approve the request to grant data-room access.</p>`
+    return { subject, html: shell(subject, body, { label: 'Review NDA requests', href: `${APP_URL}/dashboard/nda-requests` }) }
+  },
+
+  ndaAccessGranted(opts: { name?: string; businessName?: string; requestId?: string }) {
+    const subject = `Access granted: ${opts.businessName || 'your requested deal'} ✅`
+    const body = `
+      <p>${esc(opts.name || 'Hi')} — your NDA was accepted and you now have confidential access to <strong>${esc(opts.businessName || 'the business')}</strong>.</p>
+      <p>Our team will follow up with the secure data room and next steps.</p>`
+    return { subject, html: shell(subject, body) }
+  },
+
+  ndaAccessRejected(opts: { name?: string; businessName?: string; requestId?: string }) {
+    const subject = `Access request: ${opts.businessName || 'deal'} — update`
+    const body = `
+      <p>${esc(opts.name || 'Hi')} — thank you for your interest in <strong>${esc(opts.businessName || 'the business')}</strong>.</p>
+      <p>Your access request was not approved at this time. Please feel free to reach out if you have questions.</p>`
+    return { subject, html: shell(subject, body) }
+  },
+
+  loiGenerated(opts: { businessName?: string }) {
+    const subject = `LOI generated for ${opts.businessName || 'a deal'} 📝`
+    const body = `
+      <p>A Letter of Intent was generated for <strong>${esc(opts.businessName || 'a deal')}</strong>.</p>
+      <p>Open the LOI from the dashboard to review, print, or send to the seller.</p>`
+    return { subject, html: shell(subject, body, { label: 'Open LOI Lab', href: `${APP_URL}/dashboard/loi` }) }
   },
 
   leadAssignment(opts: { leadName?: string; leadType?: 'buyer' | 'seller'; agentName?: string; leadId?: string }) {
@@ -269,6 +327,11 @@ export async function notify(
   let built: { subject: string; html: string }
   switch (kind) {
     case 'deal_notification': built = emailTemplates.dealNotification(payload); break
+    case 'match_alert': built = emailTemplates.matchAlert(payload); break
+    case 'nda_request_received': built = emailTemplates.ndaRequestReceived(payload); break
+    case 'nda_access_granted': built = emailTemplates.ndaAccessGranted(payload); break
+    case 'nda_access_rejected': built = emailTemplates.ndaAccessRejected(payload); break
+    case 'loi_generated': built = emailTemplates.loiGenerated(payload); break
     case 'lead_assignment': built = emailTemplates.leadAssignment(payload); break
     case 'training_certificate': built = emailTemplates.trainingCertificate(payload); break
     case 'document_upload': built = emailTemplates.documentUpload(payload); break

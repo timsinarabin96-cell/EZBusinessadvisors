@@ -51,8 +51,14 @@ export function buildBbsPayload(listing: Listing): Record<string, unknown> {
  */
 export async function syncListingToBbs(listing: Listing): Promise<BbsSync> {
   const payload = buildBbsPayload(listing)
+  const credentials = await getBbsCredentials()
 
-  // Record the attempt first (pending), simulating the outbound push.
+  if (!credentials?.accountId) {
+    throw new Error('BizBuySell is not connected. Add the brokerage account or use an approved export workflow before publishing.')
+  }
+
+  // Queue the approved payload. A provider adapter must confirm the remote ID
+  // before this record can be marked synced.
   const { data, error } = await supabase
     .from('bbs_syncs')
     .insert({
@@ -65,16 +71,7 @@ export async function syncListingToBbs(listing: Listing): Promise<BbsSync> {
     .single()
 
   if (error) throw new Error(error.message || 'Failed to queue BizBuySell sync')
-
-  // Simulate a successful push (replace with real API call).
-  // For demo, mark synced after a beat.
-  const synced: BbsSync = { ...(data as BbsSync), status: 'synced', external_id: `bbs-${listing.id.slice(0, 8)}`, last_sync_at: new Date().toISOString() }
-  const { error: updErr } = await supabase
-    .from('bbs_syncs')
-    .update({ status: 'synced', external_id: synced.external_id, last_sync_at: synced.last_sync_at })
-    .eq('id', synced.id)
-  if (updErr) return data as BbsSync
-  return synced
+  return data as BbsSync
 }
 
 /** Fetch sync history with listing names for the dashboard. */
@@ -131,7 +128,8 @@ export async function captureWebhookLead(payload: any): Promise<{ ok: boolean; e
 
 // --- Landing page for integrating a real BizBuySell key ---
 export async function getBbsCredentials(): Promise<{ apiKey?: string; accountId?: string } | null> {
-  // Would read from a secure settings table / env. Returns null to signal not
-  // configured — the dashboard shows a "connect" state.
+  // Credentials must be stored in a secrets manager and referenced by the
+  // agency's marketplace_connections row. Never store provider secrets in
+  // browser code or the public database.
   return null
 }

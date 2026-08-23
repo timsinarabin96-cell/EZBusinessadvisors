@@ -4,6 +4,24 @@
 
 import { supabase } from '@/lib/supabase/client'
 
+async function fetchTrainingApi(path: string) {
+  if (typeof window === 'undefined') {
+    return new Response(JSON.stringify({ ok: true, modules: [], lesson: null, quizQuestions: [] }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
+  const { data, error } = await supabase.auth.getSession()
+  const accessToken = data.session?.access_token
+  if (error || !accessToken) throw new Error('Authentication required')
+
+  return fetch(path, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: 'no-store',
+  })
+}
+
 // --- Types ---
 export interface TrainingModule {
   id: string
@@ -82,21 +100,21 @@ export interface TrainingUpload {
 export async function fetchModules(): Promise<TrainingModule[]> {
   // Server-side route uses the service-role client to bypass RLS (training
   // content is `select to authenticated` only). Never hit the anon client here.
-  const res = await fetch('/api/training')
+  const res = await fetchTrainingApi('/api/training')
   if (!res.ok) throw new Error('Failed to load training modules')
   const json = await res.json()
   return (json.modules as TrainingModule[]) || []
 }
 
 export async function fetchModule(id: string): Promise<TrainingModule | null> {
-  const res = await fetch(`/api/training?id=${encodeURIComponent(id)}`)
+  const res = await fetchTrainingApi(`/api/training?id=${encodeURIComponent(id)}`)
   if (!res.ok) return null
   const json = await res.json()
   return (json.modules?.[0] as TrainingModule) || null
 }
 
 export async function fetchLessons(moduleId: string): Promise<TrainingLesson[]> {
-  const res = await fetch(`/api/training?module=${encodeURIComponent(moduleId)}&include=lessons`)
+  const res = await fetchTrainingApi(`/api/training?module=${encodeURIComponent(moduleId)}&include=lessons`)
   if (!res.ok) return []
   const json = await res.json()
   const mod = json.modules?.[0]
@@ -104,14 +122,14 @@ export async function fetchLessons(moduleId: string): Promise<TrainingLesson[]> 
 }
 
 export async function fetchLesson(id: string): Promise<TrainingLesson | null> {
-  const res = await fetch(`/api/training?lesson=${encodeURIComponent(id)}`)
+  const res = await fetchTrainingApi(`/api/training?lesson=${encodeURIComponent(id)}`)
   if (!res.ok) return null
   const json = await res.json()
   return (json.lesson as TrainingLesson) || null
 }
 
 export async function fetchQuiz(lessonId: string): Promise<QuizQuestion[]> {
-  const res = await fetch(`/api/training?quiz=${encodeURIComponent(lessonId)}`)
+  const res = await fetchTrainingApi(`/api/training?quiz=${encodeURIComponent(lessonId)}`)
   if (!res.ok) return []
   const json = await res.json()
   return (json.quizQuestions as QuizQuestion[]) || []

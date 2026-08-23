@@ -120,6 +120,8 @@ export async function buildAgentContext({
       return buildDocumentContext(entityId)
     case 'support':
       return { kind, entityId, text: '' }
+    case 'booking':
+      return { kind, entityId, text: '' }
   }
 }
 

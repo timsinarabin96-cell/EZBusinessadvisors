@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { authenticateRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // Training API — serve published training modules + lessons to the Training
@@ -18,6 +19,9 @@ const SVC = process.env.NEXT_PUBLIC_SUPABASE_URL
 
 // GET /api/training?include=lessons&id=...&module=... -> { ok, modules: [...] }
 export async function GET(req: NextRequest) {
+  const authenticated = await authenticateRequest(req)
+  if (!authenticated) return unauthorizedResponse()
+
   const svc = SVC
   if (!svc) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 

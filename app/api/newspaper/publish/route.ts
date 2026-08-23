@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { renderNewspaperHtml } from '@/lib/newspaper'
+import { authenticateProfileRequest, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // POST /api/newspaper/publish — distributes a published edition to all active
@@ -19,6 +20,9 @@ const SVC = process.env.NEXT_PUBLIC_SUPABASE_URL
 
 export async function POST(req: NextRequest) {
   if (!SVC) return NextResponse.json({ ok: false, error: 'server not configured' }, { status: 503 })
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return unauthorizedResponse()
+  if (!authenticated.memberships.some((membership) => membership.is_owner || membership.role === 'admin')) return forbiddenResponse()
   const { editionId } = await req.json().catch(() => ({}))
   if (!editionId) return NextResponse.json({ ok: false, error: 'missing editionId' }, { status: 400 })
 

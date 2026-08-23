@@ -113,11 +113,21 @@ export const canAccessFeature = (sub: Subscription | null, tierMinimum: 'starter
   return order[sub.tier as keyof typeof order] >= order[tierMinimum]
 }
 
+// When the `subscriptions` table is absent (pre-schema-stabilization), queries
+// fail with a relation-missing PostgREST error. Degrade gracefully instead of
+// throwing so onboarding/billing UI never hard-crashes.
+const isRelationMissing = (err: unknown): boolean =>
+  typeof err === 'object' && err !== null && !!((err as { message?: string }).message ?? '').match(/relation .* does not exist|Could not find the table/i)
+
+export const SUBSCRIPTIONS_MISSING = Symbol('SUBSCRIPTIONS_MISSING')
+
 // --- Fetch current subscription ---
 export async function fetchMySubscription(): Promise<Subscription | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data, error } = await supabase.from('subscriptions').select('*').eq('profile_id', user.id).maybeSingle()
+  // If the table doesn't exist yet, treat as "no subscription" (graceful).
+  if (isRelationMissing(error)) return null
   if (error || !data) return null
   return data as Subscription
 }

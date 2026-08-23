@@ -2,67 +2,35 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
-import type { Listing } from '@/lib/listings'
+import { normalizePublicListing, type PublicMarketplaceListing } from '@/lib/marketplace'
 import ListingDetailInteractive from '@/components/public/ListingDetailInteractive'
-
-// ---------------------------------------------------------------------------
-// /marketplace/listings/[id] — Server Component.
-// Fetches the listing server-side, renders full SEO metadata (title, OG,
-// JSON-LD) and delegates the interactive gallery + contact form to a client
-// child. Falls back to the public anon read path when the service key is
-// unset so the page still works; 404s cleanly for unknown/inactive listings.
-// ---------------------------------------------------------------------------
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
 
-async function getListing(id: string): Promise<Listing | null> {
-  // Prefer the service-role server client; fall back to anon reads if the
-  // service key isn't configured yet (RLS already allows public listing reads).
-  const svc = createServerClient()
-  const client = svc ?? (await import('@/lib/supabase/client')).supabase
-  const { data, error } = await client
-    .from('listings')
-    .select('*')
-    .eq('id', id)
-    .eq('status', 'active')
-    .maybeSingle()
-  if (error || !data) return null
-  return data as Listing
+async function getListing(identifier: string): Promise<PublicMarketplaceListing | null> {
+  const client = createServerClient()
+  if (!client) return null
+
+  const { data, error } = await client.rpc('get_public_listing_feed', { p_slug: identifier })
+  if (error || !data?.length) return null
+  return normalizePublicListing(data[0])
 }
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const listing = await getListing(params.id)
-  if (!listing) {
-    return {
-      title: 'Listing Not Found',
-      robots: { index: false },
-    }
-  }
-  const title = `${listing.business_name} for Sale${listing.location_general ? ` in ${listing.location_general}` : ''}`
-  const description =
-    listing.headline ||
-    (listing.description || '').slice(0, 155) ||
-    `${listing.business_name} — a profitable business offered for confidential sale.`
-  const images = [listing.primary_image_url, listing.featured_image_url].filter(Boolean) as string[]
+  if (!listing) return { title: 'Listing Not Found', robots: { index: false } }
+
+  const title = `${listing.public_title}${listing.location_general ? ` — ${listing.location_general}` : ''}`
+  const description = listing.public_summary?.slice(0, 155) || 'A confidential business acquisition opportunity represented by Concord Deal Exchange.'
+  const images = listing.gallery_urls.slice(0, 1)
+  const identifier = listing.slug || listing.id
 
   return {
     title,
     description,
-    alternates: { canonical: `${BASE}/marketplace/listings/${listing.id}` },
-    openGraph: {
-      title,
-      description,
-      type: 'website',
-      url: `${BASE}/marketplace/listings/${listing.id}`,
-      siteName: 'Concord Deal Platform',
-      images: images.map((url) => ({ url, width: 1200, height: 630, alt: listing.business_name || '' })),
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images,
-    },
+    alternates: { canonical: `${BASE}/marketplace/listings/${identifier}` },
+    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/listings/${identifier}`, siteName: 'Concord Deal Exchange', images: images.map((url) => ({ url, width: 1200, height: 630, alt: listing.public_title })) },
+    twitter: { card: 'summary_large_image', title, description, images },
   }
 }
 
@@ -72,39 +40,26 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
 
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'LocalBusiness',
-    name: listing.business_name,
-    description: listing.headline || undefined,
-    image: listing.primary_image_url || undefined,
-    priceRange: listing.asking_price ? `$${listing.asking_price.toLocaleString()}` : undefined,
-    address: listing.location_general
-      ? { '@type': 'PostalAddress', addressRegion: listing.location_general }
-      : undefined,
+    '@type': 'Product',
+    name: listing.public_title,
+    description: listing.public_summary || undefined,
+    image: listing.gallery_urls[0] || undefined,
+    category: listing.industry || undefined,
+    offers: listing.asking_price !== null ? { '@type': 'Offer', priceCurrency: 'USD', price: listing.asking_price, availability: 'https://schema.org/InStock' } : undefined,
   }
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <Link href="/marketplace/listings" style={{ color: '#888', textDecoration: 'none', fontSize: 14, fontFamily: 'Georgia, serif' }}>
-        ← Back to listings
-      </Link>
-
-      {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', margin: '20px 0 24px', flexWrap: 'wrap', gap: 16 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: 0 }}>{listing.business_name}</h1>
-            <span style={{ background: '#f0ecdf', color: '#1a1a2e', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>{listing.industry || 'Business'}</span>
-          </div>
-          <p style={{ color: '#666', fontSize: 15, margin: '8px 0 0' }}>{listing.headline}</p>
-          {listing.location_general && <p style={{ color: '#888', fontSize: 14, margin: '4px 0 0' }}>📍 {listing.location_general}</p>}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <Link href="/marketplace/listings" style={{ color: '#888', textDecoration: 'none', fontSize: 14, fontFamily: 'Georgia, serif' }}>← Back to listings</Link>
+      <div style={{ margin: '20px 0 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: 0 }}>{listing.public_title}</h1>
+          <span style={{ background: '#f0ecdf', color: '#1a1a2e', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>{listing.industry || 'Business'}</span>
+          {listing.is_confidential && <span style={{ background: '#1a1a2e', color: '#fff', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>Confidential</span>}
         </div>
+        {listing.location_general && <p style={{ color: '#888', fontSize: 14, margin: '8px 0 0' }}>📍 {listing.location_general}</p>}
       </div>
-
-      {/* Interactive gallery + financial snapshot + contact form */}
       <ListingDetailInteractive listing={listing} />
     </div>
   )

@@ -32,6 +32,7 @@ const AGENTS: { kind: AgentKind; label: string; icon: string; hint: string }[] =
   { kind: 'lead', label: 'Lead', icon: '🎯', hint: 'Qualify & prioritize leads' },
   { kind: 'training', label: 'Training', icon: '📘', hint: 'Brokerage curriculum' },
   { kind: 'document', label: 'Document', icon: '📁', hint: 'Summarize CIM/BOV/recast' },
+  { kind: 'booking', label: 'Booking', icon: '📅', hint: 'Book appointments in calendar' },
 ]
 
 const AGENT_LABEL: Record<AgentKind, string> = {
@@ -39,6 +40,7 @@ const AGENT_LABEL: Record<AgentKind, string> = {
   training: 'Training Agent',
   document: 'Document Agent',
   support: 'Support Agent',
+  booking: 'Booking Agent',
 }
 
 let counter = 0

@@ -426,3 +426,59 @@ h1, h2, h3, h4 {
   from { transform: translateY(12px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+@media (max-width: 980px) {
+  .intelligence-metrics-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+}
+
+@media (max-width: 1120px) {
+  .listing-studio-grid { grid-template-columns: 210px minmax(0, 1fr) !important; }
+  .listing-studio-grid > aside:last-child { display: none !important; }
+}
+
+@media (max-width: 760px) {
+  .listing-studio-grid { grid-template-columns: 1fr !important; }
+  .listing-studio-grid > aside:first-child { position: static !important; }
+}
+
+@media (max-width: 860px) {
+  .buyer-profile-grid { grid-template-columns: 1fr !important; }
+  .owner-plan-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ---- Phone capability: buyer/seller forms ---- */
+@media (max-width: 640px) {
+  .buyer-profile-grid .wf-grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+  .buyer-profile-grid input,
+  .buyer-profile-grid select,
+  .buyer-profile-grid textarea {
+    font-size: 16px !important; /* prevents iOS auto-zoom on focus */
+    min-height: 48px;
+  }
+  .buyer-profile-grid .btn-primary {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 16px;
+  }
+  .buyer-profile-grid aside {
+    order: -1; /* features first, form below on small screens */
+  }
+}
+
+/* App shell + dashboards on phones */
+@media (max-width: 640px) {
+  main {
+    padding-left: 0 !important;
+  }
+  .card {
+    padding: 16px !important;
+  }
+  h1 {
+    font-size: 24px !important;
+  }
+  .table-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}

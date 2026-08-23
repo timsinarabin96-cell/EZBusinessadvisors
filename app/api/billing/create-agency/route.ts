@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // POST /api/billing/create-agency
@@ -37,9 +38,11 @@ async function getGlobalSettings(db: Awaited<ReturnType<typeof createServerClien
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return unauthorizedResponse()
 
   let body: Body = { name: '' }
   try {
@@ -83,10 +86,10 @@ export async function POST(req: Request) {
   const agencyId = agency.id
 
   // 2) If a signed-in user, link them as admin owner.
-  if (body.profileId) {
+  if (authenticated.user.id) {
     await db.from('agency_members').insert({
       agency_id: agencyId,
-      profile_id: body.profileId,
+      profile_id: authenticated.user.id,
       role: 'admin',
       is_owner: true,
     })

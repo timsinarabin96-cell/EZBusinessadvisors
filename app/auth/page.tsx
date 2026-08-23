@@ -29,7 +29,9 @@ export default function AuthPage() {
       
       setSuccess('✅ Signed in successfully!')
       setTimeout(() => {
-        router.push('/')
+        const searchParams = new URLSearchParams(window.location.search)
+        const next = searchParams.get('next')
+        router.push(next?.startsWith('/') ? next : '/dashboard')
       }, 1000)
       
     } catch (err: any) {

@@ -14,6 +14,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 type Mode = 'trial' | 'subscribe'
 
@@ -35,7 +36,7 @@ export default function AgencyTrialSignup() {
         router.push('/auth')
         return
       }
-      const res = await fetch('/api/billing/create-agency', {
+      const res = await authenticatedFetch('/api/billing/create-agency', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, tier, startTrial: mode === 'trial', profileId: user.id }),

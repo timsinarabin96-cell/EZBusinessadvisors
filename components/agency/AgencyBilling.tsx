@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/Toast'
 import { fetchUserAgencyContext, type Agency } from '@/lib/agencies'
 import TrialStatusBadge from '@/components/agency/TrialStatusBadge'
 import { statusFromAgency, getAgencyUsage, DEFAULT_LIMITS, type TrialState, type AgencyUsage } from '@/lib/trial'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 const PLANS = [
   { id: 'starter', name: 'Starter', monthly: 9, features: ['Up to 5 active listings', '30 leads / month', 'Basic CIM & BOV'] },
@@ -63,7 +64,7 @@ export default function AgencyBilling() {
     if (!agency) return
     setPaying(planId)
     try {
-      const res = await fetch('/api/billing/convert-trial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agencyId: agency.id, planType: planId }) })
+      const res = await authenticatedFetch('/api/billing/convert-trial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agencyId: agency.id, planType: planId }) })
       const json = await res.json()
       if (!json.ok) throw new Error(json.error || 'Upgrade failed')
       // Payment hook: in production this returns a Stripe Checkout URL to redirect to.

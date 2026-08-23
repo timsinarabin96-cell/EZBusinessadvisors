@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { capturePublicLead } from '@/lib/marketplace'
+import { submitSellerListingOrder } from '@/lib/sellerOrderClient'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
 
 export default function SellPage() {
   return (
@@ -16,6 +18,7 @@ export default function SellPage() {
 function SellContent() {
   const toast = useToast()
   const [form, setForm] = useState({ name: '', email: '', phone: '', businessName: '', annualRevenue: '', askingPrice: '', message: '' })
+  const [planId, setPlanId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -23,9 +26,32 @@ function SellContent() {
     e.preventDefault()
     if (!form.name.trim() || !form.email.trim()) { toast('Name and email are required', 'error'); return }
     setSubmitting(true)
+    // Seller picked a paid listing plan → create a real listing order
+    // (draft in broker review queue). Otherwise fall back to a lead.
+    if (planId) {
+      const res = await submitSellerListingOrder({
+        planId: planId as 'launch' | 'qualified' | 'broker_assisted',
+        business_name: form.businessName || 'Untitled business',
+        annual_revenue: form.annualRevenue ? Number(form.annualRevenue) : null,
+        asking_price: form.askingPrice ? Number(form.askingPrice) : null,
+        seller_email: form.email,
+        seller_name: form.name,
+        seller_phone: form.phone || null,
+        description: form.message || null,
+      })
+      setSubmitting(false)
+      if (res.ok) {
+        setDone(true)
+        toast('Listing order created — a broker will confirm details before it goes live.', 'success')
+      } else {
+        toast(res.error || 'Submission failed', 'error')
+      }
+      return
+    }
     const res = await capturePublicLead({
       kind: 'seller', name: form.name, email: form.email, phone: form.phone || undefined,
-      source: 'sell_page', message: `Business: ${form.businessName || 'N/A'} | Revenue: ${form.annualRevenue || 'N/A'} | ${form.message || ''}`,
+      source: 'sell_page', business_name: form.businessName, revenue_range: form.annualRevenue,
+      message: `Thinking of asking: ${form.askingPrice || 'N/A'} | ${form.message || ''}`,
     })
     setSubmitting(false)
     if (res.ok) {
@@ -50,6 +76,7 @@ function SellContent() {
   }
 
   return (
+    <main>
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
       {/* LEFT copy */}
       <div>
@@ -82,8 +109,8 @@ function SellContent() {
 
       {/* RIGHT form */}
       <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 32, boxShadow: '0 8px 40px rgba(26,26,46,0.1)', position: 'sticky', top: 88 }}>
-        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 4px' }}>Request a Free Valuation</h2>
-        <p style={{ fontSize: 13, color: '#888', margin: '0 0 20px' }}>100% confidential. No obligation.</p>
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 4px' }}>{planId ? 'List Your Business' : 'Request a Free Valuation'}</h2>
+        <p style={{ fontSize: 13, color: '#888', margin: '0 0 20px' }}>{planId ? `Selected plan: ${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.name} — $${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.price} one-time. A broker reviews before anything goes live.` : '100% confidential. No obligation.'}</p>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Field label="Full Name *"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></Field>
           <Field label="Email *"><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></Field>
@@ -103,6 +130,29 @@ function SellContent() {
         </form>
       </div>
     </div>
+
+    <section style={{ background: '#071827', color: '#fff', padding: '70px 24px' }}>
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', maxWidth: 720, margin: '0 auto 34px' }}>
+          <div style={{ color: '#76d7ea', fontSize: 12, fontWeight: 800, letterSpacing: '.18em', textTransform: 'uppercase' }}>Owner Marketplace Plans</div>
+          <h2 style={{ color: '#fff', fontSize: 36, margin: '12px 0' }}>List once. Stay confidential. Upgrade only when it helps.</h2>
+          <p style={{ color: '#cbdbe7', lineHeight: 1.65 }}>Owners can create a one-time listing package, but every public listing remains subject to identity checks, broker review, seller approval, and applicable compliance rules.</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 18 }} className="owner-plan-grid">
+          {OWNER_LISTING_PLANS.map((plan) => (
+            <article key={plan.id} style={{ padding: 26, borderRadius: 16, background: plan.featured ? '#fff' : '#102b40', color: plan.featured ? '#102a43' : '#fff', border: plan.featured ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,.13)' }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: plan.featured ? '#0e7490' : '#76d7ea' }}>{plan.name}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '12px 0' }}><strong style={{ fontSize: 38 }}>${plan.price}</strong><span style={{ opacity: .65 }}>{plan.billing}</span></div>
+              <p style={{ minHeight: 64, lineHeight: 1.55, opacity: .8 }}>{plan.description}</p>
+              {plan.features.map((feature) => <div key={feature} style={{ padding: '8px 0', borderTop: `1px solid ${plan.featured ? '#e5edf3' : 'rgba(255,255,255,.1)'}`, fontSize: 13 }}>✓ {feature}</div>)}
+              <button type="button" className={plan.featured ? 'btn btn-primary' : 'btn btn-ghost'} style={{ marginTop: 18, width: '100%', justifyContent: 'center', color: plan.featured ? undefined : '#fff', borderColor: plan.featured ? undefined : 'rgba(255,255,255,.35)' }} onClick={() => { setPlanId(plan.id); document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' }); }}>{planId === plan.id ? '✓ Selected — fill the form' : 'Choose this plan'}</button>
+            </article>
+          ))}
+        </div>
+        <p style={{ color: '#91a8b8', fontSize: 12, textAlign: 'center', marginTop: 24 }}>Prices are initial launch positioning and can be changed by each brokerage. Payment activation requires the approved billing provider and final terms/refund policy.</p>
+      </div>
+    </section>
+    </main>
   )
 }
 

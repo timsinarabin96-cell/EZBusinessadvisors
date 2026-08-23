@@ -16,6 +16,7 @@ import {
   type BrokerBrandContext, type CardBrand, type CardLayout, type BrokerCardOverrides,
 } from '@/lib/branding'
 import BusinessCardPreview, { type CardOwnerInfo, type PhotoPosition } from '@/components/cards/BusinessCardPreview'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import type { QrStyle } from '@/lib/qr'
 import { generateVCardString } from '@/lib/vcard'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
@@ -180,7 +181,7 @@ export default function BusinessCardBrandSettings() {
     try {
       const formData = new FormData()
       formData.append('file', photoFile)
-      const res = await fetch('/api/broker/upload-photo', { method: 'POST', body: formData })
+      const res = await authenticatedFetch('/api/broker/upload-photo', { method: 'POST', body: formData })
       const json = await res.json()
       if (json.ok) {
         setPhotoUrl(json.url)

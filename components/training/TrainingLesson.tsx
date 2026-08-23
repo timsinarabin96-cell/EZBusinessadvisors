@@ -9,6 +9,7 @@ import {
 import { LoadingState, EmptyState, Badge } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 import TrainingQuiz from './TrainingQuiz'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: string; lessonId: string }) {
   const [lesson, setLesson] = useState<TrainingLesson | null>(null)
@@ -65,7 +66,7 @@ export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: s
       // If this lesson completes the module, issue the certificate server-side
       // (writes with service role + fires the certificate email + QR code).
       if (m.lessonModuleComplete(lessons, prog)) {
-        const res = await fetch('/api/certificates', {
+        const res = await authenticatedFetch('/api/certificates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

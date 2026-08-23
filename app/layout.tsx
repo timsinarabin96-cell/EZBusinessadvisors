@@ -8,6 +8,7 @@ const APP_DESCRIPTION =
   'Business brokerage platform — listings, deal pipeline, client portals, and financial recasting.'
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.vercel.app'),
   title: {
     default: `${APP_NAME} — Business Brokerage`,
     template: `%s · ${APP_NAME}`,

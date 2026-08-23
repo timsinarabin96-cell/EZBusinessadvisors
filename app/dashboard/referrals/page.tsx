@@ -1,0 +1,213 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import AppShell from '@/components/layout/AppShell'
+import { LoadingState } from '@/components/ui'
+import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { getAgencyContext } from '@/lib/agencyContext'
+
+interface Referral {
+  id: string
+  referrer_name: string
+  referrer_email: string
+  referral_type: string
+  referee_name: string | null
+  referee_email: string | null
+  status: 'new' | 'contacted' | 'converted' | 'paid'
+  commission_pct: number | null
+  notes: string | null
+  converted_at: string | null
+  created_at: string
+}
+
+const STATUS_FLOW = ['new', 'contacted', 'converted', 'paid'] as const
+const STATUS_COLORS: Record<string, string> = {
+  new: 'bg-blue-50 text-blue-700 border-blue-200',
+  contacted: 'bg-amber-50 text-amber-700 border-amber-200',
+  converted: 'bg-green-50 text-green-700 border-green-200',
+  paid: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+}
+const fmtDate = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+
+export default function ReferralsPage() {
+  return (
+    <AppShell active="Referrals">
+      <ToastProvider>
+        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
+          <ReferralsApp />
+        </div>
+      </ToastProvider>
+    </AppShell>
+  )
+}
+
+function ReferralsApp() {
+  const toast = useToast()
+  const [referrals, setReferrals] = useState<Referral[]>([])
+  const [agencyId, setAgencyId] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  const [referrerName, setReferrerName] = useState('')
+  const [referrerEmail, setReferrerEmail] = useState('')
+  const [referralType, setReferralType] = useState('buyer')
+  const [refereeName, setRefereeName] = useState('')
+  const [refereeEmail, setRefereeEmail] = useState('')
+  const [commissionPct, setCommissionPct] = useState('')
+
+  const load = useCallback(async (agency: string) => {
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch(`/api/referrals?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } })
+    const data = await res.json().catch(() => ({}))
+    setReferrals(data.referrals || [])
+  }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      const ctx = await getAgencyContext()
+      if (!ctx) { setLoading(false); return }
+      setAgencyId(ctx.agencyId)
+      await load(ctx.agencyId)
+      setLoading(false)
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const authHeaders = () => ({
+    authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}`,
+    'content-type': 'application/json',
+  })
+
+  const createReferral = async () => {
+    setSaving(true)
+    const res = await fetch('/api/referrals', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        agencyId,
+        referrerName,
+        referrerEmail,
+        referralType,
+        refereeName: refereeName || null,
+        refereeEmail: refereeEmail || null,
+        commissionPct: commissionPct ? Number(commissionPct) : null,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setSaving(false)
+    if (!res.ok || !data.ok) {
+      toast(data.error || 'Could not save referral', 'error')
+      return
+    }
+    toast('Referral saved', 'success')
+    setReferrerName('')
+    setReferrerEmail('')
+    setRefereeName('')
+    setRefereeEmail('')
+    setCommissionPct('')
+    await load(agencyId)
+  }
+
+  const advanceStatus = async (referral: Referral) => {
+    const idx = STATUS_FLOW.indexOf(referral.status)
+    const next = STATUS_FLOW[idx + 1]
+    if (!next) return
+    const res = await fetch('/api/referrals', {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        id: referral.id,
+        status: next,
+        convertedAt: next === 'converted' ? new Date().toISOString() : undefined,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) {
+      toast(data.error || 'Could not update referral', 'error')
+      return
+    }
+    toast(`Marked ${next}`, 'success')
+    await load(agencyId)
+  }
+
+  if (loading) return <LoadingState />
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">🎁 Referral Program</h1>
+        <p className="text-gray-500 text-sm mt-1">
+          Log buyer & seller referrals, track them from first contact through paid, and keep the commission you agreed on.
+        </p>
+      </div>
+
+      {/* New referral */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <h2 className="font-semibold mb-3">Log a new referral</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Referrer name *" value={referrerName} onChange={(e) => setReferrerName(e.target.value)} />
+          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Referrer email *" type="email" value={referrerEmail} onChange={(e) => setReferrerEmail(e.target.value)} />
+          <select className="border rounded-lg px-3 py-2 text-sm" value={referralType} onChange={(e) => setReferralType(e.target.value)}>
+            <option value="buyer">Buyer referral</option>
+            <option value="seller">Seller referral</option>
+          </select>
+          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Referee name" value={refereeName} onChange={(e) => setRefereeName(e.target.value)} />
+          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Referee email" type="email" value={refereeEmail} onChange={(e) => setRefereeEmail(e.target.value)} />
+          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Commission %" type="number" value={commissionPct} onChange={(e) => setCommissionPct(e.target.value)} />
+        </div>
+        <button
+          onClick={createReferral}
+          disabled={saving || !referrerName.trim() || !referrerEmail.trim()}
+          className="mt-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+        >
+          {saving ? 'Saving…' : '+ Log referral'}
+        </button>
+      </div>
+
+      {/* Referral list */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h2 className="font-semibold mb-3">Referrals</h2>
+        {referrals.length === 0 ? (
+          <p className="text-gray-400 text-sm">No referrals yet. Log your first one above.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {referrals.map((referral) => {
+              const idx = STATUS_FLOW.indexOf(referral.status)
+              const next = STATUS_FLOW[idx + 1]
+              return (
+                <li key={referral.id} className="py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-sm">
+                      {referral.referee_name || 'Referral'} <span className="text-gray-400">→ {referral.referral_type}</span>
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {referral.referrer_name} · {referral.referrer_email}
+                      {referral.referee_email ? ` · referee: ${referral.referee_email}` : ''}
+                      {referral.commission_pct != null ? ` · ${referral.commission_pct}%` : ''}
+                      {' · '}
+                      {fmtDate(referral.created_at)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-xs border rounded-full px-2 py-0.5 ${STATUS_COLORS[referral.status] || ''}`}>
+                      {referral.status}
+                    </span>
+                    {next && (
+                      <button
+                        onClick={() => advanceStatus(referral)}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Mark {next}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}

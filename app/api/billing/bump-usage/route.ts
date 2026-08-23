@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { authenticateProfileRequest, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // POST /api/billing/bump-usage
@@ -22,9 +23,11 @@ const LIMIT_MAP: Record<string, { col: string; def: number; mbDef: number }> = {
   storage: { col: 'storage_used', def: 100, mbDef: 100 },
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return unauthorizedResponse()
 
   let body: { agencyId: string; key: string; delta?: number; bytes?: number }
     = { agencyId: '', key: 'listings' }
@@ -33,6 +36,7 @@ export async function POST(req: Request) {
   const { agencyId, key } = body
   const cfg = LIMIT_MAP[key]
   if (!agencyId || !cfg) return NextResponse.json({ ok: false, error: 'invalid agencyId or key' }, { status: 400 })
+  if (!authenticated.memberships.some((membership) => membership.agency_id === agencyId)) return forbiddenResponse()
 
   // fetch agency + settings to know paid vs trial + max
   const { data: agency } = await db.from('agencies').select('id, paid_plan_active, trial_active').eq('id', agencyId).maybeSingle()

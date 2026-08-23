@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Agency, fetchAgencies } from '@/lib/agencies'
-import { fetchFeaturedListings } from '@/lib/marketplace'
-import { Listing } from '@/lib/listings'
+import { fetchFeaturedListings, type PublicMarketplaceListing } from '@/lib/marketplace'
+import { getAgencyTheme, type AgencyTheme } from '@/lib/agencyTheme'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import { LoadingState } from '@/components/ui'
 
 /** White-label public agency home, rendered on agency.concordplatform.com. */
 export default function AgencyHomePage({ params }: { params: { slug: string } }) {
   const [agency, setAgency] = useState<Agency | null>(null)
-  const [listings, setListings] = useState<Listing[]>([])
+  const [theme, setTheme] = useState<AgencyTheme | null>(null)
+  const [listings, setListings] = useState<PublicMarketplaceListing[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -20,13 +21,17 @@ export default function AgencyHomePage({ params }: { params: { slug: string } })
         const agencies = await fetchAgencies()
         const found = agencies.find((a) => a.slug === params.slug)
         setAgency(found || null)
+        if (found?.id) {
+          const res = await fetch(`/api/agency/theme?agencyId=${found.id}`).then((r) => r.json().catch(() => ({})))
+          if (res?.theme) setTheme(res.theme)
+        }
         setListings(await fetchFeaturedListings(6))
       } catch { setAgency(null) } finally { setLoading(false) }
     })()
   }, [params.slug])
 
-  const brand = agency?.brand_color || '#1a1a2e'
-  const accent = agency?.accent_color || '#c9a84c'
+  const brand = theme?.primary_color || agency?.brand_color || '#1a1a2e'
+  const accent = theme?.accent_color || agency?.accent_color || '#c9a84c'
 
   if (loading) return <LoadingState label="Loading..." />
 

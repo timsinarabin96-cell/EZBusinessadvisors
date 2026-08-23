@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { validateServerInput } from '@cosmstack/blackshield/server'
 import { buildAgentContext } from '@/lib/claude/context'
 import { complete, isClaudeConfigured, ClaudeConfigError } from '@/lib/claude/client'
+import { completeWithDeepSeek, isDeepSeekConfigured, DeepSeekConfigError } from '@/lib/deepseek/client'
 import { buildSystemPrompt } from '@/lib/claude/prompts'
 import { CLAUDE_MODELS, type AgentKind, type ClaudeModelName } from '@/types/ai'
 
@@ -33,7 +34,7 @@ const MAX_BODY_BYTES = 32 * 1024 // 32 KB cap
 const MAX_HISTORY = 12 // max prior turns we honor
 const MAX_MESSAGE_LEN = 4000
 
-const agentKindSchema = z.enum(['lead', 'training', 'document', 'support'])
+const agentKindSchema = z.enum(['lead', 'training', 'document', 'support', 'booking'])
 
 const chatRequestSchema = z.object({
   agent: agentKindSchema,
@@ -63,9 +64,9 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   // 0) Feature availability — fail fast with a clear, non-leaky message.
   // -------------------------------------------------------------------------
-  if (!isClaudeConfigured()) {
+  if (!isClaudeConfigured() && !isDeepSeekConfigured()) {
     return fail(
-      'AI is not configured yet. Add ANTHROPIC_API_KEY to the server environment to enable agents.',
+      'AI is not configured yet. Add a server-side DeepSeek or Anthropic provider.',
       503,
       { code: 'AI_NOT_CONFIGURED' },
     )
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
   }
 
   // -------------------------------------------------------------------------
-  // 4) Pick the model + system prompt, then call Claude.
+  // 4) Route routine work to DeepSeek and document polish to Claude.
   // -------------------------------------------------------------------------
   // Document analysis and lead scoring benefit from the larger model; the rest
   // run fast/cheap on haiku. json mode forces the lead agent to output score JSON.
@@ -127,19 +128,73 @@ export async function POST(req: NextRequest) {
   const legal = agent === 'document' || agent === 'training'
   const system = buildSystemPrompt(agent, { legal })
 
+  // -------------------------------------------------------------------------
+  // 4b) Booking agent — real calendar action, not just text.
+  // -------------------------------------------------------------------------
+  if (agent === 'booking') {
+    const { extractBooking, createBooking } = await import('@/lib/booking')
+    const { getAgencyContext } = await import('@/lib/agencyContext')
+    const ctx = await getAgencyContext()
+    if (!ctx) {
+      return fail('An agency membership is required to book appointments.', 403, {
+        code: 'NO_AGENCY',
+      })
+    }
+    try {
+      const extraction = await extractBooking(message)
+      if (extraction.needs_confirmation || !extraction.data) {
+        return ok({
+          ok: false,
+          agent,
+          needs_confirmation: true,
+          reply: extraction.question || 'Could you give me a date and time for the appointment?',
+        })
+      }
+      const result = await createBooking(ctx.agencyId, extraction.data, {
+        createdBy: ctx.userId,
+        source: 'ai_chat',
+      })
+      if (!result.ok) {
+        return fail(result.error || 'Failed to create appointment', 500, {
+          code: 'BOOKING_FAILED',
+        })
+      }
+      const conflicts = (result as { conflicts?: unknown[] }).conflicts
+      const appt = result.appointment as Record<string, unknown>
+      const when = new Date(String(appt.starts_at)).toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+      return ok({
+        ok: true,
+        agent,
+        reply: conflicts?.length
+          ? `Appointment booked for ${when} — heads up, it overlaps ${conflicts.length} existing appointment(s). Check the calendar.`
+          : `Appointment booked: ${String(appt.title)} · ${when} · ${String(appt.attendee_name || 'no attendee')} (${String(appt.attendee_email || 'no email')}).`,
+        data: { appointment: appt, conflicts: conflicts || [] },
+        provider: 'deepseek',
+      })
+    } catch (err) {
+      const msg = (err as Error)?.message || 'Unknown booking error'
+      console.error('[ai/chat] booking failed:', msg)
+      return fail('The booking service returned an error. Please try again.', 502, {
+        code: 'BOOKING_CALL_FAILED',
+      })
+    }
+  }
+
   // Normalize history into the client's expected (user/assistant) shape,
   // appended after the message as the live instruction.
   const turns = (history || []).map((h) => ({ role: h.role, content: h.content }))
+  const useClaude = agent === 'document' && isClaudeConfigured()
 
   try {
-    const result = await complete({
-      context,
-      history: turns,
-      system,
-      model,
-      jsonMode: Boolean(json) || agent === 'lead',
-      maxTokens: agent === 'document' ? 2048 : 1024,
-    })
+    const result = useClaude
+      ? await complete({ context, history: turns, message, system, model, jsonMode: Boolean(json), maxTokens: 2048 })
+      : await completeWithDeepSeek({ context, history: turns, message, system, jsonMode: Boolean(json) || agent === 'lead', maxTokens: agent === 'training' ? 1536 : 1024 })
 
     return ok({
       ok: true,
@@ -147,15 +202,16 @@ export async function POST(req: NextRequest) {
       reply: result.text,
       data: result.data ?? null,
       usage: result.usage ?? null,
+      provider: useClaude ? 'anthropic' : 'deepseek',
     })
   } catch (err) {
     // ClaudeConfigError (key removed mid-flight) and SDK/network errors
-    if (err instanceof ClaudeConfigError) {
+    if (err instanceof ClaudeConfigError || err instanceof DeepSeekConfigError) {
       return fail('AI is not configured.', 503, { code: 'AI_NOT_CONFIGURED' })
     }
     const msg = (err as Error)?.message || 'Unknown AI error'
     // Log the underlying cause server-side only; never surface to the client.
-    console.error('[ai/chat] Claude call failed:', msg)
+    console.error('[ai/chat] provider call failed:', msg)
     return fail('The AI service returned an error. Please try again.', 502, {
       code: 'AI_CALL_FAILED',
     })

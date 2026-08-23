@@ -1,0 +1,101 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import AppShell from '@/components/layout/AppShell'
+import { LoadingState } from '@/components/ui'
+import { getAgencyContext } from '@/lib/agencyContext'
+
+interface NotificationItem {
+  id: string
+  title: string
+  body: string | null
+  kind: string
+  link: string | null
+  read_at: string | null
+  created_at: string
+}
+
+const KIND_ICONS: Record<string, string> = {
+  info: 'ℹ️',
+  review: '🗂️',
+  nda: '🛡️',
+  match: '🎯',
+  milestone: '🏁',
+  billing: '💳',
+  system: '⚙️',
+}
+
+const fmtTime = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
+
+export default function NotificationsPage() {
+  return (
+    <AppShell active="Notifications">
+      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
+        <Notifications />
+      </div>
+    </AppShell>
+  )
+}
+
+function Notifications() {
+  const [items, setItems] = useState<NotificationItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    const ctx = await getAgencyContext()
+    if (!ctx) { setLoading(false); return }
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch(`/api/notifications?agencyId=${ctx.agencyId}`, { headers: { authorization: `Bearer ${token}` } })
+    const data = await res.json().catch(() => ({}))
+    setItems(data.items || [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const markAllRead = async () => {
+    const ctx = await getAgencyContext()
+    if (!ctx) return
+    const token = localStorage.getItem('sb-access-token') || ''
+    await fetch('/api/notifications', { method: 'PATCH', headers: { authorization: `Bearer ${token}` } })
+    await load()
+  }
+
+  if (loading) return <LoadingState />
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">🛎️ Notifications</h1>
+          <p className="text-gray-500 text-sm mt-1">Platform workflow alerts for your agency.</p>
+        </div>
+        <button onClick={markAllRead} className="text-sm text-blue-600 hover:underline">
+          Mark all read
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">No notifications yet.</div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          {items.map((item) => (
+            <div key={item.id} className={`p-4 flex items-start gap-3 ${item.read_at ? '' : 'bg-blue-50/40'}`}>
+              <span className="text-xl shrink-0">{KIND_ICONS[item.kind] || '•'}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{item.title}</p>
+                {item.body && <p className="text-xs text-gray-500 mt-0.5">{item.body}</p>}
+              </div>
+              {!item.read_at && <span className="ml-auto mt-1 w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
+              <span className="ml-auto text-xs text-gray-400 shrink-0">{fmtTime(item.created_at)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

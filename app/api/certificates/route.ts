@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { authenticateProfileRequest, canAccessProfile, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // Certificate API — generate/issue a certificate record + public verification.
@@ -80,9 +81,12 @@ export async function GET(req: NextRequest) {
 // fire the "training certificate earned" email. Authorizes via the caller's
 // Supabase session (user-scoped) but writes with the service role.
 export async function POST(req: NextRequest) {
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return unauthorizedResponse()
   const body = await req.json().catch(() => ({}))
   const { brokerId, moduleId, moduleTitle, brokerName, brokerEmail, template } = body
   if (!brokerId || !moduleId) return NextResponse.json({ ok: false, error: 'missing params' }, { status: 400 })
+  if (!(await canAccessProfile(authenticated, brokerId))) return forbiddenResponse()
   const svc = SVC
   if (!svc) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 

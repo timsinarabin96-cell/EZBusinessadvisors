@@ -4,7 +4,7 @@
 // =============================================================================
 
 /** The AI agents the platform exposes to brokers. */
-export type AgentKind = 'lead' | 'training' | 'document' | 'support'
+export type AgentKind = 'lead' | 'training' | 'document' | 'support' | 'booking'
 
 /** A single user/assistant message in a conversation. */
 export interface ChatMessage {

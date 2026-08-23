@@ -14,6 +14,7 @@ import {
   type TrialState, type UsageLimits, type FeatureKey,
 } from '@/lib/trial'
 import { fetchUserAgencyContext, type Agency } from '@/lib/agencies'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 interface Props {
   onUpgrade?: () => void
@@ -113,7 +114,7 @@ export default function TrialBanner({ onUpgrade, initialAgency }: Props) {
             try {
               if (onUpgrade) { onUpgrade(); return }
               if (!agency) return
-              const res = await fetch('/api/billing/convert-trial', {
+              const res = await authenticatedFetch('/api/billing/convert-trial', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ agencyId: agency.id, planType: 'professional' }),
               })

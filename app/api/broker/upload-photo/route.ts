@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { authenticateRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // POST /api/broker/upload-photo
@@ -25,7 +26,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'storage not configured' }, { status: 503 })
   }
 
-  const userId = req.headers.get('x-user-id') || 'anon'
+  const authenticated = await authenticateRequest(req)
+  if (!authenticated) return unauthorizedResponse()
+  const userId = authenticated.user.id
   const form = await req.formData().catch(() => null)
   if (!form) {
     return NextResponse.json({ ok: false, error: 'Expected multipart form-data' }, { status: 400 })

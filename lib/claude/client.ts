@@ -77,6 +77,7 @@ export interface InternalMessage {
 export async function complete({
   context,
   history = [],
+  message = 'Complete the requested task using the verified context.',
   system,
   model = DEFAULT_MODEL,
   maxTokens = 1024,
@@ -84,6 +85,7 @@ export async function complete({
 }: {
   context: AgentContextPayload
   history?: InternalMessage[]
+  message?: string
   system: string
   model?: ClaudeModelName
   maxTokens?: number
@@ -98,7 +100,7 @@ export async function complete({
     // Prior conversation, clamped to a sane window (last 12 turns) to bound cost.
     ...history.slice(-12).map((m) => ({ role: m.role, content: m.content })),
     // The live question/instruction.
-    { role: 'user', content: history.length ? history[history.length - 1].content : 'Continue.' },
+    { role: 'user', content: message },
   ]
 
   const fullSystem = [

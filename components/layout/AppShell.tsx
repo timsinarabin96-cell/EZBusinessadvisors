@@ -5,15 +5,41 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ToastProvider } from '@/components/ui/Toast'
 import SearchBar from '@/components/search/SearchBar'
+import AuthGuard from '@/components/auth/AuthGuard'
 
 const NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { href: '/dashboard/autopilot', label: 'Deal Autopilot', icon: '✨' },
+  { href: '/dashboard/intelligence', label: 'Intelligence Network', icon: '◇' },
+  { href: '/dashboard/calendar', label: 'Calendar', icon: '📅' },
   { href: '/dashboard/command-center', label: 'Command Center', icon: '🎛️' },
   { href: '/dashboard/analytics', label: 'Analytics', icon: '📈' },
   { href: '/pipeline', label: 'Deal Pipeline', icon: '🔄' },
   { href: '/listings', label: 'Listings', icon: '🏢' },
   { href: '/dashboard/listings/new', label: 'New Listing', icon: '➕' },
   { href: '/dashboard/performance', label: 'Performance', icon: '🏆' },
+  { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️' },
+  { href: '/dashboard/hiring', label: 'Hiring', icon: '🤝' },
+  { href: '/dashboard/offer-lab', label: 'Offer Lab', icon: '🧪' },
+  { href: '/dashboard/loi', label: 'LOI Lab', icon: '📝' },
+  { href: '/dashboard/nda-requests', label: 'NDA Requests', icon: '🛡️' },
+  { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁' },
+  { href: '/dashboard/deal-twin', label: 'Deal Twin', icon: '💠' },
+  { href: '/dashboard/call-summaries', label: 'Call Summaries', icon: '🎧' },
+  { href: '/dashboard/readiness', label: 'Seller Readiness', icon: '🌱' },
+  { href: '/dashboard/referrals', label: 'Referrals', icon: '🎁' },
+  { href: '/dashboard/nurture', label: 'Nurture Drips', icon: '💌' },
+  { href: '/dashboard/commissions', label: 'Commissions', icon: '💰' },
+  { href: '/dashboard/data-room-qa', label: 'Data Room Q&A', icon: '💬' },
+  { href: '/dashboard/negotiation', label: 'Negotiation', icon: '🧭' },
+  { href: '/dashboard/valuation', label: 'Valuation', icon: '📐' },
+  { href: '/dashboard/expiry', label: 'Listing Expiry', icon: '⏳' },
+  { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰' },
+  { href: '/dashboard/comps', label: 'Comps', icon: '📊' },
+  { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋' },
+  { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️' },
+  { href: '/dashboard/security', label: 'Security', icon: '🛂' },
+  { href: '/dashboard/watchlist', label: 'Deal Alerts', icon: '🔔' },
   { href: '/dashboard/financial-files', label: 'Financial Files', icon: '🗂️' },
   { href: '/recast', label: 'Financial Recast', icon: '📊' },
   { href: '/cim', label: 'CIM Generator', icon: '📑' },
@@ -47,11 +73,12 @@ export default function AppShell({
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
 
   return (
-    <ToastProvider>
-      <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--paper)' }}>
+    <AuthGuard>
+      <ToastProvider>
+        <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--paper)' }}>
         {/* Mobile toggle */}
         <button
           onClick={() => setOpen(!open)}
@@ -140,7 +167,8 @@ export default function AppShell({
             {children}
           </div>
         </main>
-      </div>
-    </ToastProvider>
+        </div>
+      </ToastProvider>
+    </AuthGuard>
   )
 }

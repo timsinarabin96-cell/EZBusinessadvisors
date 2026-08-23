@@ -16,6 +16,7 @@ import {
   type NewEdition, type Article, type Subscription,
 } from '@/lib/newspaper'
 import { Card, CardHeader, LoadingState } from '@/components/ui'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 
 export default function NewspaperPage() {
@@ -90,7 +91,7 @@ function NewspaperDashboard() {
     if (!selectedId) return
     setBusy(true)
     try {
-      const res = await fetch('/api/newspaper/publish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ editionId: selectedId }) })
+      const res = await authenticatedFetch('/api/newspaper/publish', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ editionId: selectedId }) })
       const json = await res.json()
       if (res.ok) toast(`Queued for ${json.sent} subscriber(s)` + (json.failed ? `, ${json.failed} failed` : ''), 'success')
       else toast(json.error || 'Distribute failed', 'error')

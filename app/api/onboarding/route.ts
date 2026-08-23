@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { authenticateProfileRequest, canAccessProfile, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // Onboarding API — summary + task upsert. Runs server-side with the service
@@ -16,8 +17,11 @@ const SVC = process.env.NEXT_PUBLIC_SUPABASE_URL
 
 // GET /api/onboarding?brokerId=... — steps + tasks + progress summary
 export async function GET(req: NextRequest) {
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return unauthorizedResponse()
   const brokerId = req.nextUrl.searchParams.get('brokerId') || ''
   if (!brokerId) return NextResponse.json({ ok: false, error: 'missing brokerId' }, { status: 400 })
+  if (!(await canAccessProfile(authenticated, brokerId))) return forbiddenResponse()
   const svc = SVC
   if (!svc) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
@@ -66,9 +70,12 @@ export async function GET(req: NextRequest) {
 
 // POST /api/onboarding — upsert a task state
 export async function POST(req: NextRequest) {
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return unauthorizedResponse()
   const body = await req.json().catch(() => ({}))
   const { brokerId, stepId, completed, progress } = body
   if (!brokerId || !stepId) return NextResponse.json({ ok: false, error: 'missing params' }, { status: 400 })
+  if (!(await canAccessProfile(authenticated, brokerId))) return forbiddenResponse()
   const svc = SVC
   if (!svc) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 

@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/Toast'
 import TrialStatusBadge from '@/components/agency/TrialStatusBadge'
 import { statusFromAgency, DEFAULT_LIMITS, type TrialState, type AgencyUsage } from '@/lib/trial'
 import type { Agency } from '@/lib/agencies'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 type Filter = 'all' | 'active' | 'ending' | 'expired' | 'paid'
 
@@ -62,7 +63,7 @@ export default function AdminTrials() {
   }
 
   async function convert(a: Row, plan: 'starter' | 'professional' | 'enterprise') {
-    const res = await fetch('/api/billing/convert-trial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agencyId: a.id, planType: plan }) })
+    const res = await authenticatedFetch('/api/billing/convert-trial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agencyId: a.id, planType: plan }) })
     const json = await res.json()
     toast(json.ok ? `Converted to ${plan}` : json.error || 'Convert failed', json.ok ? 'success' : 'error')
     if (json.ok) load()

@@ -3,8 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { fetchAllIndustries, fetchMarketplaceStats, searchPublicListings, MarketplaceStats } from '@/lib/marketplace'
-import { Listing } from '@/lib/listings'
+import { fetchAllIndustries, fetchMarketplaceStats, searchPublicListings, type MarketplaceStats, type PublicMarketplaceListing } from '@/lib/marketplace'
 import { fmt$ } from '@/lib/recast'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import { LoadingState } from '@/components/ui'
@@ -20,7 +19,7 @@ export default function SearchListingsPage() {
 function SearchListingsInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [results, setResults] = useState<Listing[]>([])
+  const [results, setResults] = useState<PublicMarketplaceListing[]>([])
   const [industries, setIndustries] = useState<string[]>([])
   const [stats, setStats] = useState<MarketplaceStats | null>(null)
   const [loading, setLoading] = useState(true)
