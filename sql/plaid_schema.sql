@@ -56,8 +56,12 @@ alter table public.public_listings add column if not exists revenue_verified boo
 -- ---------------------------------------------------------------------------
 -- 3. Expose the boolean through the allowlisted public feed function
 --    (financial values still gated by show_financials; the badge is public).
+--    NOTE: drop first — Postgres cannot change a function's return type in
+--    CREATE OR REPLACE, so we drop the old signature and recreate it.
 -- ---------------------------------------------------------------------------
-create or replace function public.get_public_listing_feed(p_slug text default null)
+drop function if exists public.get_public_listing_feed(text);
+
+create function public.get_public_listing_feed(p_slug text default null)
 returns table (
   listing_id uuid,
   slug text,
