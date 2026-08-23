@@ -127,6 +127,22 @@ export const fmt$ = (n: number | null | undefined, currency = '$'): string => {
   return `${currency}${sign}${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', EUR: '€', GBP: '£', CAD: 'C$', AUD: 'A$', INR: '₹',
+  AED: 'AED ', SGD: 'S$', JPY: '¥', CNY: '¥', CHF: 'CHF ', MXN: 'MX$',
+  BRL: 'R$', ZAR: 'R', NGN: '₦', KES: 'KSh ', PKR: '₨', BDT: '৳',
+  PHP: '₱', THB: '฿', VND: '₫', MYR: 'RM', IDR: 'Rp ', HKD: 'HK$',
+  KRW: '₩', NZD: 'NZ$', SEK: 'kr', NOK: 'kr', DKK: 'kr', PLN: 'zł',
+}
+
+/** ISO 4217 code → display symbol (falls back to code + space). */
+export const currencySymbol = (code: string | null | undefined): string =>
+  CURRENCY_SYMBOLS[(code || 'USD').toUpperCase()] || ((code || 'USD').toUpperCase() + ' ')
+
+/** Format an amount in a given ISO currency. */
+export const fmtMoney = (n: number | null | undefined, currencyCode: string | null | undefined): string =>
+  fmt$(n, currencySymbol(currencyCode))
+
 export const fmt$K = (n: number | null | undefined, currency = '$'): string => {
   if (n === null || n === undefined || isNaN(n)) return '—'
   return fmt$(Math.round(n / 100) * 100, currency)

@@ -31,6 +31,8 @@ export interface PublicMarketplaceListing {
   seller_financing_available?: boolean | null
   established_year?: number | null
   employees_full_time?: number | null
+  country_code?: string | null
+  currency_code?: string | null
 }
 
 interface PublicListingFeedRow {
@@ -58,6 +60,8 @@ interface PublicListingFeedRow {
   seller_financing_available?: boolean | null
   established_year?: number | null
   employees_full_time?: number | null
+  country_code?: string | null
+  currency_code?: string | null
 }
 
 export interface MarketplaceStats {
@@ -81,6 +85,7 @@ export interface SearchFilters {
   financingAvailable?: boolean
   relocatableOnly?: boolean
   minEmployees?: number
+  country?: string
 }
 
 function numberOrNull(value: number | string | null): number | null {
@@ -128,6 +133,8 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     seller_financing_available: row.seller_financing_available ?? null,
     established_year: row.established_year ?? null,
     employees_full_time: row.employees_full_time ?? null,
+    country_code: row.country_code || null,
+    currency_code: row.currency_code || 'USD',
   }
 }
 
@@ -162,9 +169,10 @@ export async function searchPublicListings(filters: SearchFilters = {}): Promise
   const query = filters.query?.trim().toLowerCase()
   const industry = filters.industry?.trim().toLowerCase()
   const location = filters.location?.trim().toLowerCase()
+  const country = filters.country?.trim().toUpperCase()
 
   return (await fetchPublicFeed())
-    .filter((listing) => !industry || listing.industry?.toLowerCase() === industry)
+    .filter((listing) => !country || (listing.country_code || 'US').toUpperCase() === country)
     .filter((listing) => !location || listing.location_general?.toLowerCase().includes(location))
     .filter((listing) => !filters.minPrice || (listing.asking_price !== null && listing.asking_price >= filters.minPrice))
     .filter((listing) => !filters.maxPrice || (listing.asking_price !== null && listing.asking_price <= filters.maxPrice))

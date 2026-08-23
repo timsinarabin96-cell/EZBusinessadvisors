@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { PublicMarketplaceListing } from '@/lib/marketplace'
-import { fmt$ } from '@/lib/recast'
+import { fmt$, fmtMoney } from '@/lib/recast'
+import { stockImageFor } from '@/lib/stockImages'
 import { isFavorite, toggleFavorite, isComparing, toggleCompare, getBuyerProfile } from '@/lib/publicFavorites'
 import { scoreListingMatch, matchBand, type MatchScoreResult } from '@/lib/matchScore'
 
 export default function PublicListingCard({ listing }: { listing: PublicMarketplaceListing }) {
-  const image = listing.gallery_urls[0]
+  const image = listing.gallery_urls[0] || stockImageFor(listing.industry)
   const href = `/marketplace/listings/${listing.slug || listing.id}`
   const isNew = listing.published_at ? Date.now() - new Date(listing.published_at).getTime() < 7 * 86400000 : false
 
@@ -104,13 +105,13 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
             <div>
               <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Asking Price</div>
               <div style={{ fontSize: 19, fontWeight: 800, color: '#c9a84c', fontFamily: 'Georgia, serif' }}>
-                {listing.asking_price !== null ? fmt$(listing.asking_price) : 'Upon Request'}
+                {listing.asking_price !== null ? fmtMoney(listing.asking_price, listing.currency_code) : 'Upon Request'}
               </div>
             </div>
             {listing.annual_revenue !== null && (
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Revenue</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>{fmt$(listing.annual_revenue)}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>{fmtMoney(listing.annual_revenue, listing.currency_code)}</div>
               </div>
             )}
           </div>
