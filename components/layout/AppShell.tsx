@@ -29,6 +29,7 @@ const NAV = [
   { href: '/dashboard/readiness', label: 'Seller Readiness', icon: '🌱' },
   { href: '/dashboard/referrals', label: 'Referrals', icon: '🎁' },
   { href: '/dashboard/professionals', label: 'Professional Network', icon: '🤝' },
+  { href: '/dashboard/syndication', label: 'Syndication', icon: '🔗' },
   { href: '/dashboard/nurture', label: 'Nurture Drips', icon: '💌' },
   { href: '/dashboard/commissions', label: 'Commissions', icon: '💰' },
   { href: '/dashboard/data-room-qa', label: 'Data Room Q&A', icon: '💬' },
