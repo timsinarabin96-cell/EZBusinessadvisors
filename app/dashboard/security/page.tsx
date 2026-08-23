@@ -31,6 +31,9 @@ function Security() {
   const [code, setCode] = useState('')
   const [message, setMessage] = useState('')
   const [messageKind, setMessageKind] = useState<'ok' | 'err'>('ok')
+  const [require2fa, setRequire2fa] = useState(false)
+  const [canManage, setCanManage] = useState(false)
+  const [savingPolicy, setSavingPolicy] = useState(false)
 
   const loadFactors = useCallback(async () => {
     const { data, error } = await supabase.auth.mfa.listFactors()
@@ -40,7 +43,39 @@ function Security() {
       setMessage(error.message)
       setMessageKind('err')
     }
+    // Agency 2FA policy
+    try {
+      const token = localStorage.getItem('sb-access-token') || ''
+      const res = await fetch('/api/agency/security', { headers: { authorization: `Bearer ${token}` } })
+      const sec = await res.json().catch(() => ({}))
+      if (sec.ok) {
+        setRequire2fa(!!sec.require2fa)
+        setCanManage(!!sec.canManage)
+      }
+    } catch {
+      // best-effort
+    }
   }, [])
+
+  const togglePolicy = async () => {
+    setSavingPolicy(true)
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch('/api/agency/security', {
+      method: 'PATCH',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ require2fa: !require2fa }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setSavingPolicy(false)
+    if (!res.ok || !data.ok) {
+      setMessage(data.error || 'Failed to update policy')
+      setMessageKind('err')
+      return
+    }
+    setRequire2fa(!!data.require2fa)
+    setMessage(data.require2fa ? '2FA now required for all agency brokers.' : '2FA policy relaxed.')
+    setMessageKind('ok')
+  }
 
   useEffect(() => {
     loadFactors()
@@ -163,7 +198,7 @@ function Security() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
         <h2 className="font-semibold mb-2">Security notes</h2>
         <ul className="text-sm text-gray-600 space-y-1.5 list-disc list-inside">
           <li>2FA uses TOTP (Google Authenticator, Authy, 1Password, etc.).</li>
@@ -171,6 +206,31 @@ function Security() {
           <li>All external actions (sends, publishing, payments) still require your explicit approval.</li>
         </ul>
       </div>
+
+      {canManage && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h2 className="font-semibold mb-2">Agency policy</h2>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Require 2FA for all brokers</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                When enabled, every agency member must enroll an authenticator before using the dashboard.
+              </p>
+            </div>
+            <button
+              onClick={togglePolicy}
+              disabled={savingPolicy}
+              className={`shrink-0 text-sm font-medium px-4 py-2 rounded-lg border transition-colors ${
+                require2fa
+                  ? 'bg-green-600 hover:bg-green-700 border-green-600 text-white'
+                  : 'bg-white hover:bg-gray-50 border-gray-300 text-gray-600'
+              }`}
+            >
+              {savingPolicy ? '…' : require2fa ? '✅ Enforced' : 'Turn on enforcement'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
