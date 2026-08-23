@@ -219,6 +219,33 @@ export interface PublicBroker {
   agency?: { name: string } | null
 }
 
+export interface SoldListing {
+  listing_id: string
+  industry: string | null
+  sub_industry: string | null
+  location_general: string | null
+  asking_price: number | null
+  sde: number | null
+  multiple: number | null
+  closed_at: string | null
+}
+
+/** Anonymized recently-sold listings (public RPC — never names/addresses). */
+export async function fetchSoldListings(): Promise<SoldListing[]> {
+  const { data, error } = await supabase.rpc('get_public_sold_listings')
+  if (error || !data) return []
+  return (data as any[]).map((row) => ({
+    listing_id: row.listing_id,
+    industry: row.industry || null,
+    sub_industry: row.sub_industry || null,
+    location_general: row.location_general || null,
+    asking_price: numberOrNull(row.asking_price),
+    sde: numberOrNull(row.sde),
+    multiple: numberOrNull(row.multiple),
+    closed_at: row.closed_at || null,
+  }))
+}
+
 export async function fetchPublicBrokers(): Promise<PublicBroker[]> {
   const { data, error } = await supabase
     .from('broker_profiles')

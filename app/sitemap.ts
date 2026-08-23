@@ -8,6 +8,7 @@ const STATIC: MetadataRoute.Sitemap = [
   { url: `${BASE}/marketplace`, changeFrequency: 'weekly', priority: 0.9 },
   { url: `${BASE}/marketplace/buy`, changeFrequency: 'weekly', priority: 0.8 },
   { url: `${BASE}/marketplace/sell`, changeFrequency: 'monthly', priority: 0.7 },
+  { url: `${BASE}/marketplace/sold`, changeFrequency: 'monthly', priority: 0.8 },
   { url: `${BASE}/marketplace/brokers`, changeFrequency: 'weekly', priority: 0.7 },
   { url: `${BASE}/about`, changeFrequency: 'monthly', priority: 0.5 },
   { url: `${BASE}/contact`, changeFrequency: 'monthly', priority: 0.5 },

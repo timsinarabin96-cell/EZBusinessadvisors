@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { fetchFeaturedListings, fetchMarketplaceStats, fetchAllIndustries } from '@/lib/marketplace'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import AuthRedirect from '@/components/public/AuthRedirect'
+import ValuationLeadForm from '@/components/public/ValuationLeadForm'
 
 // ---------------------------------------------------------------------------
 // / — public homepage (Server Component). Hero, search, featured listings,
@@ -161,20 +162,23 @@ export default async function HomePage() {
       {/* BUYER / SELLER CTAs */}
       <section style={{ background: '#faf9f4', padding: '56px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
-          <CtaCard
-            eyebrow="For Buyers"
-            title="Find Your Next Acquisition"
-            body="Browse a curated selection of vetted, cash-flowing businesses. Sign an NDA to unlock full financials on any listing that interests you."
-            href="/marketplace/listings"
-            label="Browse Businesses"
-          />
-          <CtaCard
-            eyebrow="For Sellers"
-            title="Sell Your Business Confidentially"
-            body="Get a free, no-obligation valuation from a licensed business broker. We market your business discreetly to qualified buyers only."
-            href="/marketplace/sell"
-            label="Get a Free Valuation"
-          />
+          <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
+            <CtaCard
+              eyebrow="For Buyers"
+              title="Find Your Next Acquisition"
+              body="Browse a curated selection of vetted, cash-flowing businesses. Sign an NDA to unlock full financials on any listing that interests you."
+              href="/marketplace/listings"
+              label="Browse Businesses"
+            />
+            <CtaCard
+              eyebrow="For Sellers"
+              title="Sell Your Business Confidentially"
+              body="Get a free, no-obligation valuation from a licensed business broker. We market your business discreetly to qualified buyers only."
+              href="/marketplace/sell"
+              label="Learn More"
+            />
+          </div>
+          <ValuationLeadForm />
         </div>
       </section>
     </div>
