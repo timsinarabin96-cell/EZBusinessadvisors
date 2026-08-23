@@ -1,0 +1,68 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import test from 'node:test'
+
+const schema = readFileSync('sql/visitorIntent_schema.sql', 'utf8')
+const lib = readFileSync('lib/visitorIntent.ts', 'utf8')
+const api = readFileSync('app/api/track-view/route.ts', 'utf8')
+const page = readFileSync('app/dashboard/visitor-intent/page.tsx', 'utf8')
+const interactive = readFileSync('components/public/ListingDetailInteractive.tsx', 'utf8')
+const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+
+test('visitor-intent: schema creates listing_views with anonymous visitor + RLS', () => {
+  assert.match(schema, /create table if not exists public\.listing_views/)
+  assert.match(schema, /visitor_id uuid not null/)
+  assert.match(schema, /viewed_at timestamptz not null default now\(\)/)
+  assert.match(schema, /listing_views_public_insert/)
+  assert.match(schema, /listing_views_agency_read/)
+  assert.match(schema, /is_agency_member\(agency_id\)/)
+  assert.match(schema, /browser-generated, anonymous/)
+  assert.match(schema, /enable row level security/)
+})
+
+test('visitor-intent: lib exposes visitor id, tracking, agency stats, totals', () => {
+  assert.match(lib, /export function getVisitorId/)
+  assert.match(lib, /concord_visitor_id/)
+  assert.match(lib, /export async function trackListingView/)
+  assert.match(lib, /\/api\/track-view/)
+  assert.match(lib, /export async function fetchIntentForAgency/)
+  assert.match(lib, /export interface ListingIntentStats/)
+  assert.match(lib, /uniqueVisitors/)
+  assert.match(lib, /repeatViewers/)
+  assert.match(lib, /viewsLast7d/)
+  assert.match(lib, /hot: boolean/)
+  assert.match(lib, /export async function fetchIntentTotals/)
+  assert.match(lib, /anonymous 90%/)
+})
+
+test('visitor-intent: track API resolves agency server-side and validates', () => {
+  assert.match(api, /POST \/api\/track-view/)
+  assert.match(api, /listing_id and visitor_id required/)
+  assert.match(api, /listing not found/)
+  assert.match(api, /agency_id: listing\.agency_id \|\| null/)
+  assert.match(api, /createServerClient/)
+})
+
+test('visitor-intent: listing page fires anonymous view tracking', () => {
+  assert.match(interactive, /trackListingView/)
+  assert.match(interactive, /document\.referrer/)
+  assert.match(interactive, /useEffect/)
+})
+
+test('visitor-intent: dashboard page renders stats, hot list, per-listing rows', () => {
+  assert.match(page, /Visitor Intent/)
+  assert.match(page, /fetchIntentForAgency/)
+  assert.match(page, /fetchIntentTotals/)
+  assert.match(page, /Total views/)
+  assert.match(page, /Unique visitors/)
+  assert.match(page, /Hot listings/)
+  assert.match(page, /s\.uniqueVisitors/)
+  assert.match(page, /s\.repeatViewers/)
+  assert.match(page, /s\.viewsLast7d/)
+  assert.match(page, /AppShell active="Visitor Intent"/)
+})
+
+test('visitor-intent: dashboard nav includes Visitor Intent', () => {
+  assert.match(shell, /dashboard\/visitor-intent/)
+  assert.match(shell, /'Visitor Intent'/)
+})

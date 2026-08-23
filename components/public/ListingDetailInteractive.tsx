@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { capturePublicLead, type PublicMarketplaceListing } from '@/lib/marketplace'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fmt$ } from '@/lib/recast'
+import { trackListingView } from '@/lib/visitorIntent'
 import NdaFinancialsGate from '@/components/public/NdaFinancialsGate'
 import SbaCalculator from '@/components/public/SbaCalculator'
 
@@ -14,6 +15,11 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' })
   const [submitting, setSubmitting] = useState(false)
   const sdeMultiple = listing.sde && listing.asking_price ? listing.asking_price / listing.sde : null
+
+  // Anonymous view tracking — fire-and-forget; never blocks the page.
+  useEffect(() => {
+    trackListingView(listing.id, document.referrer)
+  }, [listing.id])
 
   const submitLead = async (event: React.FormEvent) => {
     event.preventDefault()
