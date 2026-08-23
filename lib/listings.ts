@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase/client'
 
 export interface Listing {
   id: string
+  listing_ref?: string | null
   agent_id: string | null
   business_name: string | null
   headline: string | null

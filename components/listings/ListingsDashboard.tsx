@@ -137,8 +137,15 @@ export default function ListingsDashboard() {
               <div style={{ padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {listing.business_name || 'Unnamed listing'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {listing.listing_ref && (
+                        <span style={{ background: 'var(--gold-light)', color: 'var(--navy)', fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                          {listing.listing_ref}
+                        </span>
+                      )}
+                      <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {listing.business_name || 'Unnamed listing'}
+                      </span>
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
                       {listing.industry || ''}{listing.location_general ? ` · ${listing.location_general}` : ''}

@@ -38,6 +38,7 @@ const NAV = [
   { href: '/dashboard/comps', label: 'Comps', icon: '📊' },
   { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋' },
   { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️' },
+  { href: '/dashboard/reminders', label: 'Call-Backs & Reminders', icon: '📞' },
   { href: '/dashboard/security', label: 'Security', icon: '🛂' },
   { href: '/dashboard/watchlist', label: 'Deal Alerts', icon: '🔔' },
   { href: '/dashboard/financial-files', label: 'Financial Files', icon: '🗂️' },
