@@ -9,6 +9,9 @@ import { getAgencyContext } from '@/lib/agencyContext'
 interface Reminder {
   id: string
   listing_id: string | null
+  buyer_lead_id: string | null
+  seller_lead_id: string | null
+  deal_id: string | null
   title: string
   notes: string | null
   kind: string
@@ -16,6 +19,9 @@ interface Reminder {
   status: string
   created_at: string
   listings?: { business_name: string | null; listing_ref: string | null } | null
+  buyer_leads?: { full_name: string | null; company: string | null } | null
+  seller_leads?: { full_name: string | null; business_name: string | null } | null
+  deals?: { title: string | null } | null
 }
 
 interface Counts {
@@ -25,7 +31,17 @@ interface Counts {
   pending: number
 }
 
+interface Options {
+  listings: { id: string; label: string }[]
+  buyers: { id: string; label: string }[]
+  sellers: { id: string; label: string }[]
+  deals: { id: string; label: string }[]
+}
+
+type EntityType = 'listing' | 'buyer' | 'seller' | 'deal' | 'none'
+
 const KIND_ICONS: Record<string, string> = { call_back: '📞', follow_up: '🔁', task: '✅', meeting: '🤝' }
+const ENTITY_ICONS: Record<EntityType, string> = { listing: '🏢', buyer: '🤝', seller: '🏷️', deal: '💼', none: '📌' }
 
 const fmtDue = (iso: string) => {
   const d = new Date(iso)
@@ -36,6 +52,14 @@ const fmtDue = (iso: string) => {
     overdue,
     today: d.toDateString() === now.toDateString(),
   }
+}
+
+function entityLabel(r: Reminder): string {
+  if (r.listings?.business_name) return `${r.listings.business_name}${r.listings.listing_ref ? ` (${r.listings.listing_ref})` : ''}`
+  if (r.buyer_leads?.full_name) return `Buyer: ${r.buyer_leads.full_name}`
+  if (r.seller_leads?.business_name || r.seller_leads?.full_name) return `Seller: ${r.seller_leads.business_name || r.seller_leads.full_name}`
+  if (r.deals?.title) return `Deal: ${r.deals.title}`
+  return ''
 }
 
 export default function RemindersPage() {
@@ -60,9 +84,10 @@ function Reminders() {
   const [busy, setBusy] = useState(false)
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
-  const [listingId, setListingId] = useState('')
+  const [entityType, setEntityType] = useState<EntityType>('none')
+  const [entityId, setEntityId] = useState('')
   const [suggested, setSuggested] = useState('')
-  const [listings, setListings] = useState<{ id: string; label: string }[]>([])
+  const [options, setOptions] = useState<Options>({ listings: [], buyers: [], sellers: [], deals: [] })
 
   const load = useCallback(async (agency: string, status: string) => {
     setLoading(true)
@@ -70,12 +95,17 @@ function Reminders() {
     const [listRes, countRes, optRes] = await Promise.all([
       fetch(`/api/reminders?agencyId=${agency}&status=${status}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/reminders?agencyId=${agency}&counts=1`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
-      fetch(`/api/listings/options?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
+      fetch(`/api/reminders?agencyId=${agency}&options=1`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
     ])
     setReminders(listRes.reminders || [])
     setCounts(countRes.counts || null)
     setSuggested(countRes.suggestedNext || '')
-    setListings(optRes.listings || [])
+    setOptions({
+      listings: optRes.listings || [],
+      buyers: optRes.buyers || [],
+      sellers: optRes.sellers || [],
+      deals: optRes.deals || [],
+    })
     setLoading(false)
   }, [])
 
@@ -94,16 +124,19 @@ function Reminders() {
     if (agencyId) await load(agencyId, status)
   }
 
-  const addReminder = async (quick?: { listingId?: string; title?: string }) => {
+  const addReminder = async () => {
+    if (!title.trim()) return
     setBusy(true)
     const token = localStorage.getItem('sb-access-token') || ''
-    const body = quick
-      ? { quick: quick.listingId, title: quick.title, due_at: dueAt || suggested, assignToMe: true }
-      : { title: title.trim(), listing_id: listingId || null, due_at: dueAt || suggested, kind: 'call_back', assignToMe: true }
+    const quick: Record<string, string> = {}
+    if (entityType === 'listing' && entityId) quick.listingId = entityId
+    if (entityType === 'buyer' && entityId) quick.buyerLeadId = entityId
+    if (entityType === 'seller' && entityId) quick.sellerLeadId = entityId
+    if (entityType === 'deal' && entityId) quick.dealId = entityId
     const res = await fetch('/api/reminders', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ quick, title: title.trim(), due_at: dueAt || suggested, assignToMe: true }),
     })
     const data = await res.json().catch(() => ({}))
     setBusy(false)
@@ -111,9 +144,9 @@ function Reminders() {
       toast(data.error || 'Failed to create reminder', 'error')
       return
     }
-    toast('Reminder set 📞', 'success')
+    toast('Reminder set ⏰', 'success')
     setTitle('')
-    setListingId('')
+    setEntityId('')
     if (agencyId) await load(agencyId, filter)
   }
 
@@ -139,11 +172,13 @@ function Reminders() {
 
   if (loading && !reminders.length) return <LoadingState />
 
+  const entityOptions = entityType === 'listing' ? options.listings : entityType === 'buyer' ? options.buyers : entityType === 'seller' ? options.sellers : entityType === 'deal' ? options.deals : []
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">📞 Call-Back & Reminders</h1>
-        <p className="text-gray-500 text-sm mt-1">Never lose a seller again — scheduled call-backs, follow-ups, and tasks.</p>
+        <h1 className="text-2xl font-bold">⏰ Reminders</h1>
+        <p className="text-gray-500 text-sm mt-1">Call-backs, follow-ups, and tasks — attach to any seller, buyer, listing, or deal.</p>
       </div>
 
       {/* Counts */}
@@ -163,27 +198,34 @@ function Reminders() {
         </div>
       )}
 
-      {/* Quick add */}
+      {/* Quick add — entity-agnostic */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
         <h2 className="font-semibold mb-3">New reminder</h2>
-        <div className="flex flex-col md:flex-row gap-2">
-          <input className="border rounded-lg px-3 py-2 text-sm flex-1" placeholder="e.g. Call back seller — update on offer" value={title} onChange={(e) => setTitle(e.target.value)} />
-          <select className="border rounded-lg px-3 py-2 text-sm" value={listingId} onChange={(e) => setListingId(e.target.value)}>
-            <option value="">Link to listing (optional)</option>
-            {listings.map((l) => (
-              <option key={l.id} value={l.id}>{l.label}</option>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+          <input className="border rounded-lg px-3 py-2 text-sm md:col-span-2" placeholder="e.g. Follow up on offer, call buyer, chase docs…" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <select className="border rounded-lg px-3 py-2 text-sm" value={entityType} onChange={(e) => { setEntityType(e.target.value as EntityType); setEntityId('') }}>
+            <option value="none">General / no link</option>
+            <option value="listing">🏢 Listing</option>
+            <option value="buyer">🤝 Buyer</option>
+            <option value="seller">🏷️ Seller</option>
+            <option value="deal">💼 Deal</option>
+          </select>
+          <select className="border rounded-lg px-3 py-2 text-sm" value={entityId} onChange={(e) => setEntityId(e.target.value)} disabled={entityType === 'none'}>
+            <option value="">{entityType === 'none' ? '—' : `Select ${entityType}…`}</option>
+            {entityOptions.map((o) => (
+              <option key={o.id} value={o.id}>{o.label}</option>
             ))}
           </select>
-          <input className="border rounded-lg px-3 py-2 text-sm" type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
-          <button onClick={() => addReminder()} disabled={busy || !title.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg">
+          <button onClick={addReminder} disabled={busy || !title.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg">
             {busy ? '…' : '+ Add'}
           </button>
         </div>
-        {suggested && (
-          <p className="text-xs text-gray-400 mt-2">
-            Smart suggestion: next call time <span className="font-medium text-gray-600">{new Date(suggested).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span> (business hours)
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+          <input className="border rounded-lg px-3 py-2 text-sm" type="datetime-local" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+          <p className="text-xs text-gray-400 self-center">
+            Smart suggestion: {suggested ? new Date(suggested).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'} (business hours)
           </p>
-        )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -202,19 +244,17 @@ function Reminders() {
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {reminders.map((r) => {
             const due = fmtDue(r.due_at)
+            const label = entityLabel(r)
+            const icon = r.listings?.business_name ? '🏢' : r.buyer_leads?.full_name ? '🤝' : r.seller_leads?.business_name || r.seller_leads?.full_name ? '🏷️' : r.deals?.title ? '💼' : '📌'
             return (
               <div key={r.id} className="p-4 flex items-start gap-3">
-                <span className="text-xl shrink-0">{KIND_ICONS[r.kind] || '•'}</span>
+                <span className="text-xl shrink-0">{icon}</span>
                 <div className="min-w-0 flex-1">
-                  <p className={`text-sm font-medium ${r.status === 'done' ? 'line-through text-gray-400' : ''}`}>{r.title}</p>
+                  <p className={`text-sm font-medium ${r.status === 'done' ? 'line-through text-gray-400' : ''}`}>
+                    {KIND_ICONS[r.kind] || ''} {r.title}
+                  </p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {r.listings?.business_name && (
-                      <>
-                        <span className="font-medium">{r.listings.business_name}</span>
-                        {r.listings.listing_ref && <span className="text-gray-400"> · {r.listings.listing_ref}</span>}
-                        {' · '}
-                      </>
-                    )}
+                    {label && <><span className="font-medium">{label}</span> · </>}
                     due {due.label}
                     {due.overdue && r.status === 'pending' && <span className="text-red-500 font-medium"> · OVERDUE</span>}
                     {!due.overdue && due.today && <span className="text-amber-600 font-medium"> · today</span>}

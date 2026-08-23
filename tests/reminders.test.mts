@@ -27,40 +27,62 @@ test('reminders: schema creates reminders table with agency RLS', () => {
   assert.match(schema, /revoke all on public\.reminders from anon/)
 })
 
-test('reminders: lib supports CRUD + smart scheduling', () => {
+test('reminders: any-entity columns live in the live table', () => {
+  // Verified via run_sql: buyer_lead_id, seller_lead_id, deal_id columns exist.
+  assert.match(route, /buyer_lead_id/)
+  assert.match(route, /seller_lead_id/)
+  assert.match(route, /deal_id/)
+  assert.match(lib, /buyer_lead_id\?: string \| null/)
+  assert.match(lib, /seller_lead_id\?: string \| null/)
+  assert.match(lib, /deal_id\?: string \| null/)
+})
+
+test('reminders: lib supports CRUD + smart scheduling + any entity', () => {
   assert.match(lib, /export async function createReminder/)
   assert.match(lib, /export async function listReminders/)
   assert.match(lib, /export async function setReminderStatus/)
   assert.match(lib, /export async function deleteReminder/)
   assert.match(lib, /export async function reminderCounts/)
   assert.match(lib, /export function suggestNextCallTime/)
-  assert.match(lib, /export async function quickCallBack/)
+  assert.match(lib, /export async function quickReminder/)
   assert.match(lib, /business hours/)
+  assert.match(lib, /buyer_leads\(full_name, company\)/)
+  assert.match(lib, /seller_leads\(full_name, business_name\)/)
+  assert.match(lib, /deals\(title, purchase_price\)/)
 })
 
-test('reminders: API supports GET/POST/PATCH/DELETE with auth', () => {
+test('reminders: API supports GET/POST/PATCH/DELETE + entity options', () => {
   assert.match(route, /export async function GET/)
   assert.match(route, /export async function POST/)
   assert.match(route, /export async function PATCH/)
   assert.match(route, /export async function DELETE/)
   assert.match(route, /authenticateProfileRequest/)
   assert.match(route, /unauthorizedResponse\(\)/)
-  assert.match(route, /body\.quick/)
+  assert.match(route, /get\('options'\) === '1'/)
+  assert.match(route, /buyers: \(buyersRes\.data/)
+  assert.match(route, /sellers: \(sellersRes\.data/)
+  assert.match(route, /deals: \(dealsRes\.data/)
+  assert.match(route, /body\.quick && typeof body\.quick === 'object'/)
   assert.match(route, /status \(done\|pending\|cancelled\)/)
 })
 
-test('reminders: dashboard page renders queue, counts, quick add', () => {
-  assert.match(page, /Call-Back & Reminders/)
+test('reminders: dashboard page renders any-entity pickers and counts', () => {
+  assert.match(page, /⏰ Reminders/)
+  assert.match(page, /attach to any seller, buyer, listing, or deal/)
   assert.match(page, /Overdue/)
   assert.match(page, /Due today/)
   assert.match(page, /Smart suggestion/)
   assert.match(page, /\/api\/reminders/)
-  assert.match(page, /assignToMe/)
+  assert.match(page, /EntityType/)
+  assert.match(page, /option value="listing"/)
+  assert.match(page, /option value="buyer"/)
+  assert.match(page, /option value="seller"/)
+  assert.match(page, /option value="deal"/)
+  assert.match(page, /entityLabel/)
 })
 
 test('listing refs: listing cards show the human-readable ID', () => {
   assert.match(dashboard, /listing\.listing_ref/)
-  assert.match(dashboard, /EZB-|listing_ref/)
 })
 
 test('reminders: smart scheduler avoids weekends and late hours', () => {

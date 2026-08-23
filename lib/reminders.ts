@@ -22,13 +22,16 @@ export interface ReminderInput {
   agency_id: string
   profile_id?: string | null
   listing_id?: string | null
+  buyer_lead_id?: string | null
+  seller_lead_id?: string | null
+  deal_id?: string | null
   title: string
   notes?: string | null
   kind?: ReminderKind
   due_at: string
 }
 
-/** Create a reminder. */
+/** Create a reminder for any entity (listing, buyer lead, seller lead, deal, or plain task). */
 export async function createReminder(input: ReminderInput): Promise<{ ok: boolean; error?: string; reminder?: Record<string, unknown> }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   if (!input.title?.trim()) return { ok: false, error: 'title is required' }
@@ -40,6 +43,9 @@ export async function createReminder(input: ReminderInput): Promise<{ ok: boolea
       agency_id: input.agency_id,
       profile_id: input.profile_id || null,
       listing_id: input.listing_id || null,
+      buyer_lead_id: input.buyer_lead_id || null,
+      seller_lead_id: input.seller_lead_id || null,
+      deal_id: input.deal_id || null,
       title: input.title.trim(),
       notes: input.notes || null,
       kind: input.kind || 'call_back',
@@ -52,19 +58,22 @@ export async function createReminder(input: ReminderInput): Promise<{ ok: boolea
   return { ok: true, reminder: data as Record<string, unknown> }
 }
 
-/** List reminders for an agency, optionally filtered by status/kind/listing. */
+/** List reminders for an agency, optionally filtered by status/kind/entity. */
 export async function listReminders(
   agencyId: string,
-  opts: { status?: string; kind?: string; listingId?: string; limit?: number } = {},
+  opts: { status?: string; kind?: string; listingId?: string; buyerLeadId?: string; sellerLeadId?: string; dealId?: string; limit?: number } = {},
 ): Promise<Record<string, unknown>[]> {
   if (!svc) return []
   let query = svc
     .from('reminders')
-    .select('*, listings(business_name, listing_ref)')
+    .select('*, listings(business_name, listing_ref), buyer_leads(full_name, company), seller_leads(full_name, business_name), deals(title, purchase_price)')
     .eq('agency_id', agencyId)
   if (opts.status && opts.status !== 'all') query = query.eq('status', opts.status)
   if (opts.kind && opts.kind !== 'all') query = query.eq('kind', opts.kind)
   if (opts.listingId) query = query.eq('listing_id', opts.listingId)
+  if (opts.buyerLeadId) query = query.eq('buyer_lead_id', opts.buyerLeadId)
+  if (opts.sellerLeadId) query = query.eq('seller_lead_id', opts.sellerLeadId)
+  if (opts.dealId) query = query.eq('deal_id', opts.dealId)
   const { data } = await query.order('due_at', { ascending: true }).limit(opts.limit || 100)
   return (data || []) as Record<string, unknown>[]
 }
@@ -140,22 +149,58 @@ export function suggestNextCallTime(existingDue?: string | null): string {
   return d.toISOString()
 }
 
-/** Quick-create a "call back seller" reminder for a listing. */
+/** Quick-create a reminder for any entity (listing / buyer lead / seller lead / deal). */
+export async function quickReminder(
+  agencyId: string,
+  opts: {
+    profileId?: string | null
+    listingId?: string | null
+    buyerLeadId?: string | null
+    sellerLeadId?: string | null
+    dealId?: string | null
+    title?: string
+    notes?: string | null
+    kind?: ReminderKind
+    dueAt?: string
+  } = {},
+): Promise<{ ok: boolean; error?: string; reminder?: Record<string, unknown> }> {
+  if (!svc) return { ok: false, error: 'Database is not configured' }
+
+  let label = ''
+  if (opts.listingId) {
+    const { data } = await svc.from('listings').select('business_name').eq('id', opts.listingId).maybeSingle()
+    label = data?.business_name || 'listing'
+  } else if (opts.buyerLeadId) {
+    const { data } = await svc.from('buyer_leads').select('full_name, company').eq('id', opts.buyerLeadId).maybeSingle()
+    label = data?.full_name || 'buyer'
+  } else if (opts.sellerLeadId) {
+    const { data } = await svc.from('seller_leads').select('full_name, business_name').eq('id', opts.sellerLeadId).maybeSingle()
+    label = data?.business_name || data?.full_name || 'seller'
+  } else if (opts.dealId) {
+    const { data } = await svc.from('deals').select('title').eq('id', opts.dealId).maybeSingle()
+    label = data?.title || 'deal'
+  }
+
+  const dueAt = opts.dueAt || suggestNextCallTime()
+  return createReminder({
+    agency_id: agencyId,
+    profile_id: opts.profileId || null,
+    listing_id: opts.listingId || null,
+    buyer_lead_id: opts.buyerLeadId || null,
+    seller_lead_id: opts.sellerLeadId || null,
+    deal_id: opts.dealId || null,
+    title: opts.title || `Call back — ${label}`,
+    notes: opts.notes || null,
+    kind: opts.kind || 'call_back',
+    due_at: dueAt,
+  })
+}
+
+/** Quick-create a "call back seller" reminder for a listing (back-compat alias). */
 export async function quickCallBack(
   agencyId: string,
   listingId: string,
   opts: { profileId?: string | null; title?: string; notes?: string | null; dueAt?: string } = {},
 ): Promise<{ ok: boolean; error?: string; reminder?: Record<string, unknown> }> {
-  if (!svc) return { ok: false, error: 'Database is not configured' }
-  const { data: listing } = await svc.from('listings').select('business_name').eq('id', listingId).maybeSingle()
-  const dueAt = opts.dueAt || suggestNextCallTime()
-  return createReminder({
-    agency_id: agencyId,
-    profile_id: opts.profileId || null,
-    listing_id: listingId,
-    title: opts.title || `Call back seller — ${listing?.business_name || 'listing'}`,
-    notes: opts.notes || null,
-    kind: 'call_back',
-    due_at: dueAt,
-  })
+  return quickReminder(agencyId, { ...opts, listingId })
 }

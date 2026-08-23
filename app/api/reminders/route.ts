@@ -7,7 +7,7 @@ import {
   setReminderStatus,
   deleteReminder,
   reminderCounts,
-  quickCallBack,
+  quickReminder,
   suggestNextCallTime,
   type ReminderStatus,
 } from '@/lib/reminders'
@@ -15,8 +15,9 @@ import {
 export const runtime = 'nodejs'
 
 /**
- * GET  /api/reminders?agencyId=...&status=&kind=&listingId=&counts=1
- * POST /api/reminders { title, listing_id?, kind?, due_at, notes? } | { quick: listing_id }
+ * GET  /api/reminders?agencyId=...&status=&kind=&listingId=&buyerLeadId=&sellerLeadId=&dealId=&counts=1
+ * POST /api/reminders { title, listing_id?|buyer_lead_id?|seller_lead_id?|deal_id?, kind?, due_at, notes? }
+ *       | { quick: { listingId?|buyerLeadId?|sellerLeadId?|dealId? } } — entity-agnostic quick reminder
  * PATCH /api/reminders { reminderId, status: 'done'|'pending'|'cancelled' }
  * DELETE /api/reminders { reminderId }
  */
@@ -34,10 +35,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, counts, suggestedNext: suggestNextCallTime() })
   }
 
+  // Entity picker options for the reminder form.
+  if (req.nextUrl.searchParams.get('options') === '1') {
+    const [listingsRes, buyersRes, sellersRes, dealsRes] = await Promise.all([
+      db.from('listings').select('id, business_name, listing_ref').eq('agency_id', agencyId).in('status', ['approved', 'active', 'pending', 'draft']).order('business_name', { ascending: true }).limit(200),
+      db.from('buyer_leads').select('id, full_name, company').eq('agency_id', agencyId).order('created_at', { ascending: false }).limit(200),
+      db.from('seller_leads').select('id, full_name, business_name').eq('agency_id', agencyId).order('created_at', { ascending: false }).limit(200),
+      db.from('deals').select('id, title, purchase_price').eq('agency_id', agencyId).order('created_at', { ascending: false }).limit(200),
+    ])
+    return NextResponse.json({
+      ok: true,
+      listings: (listingsRes.data || []).map((l: any) => ({ id: l.id, label: `${l.business_name || 'Listing'}${l.listing_ref ? ` (${l.listing_ref})` : ''}` })),
+      buyers: (buyersRes.data || []).map((l: any) => ({ id: l.id, label: l.full_name || l.company || 'Buyer' })),
+      sellers: (sellersRes.data || []).map((l: any) => ({ id: l.id, label: l.business_name || l.full_name || 'Seller' })),
+      deals: (dealsRes.data || []).map((l: any) => ({ id: l.id, label: l.title || 'Deal' })),
+    })
+  }
+
   const reminders = await listReminders(agencyId, {
     status: req.nextUrl.searchParams.get('status') || 'pending',
     kind: req.nextUrl.searchParams.get('kind') || undefined,
     listingId: req.nextUrl.searchParams.get('listingId') || undefined,
+    buyerLeadId: req.nextUrl.searchParams.get('buyerLeadId') || undefined,
+    sellerLeadId: req.nextUrl.searchParams.get('sellerLeadId') || undefined,
+    dealId: req.nextUrl.searchParams.get('dealId') || undefined,
   })
   return NextResponse.json({ ok: true, reminders })
 }
@@ -52,10 +73,17 @@ export async function POST(req: NextRequest) {
   const agencyId = body.agencyId || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
 
-  // Quick "call back seller" action.
-  if (body.quick) {
-    const result = await quickCallBack(agencyId, body.quick, {
+  // Entity-agnostic quick reminder (listing / buyer / seller / deal / none).
+  if (body.quick && typeof body.quick === 'object') {
+    const result = await quickReminder(agencyId, {
       profileId: body.assignToMe ? auth.user.id : null,
+      listingId: body.quick.listingId || null,
+      buyerLeadId: body.quick.buyerLeadId || null,
+      sellerLeadId: body.quick.sellerLeadId || null,
+      dealId: body.quick.dealId || null,
+      title: body.title || undefined,
+      notes: body.notes || null,
+      kind: body.kind || 'call_back',
       dueAt: body.due_at || undefined,
     })
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
@@ -69,6 +97,9 @@ export async function POST(req: NextRequest) {
     agency_id: agencyId,
     profile_id: body.assignToMe ? auth.user.id : null,
     listing_id: body.listing_id || null,
+    buyer_lead_id: body.buyer_lead_id || null,
+    seller_lead_id: body.seller_lead_id || null,
+    deal_id: body.deal_id || null,
     title: body.title,
     notes: body.notes || null,
     kind: body.kind || 'call_back',
