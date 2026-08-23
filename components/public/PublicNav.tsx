@@ -21,6 +21,7 @@ export default function PublicNav() {
           <NavLink href="/marketplace/listings">Buy a Business</NavLink>
           <NavLink href="/marketplace/sell">Sell a Business</NavLink>
           <NavLink href="/marketplace/brokers">Our Brokers</NavLink>
+          <NavLink href="/marketplace/qualify">Pre-Qualify</NavLink>
           <NavLink href="/marketplace/professionals">Professionals</NavLink>
           <NavLink href="/marketplace/comps">Sale Comps</NavLink>
           <NavLink href="/marketplace/sold">Recently Sold</NavLink>
@@ -50,6 +51,7 @@ export default function PublicNav() {
           <NavLink href="/marketplace/listings" onClick={() => setOpen(false)}>Buy a Business</NavLink>
           <NavLink href="/marketplace/sell" onClick={() => setOpen(false)}>Sell a Business</NavLink>
           <NavLink href="/marketplace/brokers" onClick={() => setOpen(false)}>Our Brokers</NavLink>
+          <NavLink href="/marketplace/qualify" onClick={() => setOpen(false)}>Pre-Qualify</NavLink>
           <NavLink href="/marketplace/professionals" onClick={() => setOpen(false)}>Professionals</NavLink>
           <NavLink href="/marketplace/comps" onClick={() => setOpen(false)}>Sale Comps</NavLink>
           <NavLink href="/marketplace/sold" onClick={() => setOpen(false)}>Recently Sold</NavLink>
