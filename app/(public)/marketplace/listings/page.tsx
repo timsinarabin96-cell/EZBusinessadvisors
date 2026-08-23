@@ -7,6 +7,8 @@ import { fetchAllIndustries, fetchMarketplaceStats, searchPublicListings, type M
 import { parseNaturalQuery } from '@/lib/naturalSearch'
 import { fmt$ } from '@/lib/recast'
 import PublicListingCard from '@/components/public/PublicListingCard'
+import SavedSearchAlert from '@/components/public/SavedSearchAlert'
+import MatchProfilePanel from '@/components/public/MatchProfilePanel'
 import { LoadingState } from '@/components/ui'
 
 export default function SearchListingsPage() {
@@ -125,6 +127,12 @@ function SearchListingsInner() {
         </div>
         <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: 14 }}>Apply Filters</button>
       </form>
+
+      {/* AI match profile — powers zero-token scores on cards */}
+      <MatchProfilePanel industries={industries} />
+
+      {/* Saved-search alerts — accountless email capture to CRM */}
+      <SavedSearchAlert industry={selIndustry || industry} location={loc || location} maxPrice={price || maxPrice} />
 
       {/* RESULTS */}
       {loading ? <LoadingState /> : results.length === 0 ? (

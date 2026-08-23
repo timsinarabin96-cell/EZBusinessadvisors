@@ -131,7 +131,7 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
   }
 }
 
-async function fetchPublicFeed(identifier: string | null = null): Promise<PublicMarketplaceListing[]> {
+export async function fetchPublicFeed(identifier: string | null = null): Promise<PublicMarketplaceListing[]> {
   const { data, error } = await supabase.rpc('get_public_listing_feed', { p_slug: identifier })
   if (error) {
     console.error('get_public_listing_feed error:', error)
