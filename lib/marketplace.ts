@@ -24,6 +24,7 @@ export interface PublicMarketplaceListing {
   is_confidential: boolean
   published_at: string | null
   show_financials: boolean
+  broker_id?: string | null
 }
 
 interface PublicListingFeedRow {
@@ -44,6 +45,7 @@ interface PublicListingFeedRow {
   is_confidential: boolean | null
   published_at: string | null
   show_financials: boolean | null
+  broker_id?: string | null
 }
 
 export interface MarketplaceStats {
@@ -100,6 +102,7 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     is_confidential: row.is_confidential !== false,
     published_at: row.published_at,
     show_financials: Boolean(row.show_financials),
+    broker_id: row.broker_id || null,
   }
 }
 
@@ -163,6 +166,7 @@ export async function fetchAllIndustries(): Promise<string[]> {
 
 export interface PublicBroker {
   id: string
+  profile_id: string | null
   public_name: string
   title: string
   bio: string
@@ -189,6 +193,7 @@ export async function fetchPublicBrokers(): Promise<PublicBroker[]> {
   if (error || !data) return []
   return (data as any[]).map((broker) => ({
     id: broker.id,
+    profile_id: broker.profile_id || null,
     public_name: broker.public_name || '',
     title: broker.title || 'Business Broker',
     bio: broker.bio || '',
@@ -205,6 +210,74 @@ export async function fetchPublicBrokers(): Promise<PublicBroker[]> {
     booking_url: broker.booking_url || '',
     agency: broker.agency,
   }))
+}
+
+/** Fetch one public broker profile by its public id (broker_profiles.id). */
+export async function fetchPublicBrokerById(id: string): Promise<PublicBroker | null> {
+  const { data, error } = await supabase
+    .from('broker_profiles')
+    .select('*, agency:agencies(name)')
+    .eq('id', id)
+    .eq('is_public', true)
+    .maybeSingle()
+  if (error || !data) return null
+  const b = data as any
+  return {
+    id: b.id,
+    profile_id: b.profile_id || null,
+    public_name: b.public_name || '',
+    title: b.title || 'Business Broker',
+    bio: b.bio || '',
+    avatar_url: b.avatar_url || '',
+    phone: b.phone || '',
+    email_public: b.email_public || '',
+    linkedin: b.linkedin || '',
+    expertise: stringArray(b.expertise),
+    industries: stringArray(b.industries),
+    markets: stringArray(b.markets),
+    credentials: stringArray(b.credentials),
+    years_experience: numberOrNull(b.years_experience),
+    closed_deals_count: Number(b.closed_deals_count || 0),
+    booking_url: b.booking_url || '',
+    agency: b.agency,
+  }
+}
+
+/** Reverse lookup by auth profile id (listings.agent_id → broker profile). */
+export async function fetchBrokerByProfileId(profileId: string): Promise<PublicBroker | null> {
+  const { data, error } = await supabase
+    .from('broker_profiles')
+    .select('*, agency:agencies(name)')
+    .eq('profile_id', profileId)
+    .eq('is_public', true)
+    .maybeSingle()
+  if (error || !data) return null
+  const b = data as any
+  return {
+    id: b.id,
+    profile_id: b.profile_id || null,
+    public_name: b.public_name || '',
+    title: b.title || 'Business Broker',
+    bio: b.bio || '',
+    avatar_url: b.avatar_url || '',
+    phone: b.phone || '',
+    email_public: b.email_public || '',
+    linkedin: b.linkedin || '',
+    expertise: stringArray(b.expertise),
+    industries: stringArray(b.industries),
+    markets: stringArray(b.markets),
+    credentials: stringArray(b.credentials),
+    years_experience: numberOrNull(b.years_experience),
+    closed_deals_count: Number(b.closed_deals_count || 0),
+    booking_url: b.booking_url || '',
+    agency: b.agency,
+  }
+}
+
+/** Listings published by a broker's profile id (from the safe public feed). */
+export async function fetchListingsByBroker(profileId: string): Promise<PublicMarketplaceListing[]> {
+  const all = await fetchPublicFeed()
+  return all.filter((l) => l.broker_id === profileId)
 }
 
 export interface PublicLeadInput {

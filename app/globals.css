@@ -482,3 +482,33 @@ h1, h2, h3, h4 {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ---- Public website responsive helpers (ported from website build) ---- */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: var(--grid-cols, 1fr);
+  gap: var(--grid-gap, 16px);
+}
+@media (max-width: 900px) {
+  .grid-responsive.collapse-md { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .grid-responsive.collapse-sm { grid-template-columns: 1fr; }
+}
+
+.publicnav-links { display: flex; }
+.publicnav-toggle { display: none; }
+@media (max-width: 860px) {
+  .publicnav-links { display: none; }
+  .publicnav-toggle { display: inline-flex !important; }
+}
+
+.sticky-sidebar { position: sticky; }
+@media (max-width: 900px) {
+  .sticky-sidebar { position: static; }
+}
+
+.listing-gallery-image { height: 420px; }
+@media (max-width: 600px) {
+  .listing-gallery-image { height: 240px; }
+}

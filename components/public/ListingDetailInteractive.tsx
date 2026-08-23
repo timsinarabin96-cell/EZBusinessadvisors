@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { capturePublicLead, type PublicMarketplaceListing } from '@/lib/marketplace'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fmt$ } from '@/lib/recast'
+import NdaFinancialsGate from '@/components/public/NdaFinancialsGate'
 
 export default function ListingDetailInteractive({ listing }: { listing: PublicMarketplaceListing }) {
   const toast = useToast()
@@ -88,12 +89,17 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
         <aside style={{ position: 'sticky', top: 24 }}>
           <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 22 }}>
             <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '0 0 16px' }}>Financial Snapshot</h2>
-            <Metric label="Asking Price" value={listing.asking_price !== null ? fmt$(listing.asking_price) : 'Upon Request'} />
-            {listing.annual_revenue !== null && <Metric label="Annual Revenue" value={fmt$(listing.annual_revenue)} />}
-            {listing.sde !== null && <Metric label="Seller's Discretionary Earnings" value={fmt$(listing.sde)} />}
-            {listing.ebitda !== null && <Metric label="EBITDA" value={fmt$(listing.ebitda)} />}
-            {sdeMultiple !== null && <Metric label="Asking / SDE" value={`${sdeMultiple.toFixed(2)}×`} />}
-            {!listing.show_financials && <p style={{ color: '#777', fontSize: 13, lineHeight: 1.5 }}>Financial details are available to qualified buyers upon approval.</p>}
+            {listing.show_financials ? (
+              <>
+                <Metric label="Asking Price" value={listing.asking_price !== null ? fmt$(listing.asking_price) : 'Upon Request'} />
+                {listing.annual_revenue !== null && <Metric label="Annual Revenue" value={fmt$(listing.annual_revenue)} />}
+                {listing.sde !== null && <Metric label="Seller's Discretionary Earnings" value={fmt$(listing.sde)} />}
+                {listing.ebitda !== null && <Metric label="EBITDA" value={fmt$(listing.ebitda)} />}
+                {sdeMultiple !== null && <Metric label="Asking / SDE" value={`${sdeMultiple.toFixed(2)}×`} />}
+              </>
+            ) : (
+              <NdaFinancialsGate listing={listing} askingPrice={listing.asking_price} />
+            )}
 
             <button onClick={() => setShowContact((current) => !current)} style={{ width: '100%', marginTop: 16, background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 7, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
               Request Confidential Details
