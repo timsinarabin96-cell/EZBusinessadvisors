@@ -187,13 +187,24 @@ export default function LeadsDashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
           {!loading && filtered.map((lead) => {
             const meta = statusMeta(lead.status)
+            // Heat score: recency + status → hot / warm / cold.
+            const ageDays = lead.created_at ? Math.max(0, (Date.now() - new Date(lead.created_at).getTime()) / 86400000) : 999
+            const heat = (() => {
+              if (lead.status === 'closed_won' || lead.status === 'converted') return { label: '🔥 Won', color: '#22c55e' }
+              if (ageDays <= 3) return { label: '🔥 Hot', color: '#ef4444' }
+              if (ageDays <= 10) return { label: '🟡 Warm', color: '#f59e0b' }
+              return { label: '❄️ Cold', color: '#64748b' }
+            })()
             return (
               <Card key={`${lead.kind}-${lead.id}`} style={{ padding: 16, cursor: 'pointer' }} onClick={() => openDetail(lead)}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <Badge color={lead.kind === 'buyer' ? '#3b82f6' : '#8b5cf6'}>
                     {lead.kind === 'buyer' ? '👤 Buyer' : '🏢 Seller'}
                   </Badge>
-                  <Badge color={meta.color}>{meta.label}</Badge>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Badge color={heat.color}>{heat.label}</Badge>
+                    <Badge color={meta.color}>{meta.label}</Badge>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--navy)', color: 'var(--gold-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
