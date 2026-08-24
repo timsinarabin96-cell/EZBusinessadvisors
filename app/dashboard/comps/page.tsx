@@ -103,6 +103,24 @@ function CompsDb() {
 
   if (loading) return <LoadingState />
 
+  const exportCsv = () => {
+    if (!comps.length) return
+    const header = 'business_name,industry,location,sale_price,revenue,sde,multiple,sold_at,notes'
+    const rows = comps.map((c) =>
+      [c.business_name, c.industry || '', c.location || '', c.sale_price ?? '', c.revenue ?? '', c.sde ?? '', c.multiple ?? '', c.sold_at || '', (c.notes || '').replace(/,/g, ' ')].join(','),
+    )
+    const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `comps-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast('CSV exported', 'success')
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -144,7 +162,14 @@ function CompsDb() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-semibold mb-3">Sold deals</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Sold deals</h2>
+          {comps.length > 0 && (
+            <button onClick={exportCsv} className="text-xs border border-gray-300 hover:bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg">
+              ⬇ Export CSV
+            </button>
+          )}
+        </div>
         {comps.length === 0 ? (
           <p className="text-gray-400 text-sm">No comps yet — add your first sold deal above.</p>
         ) : (
