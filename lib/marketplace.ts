@@ -33,6 +33,12 @@ export interface PublicMarketplaceListing {
   employees_full_time?: number | null
   country_code?: string | null
   currency_code?: string | null
+  revenue_verified?: boolean
+  vetted?: boolean
+  status?: string | null
+  sba_qualified?: boolean | null
+  views_total?: number | null
+  views_7d?: number | null
 }
 
 interface PublicListingFeedRow {
@@ -53,7 +59,12 @@ interface PublicListingFeedRow {
   is_confidential: boolean | null
   published_at: string | null
   show_financials: boolean | null
+  vetted?: boolean | null
+  status?: string | null
   broker_id?: string | null
+  sba_qualified?: boolean | null
+  views_total?: number | null
+  views_7d?: number | null
   is_absentee_owner?: boolean | null
   is_franchise?: boolean | null
   is_relocatable?: boolean | null
@@ -62,6 +73,7 @@ interface PublicListingFeedRow {
   employees_full_time?: number | null
   country_code?: string | null
   currency_code?: string | null
+  revenue_verified?: boolean | null
 }
 
 export interface MarketplaceStats {
@@ -85,6 +97,8 @@ export interface SearchFilters {
   financingAvailable?: boolean
   relocatableOnly?: boolean
   minEmployees?: number
+  sbaOnly?: boolean
+  status?: 'active' | 'under_contract' | 'sold'
   country?: string
 }
 
@@ -135,6 +149,12 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     employees_full_time: row.employees_full_time ?? null,
     country_code: row.country_code || null,
     currency_code: row.currency_code || 'USD',
+    revenue_verified: Boolean(row.revenue_verified),
+    vetted: Boolean(row.vetted),
+    status: row.status || null,
+    sba_qualified: row.sba_qualified ?? null,
+    views_total: row.views_total != null ? Number(row.views_total) : null,
+    views_7d: row.views_7d != null ? Number(row.views_7d) : null,
   }
 }
 
@@ -153,14 +173,14 @@ export async function fetchPublicListing(identifier: string): Promise<PublicMark
 }
 
 export async function fetchMarketplaceStats(): Promise<MarketplaceStats> {
-  const listings = await fetchPublicFeed()
+  const [listings, sold] = await Promise.all([fetchPublicFeed(), fetchSoldListings()])
   const prices = listings.map((listing) => listing.asking_price).filter((price): price is number => price !== null)
   const industries = new Set(listings.map((listing) => listing.industry).filter(Boolean)).size
 
   return {
     totalListings: listings.length,
     avgAsking: prices.length ? Math.round(prices.reduce((total, price) => total + price, 0) / prices.length) : 0,
-    totalBusinessesSold: 0,
+    totalBusinessesSold: sold.length,
     industries,
   }
 }
@@ -187,6 +207,8 @@ export async function searchPublicListings(filters: SearchFilters = {}): Promise
     .filter((listing) => !filters.financingAvailable || listing.seller_financing_available === true)
     .filter((listing) => !filters.relocatableOnly || listing.is_relocatable === true)
     .filter((listing) => !filters.minEmployees || (listing.employees_full_time != null && listing.employees_full_time >= filters.minEmployees))
+    .filter((listing) => !filters.sbaOnly || listing.sba_qualified === true)
+    .filter((listing) => !filters.status || listing.status === filters.status)
     .filter((listing) => {
       if (!query) return true
       return [listing.public_title, listing.public_summary, listing.industry, listing.sub_industry]
@@ -236,6 +258,7 @@ export interface SoldListing {
   sde: number | null
   multiple: number | null
   closed_at: string | null
+  published_at?: string | null
 }
 
 /** Anonymized recently-sold listings (public RPC — never names/addresses). */
@@ -251,6 +274,7 @@ export async function fetchSoldListings(): Promise<SoldListing[]> {
     sde: numberOrNull(row.sde),
     multiple: numberOrNull(row.multiple),
     closed_at: row.closed_at || null,
+    published_at: row.published_at || null,
   }))
 }
 
@@ -371,6 +395,21 @@ export interface PublicLeadInput {
 }
 
 export async function capturePublicLead(input: PublicLeadInput): Promise<{ ok: boolean; error?: string }> {
+  // Verified-buyer stamp: when the inquirer holds an active Match Pass,
+  // flag the lead so brokers see serious buyers first.
+  let verifiedBuyer = false
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user?.email && user.email.toLowerCase() === input.email.toLowerCase()) {
+      const { data: sub } = await supabase
+        .from('buyer_subscriptions')
+        .select('status')
+        .eq('profile_id', user.id)
+        .maybeSingle()
+      verifiedBuyer = sub?.status === 'active' || sub?.status === 'trialing'
+    }
+  } catch { /* stamping is best-effort */ }
+
   const { error } = input.kind === 'seller'
     ? await supabase.from('seller_leads').insert({
         full_name: input.name,
@@ -397,6 +436,7 @@ export async function capturePublicLead(input: PublicLeadInput): Promise<{ ok: b
         financing_method: input.financing_method || null,
         message: input.message || null,
         status: 'new',
+        verified_buyer: verifiedBuyer || null,
       })
   if (error) return { ok: false, error: error.message }
   return { ok: true }

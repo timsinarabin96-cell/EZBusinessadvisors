@@ -10,7 +10,7 @@ const fmt$ = (n: number | null | undefined) => (n != null ? '$' + Math.round(n).
 
 export const metadata: Metadata = {
   title: 'Recently Sold Businesses — Proof of Results',
-  description: 'Businesses sold confidentially through EZ Business Advisors. See the industries, locations, and sale multiples — never the names.',
+  description: 'Businesses sold confidentially through Concord. See the industries, locations, and sale multiples — never the names.',
   alternates: { canonical: `${BASE}/marketplace/sold` },
 }
 
@@ -21,7 +21,7 @@ export default async function SoldListingsPage() {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
     name: 'Recently Sold Businesses',
-    description: 'Businesses sold confidentially through EZ Business Advisors.',
+    description: 'Businesses sold confidentially through Concord.',
     url: `${BASE}/marketplace/sold`,
   }
 
@@ -72,6 +72,10 @@ export default async function SoldListingsPage() {
 }
 
 function SoldCard({ sold }: { sold: SoldListing }) {
+  const daysToSell =
+    sold.published_at && sold.closed_at
+      ? Math.max(0, Math.round((new Date(sold.closed_at).getTime() - new Date(sold.published_at).getTime()) / 86400000))
+      : null
   return (
     <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 22, boxShadow: '0 2px 10px rgba(26,26,46,0.05)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -91,11 +95,14 @@ function SoldCard({ sold }: { sold: SoldListing }) {
           <div style={{ fontSize: 18, fontWeight: 800, color: '#c9a84c' }}>{sold.multiple != null ? `${sold.multiple.toFixed(2)}×` : '—'}</div>
         </div>
       </div>
-      {sold.sde != null && (
-        <div style={{ fontSize: 12, color: '#999', marginTop: 12 }}>
-          Based on ~{fmt$(sold.sde)} SDE
-        </div>
-      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+        {sold.sde != null && <div style={{ fontSize: 12, color: '#999' }}>Based on ~{fmt$(sold.sde)} SDE</div>}
+        {daysToSell != null && (
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#0e7490' }}>
+            Sold in {daysToSell} {daysToSell === 1 ? 'day' : 'days'}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
