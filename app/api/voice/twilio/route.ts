@@ -15,6 +15,11 @@ export const runtime = 'nodejs'
 const VOICE = 'Polly.Matthew-Neural'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
 
+// Turn-taking: Twilio's ML end-of-speech detection (auto) + phone-call model
+// means the agent jumps in the moment the caller stops talking — no 6s dead
+// air. timeout=4 is the max wait for the caller to START speaking.
+const GATHER_OPTS = 'input="speech" timeout="4" speechTimeout="auto" speechModel="phone_call" enhanced="true" language="en-US"'
+
 function escapeXml(s: string): string {
   return s
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -33,7 +38,7 @@ function twiml(opts: { say?: string; gather?: boolean; pause?: boolean; redirect
   if (opts.say) {
     const say = `<Say voice="${VOICE}">${escapeXml(opts.say)}</Say>`
     inner += opts.gather
-      ? `<Gather input="speech" timeout="8" speechTimeout="6" language="en-US" action="${escapeAttr(APP_URL)}/api/voice/twilio" method="POST">${say}</Gather>`
+      ? `<Gather ${GATHER_OPTS} action="${escapeAttr(APP_URL)}/api/voice/twilio" method="POST">${say}</Gather>`
       : say
   }
   if (opts.redirect) inner += `<Redirect>${escapeAttr(opts.redirect)}</Redirect>`
@@ -118,8 +123,8 @@ export async function POST(req: NextRequest) {
       return xml(twiml({ say: "I didn't catch that. Could you repeat that?", gather: true }))
     }
     const greeting = callerName
-      ? `Good ${dayPart()}, ${callerName}. This is ${agencyName}. How can I help you today?`
-      : `Good ${dayPart()}, thank you for calling ${agencyName}. How can I help you today?`
+      ? `Good ${dayPart()}, ${callerName}. This is ${agencyName}. How may I help you today?`
+      : `Good ${dayPart()}, thank you for calling ${agencyName}. This is the front desk — how may I help you today?`
     return xml(twiml({ say: greeting, gather: true }))
   }
 

@@ -57,9 +57,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Otherwise speak the reply and re-open the mic for the next turn.
+    // speechTimeout="auto" + phone_call model = jump in the moment the
+    // caller stops talking (no 6s dead air).
     return xml(
       `<?xml version="1.0" encoding="UTF-8"?><Response>` +
-      `<Gather input="speech" timeout="8" speechTimeout="6" language="en-US" action="${escapeAttr(APP_URL)}/api/voice/twilio" method="POST">` +
+      `<Gather input="speech" timeout="4" speechTimeout="auto" speechModel="phone_call" enhanced="true" language="en-US" action="${escapeAttr(APP_URL)}/api/voice/twilio" method="POST">` +
       `<Say voice="${VOICE}">${escapeXml(text)}</Say></Gather>` +
       `<Redirect>${escapeAttr(APP_URL)}/api/voice/twilio</Redirect></Response>`,
     )
