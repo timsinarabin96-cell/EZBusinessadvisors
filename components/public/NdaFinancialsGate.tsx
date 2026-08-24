@@ -112,6 +112,19 @@ export default function NdaFinancialsGate({ listing, askingPrice }: { listing: P
             <span style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{fmt$(unlocked.inventory_value)}</span>
           </div>
         )}
+        {/* Match Pass upsell — the buyer is hottest right after signing */}
+        <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 10, background: 'linear-gradient(135deg,#1a1a2e,#16213e)', color: '#fff' }}>
+          <div style={{ fontWeight: 800, fontSize: 14, fontFamily: 'Georgia, serif' }}>🎯 Want first look at matching deals?</div>
+          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)', marginTop: 4, lineHeight: 1.5 }}>
+            Match Pass sends you priority alerts when a business fits your criteria — including off-market listings other buyers never see.
+          </div>
+          <a
+            href="/marketplace/pricing#match-pass"
+            style={{ display: 'inline-block', marginTop: 10, background: '#c9a84c', color: '#1a1a2e', padding: '9px 18px', borderRadius: 6, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}
+          >
+            See Match Pass →
+          </a>
+        </div>
       </>
     )
   }

@@ -68,7 +68,7 @@ export default function PricingPage() {
       </section>
 
       {/* AI Match Pass — buyers */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px' }}>
+      <section id="match-pass" style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>For Buyers</div>
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 30, color: '#1a1a2e', margin: '8px 0 8px' }}>🎯 AI Match Pass</h2>
