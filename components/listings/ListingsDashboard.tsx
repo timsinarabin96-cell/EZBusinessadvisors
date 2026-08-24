@@ -149,6 +149,18 @@ export default function ListingsDashboard() {
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
                       {listing.industry || ''}{listing.location_general ? ` · ${listing.location_general}` : ''}
+                      {listing.ai_readiness_score != null && (
+                        <span
+                          style={{
+                            display: 'inline-block', marginLeft: 8, padding: '1px 8px', borderRadius: 99,
+                            fontSize: 11, fontWeight: 700,
+                            background: listing.ai_readiness_score >= 75 ? '#dcfce7' : listing.ai_readiness_score >= 45 ? '#fef3c7' : '#fee2e2',
+                            color: listing.ai_readiness_score >= 75 ? '#15803d' : listing.ai_readiness_score >= 45 ? '#b45309' : '#b91c1c',
+                          }}
+                        >
+                          Ready {listing.ai_readiness_score}%
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div style={{ fontWeight: 700, color: 'var(--gold-dark)', fontSize: 15, whiteSpace: 'nowrap' }}>{fmtMoney(listing.asking_price)}</div>
