@@ -43,6 +43,9 @@ function Notifications() {
   const [loading, setLoading] = useState(true)
   const [kindFilter, setKindFilter] = useState('all')
   const [unreadOnly, setUnreadOnly] = useState(false)
+  const [quietHours, setQuietHours] = useState(() => {
+    try { return window.localStorage.getItem('concord_quiet_hours') === '1' } catch { return false }
+  })
 
   const load = useCallback(async () => {
     const ctx = await getAgencyContext()
@@ -70,9 +73,12 @@ function Notifications() {
   if (loading) return <LoadingState />
 
   const kinds = Array.from(new Set(items.map((i) => i.kind).filter(Boolean))) as string[]
+  const hour = new Date().getHours()
+  const inQuietHours = hour < 8 || hour >= 22
   const visible = items.filter((i) => {
     if (kindFilter !== 'all' && i.kind !== kindFilter) return false
     if (unreadOnly && i.read_at) return false
+    if (quietHours && inQuietHours && !i.read_at) return false
     return true
   })
   const unreadCount = items.filter((i) => !i.read_at).length
@@ -109,6 +115,18 @@ function Notifications() {
         <label className="ml-auto flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
           <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} />
           Unread only
+        </label>
+        <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer" title="Hide unread alerts between 10pm and 8am">
+          <input
+            type="checkbox"
+            checked={quietHours}
+            onChange={(e) => {
+              const next = e.target.checked
+              setQuietHours(next)
+              try { window.localStorage.setItem('concord_quiet_hours', next ? '1' : '0') } catch { /* ignore */ }
+            }}
+          />
+          🌙 Quiet hours{quietHours && inQuietHours ? ' (active now)' : ''}
         </label>
       </div>
 
