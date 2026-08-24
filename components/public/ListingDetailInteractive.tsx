@@ -158,6 +158,35 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
               <div style={{ height: 420, background: '#1a1a2e', position: 'relative' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={listing.gallery_urls[activeImage]} alt={listing.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {listing.gallery_urls.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImage((activeImage - 1 + listing.gallery_urls.length) % listing.gallery_urls.length)}
+                      aria-label="Previous image"
+                      style={{
+                        position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                        background: 'rgba(26,26,46,0.65)', color: '#fff', border: 'none', borderRadius: '50%',
+                        width: 42, height: 42, fontSize: 20, cursor: 'pointer', lineHeight: 1,
+                      }}
+                    >
+                      ‹
+                    </button>
+                    <button
+                      onClick={() => setActiveImage((activeImage + 1) % listing.gallery_urls.length)}
+                      aria-label="Next image"
+                      style={{
+                        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                        background: 'rgba(26,26,46,0.65)', color: '#fff', border: 'none', borderRadius: '50%',
+                        width: 42, height: 42, fontSize: 20, cursor: 'pointer', lineHeight: 1,
+                      }}
+                    >
+                      ›
+                    </button>
+                    <span style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(26,26,46,0.7)', color: '#fff', borderRadius: 99, padding: '4px 10px', fontSize: 12, fontWeight: 700 }}>
+                      {activeImage + 1} / {listing.gallery_urls.length}
+                    </span>
+                  </>
+                )}
               </div>
               {listing.gallery_urls.length > 1 && (
                 <div style={{ display: 'flex', gap: 8, padding: 12 }}>
