@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const core = readFileSync('lib/redFlagCore.mts', 'utf8')
+const core = readFileSync('lib/redFlagCore.ts', 'utf8')
 const lib = readFileSync('lib/redFlag.ts', 'utf8')
 const page = readFileSync('app/dashboard/red-flags/page.tsx', 'utf8')
 const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
 
-const { analyzeRedFlags } = await import('../lib/redFlagCore.mts')
+const { analyzeRedFlags } = await import('../lib/redFlagCore.ts')
 
 const baseYears = [
   { year: 2023, label: '2023', grossRevenue: 800000, netIncome: 120000, ownerComp: 90000 },

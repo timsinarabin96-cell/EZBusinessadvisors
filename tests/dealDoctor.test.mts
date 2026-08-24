@@ -3,12 +3,12 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const lib = readFileSync('lib/dealDoctor.ts', 'utf8')
-const core = readFileSync('lib/dealDoctorCore.mts', 'utf8')
+const core = readFileSync('lib/dealDoctorCore.ts', 'utf8')
 const page = readFileSync('app/dashboard/deal-doctor/page.tsx', 'utf8')
 const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
 
 // Import the pure scorer directly (dependency-free core — no path aliases).
-const { scoreDeal, BAND_LABELS, BAND_COLORS } = await import('../lib/dealDoctorCore.mts')
+const { scoreDeal, BAND_LABELS, BAND_COLORS } = await import('../lib/dealDoctorCore.ts')
 
 test('deal-doctor: hot deal — late stage, recent activity, near-asking price', () => {
   const d = scoreDeal({

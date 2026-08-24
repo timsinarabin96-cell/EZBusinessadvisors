@@ -16,7 +16,7 @@ const svc =
     ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
     : null
 
-export type ListingPlanId = 'launch' | 'qualified' | 'broker_assisted'
+export type ListingPlanId = 'free' | 'professional' | 'enterprise'
 
 export interface SellerListingDraft {
   business_name: string

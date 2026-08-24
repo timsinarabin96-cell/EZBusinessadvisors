@@ -1,0 +1,10 @@
+{
+  "crons": [
+    { "path": "/api/cron/check-trials", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/publish", "schedule": "0 12 * * *" },
+    { "path": "/api/cron/price-alerts", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/digest", "schedule": "0 8 * * 1" },
+    { "path": "/api/cron/expiry", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/nurture", "schedule": "0 10 * * *" }
+  ]
+}

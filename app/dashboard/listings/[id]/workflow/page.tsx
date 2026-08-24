@@ -23,6 +23,7 @@ import Step9BuyerManagement from '@/components/listings/Step9BuyerManagement'
 import Step10DealClosing from '@/components/listings/Step10DealClosing'
 import StatusBadge from '@/components/listings/StatusBadge'
 import SBABadge from '@/components/listings/SBABadge'
+import VerifiedFinancialsPanel from '@/components/listing/VerifiedFinancialsPanel'
 import { getWorkflow, startWorkflow } from '@/lib/workflow'
 import { fetchListing, fmtMoney } from '@/lib/listings'
 
@@ -107,7 +108,6 @@ function WorkflowBody() {
       {activeStep === 6 && <Step6GenerateBLI listingId={listingId} onNext={goNext} />}
       {activeStep === 7 && <Step7SBAQualification listingId={listingId} onNext={goNext} />}
       {activeStep === 8 && <Step8ListBusiness listingId={listingId} onNext={goNext} />}
-      {activeStep === 9 && <Step9BuyerManagement listingId={listingId} onNext={goNext} onAgreementChange={refresh} />}
       {activeStep === 10 && <Step10DealClosing listingId={listingId} onNext={goNext} />}
     </div>
   )

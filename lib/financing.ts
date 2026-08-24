@@ -1,14 +1,14 @@
 // =============================================================================
 // Financing Marketplace — loan-readiness + lender matching
 // -----------------------------------------------------------------------------
-// Wraps the pure readiness engine (financingCore.mts) with real data:
+// Wraps the pure readiness engine (financingCore.ts) with real data:
 //  - load a listing's financials → loan-readiness assessment + package checklist
 //  - match SBA/lender professionals from the deal_professionals directory
 //  - public hub page data (lender count, funding stats)
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
-import { assessLoanReadiness, type FinancingAssessment, type FinancingInput } from '@/lib/financingCore.mts'
+import { assessLoanReadiness, type FinancingAssessment, type FinancingInput } from '@/lib/financingCore.ts'
 import { fetchPublicProfessionals, type DealProfessional } from '@/lib/professionals'
 
 export { assessLoanReadiness, type FinancingAssessment, type FinancingInput }

@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 const MAX_BODY_BYTES = 32 * 1024
 
 const sellerOrderSchema = z.object({
-  planId: z.enum(['launch', 'qualified', 'broker_assisted']),
+  planId: z.enum(['free', 'professional', 'enterprise']),
   agencySlug: z.string().max(80).optional(),
   business_name: z.string().min(1).max(200),
   industry: z.string().max(100).optional().nullable(),

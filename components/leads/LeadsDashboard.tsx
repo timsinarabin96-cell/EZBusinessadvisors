@@ -14,6 +14,15 @@ import LeadFormModal from './LeadFormModal'
 type KindFilter = 'all' | 'buyer' | 'seller'
 type StatusFilter = LeadStatus | 'all'
 
+interface LeadComm {
+  id: string
+  channel: string
+  direction: string
+  outcome: string
+  summary: string | null
+  created_at: string | null
+}
+
 export default function LeadsDashboard() {
   const toast = useToast()
   const [leads, setLeads] = useState<UnifiedLead[]>([])
@@ -28,6 +37,7 @@ export default function LeadsDashboard() {
 
   const [selected, setSelected] = useState<UnifiedLead | null>(null)
   const [activities, setActivities] = useState<LeadActivity[]>([])
+  const [comms, setComms] = useState<LeadComm[]>([])
   const [converting, setConverting] = useState(false)
 
   const load = useCallback(async () => {
@@ -48,6 +58,16 @@ export default function LeadsDashboard() {
   const openDetail = async (lead: UnifiedLead) => {
     setSelected(lead)
     setActivities(await fetchLeadActivities(lead.id))
+    // Pull the conversation log (calls/emails/SMS) for this lead.
+    try {
+      const token = localStorage.getItem('sb-access-token') || ''
+      const param = lead.kind === 'buyer' ? 'buyerLeadId' : 'sellerLeadId'
+      const res = await fetch(`/api/communications?${param}=${lead.id}`, { headers: { authorization: `Bearer ${token}` } })
+      const j = await res.json().catch(() => ({}))
+      setComms(j.communications || [])
+    } catch {
+      setComms([])
+    }
   }
 
   const handleCreate = async (input: { kind: LeadKind; business_name?: string; email?: string; phone?: string; status?: LeadStatus }) => {
@@ -255,20 +275,40 @@ export default function LeadsDashboard() {
               <div className="section-title" style={{ marginBottom: 10 }}>Activity Notes</div>
               <ActivityNoteForm leadId={selected.id} onAdded={(a) => setActivities((p) => [a, ...p])} />
               <div style={{ marginTop: 12 }}>
-                {activities.length === 0 ? (
+                {activities.length === 0 && comms.length === 0 ? (
                   <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: 16, border: '2px dashed var(--line)', borderRadius: 8 }}>
                     No activity yet. (Run the lead_activities SQL to enable logging.)
                   </div>
                 ) : (
-                  activities.map((a) => (
-                    <div key={a.id} style={{ padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 8, marginBottom: 8, background: 'var(--cream)' }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-dark)', background: 'rgba(201,168,76,0.15)', padding: '2px 8px', borderRadius: 999, textTransform: 'capitalize' }}>{a.type}</span>
-                        {a.created_at && <span style={{ fontSize: 11, color: 'var(--muted)' }}>{timeAgo(a.created_at)}</span>}
+                  <div>
+                    {/* Conversation log (calls / emails / SMS) */}
+                    {comms.length > 0 && (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Conversation log</div>
+                        {comms.map((c) => (
+                          <div key={c.id} style={{ padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 8, marginBottom: 8, background: '#fff' }}>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: c.direction === 'inbound' ? '#166534' : '#1d4ed8', background: c.direction === 'inbound' ? 'rgba(34,197,94,0.12)' : 'rgba(59,130,246,0.12)', padding: '2px 8px', borderRadius: 999, textTransform: 'capitalize' }}>
+                                {COMM_ICONS[c.channel] || '📌'} {c.channel} · {c.direction}
+                              </span>
+                              {c.created_at && <span style={{ fontSize: 11, color: 'var(--muted)' }}>{timeAgo(c.created_at)}</span>}
+                            </div>
+                            <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{c.summary || c.outcome?.replace(/_/g, ' ')}</div>
+                          </div>
+                        ))}
                       </div>
-                      <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{a.description}</div>
-                    </div>
-                  ))
+                    )}
+                    {/* Activity notes */}
+                    {activities.map((a) => (
+                      <div key={a.id} style={{ padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 8, marginBottom: 8, background: 'var(--cream)' }}>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-dark)', background: 'rgba(201,168,76,0.15)', padding: '2px 8px', borderRadius: 999, textTransform: 'capitalize' }}>{a.type}</span>
+                          {a.created_at && <span style={{ fontSize: 11, color: 'var(--muted)' }}>{timeAgo(a.created_at)}</span>}
+                        </div>
+                        <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{a.description}</div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -326,6 +366,10 @@ function ActivityNoteForm({ leadId, onAdded }: { leadId: string; onAdded: (a: Le
       <button className="btn btn-navy" onClick={add} disabled={adding || !text.trim()}>Add</button>
     </div>
   )
+}
+
+const COMM_ICONS: Record<string, string> = {
+  call: '📞', email: '✉️', sms: '💬', meeting: '🤝', other: '📌',
 }
 
 const timeAgo = (iso: string) => {

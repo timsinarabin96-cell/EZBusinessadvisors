@@ -11,7 +11,7 @@
 //   5  Generate CIM (auto after step 3)
 //   6  Generate BLI (auto after step 5)
 //   7  SBA qualification (OPTIONAL)
-//   8  List business (auto-publish + BizBuySell push)
+//   8  List business (auto-publish — syndication is manual)
 //   9  Buyer management (NDA, financial proof, primary buyer)
 //   10 Deal closing (LOI → under contract → sold)
 //
@@ -301,20 +301,20 @@ export async function fetchSBA(listingId: string): Promise<any | null> {
   } catch { return null }
 }
 
-// --- Step 8: list business (auto-publish + BizBuySell stub) ---
+// --- Step 8: list business (auto-publish; syndication is manual) ---
 export async function publishListing(listingId: string): Promise<boolean> {
   try {
     const { error } = await supabase.from('listings').update({ status: 'active', updated_at: new Date().toISOString() }).eq('id', listingId)
-    await pushToMarketplaces(listingId).catch(() => {})
     return !error
   } catch { return false }
 }
-/** Push to external marketplaces (BizBuySell etc.). Graceful no-op if unconfigured. */
-export async function pushToMarketplaces(listingId: string): Promise<boolean> {
-  try {
-    const res = await fetch('/api/sync/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listingId }) })
-    return res.ok
-  } catch { return false }
+/**
+ * Syndication is manual — the agent picks their own sources (BizBuySell,
+ * LoopNet, DealStream, local classifieds, etc.) and enters them directly.
+ * No auto-push to any external marketplace.
+ */
+export async function pushToMarketplaces(_listingId: string): Promise<boolean> {
+  return true
 }
 
 // --- Step 9: buyers ---

@@ -5,7 +5,7 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvi
 
 export const metadata: Metadata = {
   title: 'Contact Us',
-  description: 'Get in touch with EZ Business Advisors about buying or selling a business.',
+  description: 'Get in touch with Concord about buying or selling a business.',
   alternates: { canonical: `${BASE}/contact` },
 }
 

@@ -3,7 +3,7 @@
 // =============================================================================
 
 export interface SellerOrderPayload {
-  planId: 'launch' | 'qualified' | 'broker_assisted'
+  planId: 'free' | 'professional' | 'enterprise'
   agencySlug?: string
   business_name: string
   industry?: string | null

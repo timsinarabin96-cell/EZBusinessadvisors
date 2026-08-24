@@ -52,6 +52,13 @@ export interface Listing {
   commission_split_agent: number | null
   commission_split_brokerage: number | null
   status: string | null
+  vetted?: boolean | null
+  flagged?: boolean | null
+  flag_reasons?: string[] | null
+  sba_qualified?: boolean | null
+  is_off_market?: boolean | null
+  published_at?: string | null
+  publish_at?: string | null
   created_at?: string | null
   updated_at?: string | null
   image_urls: string[] | null

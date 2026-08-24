@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchPublicFeed, fetchAllIndustries, type PublicMarketplaceListing } from '@/lib/marketplace'
 import PublicListingCard from '@/components/public/PublicListingCard'
+import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,8 +85,10 @@ export default async function IndustryPage({ params }: { params: { slug: string 
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+    <>
+      <SoldCompsTicker limit={6} />
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Business Marketplace</div>
@@ -128,6 +131,7 @@ export default async function IndustryPage({ params }: { params: { slug: string 
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }

@@ -9,7 +9,7 @@
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
-import { extractState, daysBetween } from '@/lib/soldCompsCore.mts'
+import { extractState, daysBetween } from '@/lib/soldCompsCore.ts'
 
 export { extractState, daysBetween }
 

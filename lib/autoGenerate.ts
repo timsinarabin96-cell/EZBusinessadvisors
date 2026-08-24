@@ -38,7 +38,7 @@ import {
   type ExtractedFinancialRow,
 } from '@/lib/financialExtractor'
 import { FF_BUCKET, type FinancialStatus, type FinancialDoc } from '@/lib/financialFiles'
-import { complete, isClaudeConfigured } from '@/lib/claude/client'
+import { completeWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
 import type {
   PipelineStage,
   GeneratedArtifact,
@@ -94,10 +94,10 @@ async function extractFinancials(
     }
   }
 
-  // 2) Claude-backed extraction — asks the model to produce a tight JSON
+  // 2) DeepSeek-backed extraction — asks the model to produce a tight JSON
   //    summary of the listing earnings (+ any financial file names present).
   //    Deterministic generators still build the documents; this only enriches.
-  if (isClaudeConfigured() && !rows.length) {
+  if (isDeepSeekConfigured() && !rows.length) {
     const fileList = docs
       .filter((d) => d.category !== 'generated_document')
       .map((d) => d.file_name)
@@ -110,13 +110,14 @@ async function extractFinancials(
         `EBITDA: ${listing.ebitda ?? 'unknown'}`, 
         `Uploaded financial files: ${fileList.length ? fileList.join(', ') : 'none'}`,
       ].join('\n')
-      const { data } = await complete({
+      const { data } = await completeWithDeepSeek({
         context: { kind: 'document', entityId: listing.id, text: contextText },
         system:
           'You extract normalized owner-earnings data from brokerage financial files. ' +
           'Return ONLY a compact JSON object with an optional "years" array ' +
           '[{year, revenue, sde, ebitda}] and an optional "notes" string. ' +
           'Do not fabricate numbers that are not provided.',
+        message: 'Extract the owner-earnings data as JSON from the context above.',
         jsonMode: true,
         maxTokens: 700,
       })

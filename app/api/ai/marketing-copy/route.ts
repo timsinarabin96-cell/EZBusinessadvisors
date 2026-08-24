@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getClaudeClient, isClaudeConfigured } from '@/lib/claude/client'
+import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
+import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
 import type { StudioDesignData, MarketingCategory } from '@/lib/marketing'
 
 // =============================================================================
@@ -65,46 +66,45 @@ export async function POST(req: Request) {
 
   const defaultBrand = brand || { primaryColor: '#1a1a2e', secondaryColor: '#16213e', accentColor: '#c9a84c', font: 'georgia', logoUrl: null }
 
-  // --- Prefer a real Claude generation when configured -----------------------
-  if (isClaudeConfigured()) {
+  // Per-tenant AI credentials — a sold CRM uses its OWN API key (billed to buyer).
+  let tenant = undefined
+  try {
+    const { getAgencyContext } = await import('@/lib/agencyContext')
+    const ctx = await getAgencyContext()
+    tenant = toDeepSeekTenant(await resolveTenantAiConfig(ctx?.userId))
+  } catch { /* tenant resolution is best-effort */ }
+
+  // --- Prefer a real DeepSeek generation when configured --------------------
+  if (isDeepSeekConfigured()) {
     try {
-      const client = getClaudeClient()
-      const resp = await client.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 1200,
+      const { text } = await chatWithDeepSeek({
         system:
           'You are an expert business-brokerage marketing copywriter. Make every piece sound credible, premium, and on-brand. ' +
           'Return ONLY a valid JSON object with no markdown fences or surrounding prose. The JSON shape must be exactly: ' +
           '{"headline":string,"tagline":string,"body":string,"cta":string,"layout":"classic"|"minimal"|"modern"|"split"}. ' +
           'Keep the headline under 70 chars and the body under 220 chars.',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              `Write a ${category.replace(/_/g, ' ')} for "${businessName}".`,
-              industry ? `Industry: ${industry}.` : '',
-              city ? `Location: ${city}.` : '',
-              summary ? `About: ${summary}.` : '',
-              financeNote ? `Offering/headline point: ${financeNote}.` : '',
-              `The piece is by ${brokerName || 'our broker'}${company ? ` at ${company}` : ''}.`,
-              `Style direction: ${ctaHint}.`,
-              `Brand: ${brandBlurb}.`,
-            ].filter(Boolean).join(' '),
-          },
-        ],
+        userMessage: [
+          `Write a ${category.replace(/_/g, ' ')} for "${businessName}".`,
+          industry ? `Industry: ${industry}.` : '',
+          city ? `Location: ${city}.` : '',
+          summary ? `About: ${summary}.` : '',
+          financeNote ? `Offering/headline point: ${financeNote}.` : '',
+          `The piece is by ${brokerName || 'our broker'}${company ? ` at ${company}` : ''}.`,
+          `Style direction: ${ctaHint}.`,
+          `Brand: ${brandBlurb}.`,
+        ].filter(Boolean).join(' '),
+        jsonMode: true,
+        maxTokens: 1200,
+        tenant,
       })
 
-      const text = resp.content
-        .filter((b): b is Extract<typeof b, { type: 'text' }> => b.type === 'text')
-        .map((b) => b.text)
-        .join('\n')
       const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
       const parsed = JSON.parse(cleaned)
       const layout = (LAYOUTS as readonly string[]).includes(parsed.layout) ? parsed.layout : 'classic'
 
       return NextResponse.json({
         ok: true,
-        source: 'claude',
+        source: 'deepseek',
         design: {
           productId: category,
           designName: `${businessName} — ${category.replace(/_/g, ' ')}`,

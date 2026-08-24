@@ -25,8 +25,8 @@ test('readiness considers financial, operating, and public quality', () => {
   assert.match(source, /Approval ready/)
 })
 
-test('BizBuySell connector never simulates a remote success', () => {
-  const connector = readFileSync('lib/bbs.ts', 'utf8')
-  assert.doesNotMatch(connector, /bbs-\$\{listing\.id/)
-  assert.match(connector, /BizBuySell is not connected/)
+test('no auto-push to external marketplaces — syndication is manual', () => {
+  const publishSource = readFileSync('lib/publish.ts', 'utf8')
+  assert.doesNotMatch(publishSource, /from ['"]@\/lib\/bbs['"]/)
+  assert.match(publishSource, /No auto-push to\n\s*\/\/      external marketplaces/)
 })

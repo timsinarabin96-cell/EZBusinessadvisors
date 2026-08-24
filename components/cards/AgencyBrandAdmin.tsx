@@ -66,6 +66,17 @@ export default function AgencyBrandAdmin() {
     setSaved(false)
   }
 
+  // One-click white-label themes (primary/secondary/accent + font).
+  const THEMES: { id: string; name: string; brand: Partial<AgencyBrand> }[] = [
+    { id: 'navy-gold', name: 'Navy & Gold', brand: { primaryColor: '#1a1a2e', secondaryColor: '#16213e', accentColor: '#c9a84c', font: 'georgia' } },
+    { id: 'midnight', name: 'Midnight Blue', brand: { primaryColor: '#0b1f3a', secondaryColor: '#14294f', accentColor: '#38bdf8', font: 'montserrat' } },
+    { id: 'emerald', name: 'Emerald Trust', brand: { primaryColor: '#052e1f', secondaryColor: '#0a4d33', accentColor: '#34d399', font: 'helvetica' } },
+    { id: 'royal', name: 'Royal Purple', brand: { primaryColor: '#1e1145', secondaryColor: '#33206b', accentColor: '#c4b5fd', font: 'garamond' } },
+    { id: 'charcoal', name: 'Charcoal Modern', brand: { primaryColor: '#111827', secondaryColor: '#1f2937', accentColor: '#f59e0b', font: 'futura' } },
+    { id: 'wine', name: 'Wine & Cream', brand: { primaryColor: '#3d0c11', secondaryColor: '#5c141b', accentColor: '#f4c2c2', font: 'georgia' } },
+  ]
+  const applyTheme = (t: { brand: Partial<AgencyBrand> }) => patch(t.brand)
+
   const handleLogo = async () => {
     if (!logoFile) return
     setUploading(true)
@@ -97,15 +108,27 @@ export default function AgencyBrandAdmin() {
     <div style={S.card}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', fontFamily: 'Georgia, serif' }}>
-          Agency Branding — {agencyName}
+          Branding & Theme — {agencyName}
         </div>
         <span style={{ fontSize: 11.5, color: 'var(--gold-dark)', background: 'rgba(201,168,76,0.15)', padding: '4px 10px', borderRadius: 99, fontWeight: 700 }}>
           ADMIN
         </span>
       </div>
       <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>
-        Set the default brand for business cards and marketing materials. Every broker inherits these by default and may override their own.
+        White-label your CRM: logo, colors, and font apply across the dashboard, portal, and marketing materials. Every broker inherits these by default.
       </p>
+
+      {/* One-click white-label themes */}
+      <div style={{ marginTop: 16 }}>
+        <span style={S.label}>Quick Theme</span>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {THEMES.map((t) => (
+            <button key={t.id} type="button" onClick={() => applyTheme(t)} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: t.brand.primaryColor, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              {t.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
         {([
@@ -145,7 +168,7 @@ export default function AgencyBrandAdmin() {
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 16 }}>
         <button onClick={save} disabled={saving} style={{ padding: '11px 22px', background: 'var(--navy)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, opacity: saving ? 0.6 : 1 }}>
-          {saving ? 'Saving…' : 'Save Agency Brand'}
+          {saving ? 'Saving…' : 'Save Brand & Theme'}
         </button>
         {saved && <span style={{ color: '#1e7e34', fontSize: 13, fontWeight: 600 }}>✓ Saved</span>}
       </div>

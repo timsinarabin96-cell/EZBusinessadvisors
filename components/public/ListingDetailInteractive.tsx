@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react'
 import { capturePublicLead, type PublicMarketplaceListing } from '@/lib/marketplace'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fmt$ } from '@/lib/recast'
+import { priceTeaser, PRICING_CTA, PRICING_HINT } from '@/lib/pricingPolicy'
 import { trackListingView } from '@/lib/visitorIntent'
 import NdaFinancialsGate from '@/components/public/NdaFinancialsGate'
 import SbaCalculator from '@/components/public/SbaCalculator'
+import RequestPricingForm from '@/components/public/RequestPricingForm'
 
 export default function ListingDetailInteractive({ listing }: { listing: PublicMarketplaceListing }) {
   const toast = useToast()
@@ -14,12 +16,35 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
   const [showContact, setShowContact] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [showOffer, setShowOffer] = useState(false)
+  const [offerForm, setOfferForm] = useState({ name: '', email: '', phone: '', amount: '', financing: 'cash', timeline: '' })
+  const [offerBusy, setOfferBusy] = useState(false)
+  const [offerDone, setOfferDone] = useState(false)
+  const [watching, setWatching] = useState(false)
+  const [watchEmail, setWatchEmail] = useState('')
+  const [watchDone, setWatchDone] = useState(false)
+  const [watchBusy, setWatchBusy] = useState(false)
   const sdeMultiple = listing.sde && listing.asking_price ? listing.asking_price / listing.sde : null
 
   // Anonymous view tracking — fire-and-forget; never blocks the page.
   useEffect(() => {
     trackListingView(listing.id, document.referrer)
-  }, [listing.id])
+    // Recently-viewed history (localStorage, max 8) for the marketplace strip.
+    try {
+      const prev = JSON.parse(localStorage.getItem('concord-recent') || '[]')
+      const entry = {
+        id: listing.id,
+        title: listing.public_title,
+        price: listing.asking_price,
+        industry: listing.industry,
+        image: listing.gallery_urls?.[0] || null,
+        slug: listing.slug || listing.id,
+        at: Date.now(),
+      }
+      const next = [entry, ...prev.filter((p: any) => p.id !== listing.id)].slice(0, 8)
+      localStorage.setItem('concord-recent', JSON.stringify(next))
+    } catch { /* ignore */ }
+  }, [listing.id, listing.public_title, listing.asking_price, listing.industry, listing.gallery_urls, listing.slug])
 
   const submitLead = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -38,6 +63,16 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
       message: form.message || `Interested in: ${listing.public_title}`,
       listing_id: listing.id,
     })
+
+    // Notify the listing's owner/broker the moment interest lands.
+    if (result.ok) {
+      fetch('/api/notify/buyer-interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listing.id, name: form.name, email: form.email, message: form.message || '' }),
+      }).catch(() => {})
+    }
+
     setSubmitting(false)
 
     if (result.ok) {
@@ -49,8 +84,73 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
     }
   }
 
+  const submitOffer = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!offerForm.name.trim() || !offerForm.email.trim() || !offerForm.amount) {
+      toast('Name, email, and offer amount are required', 'error')
+      return
+    }
+    setOfferBusy(true)
+    try {
+      const res = await fetch('/api/public/offer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listingId: listing.id,
+          name: offerForm.name,
+          email: offerForm.email,
+          phone: offerForm.phone,
+          offerAmount: Number(offerForm.amount),
+          financing: offerForm.financing,
+          timeline: offerForm.timeline,
+        }),
+      })
+      const j = await res.json()
+      if (!j.ok) throw new Error(j.error || 'Offer failed')
+      setOfferDone(true)
+      toast('Offer submitted — the broker will contact you! 🎉', 'success')
+    } catch (err: any) {
+      toast(err.message || 'Offer failed', 'error')
+    } finally {
+      setOfferBusy(false)
+    }
+  }
+
+  const watchListing = async () => {
+    if (!watchEmail.trim() || !watchEmail.includes('@')) {
+      toast('Enter a valid email to watch this listing', 'error')
+      return
+    }
+    setWatchBusy(true)
+    try {
+      const res = await fetch('/api/public/offer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ watch: true, listingId: listing.id, email: watchEmail }),
+      })
+      const j = await res.json()
+      if (!j.ok) throw new Error(j.error || 'Failed')
+      setWatchDone(true)
+      toast('Watching! You\'ll get an email if the price drops 🔔', 'success')
+    } catch (err: any) {
+      toast(err.message || 'Failed to watch', 'error')
+    } finally {
+      setWatchBusy(false)
+    }
+  }
+
   return (
     <ToastProvider>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        {/* Status banner + key facts strip */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+          {listing.status === 'active' && <span style={{ background: '#1e7e34', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>● Active — taking offers</span>}
+          {listing.status === 'under_contract' && <span style={{ background: '#b45309', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>📝 Under Contract</span>}
+          {listing.status === 'sold' && <span style={{ background: '#7b8794', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>✅ Sold</span>}
+          {listing.vetted && <span style={{ background: '#0e7490', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🏅 Vetted</span>}
+          {listing.sba_qualified === true && <span style={{ background: '#0e7490', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🏦 SBA Qualified</span>}
+          {listing.sba_qualified === false && <span style={{ background: '#64748b', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>Not SBA Qualified</span>}
+          {listing.revenue_verified && <span style={{ background: '#1e7e34', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>✅ Verified Revenue</span>}
+        </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)', gap: 24, alignItems: 'start' }}>
         <div>
           {listing.gallery_urls.length > 0 ? (
@@ -91,6 +191,26 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
               Confidential information, exact location, identifying details, and supporting documents are released only through the approved buyer qualification and NDA process.
             </div>
           </div>
+
+          {/* EVERYTHING A BUYER NEEDS — operations & deal facts (no confidential data) */}
+          <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 28, marginTop: 20 }}>
+            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 16px' }}>Everything You Need to Know</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              {listing.established_year != null && <Fact icon="📅" label="Established" value={String(listing.established_year)} />}
+              {listing.employees_full_time != null && <Fact icon="👥" label="Full-time employees" value={String(listing.employees_full_time)} />}
+              {listing.is_absentee_owner != null && <Fact icon="🏖️" label="Owner involvement" value={listing.is_absentee_owner ? 'Absentee — owner not required' : 'Owner-operated'} />}
+              {listing.is_franchise != null && <Fact icon="🏷️" label="Franchise" value={listing.is_franchise ? 'Yes — franchise' : 'Independent business'} />}
+              {listing.is_relocatable != null && <Fact icon="📦" label="Relocatable" value={listing.is_relocatable ? 'Yes — can relocate' : 'Stays in place'} />}
+              {listing.seller_financing_available != null && <Fact icon="💰" label="Seller financing" value={listing.seller_financing_available ? 'Available' : 'Not offered'} />}
+              {listing.sba_qualified != null && <Fact icon="🏦" label="SBA financing" value={listing.sba_qualified ? 'Qualified' : 'Not qualified'} />}
+              {listing.location_general && <Fact icon="📍" label="Region" value={listing.location_general} />}
+              {listing.industry && <Fact icon="🏭" label="Industry" value={listing.industry} />}
+              {listing.sub_industry && <Fact icon="🗂️" label="Sub-industry" value={listing.sub_industry} />}
+            </div>
+            <div style={{ marginTop: 18, padding: 14, background: '#f0f7fa', border: '1px solid #cfe6ef', borderRadius: 8, fontSize: 13, color: '#0e7490', lineHeight: 1.6 }}>
+              🔒 <strong>Exact name, address, and financial statements are released after you qualify</strong> — click “Request Confidential Details” and the listing broker will reach out directly. No spam, no obligation.
+            </div>
+          </div>
         </div>
 
         <aside style={{ position: 'sticky', top: 24 }}>
@@ -98,7 +218,8 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
             <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '0 0 16px' }}>Financial Snapshot</h2>
             {listing.show_financials ? (
               <>
-                <Metric label="Asking Price" value={listing.asking_price !== null ? fmt$(listing.asking_price) : 'Upon Request'} />
+                {/* BUSINESS MATERIALS — exact price only after qualification */}
+                <Metric label="Asking Price" value={listing.asking_price !== null ? fmt$(listing.asking_price) : '—'} />
                 {listing.annual_revenue !== null && <Metric label="Annual Revenue" value={fmt$(listing.annual_revenue)} />}
                 {listing.sde !== null && <Metric label="Seller's Discretionary Earnings" value={fmt$(listing.sde)} />}
                 {listing.ebitda !== null && <Metric label="EBITDA" value={fmt$(listing.ebitda)} />}
@@ -108,12 +229,122 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
                 </div>
               </>
             ) : (
-              <NdaFinancialsGate listing={listing} askingPrice={listing.asking_price} />
+              <>
+                {/* PUBLIC — price hidden per brokerage policy; gate it instead */}
+                <div style={{ textAlign: 'center', padding: '18px 8px' }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#c9a84c', fontFamily: 'Georgia, serif', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {PRICING_CTA}
+                  </div>
+                  {priceTeaser(listing) && (
+                    <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>{priceTeaser(listing)}</div>
+                  )}
+                  <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 10, lineHeight: 1.5 }}>{PRICING_HINT}</div>
+                </div>
+                <NdaFinancialsGate listing={listing} askingPrice={null} />
+              </>
             )}
+
+            <div style={{ marginTop: 14 }}>
+              <RequestPricingForm listingId={listing.id} listingTitle={listing.public_title} />
+            </div>
 
             <button onClick={() => setShowContact((current) => !current)} style={{ width: '100%', marginTop: 16, background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 7, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
               Request Confidential Details
             </button>
+
+            {/* Make an Offer */}
+            {listing.status === 'active' && (
+              <>
+                <button onClick={() => setShowOffer((o) => !o)} style={{ width: '100%', marginTop: 10, background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 7, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                  💵 Make an Offer
+                </button>
+                {showOffer && !offerDone && (
+                  <form onSubmit={submitOffer} style={{ marginTop: 14, display: 'grid', gap: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: '#1a1a2e' }}>Non-binding offer — no obligation</div>
+                    <input required value={offerForm.name} onChange={(e) => setOfferForm({ ...offerForm, name: e.target.value })} placeholder="Full name" style={inputStyle} />
+                    <input required type="email" value={offerForm.email} onChange={(e) => setOfferForm({ ...offerForm, email: e.target.value })} placeholder="Email" style={inputStyle} />
+                    <input value={offerForm.phone} onChange={(e) => setOfferForm({ ...offerForm, phone: e.target.value })} placeholder="Phone" style={inputStyle} />
+                    <input required type="number" value={offerForm.amount} onChange={(e) => setOfferForm({ ...offerForm, amount: e.target.value })} placeholder="Your offer ($)" style={inputStyle} />
+                    <select value={offerForm.financing} onChange={(e) => setOfferForm({ ...offerForm, financing: e.target.value })} style={inputStyle}>
+                      <option value="cash">💵 Cash</option>
+                      <option value="sba">🏦 SBA loan</option>
+                      <option value="seller_financing">🤝 Seller financing</option>
+                      <option value="mix">🔀 Combination</option>
+                    </select>
+                    <input value={offerForm.timeline} onChange={(e) => setOfferForm({ ...offerForm, timeline: e.target.value })} placeholder="Target closing timeline (e.g. 90 days)" style={inputStyle} />
+                    <button disabled={offerBusy} type="submit" style={{ background: '#0e7490', color: '#fff', border: 'none', borderRadius: 7, padding: 12, fontWeight: 800, cursor: offerBusy ? 'wait' : 'pointer' }}>
+                      {offerBusy ? 'Sending…' : 'Submit Offer'}
+                    </button>
+                  </form>
+                )}
+                {offerDone && (
+                  <div style={{ marginTop: 12, padding: 12, background: '#eafaf1', border: '1px solid #25d366', borderRadius: 8, fontSize: 13, color: '#128c4b', fontWeight: 700, textAlign: 'center' }}>
+                    🎉 Offer submitted! The broker will contact you within one business day.
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Watch for price drop */}
+            {listing.status === 'active' && (
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <input
+                  value={watchEmail}
+                  onChange={(e) => setWatchEmail(e.target.value)}
+                  placeholder="Email for price-drop alerts"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button onClick={watchListing} disabled={watchBusy || watchDone} style={{ padding: '11px 14px', borderRadius: 7, background: watchDone ? '#1e7e34' : '#fff', color: watchDone ? '#fff' : '#1a1a2e', border: '1px solid #d8d2c2', fontWeight: 800, cursor: watchBusy ? 'wait' : 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}>
+                  {watchDone ? '✓ Watching' : '🔔 Watch'}
+                </button>
+              </div>
+            )}
+
+            {/* Share this listing */}
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 11.5, color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 8 }}>Share this listing</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a
+                  href={`/flyer/${listing.slug || listing.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Printable one-page flyer"
+                  style={{ flex: 1, textAlign: 'center', padding: '9px 0', borderRadius: 8, border: '1px solid #c9a84c', background: '#fdf9ef', color: '#8a6d1a', fontWeight: 800, textDecoration: 'none', fontSize: 13 }}
+                >
+                  📄 Flyer
+                </a>
+                <button
+                  onClick={() => {
+                    const url = window.location.href
+                    window.open(`https://wa.me/?text=${encodeURIComponent(listing.public_title + ' — ' + url)}`, '_blank')
+                  }}
+                  title="Share on WhatsApp"
+                  style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #25d366', background: '#eafaf1', color: '#128c4b', fontWeight: 800, cursor: 'pointer', fontSize: 13 }}
+                >
+                  WhatsApp
+                </button>
+                <button
+                  onClick={() => {
+                    const url = window.location.href
+                    window.location.href = `mailto:?subject=${encodeURIComponent(listing.public_title)}&body=${encodeURIComponent('Check out this business: ' + url)}`
+                  }}
+                  title="Share by email"
+                  style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #d8d2c2', background: '#faf9f4', color: '#1a1a2e', fontWeight: 800, cursor: 'pointer', fontSize: 13 }}
+                >
+                  ✉️ Email
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(window.location.href)
+                    toast('Link copied 📋', 'success')
+                  }}
+                  title="Copy link"
+                  style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #0e7490', background: '#f0f7fa', color: '#0e7490', fontWeight: 800, cursor: 'pointer', fontSize: 13 }}
+                >
+                  🔗 Copy
+                </button>
+              </div>
+            </div>
 
             {showContact && (
               <form onSubmit={submitLead} style={{ marginTop: 18, display: 'grid', gap: 10 }}>
@@ -129,6 +360,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
           </div>
         </aside>
       </div>
+      </div>
     </ToastProvider>
   )
 }
@@ -138,6 +370,16 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '11px 0', borderBottom: '1px solid #eee9dc' }}>
       <span style={{ color: '#777', fontSize: 13 }}>{label}</span>
       <span style={{ color: '#1a1a2e', fontSize: 14, fontWeight: 800, textAlign: 'right' }}>{value}</span>
+    </div>
+  )
+}
+
+function Fact({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '14px 16px' }}>
+      <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
+      <div style={{ fontSize: 11.5, color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: 14.5, color: '#1a1a2e', fontWeight: 800, marginTop: 3 }}>{value}</div>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { StudioDesignData } from '@/lib/marketing'
-import { getClaudeClient, isClaudeConfigured } from '@/lib/claude/client'
+import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
+import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
 
 // ---------------------------------------------------------------------------
 // POST /api/ai/marketing-designs
@@ -67,36 +68,35 @@ export async function POST(req: Request) {
     ? `Primary ${brand.primaryColor} · Secondary ${brand.secondaryColor} · Accent ${brand.accentColor} · Font ${brand.font}${brand.logoUrl ? ' · has a logo' : ''}`
     : 'No brand supplied — use a professional navy + gold palette'
 
-  // --- Prefer a real Claude generation when configured -----------------------
-  if (isClaudeConfigured()) {
+  // Per-tenant AI credentials — a sold CRM uses its OWN API key (billed to buyer).
+  let tenant = undefined
+  try {
+    const { getAgencyContext } = await import('@/lib/agencyContext')
+    const ctx = await getAgencyContext()
+    tenant = toDeepSeekTenant(await resolveTenantAiConfig(ctx?.userId))
+  } catch { /* tenant resolution is best-effort */ }
+
+  // --- Prefer a real DeepSeek generation when configured --------------------
+  if (isDeepSeekConfigured()) {
     try {
-      const client = getClaudeClient()
-      const resp = await client.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 1600,
+      const { text } = await chatWithDeepSeek({
         system:
           'You are an expert print-marketing art director. Produce design briefs in STRICT JSON. ' +
           'Each brief must stay on the given brand palette and font. Return ONLY a JSON object with a "variants" array of { "name", "layout", "primaryColor", "secondaryColor", "accentColor", "blurb" }. No markdown fences.',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              `Design ${count} variants for a "${productName}" (category: ${category}).`,
-              `Brand: ${brandBlurb}.`,
-              brokerName ? `Broker: ${brokerName}.` : '',
-              company ? `Company: ${company}.` : '',
-              userPrompt ? `Additional direction: ${userPrompt}` : '',
-              `Style presets to consider: ${PRESETS.map((p) => `${p.name} (${p.instruction})`).join('; ')}.`,
-              `Layouts must be one of: ${LAYOUTS.join(', ')}.`,
-            ].filter(Boolean).join(' '),
-          },
-        ],
+        userMessage: [
+          `Design ${count} variants for a "${productName}" (category: ${category}).`,
+          `Brand: ${brandBlurb}.`,
+          brokerName ? `Broker: ${brokerName}.` : '',
+          company ? `Company: ${company}.` : '',
+          userPrompt ? `Additional direction: ${userPrompt}` : '',
+          `Style presets to consider: ${PRESETS.map((p) => `${p.name} (${p.instruction})`).join('; ')}.`,
+          `Layouts must be one of: ${LAYOUTS.join(', ')}.`,
+        ].filter(Boolean).join(' '),
+        jsonMode: true,
+        maxTokens: 1600,
+        tenant,
       })
 
-      const text = resp.content
-        .filter((b): b is Extract<typeof b, { type: 'text' }> => b.type === 'text')
-        .map((b) => b.text)
-        .join('\n')
       const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
       const parsed = JSON.parse(cleaned)
       const variants = Array.isArray(parsed?.variants) ? parsed.variants.slice(0, count) : null
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
       if (variants && variants.length) {
         return NextResponse.json({
           ok: true,
-          source: 'claude',
+          source: 'deepseek',
           designs: variants.map((v: any, i: number) => ({
             id: `ai-${i + 1}-${Date.now()}`,
             name: v.name || PRESETS[i % PRESETS.length].name,

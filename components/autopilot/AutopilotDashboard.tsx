@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { AiAction, DealTwin, fetchAutopilotOverview } from '@/lib/autopilot'
+import FollowUpAutopilot from '@/components/autopilot/FollowUpAutopilot'
 
 type Overview = {
   twins: DealTwin[]
@@ -82,6 +83,9 @@ export default function AutopilotDashboard() {
           ))}
         </section>
       </div>
+
+      {/* Follow-up autopilot — silent leads get one-tap texts */}
+      <FollowUpAutopilot />
     </div>
   )
 }

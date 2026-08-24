@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { PublicMarketplaceListing } from '@/lib/marketplace'
-import { fmt$, fmtMoney } from '@/lib/recast'
+import { fmt$ } from '@/lib/recast'
+import { priceTeaser, PRICING_CTA } from '@/lib/pricingPolicy'
 import { stockImageFor } from '@/lib/stockImages'
 import { isFavorite, toggleFavorite, isComparing, toggleCompare, getBuyerProfile } from '@/lib/publicFavorites'
 import { scoreListingMatch, matchBand, type MatchScoreResult } from '@/lib/matchScore'
+import RequestPricingForm from '@/components/public/RequestPricingForm'
 
 export default function PublicListingCard({ listing }: { listing: PublicMarketplaceListing }) {
   const image = listing.gallery_urls[0] || stockImageFor(listing.industry)
@@ -79,7 +81,15 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
         </div>
         <div style={{ padding: 16 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+            {(listing.views_7d != null && listing.views_7d > 0) && <BadgeTone color="#e11d48">🔥 {listing.views_7d} viewed this week</BadgeTone>}
+            {listing.vetted && <BadgeTone color="#0e7490">🏅 Vetted</BadgeTone>}
+            {listing.status === 'active' && <BadgeTone color="#1e7e34">● Active</BadgeTone>}
+            {listing.status === 'under_contract' && <BadgeTone color="#b45309">📝 Under Contract</BadgeTone>}
+            {listing.status === 'sold' && <BadgeTone color="#7b8794">✅ Sold</BadgeTone>}
+            {listing.sba_qualified === true && <BadgeTone color="#0e7490">🏦 SBA Qualified</BadgeTone>}
+            {listing.sba_qualified === false && <BadgeTone color="#64748b">Not SBA</BadgeTone>}
             {listing.seller_financing_available && <BadgeTone color="#0e7490">💰 Financing</BadgeTone>}
+            {listing.revenue_verified && <BadgeTone color="#1e7e34">✅ Verified Revenue</BadgeTone>}
             {listing.is_absentee_owner && <BadgeTone color="#15803d">🏖️ Absentee</BadgeTone>}
             {listing.is_franchise && <BadgeTone color="#7c3aed">🏷️ Franchise</BadgeTone>}
             {listing.is_relocatable && <BadgeTone color="#b45309">📦 Relocatable</BadgeTone>}
@@ -103,17 +113,23 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
           )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
             <div>
-              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Asking Price</div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: '#c9a84c', fontFamily: 'Georgia, serif' }}>
-                {listing.asking_price !== null ? fmtMoney(listing.asking_price, listing.currency_code) : 'Upon Request'}
+              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pricing</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#c9a84c', fontFamily: 'Georgia, serif' }}>
+                {PRICING_CTA}
               </div>
+              {priceTeaser(listing) && (
+                <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{priceTeaser(listing)}</div>
+              )}
             </div>
             {listing.annual_revenue !== null && (
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Revenue</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>{fmtMoney(listing.annual_revenue, listing.currency_code)}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>{fmt$(listing.annual_revenue)}</div>
               </div>
             )}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <RequestPricingForm listingId={listing.id} listingTitle={listing.public_title} compact />
           </div>
         </div>
       </Link>

@@ -2,13 +2,13 @@
 // Red-Flag Forensics — scans recast financials for sale-dress-up patterns
 // -----------------------------------------------------------------------------
 // Broker tooling: run a listing's recast financial history through the
-// deterministic anomaly engine (lib/redFlagCore.mts) and get a risk report
+// deterministic anomaly engine (lib/redFlagCore.ts) and get a risk report
 // with flags, score, and a summary — before buyers or lenders do their own
 // diligence. Advisory only: every flag means "verify this", not "it's fraud".
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
-import { analyzeRedFlags, type RedFlagReport, type RedFlagInput } from '@/lib/redFlagCore.mts'
+import { analyzeRedFlags, type RedFlagReport, type RedFlagInput } from '@/lib/redFlagCore.ts'
 
 export { analyzeRedFlags, type RedFlagReport, type RedFlagInput }
 

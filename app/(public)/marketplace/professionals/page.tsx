@@ -42,6 +42,13 @@ export default function ProfessionalsDirectoryPage() {
         </p>
       </div>
 
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <Link href="/join?type=lawyer" style={{ display: 'inline-block', padding: '12px 24px', background: '#0e7490', color: '#fff', borderRadius: 10, fontWeight: 800, fontSize: 14, textDecoration: 'none', boxShadow: '0 8px 24px rgba(14,116,144,0.25)' }}>
+          Are you an attorney, CPA, broker, or lender? Join the network →
+        </Link>
+        <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>Add your own profile with photo — free, and you control your listing</div>
+      </div>
+
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 22 }}>
         <TypeTab active={type === 'all'} onClick={() => setType('all')} label={`All (${counts.all})`} />
         {PROFESSIONAL_TYPES.map((t) => (

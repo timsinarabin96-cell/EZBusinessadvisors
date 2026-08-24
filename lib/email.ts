@@ -254,6 +254,28 @@ async function deliverViaSmtp(to: string, subject: string, html: string): Promis
   }
 }
 
+// --- Resend transport (single API key — easiest provider to set up) ---------
+async function deliverViaResend(to: string, subject: string, html: string): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY
+  if (!key) return false
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM || FROM,
+        to: [to],
+        subject,
+        html,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 const toText = (html: string): string =>
   html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 
@@ -288,10 +310,12 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
   const { to, subject, html, kind = 'generic', meta } = opts
   if (!to) return { ok: false, queued: false, reason: 'no recipient' }
 
-  const canDeliver = EMAIL_ENABLED && !!process.env.SMTP_HOST
+  const canDeliver = EMAIL_ENABLED && (!!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY)
 
-  // Attempt real delivery when configured.
+  // Attempt real delivery when configured (Resend first — easiest, then SMTP).
   if (canDeliver) {
+    const viaResend = await deliverViaResend(to, subject, html)
+    if (viaResend) return { ok: true, queued: false }
     const delivered = await deliverViaSmtp(to, subject, html)
     if (delivered) return { ok: true, queued: false }
   }

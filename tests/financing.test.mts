@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const core = readFileSync('lib/financingCore.mts', 'utf8')
+const core = readFileSync('lib/financingCore.ts', 'utf8')
 const lib = readFileSync('lib/financing.ts', 'utf8')
 const page = readFileSync('app/(public)/marketplace/financing/page.tsx', 'utf8')
 const nav = readFileSync('components/public/PublicNav.tsx', 'utf8')
 
-const { assessLoanReadiness } = await import('../lib/financingCore.mts')
+const { assessLoanReadiness } = await import('../lib/financingCore.ts')
 
 test('financing: loan-ready listing scores excellent with package complete', () => {
   const r = assessLoanReadiness({

@@ -42,3 +42,4 @@ next-env.d.ts
 .env.local.safe
 .env.production
 .env.staging
+.env*

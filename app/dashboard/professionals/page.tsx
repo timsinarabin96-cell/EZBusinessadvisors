@@ -9,6 +9,8 @@ import {
   PROFESSIONAL_LABELS, PROFESSIONAL_TYPES,
   type DealProfessional, type ProfessionalType,
 } from '@/lib/professionals'
+import { createInviteToken } from '@/lib/invites'
+import ReferralPanel from '@/components/listing/ReferralPanel'
 
 const TYPE_EMOJI: Record<ProfessionalType, string> = {
   lawyer: '⚖️', accountant: '🧮', qoe_agent: '🔍', lender: '🏦', consultant: '📈',
@@ -98,6 +100,29 @@ export default function ProfessionalsManagerPage() {
     else toast(res.error || 'Failed to remove.')
   }
 
+  const [showInvite, setShowInvite] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteUrl, setInviteUrl] = useState('')
+  const [inviting, setInviting] = useState(false)
+
+  const invite = async () => {
+    setInviting(true)
+    try {
+      const res = await fetch('/api/invites', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetType: 'professional', email: inviteEmail.trim() || undefined }),
+      })
+      const j = await res.json()
+      if (!j.ok) throw new Error(j.error || 'Failed to create invite')
+      setInviteUrl(j.url)
+      toast(inviteEmail.trim() ? 'Invite sent — they fill in their own profile 📬' : 'Invite link created — copy & send it 🔗', 'success')
+    } catch (err: any) {
+      toast(err.message || 'Failed to create invite', 'error')
+    } finally {
+      setInviting(false)
+    }
+  }
+
   const toggleActive = async (p: DealProfessional) => {
     const res = await updateProfessional(p.id, { is_active: !p.is_active })
     if (res.ok) load()
@@ -115,10 +140,51 @@ export default function ProfessionalsManagerPage() {
               Lawyers, CPAs, QoE agents, lenders, and consultants you vouch for. They appear in the public directory and as recommendations on your listings.
             </p>
           </div>
-          <button onClick={startCreate} style={{ background: 'linear-gradient(135deg, var(--gold), var(--gold-dark))', color: 'var(--navy)', fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 14, border: 'none', padding: '11px 20px', borderRadius: 8, cursor: 'pointer' }}>
-            + Add Professional
-          </button>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => setShowInvite(true)} style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', padding: '11px 20px', borderRadius: 8, cursor: 'pointer' }}>
+              🔗 Invite via link
+            </button>
+            <button onClick={startCreate} style={{ background: 'linear-gradient(135deg, var(--gold), var(--gold-dark))', color: 'var(--navy)', fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 14, border: 'none', padding: '11px 20px', borderRadius: 8, cursor: 'pointer' }}>
+              + Add Professional
+            </button>
+          </div>
         </div>
+
+        <ReferralPanel />
+
+        {showInvite && (
+          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: 20, marginBottom: 18, boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15 }}>Send a self-onboarding invite 🔗</div>
+              <button onClick={() => setShowInvite(false)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 12px' }}>
+              The invitee fills in their own profile (photo, contact, specialties) and it auto-saves to your directory — they can also subscribe/unsubscribe themselves.
+            </p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="their email (optional — we send the link)"
+                style={{ flex: '1 1 260px', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14 }}
+              />
+              <button onClick={invite} disabled={inviting} style={{ background: '#0e7490', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, cursor: inviting ? 'wait' : 'pointer', fontSize: 14 }}>
+                {inviting ? 'Creating…' : 'Create invite link'}
+              </button>
+            </div>
+            {inviteUrl && (
+              <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', background: '#f4f8fa', border: '1px solid #cfe6ef', borderRadius: 8, padding: '10px 12px' }}>
+                <code style={{ flex: 1, fontSize: 12.5, color: '#0e7490', wordBreak: 'break-all' }}>{inviteUrl}</code>
+                <button
+                  onClick={() => { navigator.clipboard?.writeText(inviteUrl); toast('Link copied 📋', 'success') }}
+                  style={{ background: '#0e7490', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 14px', fontWeight: 700, cursor: 'pointer', fontSize: 12.5 }}
+                >
+                  Copy
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {loading ? <LoadingState /> : (
           pros.length === 0 ? (

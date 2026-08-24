@@ -76,7 +76,37 @@ const PROTECTED_PREFIXES = [
 // The apex/main domains (no agency subdomain).
 const APEX_HOSTS = ['localhost', 'concordplatform.com', 'www.concordplatform.com']
 
-export function middleware(req: NextRequest) {
+// ---------------------------------------------------------------------------
+// Custom-domain resolution for sold CRMs (each tenant runs on its OWN domain,
+// e.g. acme.crm.com). Middleware looks the host up in the agencies table
+// (custom_domain column) and rewrites to the agency's white-label home.
+// Best-effort + cached; falls back to pass-through on any failure.
+// ---------------------------------------------------------------------------
+let customDomainCache: { host: string; slug: string; at: number } | null = null
+
+async function resolveCustomDomain(hostname: string): Promise<string | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return null
+  if (customDomainCache && customDomainCache.host === hostname && Date.now() - customDomainCache.at < 30_000) {
+    return customDomainCache.slug
+  }
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/agencies?select=slug&custom_domain=eq.${encodeURIComponent(hostname)}&limit=1`,
+      { headers: { apikey: key, Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(4000) },
+    )
+    if (!res.ok) return null
+    const rows = (await res.json()) as Array<{ slug: string | null }>
+    const slug = rows?.[0]?.slug || null
+    if (slug) customDomainCache = { host: hostname, slug, at: Date.now() }
+    return slug
+  } catch {
+    return null
+  }
+}
+
+export async function middleware(req: NextRequest) {
   const host = req.headers.get('host') || ''
   const hostname = host.split(':')[0].toLowerCase()
 
@@ -97,6 +127,15 @@ export function middleware(req: NextRequest) {
   if (subdomain) {
     url.pathname = `/agency/${subdomain}${url.pathname === '/' ? '' : url.pathname}`
     response = NextResponse.rewrite(url)
+  } else if (!isApex) {
+    // Custom tenant domain (sold CRM on its own domain).
+    const customSlug = await resolveCustomDomain(hostname)
+    if (customSlug) {
+      url.pathname = `/agency/${customSlug}${url.pathname === '/' ? '' : url.pathname}`
+      response = NextResponse.rewrite(url)
+    } else {
+      response = NextResponse.next()
+    }
   } else {
     response = NextResponse.next()
   }

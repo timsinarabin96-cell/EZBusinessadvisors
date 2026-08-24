@@ -18,9 +18,9 @@ import { statusFromAgency, getAgencyUsage, DEFAULT_LIMITS, type TrialState, type
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 const PLANS = [
-  { id: 'starter', name: 'Starter', monthly: 9, features: ['Up to 5 active listings', '30 leads / month', 'Basic CIM & BOV'] },
-  { id: 'professional', name: 'Professional', monthly: 49, features: ['Unlimited listings', 'Unlimited leads & deals', 'AI agents + full CIM/BOV', 'Social media publishing', 'Email campaigns'] },
-  { id: 'enterprise', name: 'Enterprise', monthly: 149, features: ['Everything in Professional', 'Custom branding & white-label', 'Dedicated support + onboarding', 'Multi-agent seats'] },
+  { id: 'free', name: 'Owner', monthly: 0, features: ['1 active listing', 'Login + add your listing', 'No CRM system'] },
+  { id: 'professional', name: 'Professional', monthly: 49, features: ['10 active listings on our site', '5 agent seats', 'Deal pipeline + lead management', 'CIM & BOV generation'] },
+  { id: 'enterprise', name: 'Enterprise', monthly: 99, features: ['20 active listings on our site', '10 agent seats', 'Everything in Professional', 'Financial recasting engine'] },
 ] as const
 
 interface SubRow { plan_type: string | null; start_date: string | null; end_date: string | null; amount: number | null; status: string | null; notes: string | null }
@@ -60,7 +60,7 @@ export default function AgencyBilling() {
     ]
   }, [usage])
 
-  async function upgrade(planId: 'starter' | 'professional' | 'enterprise') {
+  async function upgrade(planId: 'free' | 'professional' | 'enterprise') {
     if (!agency) return
     setPaying(planId)
     try {

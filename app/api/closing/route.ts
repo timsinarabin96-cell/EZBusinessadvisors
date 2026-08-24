@@ -112,7 +112,7 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   if (body.milestoneId) {
-    const { data: m } = await db.from('deal_closing_milestones').select('agency_id').eq('id', body.milestoneId).maybeSingle()
+    const { data: m } = await db.from('deal_closing_milestones').select('agency_id, listing_id, category').eq('id', body.milestoneId).maybeSingle()
     if (!m) return NextResponse.json({ ok: false, error: 'Milestone not found' }, { status: 404 })
     if (!canManageAgency(auth, m.agency_id)) return forbiddenResponse()
     const result = await updateMilestone(
@@ -127,6 +127,31 @@ export async function PATCH(req: NextRequest) {
       auth.user.id,
     )
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
+
+    // --- Success fee hook: when the closing milestone completes, record the
+    // platform's transaction cut (tiered % of the sale price). Idempotent.
+    if (body.completed && m.category === 'closing') {
+      try {
+        const { recordSuccessFee } = await import('@/lib/successFee')
+        const { data: listing } = await db
+          .from('listings')
+          .select('asking_price')
+          .eq('id', m.listing_id)
+          .maybeSingle()
+        const salePrice = Number(listing?.asking_price || 0)
+        if (salePrice > 0) {
+          const fee = await recordSuccessFee({
+            agencyId: m.agency_id,
+            listingId: m.listing_id,
+            dealId: null,
+            salePrice,
+            notes: 'Auto-recorded when closing milestone completed',
+          })
+          return NextResponse.json({ ok: true, successFee: fee.fee ?? null })
+        }
+      } catch { /* fee recording is best-effort */ }
+    }
+
     return NextResponse.json({ ok: true })
   }
 

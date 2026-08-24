@@ -1,25 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { generatePhoneReply } from '@/lib/voiceAgent'
-import { createBooking } from '@/lib/booking'
 
 export const runtime = 'nodejs'
 
 // =============================================================================
-// POST /api/voice/twilio — Twilio voice webhook
+// POST /api/voice/twilio — Twilio voice webhook → LIVE AGENT (Yavin)
 // -----------------------------------------------------------------------------
-// Twilio → this route on each caller utterance. Returns TwiML that speaks the
-// AI's reply and keeps listening. Booking requests with a date/time are turned
-// into real CRM appointments for the configured agency.
+// Async pattern: stores the caller's speech in Supabase, tells them to hold
+// for a moment, and redirects to /api/voice/poll which picks up the agent's
+// reply (written by the local watcher) and speaks it. Booking, qualification
+// and broker alerts all happen in the same agent pipeline as SMS/chat.
 // =============================================================================
 
-function twiml(body: string, hangup = false, gather = true): string {
-  const listen = gather
-    ? `<Gather input="speech" timeout="4" speechTimeout="auto" language="en-US"><Say voice="Polly.Joanna">${escapeXml(body)}</Say></Gather><Redirect>/api/voice/twilio</Redirect>`
-    : `<Say voice="Polly.Joanna">${escapeXml(body)}</Say>`
-  const end = hangup ? '<Hangup/>' : ''
-  return `<?xml version="1.0" encoding="UTF-8"?><Response>${listen}${end}</Response>`
-}
+const VOICE = 'Polly.Matthew-Neural'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
 
 function escapeXml(s: string): string {
   return s
@@ -28,69 +22,120 @@ function escapeXml(s: string): string {
     .replace(/[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD]/g, '')
 }
 
+// URLs inside TwiML attributes must be XML-escaped (& → &amp;).
+function escapeAttr(s: string): string {
+  return escapeXml(s)
+}
+
+function twiml(opts: { say?: string; gather?: boolean; pause?: boolean; redirect?: string; hangup?: boolean }): string {
+  let inner = ''
+  if (opts.pause) inner = '<Pause length="2"/>'
+  if (opts.say) {
+    const say = `<Say voice="${VOICE}">${escapeXml(opts.say)}</Say>`
+    inner += opts.gather
+      ? `<Gather input="speech" timeout="8" speechTimeout="6" language="en-US" action="${escapeAttr(APP_URL)}/api/voice/twilio" method="POST">${say}</Gather>`
+      : say
+  }
+  if (opts.redirect) inner += `<Redirect>${escapeAttr(opts.redirect)}</Redirect>`
+  if (opts.hangup) inner += '<Hangup/>'
+  return `<?xml version="1.0" encoding="UTF-8"?><Response>${inner}</Response>`
+}
+
+function xml(body: string): NextResponse {
+  return new NextResponse(body, { headers: { 'Content-Type': 'text/xml' } })
+}
+
+function dayPart(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'morning'
+  if (h < 17) return 'afternoon'
+  return 'evening'
+}
+
 export async function POST(req: NextRequest) {
   const db = createServerClient()
   if (!db) return new NextResponse('Service unavailable', { status: 503 })
 
   const agencyId = process.env.VOICE_AGENT_AGENCY_ID || ''
   if (!agencyId) return new NextResponse('Voice agent is not configured for an agency', { status: 503 })
+  const agencyName = process.env.VOICE_AGENT_AGENCY_NAME || 'our brokerage'
+
+  // --- REAL-TIME MODE: if the local Gemini bridge is registered (<90s old),
+  // stream the call to it (interruptible, ~500ms, human-level voice).
+  try {
+    const { data: bridge } = await db
+      .from('call_sessions')
+      .select('caller_number, started_at')
+      .eq('provider', 'gemini_bridge')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (bridge?.caller_number && new Date(bridge.started_at).getTime() > Date.now() - 90_000) {
+      const streamUrl = String(bridge.caller_number).replace(/^http/, 'ws')
+      return xml(
+        `<?xml version="1.0" encoding="UTF-8"?><Response><Connect>` +
+        `<Stream url="${escapeAttr(streamUrl)}/stream"/>` +
+        `</Connect></Response>`,
+      )
+    }
+  } catch { /* bridge lookup failed — fall back to turn-based */ }
 
   const form = await req.formData()
-  const speechResult = String(form.get('SpeechResult') || '')
+  const speechResult = String(form.get('SpeechResult') || '').trim()
   const callSid = String(form.get('CallSid') || '')
   const fromNumber = String(form.get('From') || '')
-  const transcript = speechResult.trim()
+  const callerName = String(form.get('CallerName') || '')
 
-  // Record the transcript segment.
-  if (callSid && transcript) {
-    const { data: session } = await db.from('call_sessions').select('id').eq('provider_call_id', callSid).maybeSingle()
-    if (session) {
-      await db.from('call_transcripts').insert({
+  // --- Session: reuse by provider_call_id, else create. ---
+  let session: any = null
+  let isNewSession = false
+  if (callSid) {
+    const { data: existing } = await db.from('call_sessions').select('*').eq('provider_call_id', callSid).maybeSingle()
+    if (existing) {
+      session = existing
+    } else {
+      const { data: created } = await db.from('call_sessions').insert({
         agency_id: agencyId,
-        call_session_id: session.id,
-        sequence: Date.now() % 100000,
-        speaker: 'caller',
-        content: transcript,
-      }).maybeSingle()
+        provider: 'twilio',
+        provider_call_id: callSid,
+        direction: 'inbound',
+        status: 'in_progress',
+        caller_number: fromNumber || null,
+        destination_number: String(form.get('To') || null) || null,
+        caller_name: callerName || null,
+        purpose: 'voice_receptionist',
+        metadata: { last_processed_at: null },
+        started_at: new Date().toISOString(),
+      }).select().single()
+      session = created
+      isNewSession = true
     }
   }
 
-  // First turn (no speech yet) → greet.
-  if (!transcript) {
-    const name = String(form.get('CallerName') || '')
-    const greeting = name
-      ? `Hi ${name}, thanks for calling. How can I help you today?`
-      : `Thank you for calling. How can I help you today?`
-    return new NextResponse(twiml(greeting), {
-      headers: { 'Content-Type': 'text/xml' },
-    })
-  }
-
-  // Generate the AI reply.
-  const reply = await generatePhoneReply({ transcript, callerName: null, agencyName: process.env.VOICE_AGENT_AGENCY_NAME })
-
-  // If the caller asked to book with a date/time, create the appointment.
-  if (reply.booking && !reply.booking.needs_confirmation && reply.booking.appointment) {
-    const input = reply.booking.appointment as unknown as {
-      title?: string; appointment_type?: string; starts_at?: string; ends_at?: string
-      attendee_name?: string | null; attendee_email?: string | null; attendee_phone?: string | null
-      location_type?: string; location?: string | null; notes?: string | null
+  // --- No speech: greet on a NEW call; re-prompt only if mid-call. ---
+  if (!speechResult) {
+    if (session && !isNewSession) {
+      return xml(twiml({ say: "I didn't catch that. Could you repeat that?", gather: true }))
     }
-    await createBooking(agencyId, {
-      title: input.title || 'Phone booking',
-      appointment_type: (input.appointment_type as never) || 'general',
-      starts_at: input.starts_at || '',
-      ends_at: input.ends_at || '',
-      attendee_name: input.attendee_name ?? null,
-      attendee_email: input.attendee_email ?? null,
-      attendee_phone: input.attendee_phone ?? (fromNumber || null),
-      location_type: input.location_type || 'phone',
-      location: input.location ?? null,
-      notes: input.notes ?? null,
-    }, { source: 'ai_phone' })
+    const greeting = callerName
+      ? `Good ${dayPart()}, ${callerName}. This is ${agencyName}. How can I help you today?`
+      : `Good ${dayPart()}, thank you for calling ${agencyName}. How can I help you today?`
+    return xml(twiml({ say: greeting, gather: true }))
   }
 
-  return new NextResponse(twiml(reply.speech, Boolean(reply.hangup), !reply.hangup), {
-    headers: { 'Content-Type': 'text/xml' },
-  })
+  // --- Store the caller's speech for the live agent. ---
+  if (session?.id) {
+    await db.from('call_transcripts').insert({
+      agency_id: agencyId,
+      call_session_id: session.id,
+      sequence: Date.now() % 100000,
+      speaker: 'caller',
+      content: speechResult,
+    }).maybeSingle()
+  } else {
+    return xml(twiml({ say: 'I could not connect you. A broker will call you back shortly.', hangup: true }))
+  }
+
+  // --- Hold while the agent thinks; poll for the reply. ---
+  return xml(twiml({ say: 'One moment, please.', redirect: `${APP_URL}/api/voice/poll?session=${session.id}&attempt=0` }))
 }

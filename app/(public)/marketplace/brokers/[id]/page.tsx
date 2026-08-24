@@ -1,8 +1,8 @@
 'use client'
 
 // ---------------------------------------------------------------------------
-// Individual public broker profile — BizBuySell "BrokerWorks" style: bio +
-// contact card plus a grid of this broker's active, published listings.
+// Individual public broker profile: bio + contact card plus a grid of this
+// broker's active, published listings.
 // ---------------------------------------------------------------------------
 
 import { useEffect, useState } from 'react'

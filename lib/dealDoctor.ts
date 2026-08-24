@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase/client'
 import { fetchActivityFeed } from '@/lib/activityFeed'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { fetchPipelineDeals, type PipelineItem } from '@/lib/pipeline'
-import { scoreDeal } from '@/lib/dealDoctorCore.mts'
+import { scoreDeal } from '@/lib/dealDoctorCore.ts'
 
 export {
   scoreDeal,
@@ -22,9 +22,9 @@ export {
   type DealBand,
   type DealDoctorInput,
   type DealDiagnosis,
-} from '@/lib/dealDoctorCore.mts'
+} from '@/lib/dealDoctorCore.ts'
 
-import type { DealDiagnosis } from '@/lib/dealDoctorCore.mts'
+import type { DealDiagnosis } from '@/lib/dealDoctorCore.ts'
 
 /**
  * Score the whole pipeline for the current agency.

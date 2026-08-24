@@ -7,7 +7,7 @@ import { fetchListing } from '@/lib/listings'
 import StatusBadge from '@/components/listings/StatusBadge'
 
 // ---------------------------------------------------------------------------
-// Step 8 — List Business: publish + push to marketplaces (BizBuySell).
+// Step 8 — List Business: publish the listing to the marketplace (live on website).
 // ---------------------------------------------------------------------------
 
 export default function Step8ListBusiness({ listingId, onNext }: { listingId: string; onNext: () => void }) {
@@ -21,7 +21,7 @@ export default function Step8ListBusiness({ listingId, onNext }: { listingId: st
   const publish = async () => {
     setBusy(true)
     const ok = await publishListing(listingId)
-    setPushResult(ok ? 'Listing active + pushed to BizBuySell ✓' : 'Publish failed')
+    setPushResult(ok ? 'Listing is live on the website ✓' : 'Publish failed')
     await load()
     setBusy(false)
   }
@@ -29,7 +29,7 @@ export default function Step8ListBusiness({ listingId, onNext }: { listingId: st
   const isActive = listing?.status === 'active'
 
   return (
-    <StepShell step={8} title="List Business" description="Publish the listing to the marketplace and push it to BizBuySell (and optional social auto-post)."
+    <StepShell step={8} title="List Business" description="Publish the listing to the marketplace so it goes live on the website."
       status="draft" onNext={async () => { await completeStep(listingId, 8); onNext() }} nextLabel="Step 8 complete →">
       {/* Preview card */}
       <div style={{ padding: '18px 20px', border: '1px solid var(--line)', borderRadius: 10, background: 'var(--paper)', marginBottom: 18 }}>
@@ -42,15 +42,15 @@ export default function Step8ListBusiness({ listingId, onNext }: { listingId: st
       </div>
 
       {!isActive ? (
-        <button onClick={publish} disabled={busy} style={stepBtn(true)}>{busy ? 'Publishing…' : '🌐 Publish to marketplace + push to BizBuySell'}</button>
+        <button onClick={publish} disabled={busy} style={stepBtn(true)}>{busy ? 'Publishing…' : '🌐 Publish to marketplace'}</button>
       ) : (
-        <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600 }}>✓ Listing is live. It has been pushed to marketplaces.</div>
+        <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600 }}>✓ Listing is live on the website.</div>
       )}
 
       {pushResult && <div style={{ marginTop: 10, fontSize: 13, color: pushResult.includes('failed') ? '#dc2626' : '#16a34a' }}>{pushResult}</div>}
 
       <div style={{ marginTop: 16, fontSize: 12.5, color: 'var(--muted)' }}>
-        Publishing sets the listing status to <strong>Active</strong> and pushes it to BizBuySell. Once a buyer signs a letter of intent, the status will automatically advance to Pending Sale.
+        Publishing sets the listing status to <strong>Active</strong> and makes it live on the website. Once a buyer signs a letter of intent, the status will automatically advance to Pending Sale. Syndication to other sources (BizBuySell, LoopNet, etc.) is manual — enter them yourself from your own accounts.
       </div>
     </StepShell>
   )

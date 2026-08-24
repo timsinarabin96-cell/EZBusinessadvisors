@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { capturePublicLead } from '@/lib/marketplace'
 import { submitSellerListingOrder } from '@/lib/sellerOrderClient'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
+import InstantValuation from '@/components/public/InstantValuation'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
 
 export default function SellPage() {
@@ -30,7 +31,7 @@ function SellContent() {
     // (draft in broker review queue). Otherwise fall back to a lead.
     if (planId) {
       const res = await submitSellerListingOrder({
-        planId: planId as 'launch' | 'qualified' | 'broker_assisted',
+        planId: planId as 'free' | 'professional' | 'enterprise',
         business_name: form.businessName || 'Untitled business',
         annual_revenue: form.annualRevenue ? Number(form.annualRevenue) : null,
         asking_price: form.askingPrice ? Number(form.askingPrice) : null,
@@ -90,6 +91,13 @@ function SellContent() {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <InstantValuation
+            onLead={(v) => {
+              // Pre-fill the free valuation form below with the estimate context.
+              if (v.industry && !form.businessName) setForm((f) => ({ ...f, businessName: v.industry }))
+              if (v.sde && !form.annualRevenue) setForm((f) => ({ ...f, annualRevenue: String(v.sde) }))
+            }}
+          />
           {[
             ['📊', 'Professional Valuation', 'A broker-grade opinion of value using SDE/EBITDA multiples and market comparables.'],
             ['🤫', 'Absolute Confidentiality', 'Your business is never publicly exposed without your consent.'],
@@ -110,7 +118,7 @@ function SellContent() {
       {/* RIGHT form */}
       <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 32, boxShadow: '0 8px 40px rgba(26,26,46,0.1)', position: 'sticky', top: 88 }}>
         <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 4px' }}>{planId ? 'List Your Business' : 'Request a Free Valuation'}</h2>
-        <p style={{ fontSize: 13, color: '#888', margin: '0 0 20px' }}>{planId ? `Selected plan: ${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.name} — $${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.price} one-time. A broker reviews before anything goes live.` : '100% confidential. No obligation.'}</p>
+        <p style={{ fontSize: 13, color: '#888', margin: '0 0 20px' }}>{planId ? `Selected plan: ${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.name} — ${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.price === 0 ? 'free' : '$' + OWNER_LISTING_PLANS.find((p) => p.id === planId)?.price + ' ' + OWNER_LISTING_PLANS.find((p) => p.id === planId)?.billing}. A broker reviews before anything goes live.` : '100% confidential. No obligation.'}</p>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Field label="Full Name *"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></Field>
           <Field label="Email *"><input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></Field>

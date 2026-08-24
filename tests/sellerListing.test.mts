@@ -26,7 +26,7 @@ test('order failure rolls back the draft listing', () => {
 })
 
 test('seller order API validates plans and requires a brokerage', () => {
-  assert.match(route, /z\.enum\(\['launch', 'qualified', 'broker_assisted'\]\)/)
+  assert.match(route, /z\.enum\(\['free', 'professional', 'enterprise'\]\)/)
   assert.match(route, /No receiving brokerage is configured yet/)
   assert.match(route, /sellerOrderSchema/)
 })
@@ -37,10 +37,10 @@ test('sell page offers paid plans and submits real orders', () => {
   assert.match(sellPage, /Listing order created/)
 })
 
-test('plans exist with one-time pricing', () => {
+test('plans exist with the new monthly model', () => {
   const plans = readFileSync('lib/listingIntelligence.ts', 'utf8')
-  assert.match(plans, /Owner Launch/)
-  assert.match(plans, /Qualified Buyer/)
-  assert.match(plans, /Broker Assisted/)
-  assert.match(plans, /one time/)
+  assert.match(plans, /Owner Free/)
+  assert.match(plans, /Professional/)
+  assert.match(plans, /Enterprise/)
+  assert.match(plans, /per month/)
 })

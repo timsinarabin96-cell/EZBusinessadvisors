@@ -5,7 +5,7 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvi
 
 export const metadata: Metadata = {
   title: 'About Us',
-  description: 'EZ Business Advisors is a confidential business brokerage helping owners sell and buyers acquire established, profitable businesses.',
+  description: 'A confidential business-for-sale marketplace helping owners sell and buyers acquire established, profitable businesses.',
   alternates: { canonical: `${BASE}/about` },
 }
 
@@ -17,7 +17,7 @@ export default function AboutPage() {
         A Confidential, Professional Approach to Business Brokerage
       </h1>
       <p style={{ fontSize: 16, color: '#555', lineHeight: 1.8, marginBottom: 18 }}>
-        EZ Business Advisors helps business owners sell what they've built and helps qualified
+        Concord helps business owners sell what they've built and helps qualified
         buyers find their next acquisition — with the discretion, financial rigor, and process
         a transaction of this size deserves.
       </p>

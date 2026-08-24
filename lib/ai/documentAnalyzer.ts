@@ -11,7 +11,7 @@
 //      tags and a professional summary, for ANY of the 15 supported types.
 // =============================================================================
 
-import { complete, isClaudeConfigured, ClaudeConfigError } from '@/lib/claude/client'
+import { completeWithDeepSeek, isDeepSeekConfigured, DeepSeekConfigError } from '@/lib/deepseek/client'
 import type { AgentContextPayload } from '@/types/ai'
 import {
   UNIVERSAL_DOC_TYPE_INFO,
@@ -124,8 +124,8 @@ export async function analyzeDocumentText({
   text: string
   hints?: { guessedType?: UniversalDocType }
 }): Promise<DocumentAnalysis> {
-  if (!isClaudeConfigured()) {
-    throw new ClaudeConfigError()
+  if (!isDeepSeekConfigured()) {
+    throw new DeepSeekConfigError()
   }
 
   const guess = hints?.guessedType || detectUniversalDocType(fileName)
@@ -144,9 +144,10 @@ export async function analyzeDocumentText({
 
   const context: AgentContextPayload = { kind: 'document', entityId: fileName, text: prompt }
 
-  const res = await complete({
+  const res = await completeWithDeepSeek({
     context,
     system,
+    message: 'Analyze the document and return the requested JSON based on the context above.',
     jsonMode: true,
     maxTokens: 2400,
   })

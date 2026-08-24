@@ -4,6 +4,7 @@ import { validateServerInput } from '@cosmstack/blackshield/server'
 import { buildAgentContext } from '@/lib/claude/context'
 import { complete, isClaudeConfigured, ClaudeConfigError } from '@/lib/claude/client'
 import { completeWithDeepSeek, isDeepSeekConfigured, DeepSeekConfigError } from '@/lib/deepseek/client'
+import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
 import { buildSystemPrompt } from '@/lib/claude/prompts'
 import { CLAUDE_MODELS, type AgentKind, type ClaudeModelName } from '@/types/ai'
 
@@ -189,12 +190,23 @@ export async function POST(req: NextRequest) {
   // Normalize history into the client's expected (user/assistant) shape,
   // appended after the message as the live instruction.
   const turns = (history || []).map((h) => ({ role: h.role, content: h.content }))
-  const useClaude = agent === 'document' && isClaudeConfigured()
+  // DeepSeek is the primary provider (Claude budget is tight); all agents
+  // route through DeepSeek unless it's unconfigured.
+  const useClaude = false
+
+  // Per-tenant AI credentials — a sold CRM uses its OWN API key (billed to buyer).
+  let tenantCfg = null
+  try {
+    const { getAgencyContext } = await import('@/lib/agencyContext')
+    const ctx = await getAgencyContext()
+    tenantCfg = await resolveTenantAiConfig(ctx?.userId)
+  } catch { /* tenant resolution is best-effort */ }
+  const tenant = toDeepSeekTenant(tenantCfg)
 
   try {
     const result = useClaude
       ? await complete({ context, history: turns, message, system, model, jsonMode: Boolean(json), maxTokens: 2048 })
-      : await completeWithDeepSeek({ context, history: turns, message, system, jsonMode: Boolean(json) || agent === 'lead', maxTokens: agent === 'training' ? 1536 : 1024 })
+      : await completeWithDeepSeek({ context, history: turns, message, system, jsonMode: Boolean(json) || agent === 'lead', maxTokens: agent === 'training' ? 1536 : 1024, tenant })
 
     return ok({
       ok: true,

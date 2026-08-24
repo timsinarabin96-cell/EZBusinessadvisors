@@ -15,16 +15,16 @@ export const runtime = 'nodejs'
 
 interface Body {
   agencyId: string
-  planType: 'starter' | 'professional' | 'enterprise'
+  planType: 'free' | 'professional' | 'enterprise'
   paymentMethod?: string
   amount?: number
   billingCycle?: 'monthly' | 'annual'
 }
 
 const PLANS: Record<string, { monthly: number; annual: number }> = {
-  starter: { monthly: 9, annual: 86 },
+  free: { monthly: 0, annual: 0 },
   professional: { monthly: 49, annual: 470 },
-  enterprise: { monthly: 149, annual: 1430 },
+  enterprise: { monthly: 99, annual: 950 },
 }
 
 export async function POST(req: NextRequest) {
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   const authenticated = await authenticateProfileRequest(req)
   if (!authenticated) return unauthorizedResponse()
 
-  let body: Body = { agencyId: '', planType: 'starter' }
+  let body: Body = { agencyId: '', planType: 'free' }
   try {
     body = (await req.json()) as Body
   } catch {

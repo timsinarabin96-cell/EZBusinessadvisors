@@ -21,60 +21,71 @@ export interface Plan {
 
 export const PLANS: Plan[] = [
   {
-    id: 'starter',
-    name: 'Starter',
-    monthly: 9,
-    icon: '🌱',
-    tagline: 'For solo brokers getting started',
+    id: 'free',
+    name: 'Owner',
+    monthly: 0,
+    icon: '🔑',
+    tagline: 'For business owners — list your business for sale',
     features: [
-      'Up to 5 active listings',
-      'Deal pipeline (1 board)',
-      'Lead management (100 leads)',
-      'CIM & BOV generation',
-      'Document management (2GB)',
-      'Email support',
+      '1 active listing on the marketplace',
+      'Login + add your listing',
+      'Buyer inquiry notifications',
+      'No CRM system',
     ],
-    cta: 'Start Free Trial',
+    cta: 'Get Started Free',
   },
   {
     id: 'professional',
     name: 'Professional',
-    monthly: 99,
+    monthly: 49,
     icon: '💼',
-    tagline: 'For growing brokerages',
+    tagline: 'For brokerages posting on our marketplace',
     highlighted: true,
     features: [
-      'Unlimited active listings',
-      'Deal pipeline (unlimited)',
-      'Unlimited leads & CRM',
-      'CIM & BOV generation + PDF',
-      'Financial recasting engine',
-      'Public marketplace listing',
-      'Document management (50GB)',
-      '3 broker seats',
-      'Priority support',
+      '10 active listings on our site',
+      '5 agent seats',
+      'Deal pipeline (1 board)',
+      'Lead management',
+      'CIM & BOV generation',
+      'Email support',
     ],
     cta: 'Start Free Trial',
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    monthly: 199,
+    monthly: 99,
     icon: '🏛️',
-    tagline: 'For multi-broker agencies',
+    tagline: 'For larger teams and agencies',
     features: [
+      '20 active listings on our site',
+      '10 agent seats',
       'Everything in Professional',
-      'Multi-broker / agency system',
-      'White-label branding & subdomains',
-      'Unlimited seats',
-      'Public marketplace + featured',
-      'BizBuySell integration',
-      'API & webhooks',
-      'Dedicated account manager',
+      'Financial recasting engine',
+      'Priority support',
     ],
-    cta: 'Contact Sales',
+    cta: 'Start Free Trial',
   },
 ]
+
+// ---------------------------------------------------------------------------
+// Full CRM platform — sold as a separate product (not a subscription tier).
+// One-time license + monthly platform fee; the buyer covers all API token
+// usage and third-party costs (AI, Plaid, storage, etc.).
+// ---------------------------------------------------------------------------
+export const CRM_LICENSE = {
+  name: 'Concord CRM Platform',
+  setupFee: 4999,
+  monthly: 500,
+  includes: [
+    'Full CRM system (deal pipeline, leads, CIM/BOV, recasting)',
+    'AI agents (DeepSeek/Claude via your own API keys)',
+    'White-label branding & your own subdomain',
+    'Buyer portal, NDA workflow, documents, e-sign',
+    'Own Supabase + storage (you pay infrastructure)',
+    'All API token costs billed to you',
+  ],
+} as const
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled'
 
@@ -106,10 +117,10 @@ export interface Invoice {
   created_at?: string | null
 }
 
-export const canAccessFeature = (sub: Subscription | null, tierMinimum: 'starter' | 'professional' | 'enterprise'): boolean => {
+export const canAccessFeature = (sub: Subscription | null, tierMinimum: 'free' | 'professional' | 'enterprise'): boolean => {
   if (!sub) return false
   if (sub.status !== 'active' && sub.status !== 'trialing') return false
-  const order = { starter: 1, professional: 2, enterprise: 3 }
+  const order = { free: 0, professional: 1, enterprise: 2 }
   return order[sub.tier as keyof typeof order] >= order[tierMinimum]
 }
 
@@ -179,17 +190,35 @@ export async function upgradeTier(tier: string): Promise<void> {
   if (error) throw new Error(error.message || 'Failed to upgrade plan')
 }
 
-// --- Stripe Checkout (production wiring point) ---
+// --- Stripe Checkout (real payments, graceful demo fallback) ---
 /**
- * In production, this should call a server route that creates a Stripe Checkout
- * Session using your secret key, then redirects to session.url. The schema and
- * webhook handler (provider='stripe' in webhook_events) are ready for it.
+ * Creates a Stripe Checkout session for the tier via /api/stripe/checkout.
+ * Free tier records directly (no payment). Paid tiers go to real Stripe
+ * Checkout when STRIPE_SECRET_KEY is set; otherwise the API falls back to
+ * recording the subscription so the flow never hard-fails.
  */
 export async function createBillingSession(tier: string): Promise<string> {
-  // Demo flow: record the subscription and return a fake checkout "success" path.
-  // Replace with: POST /api/stripe/checkout { tier } -> { url }
   const { data: { user } } = await supabase.auth.getUser()
   const email = user?.email || ''
+
+  // Free tier — no payment needed.
+  if (tier === 'free') {
+    await subscribeToTier(tier, email)
+    return '/billing?checkout=success&tier=free'
+  }
+
+  // Paid tiers — real Stripe Checkout (or demo fallback server-side).
+  try {
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier, email }),
+    })
+    const j = await res.json()
+    if (j.ok && j.url) return j.url
+  } catch {
+    // Fall through to local recording.
+  }
   await subscribeToTier(tier, email)
-  return '/billing?checkout=success'
+  return `/billing?checkout=success&tier=${tier}`
 }

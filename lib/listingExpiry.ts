@@ -72,7 +72,7 @@ export async function processExpirations(agencyId: string): Promise<{ expired: n
       // Reminder (only when the record has no reminder marker; reuse notes-free idempotency via updated_at check is complex,
       // so we rely on the email queue dedup and send at most once per record per day).
       await notify('deal_notification', await agencyOwnerEmails(agencyId), {
-        businessName: `${listing.business_name || 'Listing'} expires ${expiresAt.toLocaleDateString()}`,
+        businessName: `${listing.business_name || 'Listing'} expires ${expiresAt.toLocaleDateString()} — renew to keep it live`,
         dealStage: 'expiry-reminder',
       })
       reminded++

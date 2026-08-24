@@ -7,12 +7,12 @@ const page = readFileSync('app/(public)/marketplace/comps/page.tsx', 'utf8')
 const nav = readFileSync('components/public/PublicNav.tsx', 'utf8')
 
 // Import the pure helpers (dependency-free core — no path aliases).
-const { extractState, daysBetween } = await import('../lib/soldCompsCore.mts')
+const { extractState, daysBetween } = await import('../lib/soldCompsCore.ts')
 
 test('sold-comps: lib aggregates anonymized sold data into market stats', () => {
   assert.match(lib, /export interface SoldCompStat/)
   assert.match(lib, /export interface SoldCompsReport/)
-  assert.match(lib, /from '@\/lib\/soldCompsCore\.mts'/)
+  assert.match(lib, /from '@\/lib\/soldCompsCore\.ts'/)
   assert.match(lib, /export async function buildSoldCompsReport/)
   assert.match(lib, /get_public_sold_listings/)
   assert.match(lib, /avgMultiple/)
@@ -22,7 +22,7 @@ test('sold-comps: lib aggregates anonymized sold data into market stats', () => 
 })
 
 test('sold-comps: core extracts only real US state codes', () => {
-  const core = readFileSync('lib/soldCompsCore.mts', 'utf8')
+  const core = readFileSync('lib/soldCompsCore.ts', 'utf8')
   assert.match(core, /US_STATES/)
   assert.match(core, /export function extractState/)
   assert.match(core, /export function daysBetween/)

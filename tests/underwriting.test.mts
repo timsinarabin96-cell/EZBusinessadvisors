@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-const core = readFileSync('lib/underwritingCore.mts', 'utf8')
+const core = readFileSync('lib/underwritingCore.ts', 'utf8')
 const lib = readFileSync('lib/underwriting.ts', 'utf8')
 const page = readFileSync('app/(public)/marketplace/qualify/page.tsx', 'utf8')
 const nav = readFileSync('components/public/PublicNav.tsx', 'utf8')
 
-const { qualifyBuyer, LEVEL_LABELS } = await import('../lib/underwritingCore.mts')
+const { qualifyBuyer, LEVEL_LABELS } = await import('../lib/underwritingCore.ts')
 
 test('underwriting: funded buyer — 20% liquid, strong income, good credit', () => {
   const r = qualifyBuyer({ targetPrice: 500000, liquidCapital: 120000, annualIncome: 150000, creditTier: 'good' })

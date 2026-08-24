@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Yavin Live Voice — Test Page</title>
+<style>
+  :root { --gold:#c9a84c; --navy:#1a1a2e; --teal:#0e7490; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Georgia,'Times New Roman',serif; background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%); color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card { width:min(680px,92vw); background:#fff; color:#1a1a2e; border-radius:20px; padding:32px; box-shadow:0 24px 80px rgba(0,0,0,.4); }
+  h1 { font-size:26px; margin:0 0 4px; }
+  .sub { color:#888; font-size:13.5px; margin-bottom:20px; }
+  .status { display:inline-flex; align-items:center; gap:8px; font-size:13px; padding:6px 14px; border-radius:99px; background:#f1f5f9; color:#475569; margin-bottom:18px; font-weight:700; }
+  .status.live { background:#dcfce7; color:#166534; }
+  .status .dot { width:9px; height:9px; border-radius:50%; background:#94a3b8; }
+  .status.live .dot { background:#16a34a; animation:pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity:.35; } }
+  button { font-family:Georgia,serif; font-weight:700; border:none; border-radius:10px; padding:13px 22px; font-size:15px; cursor:pointer; }
+  #callBtn { background:linear-gradient(135deg,#0e7490,#155e75); color:#fff; }
+  #callBtn.stop { background:#b91c1c; }
+  #transcript { margin-top:20px; border:1px solid #e2e8f0; border-radius:12px; padding:14px; height:240px; overflow-y:auto; background:#f8fafc; font-size:14px; line-height:1.6; }
+  .t-you { color:#0e7490; font-weight:700; }
+  .t-agent { color:#1a1a2e; font-weight:700; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .hint { font-size:12.5px; color:#94a3b8; margin-top:12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🎙️ Yavin — Live Voice</h1>
+  <div class="sub">EZ Business Advisors · real-time AI receptionist · Gemini Live (free) · interruptible · ~500ms</div>
+  <div class="row">
+    <button id="callBtn">▶ Start talking</button>
+    <span id="status" class="status"><span class="dot"></span><span id="statusText">Idle</span></span>
+  </div>
+  <div id="transcript"></div>
+  <div class="hint">Say things like: "I want to sell my restaurant" · "I'd like to book a call Friday at 2pm" · "What listings do you have?" — you can interrupt me mid-sentence.</div>
+</div>
+
+<script>
+(() => {
+  const btn = document.getElementById('callBtn')
+  const statusEl = document.getElementById('status')
+  const statusText = document.getElementById('statusText')
+  const transcript = document.getElementById('transcript')
+
+  let ws = null
+  let audioCtx = null
+  let micStream = null
+  let processor = null
+  let geminiStarted = false
+
+  const log = (role, text) => {
+    const div = document.createElement('div')
+    div.innerHTML = `<span class="${role === 'you' ? 't-you' : 't-agent'}">${role === 'you' ? 'You' : 'Yavin'}:</span> ${text.replace(/</g, '&lt;')}`
+    transcript.appendChild(div)
+    transcript.scrollTop = transcript.scrollHeight
+  }
+
+  const setStatus = (text, live) => {
+    statusText.textContent = text
+    statusEl.classList.toggle('live', !!live)
+  }
+
+  async function start() {
+    setStatus('Connecting…', false)
+    try {
+      // 1) Find the live bridge URL (registered by the local bridge).
+      const reg = await fetch('/api/voice/bridge-register').then(r => r.json())
+      if (!reg.url) throw new Error('Bridge not registered — start the local bridge first')
+      const wsUrl = reg.url.replace(/^http/, 'ws') + '/browser'
+
+      // 2) Open the WebSocket to the bridge.
+      ws = new WebSocket(wsUrl)
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'start' }))
+        setStatus('Live — talk away', true)
+        btn.textContent = '■ Stop'
+        btn.classList.add('stop')
+      }
+      ws.onmessage = (ev) => {
+        let msg
+        try { msg = JSON.parse(ev.data) } catch { return }
+        if (msg.type === 'audio' && msg.data) playAudio(msg.data, msg.rate || 24000)
+        if (msg.type === 'text' && msg.text) log('agent', msg.text)
+        if (msg.type === 'interrupted') setStatus('Listening… (you interrupted)', true)
+      }
+      ws.onclose = () => { if (!stopping) stop() }
+      ws.onerror = () => { if (!stopping) { setStatus('Connection error', false); stop() } }
+
+      // 3) Start mic capture → 16kHz PCM16.
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 })
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+      const source = audioCtx.createMediaStreamSource(micStream)
+      processor = audioCtx.createScriptProcessor(4096, 1, 1)
+      processor.onaudioprocess = (e) => {
+        if (ws && ws.readyState === 1 && geminiStarted) {
+          const pcm = new Int16Array(e.inputBuffer.getChannelData(0).length)
+          const f = e.inputBuffer.getChannelData(0)
+          for (let i = 0; i < f.length; i++) pcm[i] = Math.max(-1, Math.min(1, f[i])) * 0x7fff
+          ws.send(JSON.stringify({ type: 'audio', data: btoa(String.fromCharCode(...new Uint8Array(pcm.buffer))) }))
+        }
+      }
+      source.connect(processor)
+      processor.connect(audioCtx.destination)
+      geminiStarted = true
+      log('agent', '👋 Hi, this is Yavin from EZ Business Advisors. How can I help you today?')
+    } catch (err) {
+      setStatus('Error: ' + err.message, false)
+      stop()
+    }
+  }
+
+  let audioQueue = []
+  let playing = false
+  function playAudio(base64, rate) {
+    try {
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+      const pcm = new Int16Array(bytes.buffer)
+      audioQueue.push({ pcm, rate })
+      if (!playing) pumpAudio()
+    } catch {}
+  }
+  function pumpAudio() {
+    if (!audioQueue.length || !audioCtx) { playing = false; return }
+    playing = true
+    const { pcm, rate } = audioQueue.shift()
+    const buf = audioCtx.createBuffer(1, pcm.length, rate)
+    const ch = buf.getChannelData(0)
+    for (let i = 0; i < pcm.length; i++) ch[i] = pcm[i] / 0x7fff
+    const src = audioCtx.createBufferSource()
+    src.buffer = buf
+    src.connect(audioCtx.destination)
+    src.onended = pumpAudio
+    src.start()
+  }
+
+  let stopping = false
+  function stop() {
+    stopping = true
+    try { if (processor) processor.disconnect() } catch {}
+    try { if (micStream) micStream.getTracks().forEach(t => t.stop()) } catch {}
+    try { if (ws) ws.close() } catch {}
+    try { if (audioCtx) audioCtx.close() } catch {}
+    ws = null; processor = null; micStream = null; audioCtx = null; geminiStarted = false
+    setStatus('Stopped', false)
+    btn.textContent = '▶ Start talking'
+    btn.classList.remove('stop')
+    setTimeout(() => { stopping = false }, 300)
+  }
+
+  btn.onclick = () => { if (btn.classList.contains('stop')) stop(); else start() }
+})()
+</script>
+</body>
+</html>

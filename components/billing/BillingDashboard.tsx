@@ -31,10 +31,6 @@ export default function BillingDashboard() {
   }, [searchParams, load, toast])
 
   const selectPlan = async (plan: Plan) => {
-    if (plan.id === 'enterprise' && sub?.tier !== 'enterprise') {
-      toast('Enterprise: contact our team to set up a custom plan.', 'info')
-      return
-    }
     setBusy(true)
     try {
       if (sub && sub.tier !== plan.id) {

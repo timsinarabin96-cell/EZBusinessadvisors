@@ -1,103 +1,69 @@
 // =============================================================================
-// Phone AI Agent — conversation engine
+// Phone AI Agent — professional receptionist (brief, confirm-first)
 // -----------------------------------------------------------------------------
-// Drives the AI phone receptionist: answers calls, greets callers, understands
-// intent (book appointment / sell a business / buy a business / general), and
-// returns a spoken reply + optional booking action. DeepSeek powers the brain;
-// the Twilio webhook renders the reply as TwiML speech.
+// Answers like a real front-desk professional: listens, confirms what the
+// caller said in ONE short sentence, and moves on. Never rambles, never
+// recaps, never repeats. DeepSeek powers the brain; Twilio renders speech.
 // =============================================================================
 
 import { completeWithDeepSeek } from '@/lib/deepseek/client'
-import { extractBooking } from '@/lib/booking'
-
-export type CallIntent = 'book' | 'sell' | 'buy' | 'general' | 'unknown'
 
 export interface PhoneReply {
-  /** What the AI says to the caller (plain speech text). */
   speech: string
-  /** Detected intent, when confident. */
-  intent?: CallIntent
-  /** Structured booking result when the caller asked to book. */
-  booking?: {
-    needs_confirmation: boolean
-    question?: string
-    appointment?: Record<string, unknown>
-    message?: string
-  }
-  /** Should the platform hang up (call completed). */
+  intent?: 'book' | 'sell' | 'buy' | 'general'
   hangup?: boolean
 }
 
-const SYSTEM_PROMPT = `You are CONCORD Reception, the friendly AI receptionist for a confidential business brokerage.
+const SYSTEM_PROMPT = `You are the receptionist at EZ Business Advisors, a confidential business brokerage. You answer the phone like a real, polished human front-desk person.
 
-Your job on a phone call:
-- Greet callers warmly and professionally. Keep replies SHORT (under 30 words per turn) — this is a phone call, not a chat.
-- Ask for the caller's name and what they're calling about, one question at a time.
-- Detect intent: are they calling to BOOK AN APPOINTMENT, SELL a business, BUY a business, or something else?
-- For booking requests: confirm the caller wants to book, then ask for a preferred date and time. Say you're noting it down.
-- For sell/buy: take a brief note of their business/industry and say a broker will follow up confidentially.
+HARD RULES (phone call — follow exactly):
+- Reply in AT MOST ONE short sentence. Under 15 words. Ever.
+- LISTEN FIRST: when the caller gives you their name or phone number, just CONFIRM it briefly and move on. Examples:
+  * Caller gives name: "Thanks, Sarah." then continue.
+  * Caller gives name + number: "Got it, Sarah — a broker will call you back shortly."
+  * Caller says they want to buy: "Sure — a buyer's broker will call you back shortly."
+  * Caller says they want to sell: "Understood — a broker will call you back to go over it confidentially."
+- NEVER recap, summarize, or repeat back everything they said. NEVER explain the process. NEVER list options. One sentence, then stop.
+- Only ask for something you don't have yet: their name, or a callback number. One question at a time.
+- If you already have their name and number and their reason, just say: "A broker will call you back shortly. Anything else I can help with?"
+- If they ask for a human: "Of course — a broker will call you back shortly." then end the call.
 - Never reveal confidential deal details, financials, or client names.
-- If the caller asks for a human, say "I'll make sure a broker calls you back shortly" — and end the call.
 - If the call is done, reply with exactly: GOODBYE`
 
 export interface TurnInput {
   transcript: string
   callerName?: string | null
   agencyName?: string
+  history?: { role: 'caller' | 'david'; content: string }[]
 }
 
-/**
- * Produce the next spoken reply for a call turn.
- * @param turn  The accumulated transcript (or last caller utterance) + context.
- * @returns    Spoken reply + structured actions.
- */
 export async function generatePhoneReply(turn: TurnInput): Promise<PhoneReply> {
   const agency = turn.agencyName || 'our brokerage'
   const system = `${SYSTEM_PROMPT}\n\nYou are answering for ${agency}.`
-  const lower = (turn.transcript || '').toLowerCase()
+
+  const memory: string[] = []
+  if (turn.callerName) memory.push(`Caller's name: ${turn.callerName}`)
+  for (const h of turn.history || []) {
+    memory.push(`${h.role === 'caller' ? 'Caller' : 'Receptionist'}: ${h.content}`)
+  }
 
   const result = await completeWithDeepSeek({
     message: turn.transcript || '',
-    context: { kind: 'support', text: `Caller name: ${turn.callerName || 'unknown'}` },
+    context: { kind: 'support', text: memory.join('\n') || 'Start of conversation.' },
     system,
-    maxTokens: 256,
+    maxTokens: 80, // hard cap — one short sentence is plenty
   })
   let speech = (result.text || '').trim()
 
-  // GOODBYE marker → hang up.
   if (speech.toUpperCase().includes('GOODBYE')) {
     return { speech: speech.replace(/GOODBYE/gi, '').trim() || 'Thank you for calling. Goodbye.', hangup: true }
   }
 
-  // Booking intent: detect strongly worded booking requests and extract.
-  const bookingHints = /\b(book|schedule|appointment|meet|call back|set up a time|consultation)\b/i
-  const timeHints = /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next week|at \d|am\b|pm\b)\b/i
-  let intent: CallIntent = 'general'
-  if (bookingHints.test(lower)) intent = 'book'
-  else if (/\b(sell|selling|list|listing|value my|valuation)\b/i.test(lower)) intent = 'sell'
+  const lower = (turn.transcript || '').toLowerCase()
+  let intent: PhoneReply['intent'] = 'general'
+  if (/\b(book|schedule|appointment|meet|set up a time|consultation)\b/i.test(lower)) intent = 'book'
+  else if (/\b(sell|selling|list|listing|valuation|value my)\b/i.test(lower)) intent = 'sell'
   else if (/\b(buy|buying|acquire|purchase|looking for a business)\b/i.test(lower)) intent = 'buy'
 
-  // If booking intent + a time reference exists, attempt structured booking.
-  let booking: PhoneReply['booking']
-  if (intent === 'book' && timeHints.test(lower)) {
-    try {
-      const extraction = await extractBooking(`${turn.callerName || 'The caller'} ${turn.transcript}`)
-      if (extraction.needs_confirmation || !extraction.data) {
-        booking = { needs_confirmation: true, question: extraction.question || 'What day and time works best for you?' }
-      } else {
-        booking = {
-          needs_confirmation: false,
-          message: 'Appointment details captured for the broker to confirm.',
-          appointment: extraction.data as unknown as Record<string, unknown>,
-        }
-        speech = `Perfect — I've noted ${extraction.data.title || 'your appointment'}. A broker will confirm shortly. Anything else I can help with?`
-      }
-    } catch {
-      booking = { needs_confirmation: true, question: 'Could you repeat the date and time you had in mind?' }
-    }
-  } else if (intent === 'book') {
-    booking = { needs_confirmation: true, question: 'What day and time works best for you?' }
-  }
-
-  return { speech, intent, booking }
+  return { speech, intent }
 }

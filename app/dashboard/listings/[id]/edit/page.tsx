@@ -12,6 +12,9 @@ import AppShell from '@/components/layout/AppShell'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fetchListing, updateListing } from '@/lib/listings'
 import StatusBadge from '@/components/listings/StatusBadge'
+import FeaturedSlotCard from '@/components/listing/FeaturedSlotCard'
+import PublishPanel from '@/components/listing/PublishPanel'
+import ListingViewStats from '@/components/listing/ListingViewStats'
 
 const numOrNull = (s: string): number | null => (s === '' ? null : Number(s))
 
@@ -42,6 +45,7 @@ function EditForm() {
         location_general: l.location_general || '', description: l.description || '',
         asking_price: l.asking_price ?? '', annual_revenue: l.annual_revenue ?? '', sde: l.sde ?? '',
         ebitda: l.ebitda ?? '', reason_for_sale: l.reason_for_sale || '', real_estate_included: !!l.real_estate_included,
+        sba_qualified: !!l.sba_qualified, is_off_market: !!l.is_off_market,
       })
     })
   }, [listingId])
@@ -60,8 +64,21 @@ function EditForm() {
         asking_price: numOrNull(form.asking_price), annual_revenue: numOrNull(form.annual_revenue),
         sde: numOrNull(form.sde), ebitda: numOrNull(form.ebitda),
         reason_for_sale: form.reason_for_sale || null, real_estate_included: form.real_estate_included,
+        sba_qualified: form.sba_qualified, is_off_market: form.is_off_market,
       })
-      toast('Listing saved')
+      // Save = go live. Fire the publish pipeline (flags premature/unwanted listings automatically).
+      const res = await fetch('/api/listings/publish', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, force: true }),
+      })
+      const j = await res.json()
+      if (j.ok && j.published) {
+        toast(j.flagged ? 'Saved + live on the website (flagged for review) 🚩' : 'Saved + live on the website 🚀', 'success')
+      } else if (j.ok && j.scheduled) {
+        toast('Saved — scheduled to go live', 'success')
+      } else {
+        toast(j.error || 'Listing saved, but publish needs attention', 'error')
+      }
       router.push(`/dashboard/listings/${listingId}/workflow`)
     } catch (err: any) { toast(err.message || 'Save failed', 'error'); setBusy(false) }
   }
@@ -99,9 +116,50 @@ function EditForm() {
           <input type="checkbox" checked={form.real_estate_included} onChange={(e) => set('real_estate_included', e.target.checked)} style={{ width: 16, height: 16 }} />
           <label style={{ fontSize: 13.5, color: 'var(--ink)', cursor: 'pointer' }}>Real estate included in sale</label>
         </div>
-        <button onClick={save} disabled={busy} style={{ padding: '13px 26px', background: 'var(--navy)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
-          {busy ? 'Saving…' : 'Save changes'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+          <input type="checkbox" checked={form.sba_qualified} onChange={(e) => set('sba_qualified', e.target.checked)} style={{ width: 16, height: 16 }} />
+          <label style={{ fontSize: 13.5, color: 'var(--ink)', cursor: 'pointer' }}>🏦 SBA qualified — shows the SBA badge on the website</label>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+          <input type="checkbox" checked={form.is_off_market} onChange={(e) => set('is_off_market', e.target.checked)} style={{ width: 16, height: 16 }} />
+          <label style={{ fontSize: 13.5, color: 'var(--ink)', cursor: 'pointer' }}>🤫 Off-market / pocket listing — hidden from public browse, shown only in the pocket listings section</label>
+        </div>
+
+        {/* Listing traction — views analytics for the seller/broker */}
+        {listingId && (
+          <div style={{ marginTop: 26, background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <span style={{ fontSize: 18 }}>📊</span>
+              <span style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15 }}>Listing traction</span>
+              <span style={{ fontSize: 11.5, color: 'var(--muted)', marginLeft: 4 }}>— how many people are viewing this listing</span>
+            </div>
+            <ListingViewStats listingId={listingId} />
+          </div>
+        )}
+
+        {/* Featured placement purchase */}
+        {listingId && (
+          <div style={{ marginTop: 26 }}>
+            <FeaturedSlotCard listingId={listingId} businessName={form?.business_name} />
+          </div>
+        )}
+
+        {/* Publish to marketplace (quality gate + blast) */}
+        {listingId && (
+          <div style={{ marginTop: 26 }}>
+            <PublishPanel listingId={listingId} businessName={form?.business_name} />
+          </div>
+        )}
+
+        {/* Save = go live — button is always the last element */}
+        <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
+          <button onClick={save} disabled={busy} style={{ width: '100%', padding: '14px 26px', background: 'var(--navy)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
+            {busy ? 'Saving + going live…' : '💾 Save & Go Live'}
+          </button>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+            Save pushes your edits live on the website instantly. Premature or incomplete listings are auto-flagged for review.
+          </div>
+        </div>
       </div>
     </div>
   )

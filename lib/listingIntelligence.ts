@@ -146,27 +146,21 @@ export function calculateListingReadiness(input: IntelligentListingInput): Listi
 
 export const OWNER_LISTING_PLANS = [
   {
-    id: 'launch', name: 'Owner Launch', price: 249, billing: 'one time',
-    description: 'A confidential owner-created listing with broker review before publication.',
-    features: ['90-day marketplace listing', 'AI listing interview', 'Buyer-match alerts', 'Broker compliance review', 'Lead inbox'],
-    featured: false,
-  },
-  {
-    id: 'qualified', name: 'Qualified Buyer', price: 499, billing: 'one time',
-    description: 'Adds financial qualification, NDA workflow, and stronger buyer screening.',
-    features: ['180-day listing', 'Everything in Owner Launch', 'NDA workflow', 'Proof-of-funds collection', 'AI buyer-fit scoring'],
+    id: 'free', name: 'Free Listing', price: 0, billing: 'first 2 months',
+    description: 'One-time free listing for business owners. Free for the first 2 months, then $50/month per listing to stay live.',
+    features: ['1 free listing for 2 months', 'Confidential by default', 'Buyer inquiry notifications', 'Renew at $50/mo after the free window'],
     featured: true,
   },
   {
-    id: 'broker_assisted', name: 'Broker Assisted', price: 995, billing: 'starting price',
-    description: 'Broker-led positioning, valuation review, and launch preparation.',
-    features: ['12-month listing', 'Broker valuation review', 'Claude-polished teaser', 'Marketing launch kit', 'Priority buyer outreach'],
+    id: 'professional', name: 'Renewal', price: 50, billing: 'per listing / month',
+    description: 'Keep your listing live after the 2-month free window.',
+    features: ['$50 per listing per month', 'Stay live — never auto-delete without notice', 'Price shown only to qualified buyers'],
     featured: false,
   },
 ] as const
 
 export const BROKERAGE_SAAS_PLANS = [
-  { id: 'solo', name: 'Solo Advisor', monthly: 149, users: 1, listings: 25 },
-  { id: 'growth', name: 'Growth Brokerage', monthly: 399, users: 10, listings: 150 },
-  { id: 'enterprise', name: 'Enterprise Network', monthly: 999, users: 50, listings: 1000 },
+  { id: 'solo', name: 'Solo Advisor', monthly: 499, users: 1, listings: 25 },
+  { id: 'growth', name: 'Growth Brokerage', monthly: 999, users: 10, listings: 150 },
+  { id: 'enterprise', name: 'Enterprise Network', monthly: 1999, users: 50, listings: 1000 },
 ] as const

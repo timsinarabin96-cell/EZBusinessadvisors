@@ -55,20 +55,20 @@ export interface Feature {
 
 /** Trial vs Paid feature matrix (matches the request spec). */
 export const FEATURE_MATRIX: Feature[] = [
-  { key: 'listings', label: 'Listings', trial: 5, paid: 'Unlimited', kind: 'limit' },
-  { key: 'leads', label: 'Leads', trial: 20, paid: 'Unlimited', kind: 'limit' },
-  { key: 'deals', label: 'Deals', trial: 5, paid: 'Unlimited', kind: 'limit' },
-  { key: 'agents', label: 'Agents', trial: 3, paid: 'Unlimited', kind: 'limit' },
-  { key: 'storage', label: 'Storage', trial: 100, paid: 'Unlimited', kind: 'limit' }, // MB
-  { key: 'cim_bov', label: 'CIM / BOV Generators', trial: true, paid: true, kind: 'bool' },
-  { key: 'ai_agents', label: 'AI Agents', trial: true, paid: true, kind: 'bool' },
+  { key: 'listings', label: 'Listings', trial: 1, paid: '10–20 by plan', kind: 'limit' },
+  { key: 'leads', label: 'Leads', trial: 5, paid: '500–2,000 by plan', kind: 'limit' },
+  { key: 'deals', label: 'Deals', trial: 0, paid: 'CRM license only', kind: 'limit' },
+  { key: 'agents', label: 'Agents', trial: 0, paid: '5–10 by plan', kind: 'limit' },
+  { key: 'storage', label: 'Storage', trial: 0, paid: '10–50GB by plan', kind: 'limit' }, // MB
+  { key: 'cim_bov', label: 'CIM / BOV Generators', trial: false, paid: true, kind: 'bool' },
+  { key: 'ai_agents', label: 'AI Agents', trial: false, paid: true, kind: 'bool' },
   { key: 'social_media', label: 'Social Media', trial: false, paid: true, kind: 'bool' },
   { key: 'email_campaigns', label: 'Email Campaigns', trial: false, paid: true, kind: 'bool' },
   { key: 'branding', label: 'Branding', trial: 'Basic', paid: 'Full', kind: 'bool' },
 ]
 
 export const PLAN_NAMES: Record<string, string> = {
-  free: 'Free', starter: 'Starter', professional: 'Professional', enterprise: 'Enterprise',
+  free: 'Owner', professional: 'Professional', enterprise: 'Enterprise',
 }
 
 const DAY_MS = 86_400_000
@@ -121,10 +121,18 @@ export function statusFromAgency(a: Agency | null): TrialState {
   return { ...empty, status: 'expired', trialStart: a.trial_start_date, planType }
 }
 
-// --- Default limits ----------------------------------------------------------
-export const DEFAULT_LIMITS: UsageLimits = {
-  maxListings: 5, maxLeads: 20, maxDeals: 5, maxAgents: 3, maxStorageBytes: 100 * 1024 * 1024,
+/** Per-tier usage limits — the source of truth for paid plans. */
+export const TIER_LIMITS: Record<string, UsageLimits> = {
+  // Owner / free: list your business — no CRM. 1 listing, no agent seats.
+  free: { maxListings: 1, maxLeads: 5, maxDeals: 0, maxAgents: 0, maxStorageBytes: 0 },
+  // $49/mo — brokerages posting on our marketplace.
+  professional: { maxListings: 10, maxLeads: 500, maxDeals: 50, maxAgents: 5, maxStorageBytes: 10 * 1024 * 1024 * 1024 },
+  // $99/mo — larger teams.
+  enterprise: { maxListings: 20, maxLeads: 2000, maxDeals: 200, maxAgents: 10, maxStorageBytes: 50 * 1024 * 1024 * 1024 },
 }
+
+// --- Default limits (trial / no subscription) -------------------------------
+export const DEFAULT_LIMITS: UsageLimits = TIER_LIMITS.free
 
 /** Fetch trial settings (global default + any per-agency override). */
 export async function fetchTrialSettings(agencyId?: string | null): Promise<UsageLimits & { trialDays: number; graceDays: number; archiveDays: number; sendReminders: boolean }> {
@@ -177,16 +185,17 @@ export async function getAgencyUsage(agencyId: string): Promise<AgencyUsage> {
 
 /** Is the user allowed to do `count = 1` more of a feature key? */
 export function checkUsageLimits(usage: AgencyUsage, limits: UsageLimits, state: TrialState, key: FeatureKey): { allowed: boolean; reason?: string } {
-  if (state.isPaid) return { allowed: true } // unlimited on paid
   if (state.status === 'grace' || state.status === 'expired' || state.status === 'locked') {
     return { allowed: false, reason: 'Your trial has ended. Upgrade to continue creating.' }
   }
+  // Paid plans have tier limits (not unlimited). Resolve by plan type.
+  const effective = state.isPaid && state.planType ? (TIER_LIMITS[state.planType] || limits) : limits
   switch (key) {
-    case 'listings': return usage.listingsUsed < limits.maxListings ? { allowed: true } : { allowed: false, reason: `Trial limited to ${limits.maxListings} listings. Upgrade for unlimited.` }
-    case 'leads': return usage.leadsUsed < limits.maxLeads ? { allowed: true } : { allowed: false, reason: `Trial limited to ${limits.maxLeads} leads. Upgrade for unlimited.` }
-    case 'deals': return usage.dealsUsed < limits.maxDeals ? { allowed: true } : { allowed: false, reason: `Trial limited to ${limits.maxDeals} deals. Upgrade for unlimited.` }
-    case 'agents': return usage.agentsUsed < limits.maxAgents ? { allowed: true } : { allowed: false, reason: `Trial limited to ${limits.maxAgents} agents. Upgrade for unlimited.` }
-    case 'storage': return usage.storageUsedBytes < limits.maxStorageBytes ? { allowed: true } : { allowed: false, reason: 'Trial storage limit reached. Upgrade for unlimited storage.' }
+    case 'listings': return usage.listingsUsed < effective.maxListings ? { allowed: true } : { allowed: false, reason: `Your plan allows ${effective.maxListings} listings. Upgrade for more.` }
+    case 'leads': return usage.leadsUsed < effective.maxLeads ? { allowed: true } : { allowed: false, reason: `Your plan allows ${effective.maxLeads} leads. Upgrade for more.` }
+    case 'deals': return effective.maxDeals > 0 && usage.dealsUsed < effective.maxDeals ? { allowed: true } : { allowed: false, reason: effective.maxDeals === 0 ? 'Deal pipeline is part of the CRM platform license.' : `Your plan allows ${effective.maxDeals} deals.` }
+    case 'agents': return usage.agentsUsed < effective.maxAgents ? { allowed: true } : { allowed: false, reason: `Your plan allows ${effective.maxAgents} agents. Upgrade for more.` }
+    case 'storage': return usage.storageUsedBytes < effective.maxStorageBytes ? { allowed: true } : { allowed: false, reason: 'Storage limit reached. Upgrade for more.' }
     default: return { allowed: true }
   }
 }

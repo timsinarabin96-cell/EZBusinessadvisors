@@ -3,12 +3,12 @@
 // -----------------------------------------------------------------------------
 // Buyers answer a few questions (target price, liquid capital, income, credit)
 // and get an instant qualification level + badges (Funded ✅ / Pre-approved /
-// Qualified / Exploring). Pure scoring lives in underwritingCore.mts; this
+// Qualified / Exploring). Pure scoring lives in underwritingCore.ts; this
 // wrapper adds lead capture so brokers see every qualified buyer.
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
-import { qualifyBuyer, LEVEL_LABELS, type UnderwritingInput, type UnderwritingResult, type QualificationLevel } from '@/lib/underwritingCore.mts'
+import { qualifyBuyer, LEVEL_LABELS, type UnderwritingInput, type UnderwritingResult, type QualificationLevel } from '@/lib/underwritingCore.ts'
 
 export { qualifyBuyer, LEVEL_LABELS, type UnderwritingInput, type UnderwritingResult, type QualificationLevel }
 
@@ -26,6 +26,7 @@ export interface UnderwritingLead {
 
 /** Save a pre-qualification lead so brokers can follow up. Never throws. */
 export async function saveUnderwritingLead(input: UnderwritingLead): Promise<{ ok: boolean; error?: string }> {
+  const preQualified = ['funded', 'pre_approved', 'qualified'].includes(input.result.level)
   const { error } = await supabase.from('buyer_leads').insert({
     email: input.email,
     name: input.name || null,
@@ -40,6 +41,7 @@ export async function saveUnderwritingLead(input: UnderwritingLead): Promise<{ o
       level: input.result.level,
       score: input.result.score,
       badges: input.result.badges,
+      pre_qualified: preQualified,
     }),
   })
   if (error) return { ok: false, error: error.message }

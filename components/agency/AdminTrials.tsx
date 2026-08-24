@@ -62,7 +62,7 @@ export default function AdminTrials() {
     toast('Extended', 'success'); load()
   }
 
-  async function convert(a: Row, plan: 'starter' | 'professional' | 'enterprise') {
+  async function convert(a: Row, plan: 'free' | 'professional' | 'enterprise') {
     const res = await authenticatedFetch('/api/billing/convert-trial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agencyId: a.id, planType: plan }) })
     const json = await res.json()
     toast(json.ok ? `Converted to ${plan}` : json.error || 'Convert failed', json.ok ? 'success' : 'error')
@@ -135,7 +135,7 @@ export default function AdminTrials() {
                 {s.status !== 'paid' && (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button onClick={() => extend(a)} style={{ padding: '8px 14px', background: 'var(--gold)', color: 'var(--navy)', border: 'none', borderRadius: 9, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>Extend +{extendDays}d</button>
-                    {(['starter', 'professional', 'enterprise'] as const).map((p) => (
+                    {(['free', 'professional', 'enterprise'] as const).map((p) => (
                       <button key={p} onClick={() => convert(a, p)} style={{ padding: '8px 14px', background: 'transparent', color: 'var(--navy)', border: '1px solid var(--navy)', borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'capitalize' }}>Convert → {p}</button>
                     ))}
                   </div>
