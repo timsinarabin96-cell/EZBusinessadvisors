@@ -133,6 +133,16 @@ function ReferralsApp() {
 
   if (loading) return <LoadingState />
 
+  // Reward tracking — totals by status.
+  const totals = { new: 0, contacted: 0, converted: 0, paid: 0 }
+  referrals.forEach((r) => { totals[r.status] += 1 })
+  const rewardCards: [string, string, number][] = [
+    ['New', 'bg-blue-50 text-blue-700 border-blue-200', totals.new],
+    ['Contacted', 'bg-amber-50 text-amber-700 border-amber-200', totals.contacted],
+    ['Converted', 'bg-green-50 text-green-700 border-green-200', totals.converted],
+    ['Paid', 'bg-emerald-50 text-emerald-700 border-emerald-200', totals.paid],
+  ]
+
   return (
     <div>
       <div className="mb-6">
@@ -141,6 +151,18 @@ function ReferralsApp() {
           Log buyer & seller referrals, track them from first contact through paid, and keep the commission you agreed on.
         </p>
       </div>
+
+      {/* Reward tracking strip */}
+      {referrals.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {rewardCards.map(([label, cls, count]) => (
+            <div key={label} className={`rounded-lg border p-3 ${cls}`}>
+              <div className="text-xs font-medium uppercase tracking-wide">{label}</div>
+              <div className="text-lg font-bold mt-1">{count}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* New referral */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
@@ -200,6 +222,15 @@ function ReferralsApp() {
                       >
                         Mark {next}
                       </button>
+                    )}
+                    {referral.referrer_email && (
+                      <a
+                        href={`mailto:${referral.referrer_email}?subject=${encodeURIComponent('Thank you for your referral!')}&body=${encodeURIComponent(`Hi ${referral.referrer_name || 'there'},\n\nThank you for referring a ${referral.referral_type} — we really appreciate it. We'll keep you updated on progress.\n\nBest,\nThe Team`)}`}
+                        className="text-xs text-green-600 hover:underline"
+                        title="Send a thank-you email to the referrer"
+                      >
+                        🙏 Thank-you
+                      </a>
                     )}
                   </div>
                 </li>
