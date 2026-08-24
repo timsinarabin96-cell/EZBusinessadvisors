@@ -152,6 +152,30 @@ function ReferralsApp() {
         </p>
       </div>
 
+      {/* Partner portal link — copyable referral URL */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="font-semibold">🤝 Partner portal link</h2>
+            <p className="text-xs text-gray-500 mt-1">Share this link with partners — referrals land straight in this pipeline.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <code style={{ background: '#f8f6ef', border: '1px solid #e5e2d8', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, color: '#1a1a2e', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {typeof window !== 'undefined' ? `${window.location.origin}/contact?ref=${agencyId || 'partner'}` : '/contact?ref=partner'}
+            </code>
+            <button
+              onClick={() => {
+                const link = `${window.location.origin}/contact?ref=${agencyId || 'partner'}`
+                navigator.clipboard?.writeText(link).then(() => toast('Partner link copied 📋', 'success')).catch(() => { window.prompt('Copy partner link:', link) })
+              }}
+              className="text-xs border border-gray-300 hover:bg-gray-50 text-gray-600 font-medium px-3 py-2 rounded-lg"
+            >
+              📋 Copy
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Reward tracking strip */}
       {referrals.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
