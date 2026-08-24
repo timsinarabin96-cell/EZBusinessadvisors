@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { SoldListing } from '@/lib/marketplace'
 import { fetchFeaturedListings, fetchMarketplaceStats, fetchAllIndustries, fetchSoldListings } from '@/lib/marketplace'
+import { buildSoldCompsReport } from '@/lib/soldComps'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import AuthRedirect from '@/components/public/AuthRedirect'
 import ValuationLeadForm from '@/components/public/ValuationLeadForm'
@@ -34,11 +35,12 @@ export const metadata: Metadata = {
 }
 
 export default async function HomePage() {
-  const [featured, stats, industries, sold] = await Promise.all([
+  const [featured, stats, industries, sold, compsReport] = await Promise.all([
     fetchFeaturedListings(6),
     fetchMarketplaceStats(),
     fetchAllIndustries(),
     fetchSoldListings(),
+    buildSoldCompsReport(),
   ])
 
   const jsonLd = {
@@ -118,6 +120,18 @@ export default async function HomePage() {
           <Stat label="Industries" value={String(stats.industries)} />
         </div>
       </section>
+
+      {/* LIVE MARKET BAND — real sold-comps averages */}
+      {compsReport.totals.deals > 0 && (
+        <section style={{ background: '#f5f3ec', borderBottom: '1px solid #e5dfcc' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto', padding: '22px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 18, textAlign: 'center' }}>
+            <MarketStat label="Closed deals tracked" value={compsReport.totals.deals.toLocaleString()} />
+            <MarketStat label="Average multiple" value={compsReport.totals.avgMultiple != null ? `${compsReport.totals.avgMultiple.toFixed(2)}× SDE` : '—'} />
+            <MarketStat label="Average sale price" value={compsReport.totals.avgSalePrice != null ? '$' + Math.round(compsReport.totals.avgSalePrice).toLocaleString() : '—'} />
+            <MarketStat label="Industries covered" value={String(compsReport.totals.industries)} />
+          </div>
+        </section>
+      )}
 
       {/* RECENTLY SOLD TICKER — social proof */}
       {sold.length > 0 && (
@@ -382,6 +396,15 @@ function Stat({ label, value }: { label: string; value: string }) {
     <div>
       <div style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 700, color: '#1a1a2e' }}>{value}</div>
       <div style={{ fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>{label}</div>
+    </div>
+  )
+}
+
+function MarketStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, fontWeight: 700, color: '#1a1a2e' }}>{value}</div>
+      <div style={{ fontSize: 11.5, color: '#8a8678', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>{label}</div>
     </div>
   )
 }
