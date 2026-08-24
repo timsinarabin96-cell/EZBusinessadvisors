@@ -1,6 +1,7 @@
 'use client'
 
 import { DealStage, PipelineItem, PIPELINE_STAGES, formatMoney } from '@/lib/pipeline'
+import BuyerScorecards from './BuyerScorecards'
 
 interface DealDetailProps {
   deal: PipelineItem
@@ -54,6 +55,9 @@ export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelet
               <div style={{ fontSize: '14px', color: '#334155' }}>{deal.headline}</div>
             </div>
           )}
+
+          {/* Buyer scorecards — who to call first */}
+          <BuyerScorecards listingId={deal.listing_id} />
 
           {/* Move stage */}
           <div style={{ marginBottom: '20px' }}>
