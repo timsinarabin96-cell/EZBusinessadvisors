@@ -87,3 +87,37 @@ export function themeToCssVars(theme: AgencyTheme): Record<string, string> {
     '--body-font': theme.body_font === 'system' ? 'inherit' : theme.body_font,
   }
 }
+
+/**
+ * Resolve the white-label brand for an incoming host (custom domain or the
+ * agency's platform subdomain). Returns null when the host matches no agency.
+ * Server-only (service-role client).
+ */
+export async function resolveAgencyThemeByHost(host: string | null | undefined): Promise<{
+  agencyId: string
+  agencyName: string
+  logoUrl: string | null
+  theme: AgencyTheme
+  cssVars: Record<string, string>
+} | null> {
+  if (!svc || !host) return null
+  const clean = host.replace(/^www\./, '').toLowerCase()
+  if (!clean) return null
+
+  // Match by custom_domain or platform domain (agencies.domain column).
+  const { data: agency } = await svc
+    .from('agencies')
+    .select('id, name, logo_url, custom_domain, domain')
+    .or(`custom_domain.eq.${clean},domain.eq.${clean}`)
+    .maybeSingle()
+  if (!agency?.id) return null
+
+  const theme = await getAgencyTheme(agency.id)
+  return {
+    agencyId: agency.id,
+    agencyName: agency.name || 'Business Exchange',
+    logoUrl: agency.logo_url || theme.logo_url || null,
+    theme,
+    cssVars: themeToCssVars(theme),
+  }
+}
