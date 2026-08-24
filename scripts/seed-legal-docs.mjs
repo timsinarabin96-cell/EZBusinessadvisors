@@ -112,7 +112,7 @@ const TEMPLATES = [
   {
     id: 'd0c00000-0003-4000-8000-000000000003',
     name: 'Corporate Authorization Resolution',
-    description: 'Board resolution authorizing the sale — use when Seller is organized as a Corporation. Mirrors EZ Business Advisors form: authorized officer, meeting details, multi-officer + witness signatures.',
+    description: 'Board resolution authorizing the sale — use when Seller is organized as a Corporation. Mirrors EZ Business Advisors form: authorized officer, meeting details, multi-officer signatures.',
     category: 'Corporate Documents',
     fields: [
       { key: 'company_name', label: 'Corporation Full Legal Name', type: 'text', required: true, placeholder: 'e.g. ABC Corporation' },
@@ -129,7 +129,6 @@ const TEMPLATES = [
     parties: [
       { key: 'officer1', label: 'Officer / Director 1', role: 'seller' },
       { key: 'officer2', label: 'Officer / Director 2 (if any)', role: 'seller' },
-      { key: 'witness', label: 'Witness', role: 'custom' },
     ],
     body_template: `CORPORATE AUTHORIZATION RESOLUTION
 
@@ -156,7 +155,7 @@ ${PA_DISCLOSURE}`,
   {
     id: 'd0c00000-000b-4000-8000-00000000000b',
     name: 'LLC Authorization Resolution',
-    description: 'Member resolution authorizing the sale — use when Seller is organized as an LLC. Multi-member signature slots + witness.',
+    description: 'Member resolution authorizing the sale — use when Seller is organized as an LLC. Multi-member signature slots.',
     category: 'Corporate Documents',
     fields: [
       { key: 'company_name', label: 'LLC Full Legal Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
@@ -173,7 +172,6 @@ ${PA_DISCLOSURE}`,
       { key: 'member2', label: 'Member 2 (if any)', role: 'seller' },
       { key: 'member3', label: 'Member 3 (if any)', role: 'seller' },
       { key: 'member4', label: 'Member 4 (if any)', role: 'seller' },
-      { key: 'witness', label: 'Witness', role: 'custom' },
     ],
     body_template: `LLC AUTHORIZATION RESOLUTION
 
