@@ -81,6 +81,37 @@ function HiringDashboard() {
     toast('Application submitted — we will review and be in touch.', 'success')
   }
 
+  const generateOffer = (a: Application) => {
+    const win = window.open('', '_blank')
+    if (!win) return
+    const pkg = a.hiring_packages
+    const split = pkg && pkg.commission_split != null ? `${Number(pkg.commission_split)}%` : '—'
+    win.document.write(`<!DOCTYPE html><html><head><title>Offer Letter — ${a.full_name}</title><style>
+      body{font-family:Georgia,serif;color:#1a2332;max-width:720px;margin:48px auto;padding:0 24px;line-height:1.7}
+      .brand{font-size:22px;font-weight:800;letter-spacing:.5px}.sub{font-size:10px;letter-spacing:.25em;color:#c9a84c;text-transform:uppercase;margin-top:2px}
+      h1{font-size:26px;margin:32px 0 6px}.meta{color:#666;font-size:14px;margin-bottom:24px}
+      .box{border:1px solid #e5e2d8;border-radius:10px;padding:18px 22px;margin:18px 0;font-size:15px}
+      .sig{margin-top:48px;font-size:14px}.rule{border-top:1px solid #e5e2d8;margin-top:56px;padding-top:14px;font-size:12px;color:#8a8678}
+    </style></head><body>
+      <div class="brand">CONCORD</div><div class="sub">Deal Platform</div>
+      <h1>Agent Offer Letter</h1>
+      <div class="meta">${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+      <p>Dear ${a.full_name},</p>
+      <p>Congratulations! Following your interview, we are pleased to offer you a position as a licensed business intermediary with CONCORD Deal Platform.</p>
+      <div class="box">
+        <div><strong>Package:</strong> ${pkg?.name || 'Standard agent package'}</div>
+        <div style="margin-top:6px"><strong>Commission split:</strong> ${split}</div>
+        <div style="margin-top:6px"><strong>Start:</strong> Upon completion of onboarding and CBI certification</div>
+      </div>
+      <p>Your first step is completing the 12-module Certified Business Intermediary program — training, certification, and your broker toolkit are provided. We're excited to have you on the team.</p>
+      <div class="sig">Warm regards,<br/>The CONCORD Team</div>
+      <div class="rule">This offer is contingent on completed onboarding, background review, and any state licensing requirements.</div>
+    </body></html>`)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
   const review = async (id: string, action: string) => {
     const res = await fetch('/api/hiring/review', {
       method: 'POST',
@@ -166,6 +197,11 @@ function HiringDashboard() {
                     <button className="btn" style={{ padding: '5px 12px', fontSize: 12 }} onClick={() => review(a.id, 'reviewing')}>Reviewing</button>
                     <button className="btn" style={{ padding: '5px 12px', fontSize: 12 }} onClick={() => review(a.id, 'interview')}>Interview</button>
                     <button className="btn btn-primary" style={{ padding: '5px 12px', fontSize: 12 }} onClick={() => review(a.id, 'approved')}>Approve</button>
+                    {a.status === 'approved' && (
+                      <button className="btn" style={{ padding: '5px 12px', fontSize: 12, background: '#fdf6e3', borderColor: '#e8d9a8' }} onClick={() => generateOffer(a)}>
+                        📄 Offer letter
+                      </button>
+                    )}
                     <button className="btn" style={{ padding: '5px 12px', fontSize: 12, color: '#b91c1c' }} onClick={() => review(a.id, 'rejected')}>Reject</button>
                   </div>
                 </div>
