@@ -11,6 +11,8 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { BUYER_PASS_PLANS, fetchMyBuyerPass, createBuyerPassSession, isBuyerPassActive, buyerPassTier, type BuyerSubscription } from '@/lib/buyerPass'
+import { getFavorites } from '@/lib/publicFavorites'
+import { fetchSavedSearches } from '@/lib/search'
 import { LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 
@@ -21,6 +23,8 @@ export default function BuyerPortalPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [verified, setVerified] = useState(false)
+  const [favorites, setFavorites] = useState<string[]>([])
+  const [savedSearches, setSavedSearches] = useState<{ id: string; name: string | null; query: string }[]>([])
 
   const load = useCallback(async () => {
     try {
@@ -31,6 +35,12 @@ export default function BuyerPortalPage() {
       setSub(pass)
       const { data: profile } = await supabase.from('profiles').select('verified_buyer').eq('id', user.id).maybeSingle()
       setVerified(Boolean(profile?.verified_buyer))
+      // Buyer toolkit: favorites + saved searches (best-effort).
+      try {
+        setFavorites(getFavorites())
+        const saved = await fetchSavedSearches()
+        setSavedSearches(saved || [])
+      } catch { /* degrade */ }
     } catch { /* degrade */ } finally {
       setLoading(false)
     }
@@ -112,6 +122,36 @@ export default function BuyerPortalPage() {
             </div>
           </div>
         )}
+
+        {/* Buyer toolkit — saved searches + bookmarks (promised in the header) */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+          <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a6d1a', fontWeight: 800, marginBottom: 12 }}>Your Toolkit</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '14px 16px' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1a1a2e' }}>🔖 Saved searches ({savedSearches.length})</div>
+              {savedSearches.length === 0 ? (
+                <p style={{ fontSize: 12, color: '#888', margin: '6px 0 0' }}>Save a search from the marketplace to get alerts when matches appear.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                  {savedSearches.slice(0, 5).map((s) => (
+                    <Link key={s.id} href="/marketplace/listings" style={{ fontSize: 12.5, color: '#1a1a2e', textDecoration: 'none', fontWeight: 600 }}>
+                      {s.name || s.query || 'Saved search'}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '14px 16px' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1a1a2e' }}>⭐ Bookmarked listings ({favorites.length})</div>
+              <p style={{ fontSize: 12, color: '#888', margin: '6px 0 0' }}>
+                Your saved businesses from the marketplace — tap the star on any listing to bookmark it.
+              </p>
+              <Link href="/marketplace/listings" style={{ display: 'inline-block', marginTop: 8, fontSize: 12.5, fontWeight: 700, color: '#c9a84c', textDecoration: 'none' }}>
+                {favorites.length > 0 ? 'Browse your bookmarks →' : 'Find businesses to bookmark →'}
+              </Link>
+            </div>
+          </div>
+        </div>
 
         {/* Plans */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
