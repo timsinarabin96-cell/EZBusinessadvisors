@@ -116,6 +116,15 @@ export async function PATCH(req: NextRequest) {
   if (!auth) return unauthorizedResponse()
 
   const body = await req.json().catch(() => ({}))
+
+  // Snooze: push the reminder due date out by N minutes.
+  if (body.snoozeMinutes != null) {
+    if (!body.reminderId) return NextResponse.json({ ok: false, error: 'reminderId required' }, { status: 400 })
+    const result = await snoozeReminder(body.reminderId, Number(body.snoozeMinutes))
+    if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
+    return NextResponse.json({ ok: true })
+  }
+
   if (!body.reminderId || !['done', 'pending', 'cancelled'].includes(body.status)) {
     return NextResponse.json({ ok: false, error: 'reminderId and status (done|pending|cancelled) are required' }, { status: 400 })
   }

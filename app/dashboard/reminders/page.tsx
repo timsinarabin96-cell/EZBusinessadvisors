@@ -160,6 +160,19 @@ function Reminders() {
     if (agencyId) await load(agencyId, filter)
   }
 
+  const snooze = async (id: string, minutes: number) => {
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch('/api/reminders', {
+      method: 'PATCH',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ reminderId: id, snoozeMinutes: minutes }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) return toast(data.error || 'Snooze failed', 'error')
+    toast(minutes >= 1440 ? 'Snoozed 1 day ⏰' : 'Snoozed 1 hour ⏰', 'success')
+    if (agencyId) await load(agencyId, filter)
+  }
+
   const remove = async (id: string) => {
     const token = localStorage.getItem('sb-access-token') || ''
     await fetch('/api/reminders', {
@@ -264,6 +277,8 @@ function Reminders() {
                   {r.status === 'pending' ? (
                     <>
                       <button onClick={() => setStatus(r.id, 'done')} className="text-xs bg-green-50 text-green-700 border border-green-200 rounded-full px-3 py-1">Done</button>
+                      <button onClick={() => snooze(r.id, 60)} className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1">Snooze 1h</button>
+                      <button onClick={() => snooze(r.id, 1440)} className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1">Snooze 1d</button>
                       <button onClick={() => remove(r.id)} className="text-xs text-red-500 hover:underline">Delete</button>
                     </>
                   ) : (

@@ -92,6 +92,19 @@ export async function setReminderStatus(
   return { ok: true }
 }
 
+/** Snooze a reminder — push its due date out by the given minutes. */
+export async function snoozeReminder(
+  reminderId: string,
+  minutes: number,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!svc) return { ok: false, error: 'Database is not configured' }
+  if (!Number.isFinite(minutes) || minutes <= 0) return { ok: false, error: 'minutes must be positive' }
+  const next = new Date(Date.now() + minutes * 60000).toISOString()
+  const { error } = await svc.from('reminders').update({ due_at: next, status: 'pending', completed_at: null }).eq('id', reminderId)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
 /** Delete a reminder. */
 export async function deleteReminder(reminderId: string): Promise<{ ok: boolean; error?: string }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
