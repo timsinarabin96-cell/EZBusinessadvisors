@@ -49,6 +49,7 @@ export type EmailKind =
   | 'renewal_proposal'
   | 'renewal_renewed'
   | 'captains_brief'
+  | 'daily_brief'
   | 'password_reset'
   | 'generic'
 
@@ -265,6 +266,25 @@ export const emailTemplates = {
     return { subject, html: shell(subject, body, opts.briefUrl ? { label: 'Open dashboard', href: opts.briefUrl } : undefined) }
   },
 
+  dailyBrief(opts: { agencyName?: string; newBuyers?: string[]; newSellers?: string[]; ndaSigners?: string[]; expiring?: string[]; dealMoves?: string[]; briefUrl?: string }) {
+    const subject = `☀️ Today at ${opts.agencyName || 'your agency'} — ${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`
+    const section = (title: string, items: string[] = []) =>
+      items.length
+        ? `<h3 style="margin:16px 0 6px;font-size:13.5px;color:#1a1a2e;">${title}</h3><ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:#333;">${items.map((i) => `<li>${i}</li>`).join('')}</ul>`
+        : ''
+    const empty = `<p style="font-size:13px;color:#8a8678;">Nothing new today — a quiet morning. ☕</p>`
+    const hasAny = (opts.newBuyers?.length || 0) + (opts.newSellers?.length || 0) + (opts.ndaSigners?.length || 0) + (opts.expiring?.length || 0) + (opts.dealMoves?.length || 0) > 0
+    const body = `
+      <p>Your morning one-minute brief:</p>
+      ${section('🆕 New buyer leads', opts.newBuyers)}
+      ${section('🏷️ New seller inquiries', opts.newSellers)}
+      ${section('🛡️ NDA signers', opts.ndaSigners)}
+      ${section('⏳ Expiring soon (7 days)', opts.expiring)}
+      ${section('🔄 Deal movement', opts.dealMoves)}
+      ${hasAny ? '' : empty}`
+    return { subject, html: shell(subject, body, opts.briefUrl ? { label: 'Open dashboard', href: opts.briefUrl } : undefined) }
+  },
+
   generic(opts: { title: string; message: string }) {
     const subject = opts.title
     return { subject, html: shell(opts.title, `<p>${esc(opts.message)}</p>`) }
@@ -406,6 +426,7 @@ export async function notify(
     case 'renewal_proposal': built = emailTemplates.renewalProposal(payload); break
     case 'renewal_renewed': built = emailTemplates.renewalRenewed(payload); break
     case 'captains_brief': built = emailTemplates.captainsBrief(payload); break
+    case 'daily_brief': built = emailTemplates.dailyBrief(payload); break
     case 'password_reset': built = emailTemplates.passwordReset(); break
     case 'generic': built = emailTemplates.generic({ title: payload.title || 'Notification', message: payload.message || '' }); break
   }

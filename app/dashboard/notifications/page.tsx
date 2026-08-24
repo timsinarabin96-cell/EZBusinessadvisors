@@ -93,6 +93,28 @@ function Notifications() {
     }
   }
 
+  const sendDaily = async () => {
+    const ctx = await getAgencyContext()
+    if (!ctx) return
+    setBriefBusy(true)
+    const token = localStorage.getItem('sb-access-token') || ''
+    try {
+      const res = await fetch('/api/daily-brief', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ agencyId: ctx.agencyId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Could not send the daily brief')
+      } else {
+        alert(`Daily brief sent — ${data.recipients ?? 0} recipient(s)`)
+      }
+    } finally {
+      setBriefBusy(false)
+    }
+  }
+
   if (loading) return <LoadingState />
 
   const kinds = Array.from(new Set(items.map((i) => i.kind).filter(Boolean))) as string[]
@@ -114,6 +136,14 @@ function Notifications() {
           <p className="text-gray-500 text-sm mt-1">Platform workflow alerts for your agency.</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={sendDaily}
+            disabled={briefBusy}
+            className="text-sm bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-lg"
+            title="Email the morning 'Today at a Glance' — new leads, NDA signers, expiring listings, deal movement"
+          >
+            {briefBusy ? 'Sending…' : '☀️ Send daily brief now'}
+          </button>
           <button
             onClick={sendBrief}
             disabled={briefBusy}
