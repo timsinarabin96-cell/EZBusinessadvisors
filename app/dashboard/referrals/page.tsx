@@ -109,6 +109,24 @@ function ReferralsApp() {
     await load(agencyId)
   }
 
+  const exportCsv = () => {
+    if (!referrals.length) return
+    const header = 'referrer_name,referrer_email,referral_type,referee_name,referee_email,status,commission_pct,notes,created_at'
+    const rows = referrals.map((r) =>
+      [r.referrer_name, r.referrer_email, r.referral_type, r.referee_name || '', r.referee_email || '', r.status, r.commission_pct ?? '', (r.notes || '').replace(/,/g, ' '), r.created_at || ''].join(','),
+    )
+    const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `referrals-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast('Referrals exported', 'success')
+  }
+
   const advanceStatus = async (referral: Referral) => {
     const idx = STATUS_FLOW.indexOf(referral.status)
     const next = STATUS_FLOW[idx + 1]
@@ -213,7 +231,14 @@ function ReferralsApp() {
 
       {/* Referral list */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-semibold mb-3">Referrals</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Referrals</h2>
+          {referrals.length > 0 && (
+            <button onClick={exportCsv} className="text-xs border border-gray-300 hover:bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg">
+              ⬇ Export CSV
+            </button>
+          )}
+        </div>
         {referrals.length === 0 ? (
           <p className="text-gray-400 text-sm">No referrals yet. Log your first one above.</p>
         ) : (
