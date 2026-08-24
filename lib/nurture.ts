@@ -28,6 +28,8 @@ export interface NurtureStep {
   id: string
   day: number
   title: string
+  /** Optional A/B subject-line variants — one is picked per recipient. */
+  subject_variants?: string[]
 }
 
 export interface NurtureSequence {
@@ -61,17 +63,17 @@ export const DEFAULT_SEQUENCES: Record<NurtureAudience, { name: string; steps: N
   buyer: {
     name: 'Buyer nurture',
     steps: [
-      { id: 'buyer-welcome', day: 0, title: 'Welcome & deal criteria' },
-      { id: 'buyer-curated', day: 3, title: 'Curated listings for you' },
-      { id: 'buyer-readiness', day: 7, title: 'Buyer readiness check-in' },
+      { id: 'buyer-welcome', day: 0, title: 'Welcome & deal criteria', subject_variants: ['Your acquisition criteria, matched', 'We found your next business (criteria inside)'] },
+      { id: 'buyer-curated', day: 3, title: 'Curated listings for you', subject_variants: ['3 businesses that match your search', 'Hand-picked listings for your criteria'] },
+      { id: 'buyer-readiness', day: 7, title: 'Buyer readiness check-in', subject_variants: ['Are you SBA-ready? Quick check', 'Your buyer readiness score inside'] },
     ],
   },
   seller: {
     name: 'Seller nurture',
     steps: [
-      { id: 'seller-valuation', day: 0, title: 'Your business valuation' },
-      { id: 'seller-roadmap', day: 3, title: 'Seller readiness roadmap' },
-      { id: 'seller-strategy-call', day: 7, title: 'Listing strategy call' },
+      { id: 'seller-valuation', day: 0, title: 'Your business valuation', subject_variants: ['What is your business worth?', 'Your free valuation is ready'] },
+      { id: 'seller-roadmap', day: 3, title: 'Seller readiness roadmap', subject_variants: ['The 6-step path to selling', 'How to prepare your business for sale'] },
+      { id: 'seller-strategy-call', day: 7, title: 'Listing strategy call', subject_variants: ['Let\'s plan your listing strategy', 'Book your strategy call today'] },
     ],
   },
 }
@@ -180,11 +182,28 @@ export async function advanceDueRecipients(agencyId: string): Promise<{ advanced
     const step = steps[stepIndex]
     const nextStep = stepIndex + 1
 
+    // A/B subject line: pick a variant deterministically from the recipient's
+    // email so each contact consistently sees the same variant per step.
+    const variants = Array.isArray(step.subject_variants) ? step.subject_variants : []
+    let subject: string | null = null
+    if (variants.length) {
+      let h = 0
+      for (let i = 0; i < recipient.email.length; i++) h = (h * 31 + recipient.email.charCodeAt(i)) >>> 0
+      subject = variants[h % variants.length]
+    }
+
     try {
-      await notify('deal_notification', recipient.email, {
-        businessName: `${sequence.name} step ${nextStep}`,
-        dealStage: 'nurture',
-      })
+      if (subject) {
+        await notify('generic', recipient.email, {
+          title: subject,
+          message: `Step ${nextStep} of ${sequence.name}: ${step.title}`,
+        })
+      } else {
+        await notify('deal_notification', recipient.email, {
+          businessName: `${sequence.name} step ${nextStep}`,
+          dealStage: 'nurture',
+        })
+      }
     } catch {
       // Email pipeline never throws, but stay defensive - skip and continue.
     }
