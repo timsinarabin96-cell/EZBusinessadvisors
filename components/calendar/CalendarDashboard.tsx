@@ -12,6 +12,17 @@ const TYPE_LABELS: Record<AppointmentType, string> = {
   general: 'General meeting',
 }
 
+// Deal-stage coloring — each appointment type gets a brand accent so the
+// calendar reads like a pipeline at a glance.
+const TYPE_COLORS: Record<AppointmentType, string> = {
+  listing: '#3b82f6',
+  buyer: '#8b5cf6',
+  valuation: '#f59e0b',
+  due_diligence: '#06b6d4',
+  closing: '#22c55e',
+  general: '#64748b',
+}
+
 function dateTimeLocalValue(date: Date) {
   const offset = date.getTimezoneOffset() * 60_000
   return new Date(date.getTime() - offset).toISOString().slice(0, 16)
@@ -118,18 +129,36 @@ export default function CalendarDashboard() {
             </div>
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
-              {appointments.map((appointment) => (
-                <article key={appointment.id} style={{ padding: 16, border: '1px solid var(--line)', borderRadius: 10, display: 'grid', gap: 5 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <strong style={{ color: 'var(--navy)' }}>{appointment.title}</strong>
-                    <span style={{ fontSize: 12, color: '#166534', background: '#dcfce7', padding: '3px 8px', borderRadius: 999 }}>{appointment.status}</span>
-                  </div>
-                  <span style={{ color: 'var(--gold-dark)', fontWeight: 600 }}>{formatAppointmentTime(appointment.starts_at)}</span>
-                  <span style={{ color: 'var(--muted)', fontSize: 13 }}>
-                    {TYPE_LABELS[appointment.appointment_type]}{appointment.attendee_name ? ` · ${appointment.attendee_name}` : ''}
-                  </span>
-                </article>
-              ))}
+              {appointments.map((appointment) => {
+                const accent = TYPE_COLORS[appointment.appointment_type] || '#64748b'
+                return (
+                  <article key={appointment.id} style={{ padding: 16, border: '1px solid var(--line)', borderRadius: 10, display: 'grid', gap: 5, borderLeft: `4px solid ${accent}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <strong style={{ color: 'var(--navy)' }}>{appointment.title}</strong>
+                      <span style={{ fontSize: 12, color: '#166534', background: '#dcfce7', padding: '3px 8px', borderRadius: 999 }}>{appointment.status}</span>
+                    </div>
+                    <span style={{ color: 'var(--gold-dark)', fontWeight: 600 }}>{formatAppointmentTime(appointment.starts_at)}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                      <span style={{ color: 'var(--muted)', fontSize: 13 }}>
+                        <span style={{ color: accent, fontWeight: 700 }}>{TYPE_LABELS[appointment.appointment_type]}</span>
+                        {appointment.attendee_name ? ` · ${appointment.attendee_name}` : ''}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const link = `${window.location.origin}/dashboard/calendar?appointment=${appointment.id}&date=${encodeURIComponent(appointment.starts_at)}`
+                          navigator.clipboard?.writeText(link).then(() => {
+                            /* copied */
+                          }).catch(() => { window.prompt('Copy meeting link:', link) })
+                        }}
+                        style={{ border: '1px solid var(--line)', background: '#fff', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--navy)' }}
+                        title="Copy a shareable meeting link"
+                      >
+                        🔗 Copy link
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           )}
         </section>
