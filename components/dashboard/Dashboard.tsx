@@ -51,11 +51,32 @@ export default function Dashboard() {
         <div>
           <h1 style={{ margin: 0, fontSize: 26 }}>Dashboard</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>
-            Concord Deal Platform overview — {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            EZ Business Advisors — deal overview · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
         <LiveFeed />
       </header>
+
+      {/* Deal Autopilot — front door */}
+      <Link href="/dashboard/autopilot" style={{ textDecoration: 'none' }}>
+        <div style={{ marginBottom: 24, padding: '18px 22px', borderRadius: 12, background: 'linear-gradient(120deg, var(--navy) 0%, var(--navy-2) 100%)', border: '1px solid rgba(201,168,76,0.35)', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', transition: 'transform .15s, box-shadow .15s' }}>
+          <div style={{ fontSize: 34 }}>✨</div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ color: 'var(--gold)', fontSize: 11, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+              Deal Autopilot
+            </div>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, fontFamily: 'Georgia, serif', marginTop: 2 }}>
+              Your AI brief — risks, follow-ups, next best actions
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 4 }}>
+              Open the command center to see deal health, approval queue, follow-up autopilot, and intelligence.
+            </div>
+          </div>
+          <span style={{ background: 'var(--gold)', color: '#fff', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 14 }}>
+            Open Autopilot →
+          </span>
+        </div>
+      </Link>
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14, marginBottom: 24 }}>
