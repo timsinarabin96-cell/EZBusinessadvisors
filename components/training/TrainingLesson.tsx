@@ -78,6 +78,9 @@ export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: s
           }),
         })
         await res.json()
+        // Full CBI program: if every module is now certified, auto-issue the
+        // “Business Intermediary Course Completion” certificate too.
+        await m.ensureProgramCertificate(brokerId)
       } else {
         // keep the old inline record as a fallback if the API is unavailable
         if (module) await m.ensureModuleCertificate(brokerId, module, lessons, prog)
