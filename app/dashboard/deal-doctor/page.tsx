@@ -37,6 +37,23 @@ function DoctorBody() {
   for (const d of diagnoses) counts[d.band] += 1
   const avg = diagnoses.length ? Math.round(diagnoses.reduce((s, d) => s + d.score, 0) / diagnoses.length) : 0
 
+  const createFollowUp = async (d: (typeof diagnoses)[number]) => {
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch('/api/reminders', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        quick: { dealId: d.dealId },
+        title: `Follow up: ${d.action}`,
+        due_at: new Date(Date.now() + 3 * 86400000).toISOString(),
+        assignToMe: true,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) return toast(data.error || 'Could not create reminder', 'error')
+    toast('Follow-up reminder set for 3 days ⏰', 'success')
+  }
+
   return (
     <>
       <div style={{ marginBottom: 22 }}>
@@ -79,6 +96,16 @@ function DoctorBody() {
                   <div style={{ height: '100%', width: `${d.score}%`, background: BAND_COLORS[d.band], borderRadius: 99, transition: 'width .4s ease' }} />
                 </div>
                 <div style={{ fontSize: 13.5, color: '#1e7e34', fontWeight: 700, marginTop: 12 }}>💡 {d.action}</div>
+                <button
+                  onClick={() => createFollowUp(d)}
+                  style={{
+                    marginTop: 10, padding: '7px 14px', borderRadius: 8, cursor: 'pointer',
+                    background: '#fff', border: '1px solid var(--line)', color: 'var(--navy)',
+                    fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit',
+                  }}
+                >
+                  🔁 Create follow-up reminder
+                </button>
                 {d.factors.length > 0 && (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                     {d.factors.map((f) => <span key={f} style={{ padding: '5px 9px', background: '#f5f8fb', border: '1px solid #e3eef4', borderRadius: 999, fontSize: 11.5, color: '#5b6b7c', fontWeight: 600 }}>{f}</span>)}
