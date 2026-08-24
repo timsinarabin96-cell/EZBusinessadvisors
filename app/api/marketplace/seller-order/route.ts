@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createSellerListingOrder, resolveListingAgency } from '@/lib/sellerListing'
+import { createNotification } from '@/lib/notifications'
 
 export const runtime = 'nodejs'
 
@@ -87,6 +88,15 @@ export async function POST(req: NextRequest) {
       code: 'ORDER_FAILED',
     })
   }
+
+  // Alert brokers: a paid listing order landed in the review queue.
+  await createNotification({
+    agency_id: agencyId,
+    title: `💰 Paid listing order: ${parsed.data.business_name}`,
+    body: `${parsed.data.seller_name || parsed.data.seller_email} submitted a ${parsed.data.planId} listing — approve it in the review queue to go live.`,
+    kind: 'review',
+    link: '/dashboard/review-queue',
+  }).catch(() => {})
 
   return NextResponse.json({
     ok: true,

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { capturePublicLead } from '@/lib/marketplace'
 import { submitSellerListingOrder } from '@/lib/sellerOrderClient'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import InstantValuation from '@/components/public/InstantValuation'
@@ -50,11 +49,16 @@ function SellContent() {
       }
       return
     }
-    const res = await capturePublicLead({
-      kind: 'seller', name: form.name, email: form.email, phone: form.phone || undefined,
-      source: 'sell_page', business_name: form.businessName, revenue_range: form.annualRevenue,
-      message: `Thinking of asking: ${form.askingPrice || 'N/A'} | ${form.message || ''}`,
-    })
+    const res = await fetch('/api/public/seller-intake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: form.name, email: form.email, phone: form.phone || undefined,
+        business_name: form.businessName, revenue_range: form.annualRevenue,
+        asking_price: form.askingPrice,
+        message: form.message || undefined,
+      }),
+    }).then((r) => r.json().catch(() => ({})))
     setSubmitting(false)
     if (res.ok) {
       setDone(true)
