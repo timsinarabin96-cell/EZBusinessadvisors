@@ -70,3 +70,35 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Web Push: show a notification when the server pushes one, and open the
+// target link when the user clicks it.
+self.addEventListener('push', (event) => {
+  let data = { title: 'Concord', body: '', link: '/dashboard/notifications' };
+  try {
+    if (event.data) data = Object.assign(data, event.data.json());
+  } catch (e) { /* keep defaults */ }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Concord', {
+      body: data.body || '',
+      icon: data.icon || '/icons/icon-192.png',
+      badge: data.badge || '/icons/icon-192.png',
+      data: { link: data.link || '/dashboard/notifications' },
+      tag: data.tag || 'concord-push',
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const link = (event.notification.data && event.notification.data.link) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) { client.focus(); client.navigate(link); return; }
+      }
+      return self.clients.openWindow(link);
+    })
+  );
+});
