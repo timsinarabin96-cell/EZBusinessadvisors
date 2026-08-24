@@ -137,6 +137,13 @@ function NdaRequests() {
                     e-signature: <span className="font-mono">{r.nda_signature}</span> · requested {fmtDate(r.created_at)}
                     {r.status !== 'pending' && r.review_note ? ` · note: ${r.review_note}` : ''}
                   </p>
+                  {/* Jump to the CRM lead this NDA signer became */}
+                  <a
+                    href={`/dashboard/leads?q=${encodeURIComponent(r.requester_email)}`}
+                    className="inline-block text-xs text-blue-600 font-medium mt-2 hover:underline"
+                  >
+                    → View in Lead Management
+                  </a>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   {r.status === 'pending' ? (

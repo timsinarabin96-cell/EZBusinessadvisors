@@ -23,13 +23,13 @@ interface LeadComm {
   created_at: string | null
 }
 
-export default function LeadsDashboard() {
+export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: string }) {
   const toast = useToast()
   const [leads, setLeads] = useState<UnifiedLead[]>([])
   const [listings, setListings] = useState<Listing[]>([])
   const [kindFilter, setKindFilter] = useState<KindFilter>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(initialQuery)
   const [loading, setLoading] = useState(true)
 
   const [showForm, setShowForm] = useState(false)
