@@ -34,6 +34,34 @@ export async function GET(req: NextRequest) {
     SVC.from('portal_messages').select('*').eq('deal_id', dealId).order('created_at', { ascending: true }),
   ])
 
+  // Merge the deal's data-room files (linked through the listing) into the
+  // document list so buyers open them from the portal — opens get logged to
+  // data_room_view_logs → buyer intent. Dedup by file_url, room files win.
+  let documents = docsRes.data || []
+  const listingIdForRoom = dealRes.data?.listing_id
+  if (listingIdForRoom) {
+    const { data: rooms } = await SVC.from('data_rooms').select('id').eq('listing_id', listingIdForRoom).eq('status', 'active')
+    const roomIds = (rooms || []).map((r: { id: string }) => r.id)
+    if (roomIds.length > 0) {
+      const { data: roomFiles } = await SVC
+        .from('data_room_files')
+        .select('id, file_name, file_url, file_kind')
+        .in('data_room_id', roomIds)
+        .eq('is_deleted', false)
+      const seen = new Set<string>()
+      const merged: any[] = []
+      for (const f of roomFiles || []) {
+        merged.push({ id: f.id, file_name: f.file_name || 'Document', file_url: f.file_url, category: f.file_kind || 'Data Room' })
+        if (f.file_url) seen.add(f.file_url)
+      }
+      for (const d of documents) {
+        if (d.file_url && seen.has(d.file_url)) continue
+        merged.push(d)
+      }
+      documents = merged
+    }
+  }
+
   // Seller traction: anonymized listing views + NDA interest (when the deal
   // links to a listing). Counts only — never buyer identities.
   let traction: { viewsTotal: number; views7d: number; ndaSigned: number; interestedBuyers: number } | null = null
@@ -63,8 +91,9 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     clientName: access.client_name,
+    clientEmail: access.client_email || null,
     deal: dealRes.data || null,
-    documents: docsRes.data || [],
+    documents,
     milestones: (milsRes.data || []).map((m) => ({
       title: m.title, date: m.due_date ? String(m.due_date) : undefined, status: m.status,
     })),

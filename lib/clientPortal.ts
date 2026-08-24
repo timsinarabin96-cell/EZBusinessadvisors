@@ -67,6 +67,7 @@ export interface PortalDeal {
 export interface PortalSnapshot {
   ok: boolean
   clientName: string
+  clientEmail?: string | null
   deal: PortalDeal | null
   documents: any[]
   milestones: PortalMilestone[]

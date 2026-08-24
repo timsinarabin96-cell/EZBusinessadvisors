@@ -51,6 +51,7 @@ function PortalBody() {
 
   const [authorized, setAuthorized] = useState<null | boolean>(null)
   const [clientName, setClientName] = useState('')
+  const [clientEmail, setClientEmail] = useState('')
   const [deal, setDeal] = useState<PortalDeal | null>(null)
   const [documents, setDocuments] = useState<any[]>([])
   const [milestones, setMilestones] = useState<PortalMilestone[]>([])
@@ -66,6 +67,7 @@ function PortalBody() {
     if (!snap) { setAuthorized(false); return }
     setAuthorized(true)
     setClientName(snap.clientName)
+    setClientEmail(snap.clientEmail || '')
     setDeal(snap.deal); setDocuments(snap.documents); setMilestones(snap.milestones); setMessages(snap.messages)
     setTraction(snap.traction || null)
   }, [dealId, token])
@@ -80,6 +82,18 @@ function PortalBody() {
     }).then((r) => r.ok).catch(() => false)
     setUploading(false)
     if (ok) { toast('Document uploaded'); load() } else toast('Upload failed — storage may not be set up', 'error')
+  }
+
+  const openDoc = async (doc: any) => {
+    // Fire-and-forget view log (buyer intent). Best effort — never blocks the open.
+    if (doc?.id && clientEmail) {
+      fetch('/api/data-rooms/view-log', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ fileId: doc.id, viewerEmail: clientEmail, action: 'view' }),
+      }).catch(() => {})
+    }
+    if (doc?.file_url) window.open(doc.file_url, '_blank', 'noreferrer')
   }
 
   const handleSend = async () => {
@@ -216,7 +230,17 @@ function PortalBody() {
                 <p style={{ color: 'var(--muted)', fontSize: 13 }}>No documents shared yet.</p>
               ) : (
                 documents.slice(0, 8).map((d) => (
-                  <a key={d.id} href={d.file_url || '#'} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--line)', borderRadius: 8, textDecoration: 'none', color: 'inherit' }}>
+                  <a
+                    key={d.id}
+                    href={d.file_url || '#'}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      openDoc(d)
+                    }}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--line)', borderRadius: 8, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
                     <span style={{ fontSize: 16 }}>📄</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file_name || d.name || 'Document'}</div>

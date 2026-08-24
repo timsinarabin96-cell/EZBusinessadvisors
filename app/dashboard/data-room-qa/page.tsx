@@ -22,6 +22,34 @@ interface QaRow {
   created_at: string
 }
 
+interface IntentBuyer {
+  email: string
+  views: number
+  downloads: number
+  distinctDocs: number
+  categories: Record<string, number>
+  lastActiveAt: string | null
+  score: number
+}
+
+interface IntentDoc {
+  fileId: string
+  fileName: string
+  fileKind: string | null
+  views: number
+  downloads: number
+  lastViewedAt: string | null
+}
+
+interface RoomIntent {
+  roomId: string
+  totalViews: number
+  totalDownloads: number
+  activeBuyers: number
+  buyers: IntentBuyer[]
+  topDocs: IntentDoc[]
+}
+
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
 
@@ -44,6 +72,7 @@ function DataRoomQa() {
   const [selectedRoom, setSelectedRoom] = useState('')
   const [questions, setQuestions] = useState<QaRow[]>([])
   const [question, setQuestion] = useState('')
+  const [intent, setIntent] = useState<RoomIntent | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
 
@@ -64,6 +93,14 @@ function DataRoomQa() {
     })
     const data = await res.json().catch(() => ({}))
     setQuestions(data.questions || [])
+  }, [])
+
+  const loadIntent = useCallback(async (roomId: string) => {
+    const res = await fetch(`/api/data-rooms/intent?roomId=${roomId}`, {
+      headers: { authorization: `Bearer ${token()}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    setIntent(data.ok ? data.intent : null)
   }, [])
 
   useEffect(() => {
@@ -118,7 +155,10 @@ function DataRoomQa() {
             value={selectedRoom}
             onChange={(e) => {
               setSelectedRoom(e.target.value)
-              if (e.target.value && agencyId) loadQuestions(agencyId, e.target.value)
+              if (e.target.value && agencyId) {
+                loadQuestions(agencyId, e.target.value)
+                loadIntent(e.target.value)
+              }
             }}
           >
             <option value="">Select a data room…</option>
@@ -150,6 +190,77 @@ function DataRoomQa() {
         </div>
         {rooms.length === 0 && (
           <p className="text-xs text-gray-400 mt-2">No data rooms found for this agency yet — create one from a deal or listing first.</p>
+        )}
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <h2 className="font-semibold mb-1">🎯 Buyer intent</h2>
+        <p className="text-xs text-gray-400 mb-3">
+          Which documents buyers actually open, and who's most engaged — ranked by a recency-weighted intent score.
+        </p>
+        {!selectedRoom ? (
+          <p className="text-gray-400 text-sm">Select a data room to see buyer intent.</p>
+        ) : !intent ? (
+          <p className="text-gray-400 text-sm">No view activity yet — intent appears once buyers open documents.</p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* Top docs */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Most-viewed documents</h3>
+              {intent.topDocs.length === 0 ? (
+                <p className="text-gray-400 text-sm">No document opens logged yet.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {intent.topDocs.map((d) => (
+                    <li key={d.fileId} className="py-2 flex items-center gap-3">
+                      <span className="text-lg">📄</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{d.fileName}</div>
+                        <div className="text-xs text-gray-400">{d.fileKind || 'document'}{d.lastViewedAt ? ` · last ${fmtDate(d.lastViewedAt)}` : ''}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-semibold">{d.views} <span className="text-gray-400 font-normal">views</span></div>
+                        {d.downloads > 0 && <div className="text-xs text-emerald-600">{d.downloads} downloads</div>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {/* Buyers */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Engaged buyers ({intent.activeBuyers})
+              </h3>
+              {intent.buyers.length === 0 ? (
+                <p className="text-gray-400 text-sm">No buyer activity in this room yet.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {intent.buyers.map((b) => (
+                    <li key={b.email} className="py-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium truncate">{b.email}</div>
+                          <div className="text-xs text-gray-400">
+                            {b.views} views · {b.downloads} downloads · {b.distinctDocs} docs
+                            {b.lastActiveAt ? ` · ${fmtDate(b.lastActiveAt)}` : ''}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className="text-sm font-bold" style={{ color: b.score >= 70 ? '#15803d' : b.score >= 40 ? '#b45309' : '#6b7280' }}>
+                            {b.score}/100
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.max(4, b.score)}%`, background: b.score >= 70 ? '#22c55e' : b.score >= 40 ? '#f59e0b' : '#9ca3af' }} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
