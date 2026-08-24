@@ -92,6 +92,25 @@ function SocialDashboard() {
       {/* Caption Studio — AI + template captions */}
       <CaptionStudio />
 
+      {/* Best-time-to-post heuristic — engagement window guidance */}
+      <Card style={{ marginBottom: 18, background: 'linear-gradient(120deg, #fdfbf4, #faf6ea)', border: '1px solid #e8d9a8' }}>
+        <CardHeader title="⏰ Best time to post" subtitle="Heuristic windows for maximum engagement — no data required." />
+        <div style={{ padding: '0 20px 18px', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {[
+            ['LinkedIn', 'Tue–Thu · 8–10am'],
+            ['Facebook', 'Wed–Fri · 11am–1pm'],
+            ['Instagram', 'Daily · 7–9am / 6–8pm'],
+            ['X / Twitter', 'Mon–Fri · 9am–12pm'],
+            ['Listing emails', 'Tue–Thu · 9:30am'],
+          ].map(([platform, windowText]) => (
+            <div key={platform} style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 10, padding: '10px 14px', flex: '1 1 160px' }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)' }}>{platform}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>{windowText}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       {/* Summary stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: 14, marginBottom: 20 }}>
         <Card style={{ padding: '14px 18px' }}><div style={{ fontSize: 12, color: 'var(--muted)' }}>Total</div><div style={{ fontSize: 24, fontWeight: 700, color: 'var(--navy)' }}>{counts.total}</div></Card>
