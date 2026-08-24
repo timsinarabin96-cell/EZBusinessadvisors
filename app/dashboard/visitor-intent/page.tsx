@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider } from '@/components/ui/Toast'
 import { fetchIntentForAgency, fetchIntentTotals, type ListingIntentStats, type IntentTotals } from '@/lib/visitorIntent'
+import ListingBuyerMatch from '@/components/intent/ListingBuyerMatch'
 
 const fmtDate = (iso: string | null | undefined) => {
   if (!iso) return '—'
@@ -77,6 +78,7 @@ function IntentBody() {
                   <div key={s.listingId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 14.5 }}>{s.businessName || 'Confidential listing'}</span>
                     <span style={{ fontSize: 13, color: '#5b6b7c' }}>{s.uniqueVisitors} unique · {s.totalViews} views · last {fmtDate(s.lastViewedAt)}</span>
+                    <ListingBuyerMatch listingId={s.listingId} businessName={s.businessName} />
                   </div>
                 ))}
               </div>
@@ -91,6 +93,7 @@ function IntentBody() {
                     {s.businessName || 'Confidential listing'} {s.hot && <span style={{ fontSize: 12 }}>🔥</span>}
                   </div>
                   <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 3 }}>Last viewed {fmtDate(s.lastViewedAt)}</div>
+                  <div style={{ marginTop: 8 }}><ListingBuyerMatch listingId={s.listingId} businessName={s.businessName} /></div>
                 </div>
                 <Mini label="Views" value={String(s.totalViews)} />
                 <Mini label="Unique" value={String(s.uniqueVisitors)} />
