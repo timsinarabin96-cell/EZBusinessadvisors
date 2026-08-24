@@ -236,6 +236,7 @@ function ValuationEngine() {
               )
             })}
           </ul>
+          </>
         )}
       </div>
     </div>
