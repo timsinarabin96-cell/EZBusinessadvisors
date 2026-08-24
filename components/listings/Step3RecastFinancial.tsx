@@ -58,15 +58,15 @@ export default function Step3RecastFinancial({ listingId, onNext }: { listingId:
     <StepShell step={3} title="Recast Financials" description="Normalize owner financials by adding back discretionary expenses to arrive at a sustainable SDE/EBITDA."
       status="draft" onNext={save} nextDisabled={!sdeVal} nextLabel={busy ? 'Saving…' : 'Step 3 complete →'}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-        <label style={stepLabel}>Original SDE<input type="number" value={originalSde} onChange={(e) => setOriginalSde(e.target.value)} style={inputStyle} /></label>
-        <label style={stepLabel}>Original EBITDA<input type="number" value={originalEbitda} onChange={(e) => setOriginalEbitda(e.target.value)} style={inputStyle} /></label>
+        <label style={stepLabel}>Original SDE<MoneyInput value={originalSde} onChange={(v) => setOriginalSde(v)} /></label>
+        <label style={stepLabel}>Original EBITDA<MoneyInput value={originalEbitda} onChange={(v) => setOriginalEbitda(v)} /></label>
       </div>
 
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>Add-backs</div>
       {addBacks.map((b) => (
         <div key={b.id} style={update}>
           <input value={b.label} onChange={(e) => setAddBacks(addBacks.map((x) => x.id === b.id ? { ...x, label: e.target.value } : x))} placeholder="Add-back description (e.g. owner salary, personal vehicle)" style={{ ...inputStyle, flex: 1 }} />
-          <input type="number" value={b.amount} onChange={(e) => setAddBacks(addBacks.map((x) => x.id === b.id ? { ...x, amount: e.target.value } : x))} placeholder="$ amount" style={{ ...inputStyle, width: 150 }} />
+          <div style={{ width: 150 }}><MoneyInput value={b.amount} onChange={(v) => setAddBacks(addBacks.map((x) => x.id === b.id ? { ...x, amount: v } : x))} /></div>
           <button onClick={() => setAddBacks(addBacks.filter((x) => x.id !== b.id))} style={stepBtn(false)}>✕</button>
         </div>
       ))}
@@ -80,7 +80,7 @@ export default function Step3RecastFinancial({ listingId, onNext }: { listingId:
       </div>
 
       <label style={stepLabel}>Recasted EBITDA
-        <input type="number" value={recastedEbitda} onChange={(e) => setRecastedEbitda(e.target.value)} placeholder="Manual if available" style={inputStyle} />
+        <MoneyInput value={recastedEbitda} onChange={(v) => setRecastedEbitda(v)} />
       </label>
       <label style={stepLabel}>Notes
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Recast assumptions and rationale…" style={{ ...inputStyle, resize: 'vertical' }} />
