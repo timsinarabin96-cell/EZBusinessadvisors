@@ -5,6 +5,7 @@ import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/
 import { getAgreement, recordLOI, recordPurchaseAgreement, recordClosing, fetchClosingDetails, completeStep, fetchBuyers } from '@/lib/workflow'
 import { fetchListing } from '@/lib/listings'
 import StatusBadge from '@/components/listings/StatusBadge'
+import MoneyInput from '@/components/ui/MoneyInput'
 
 // ---------------------------------------------------------------------------
 // Step 10 — Deal Closing: LOI → Purchase Agreement → Closing.
@@ -34,7 +35,7 @@ export default function Step10DealClosing({ listingId, onNext }: { listingId: st
 
   const doLOI = async () => { setBusy(true); await recordLOI(listingId, selectedBuyer || null); await load(); setBusy(false) }
   const doPurchase = async () => { setBusy(true); await recordPurchaseAgreement(listingId, selectedBuyer || null); await load(); setBusy(false) }
-  const doClose = async () => { setBusy(true); await recordClosing(listingId, { closing_date: closingDate || null, final_purchase_price: Number(finalPrice) || null }); await load(); setBusy(false) }
+  const doClose = async () => { setBusy(true); await recordClosing(listingId, { closing_date: closingDate || null, final_purchase_price: Number(String(finalPrice).replace(/[$,]/g, '')) || null }); await load(); setBusy(false) }
 
   const stages = [
     { label: 'LOI signed', hint: 'Moves listing to Pending Sale', done: stageIdx >= 1, action: doLOI, btnLabel: 'Record signed LOI' },
@@ -73,7 +74,7 @@ export default function Step10DealClosing({ listingId, onNext }: { listingId: st
       {stage === 'closing' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
           <label style={stepLabel}>Closing date<input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} style={stepField} /></label>
-          <label style={stepLabel}>Final purchase price<input type="number" value={finalPrice} onChange={(e) => setFinalPrice(e.target.value)} placeholder="0" style={stepField} /></label>
+          <label style={stepLabel}>Final purchase price<MoneyInput value={finalPrice} onChange={(v) => setFinalPrice(v)} /></label>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
 import { saveFinancials, fetchFinancials, completeStep } from '@/lib/workflow'
 import { updateListing, fetchListing } from '@/lib/listings'
+import MoneyInput from '@/components/ui/MoneyInput'
 
 // ---------------------------------------------------------------------------
 // Step 2 — Financial Details (revenue, SDE, EBITDA, balance sheet inputs)
@@ -38,7 +39,7 @@ export default function Step2FinancialDetails({ listingId, onNext }: { listingId
     })()
   }, [listingId])
 
-  const num = (s: string) => (s ? Number(s) : undefined)
+  const num = (s: string) => (s ? Number(String(s).replace(/[$,]/g, '')) : undefined)
   const hasSde = num(f.sde) !== undefined && num(f.annualRevenue) !== undefined
 
   const save = async () => {
@@ -64,10 +65,7 @@ export default function Step2FinancialDetails({ listingId, onNext }: { listingId
   const field = (key: keyof typeof empty, label: string, prefix = '$') => (
     <label style={stepLabel}>
       {label}
-      <div style={{ position: 'relative' }}>
-        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: 14 }}>{prefix}</span>
-        <input type="number" value={f[key]} onChange={(e) => setF({ ...f, [key]: e.target.value })} style={{ ...stepField, paddingLeft: 26 }} placeholder="0" />
-      </div>
+      <MoneyInput value={f[key]} onChange={(v) => setF({ ...f, [key]: v })} style={{ width: '100%' }} />
     </label>
   )
 

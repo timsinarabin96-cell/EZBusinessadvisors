@@ -16,8 +16,9 @@ import FeaturedSlotCard from '@/components/listing/FeaturedSlotCard'
 import PublishPanel from '@/components/listing/PublishPanel'
 import ListingViewStats from '@/components/listing/ListingViewStats'
 import ListingVideo from '@/components/listings/ListingVideo'
+import MoneyInput from '@/components/ui/MoneyInput'
 
-const numOrNull = (s: string): number | null => (s === '' ? null : Number(s))
+const numOrNull = (s: string): number | null => (s === '' || s == null ? null : Number(String(s).replace(/[$,]/g, '')))
 
 export default function EditListingPage() {
   return (
@@ -87,7 +88,7 @@ function EditForm() {
   }
 
   const inp = (k: string, label: string, ph: string, type = 'text') => (
-    <label style={lbl}>{label}<input type={type} value={form[k] ?? ''} onChange={(e) => set(k, type === 'number' ? e.target.value : e.target.value)} placeholder={ph} style={fld} /></label>
+    <label style={lbl}>{label}{type === 'number' ? <MoneyInput value={form[k] ?? ''} onChange={(v) => set(k, v)} /> : <input type={type} value={form[k] ?? ''} onChange={(e) => set(k, e.target.value)} placeholder={ph} style={fld} />}</label>
   )
 
   return (

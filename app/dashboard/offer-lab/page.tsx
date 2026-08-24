@@ -9,6 +9,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import MoneyInput from '@/components/ui/MoneyInput'
 
 interface OfferRow {
   id: string
@@ -76,10 +77,10 @@ function OfferLab() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         listing_id: form.listing_id,
-        purchase_price: form.purchase_price ? Number(form.purchase_price) : null,
-        cash_at_closing: form.cash_at_closing ? Number(form.cash_at_closing) : null,
-        seller_note: form.seller_note ? Number(form.seller_note) : null,
-        earnout_amount: form.earnout_amount ? Number(form.earnout_amount) : null,
+        purchase_price: form.purchase_price ? Number(String(form.purchase_price).replace(/[$,]/g, '')) : null,
+        cash_at_closing: form.cash_at_closing ? Number(String(form.cash_at_closing).replace(/[$,]/g, '')) : null,
+        seller_note: form.seller_note ? Number(String(form.seller_note).replace(/[$,]/g, '')) : null,
+        earnout_amount: form.earnout_amount ? Number(String(form.earnout_amount).replace(/[$,]/g, '')) : null,
         diligence_days: form.diligence_days ? Number(form.diligence_days) : null,
         training_days: form.training_days ? Number(form.training_days) : null,
         financing_contingency: form.financing_contingency,
@@ -123,9 +124,9 @@ function OfferLab() {
               {listings.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
             </select>
           </label>
-          <label><span className="label">Purchase price ($)</span><input className="input" type="number" value={form.purchase_price} onChange={(e) => setForm({ ...form, purchase_price: e.target.value })} /></label>
-          <label><span className="label">Cash at closing ($)</span><input className="input" type="number" value={form.cash_at_closing} onChange={(e) => setForm({ ...form, cash_at_closing: e.target.value })} /></label>
-          <label><span className="label">Seller note ($)</span><input className="input" type="number" value={form.seller_note} onChange={(e) => setForm({ ...form, seller_note: e.target.value })} /></label>
+          <label><span className="label">Purchase price ($)</span><MoneyInput value={form.purchase_price} onChange={(v) => setForm({ ...form, purchase_price: v })} /></label>
+          <label><span className="label">Cash at closing ($)</span><MoneyInput value={form.cash_at_closing} onChange={(v) => setForm({ ...form, cash_at_closing: v })} /></label>
+          <label><span className="label">Seller note ($)</span><MoneyInput value={form.seller_note} onChange={(v) => setForm({ ...form, seller_note: v })} /></label>
           <label><span className="label">Earnout ($)</span><input className="input" type="number" value={form.earnout_amount} onChange={(e) => setForm({ ...form, earnout_amount: e.target.value })} /></label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <label><span className="label">Diligence days</span><input className="input" type="number" value={form.diligence_days} onChange={(e) => setForm({ ...form, diligence_days: e.target.value })} /></label>

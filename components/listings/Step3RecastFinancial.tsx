@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
 import { saveRecast, fetchRecast, completeStep, fetchFinancials } from '@/lib/workflow'
+import MoneyInput from '@/components/ui/MoneyInput'
 
 // ---------------------------------------------------------------------------
 // Step 3 — Recast Financials: normalize owner financials with add-backs.
@@ -34,15 +35,15 @@ export default function Step3RecastFinancial({ listingId, onNext }: { listingId:
     })()
   }, [listingId])
 
-  const totalAddBacks = addBacks.reduce((s, b) => s + (Number(b.amount) || 0), 0)
-  const sdeVal = (Number(originalSde) || 0) + totalAddBacks
+  const totalAddBacks = addBacks.reduce((s, b) => s + (Number(String(b.amount).replace(/[$,]/g, '')) || 0), 0)
+  const sdeVal = (Number(String(originalSde).replace(/[$,]/g, '')) || 0) + totalAddBacks
 
   const save = async () => {
     setBusy(true)
     await saveRecast(listingId, {
-      original_sde: Number(originalSde) || null, recasted_sde: sdeVal,
-      original_ebitda: Number(originalEbitda) || null, recasted_ebitda: Number(recastedEbitda) || null,
-      add_backs: addBacks.map((b) => ({ label: b.label, amount: Number(b.amount) || 0 })),
+      original_sde: Number(String(originalSde).replace(/[$,]/g, '')) || null, recasted_sde: sdeVal,
+      original_ebitda: Number(String(originalEbitda).replace(/[$,]/g, '')) || null, recasted_ebitda: Number(String(recastedEbitda).replace(/[$,]/g, '')) || null,
+      add_backs: addBacks.map((b) => ({ label: b.label, amount: Number(String(b.amount).replace(/[$,]/g, '')) || 0 })),
       notes,
     })
     await completeStep(listingId, 3)

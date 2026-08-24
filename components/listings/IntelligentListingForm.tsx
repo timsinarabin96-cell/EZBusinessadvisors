@@ -7,6 +7,7 @@ import { startWorkflow } from '@/lib/workflow'
 import { matchBuyerLeads, UnifiedLead } from '@/lib/leads2'
 import MatchedBuyersModal from '@/components/leads/MatchedBuyersModal'
 import { useToast } from '@/components/ui/Toast'
+import MoneyInput from '@/components/ui/MoneyInput'
 import {
   buildListingInsert,
   calculateListingReadiness,
@@ -218,7 +219,7 @@ function Field({ label, span, children }: { label: string; span?: boolean; child
 }
 
 function MoneyField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <Field label={label}><div style={{ position: 'relative' }}><span style={{ position: 'absolute', left: 12, top: 11, color: 'var(--muted)' }}>$</span><input className="input" inputMode="decimal" value={value} onChange={(event) => onChange(event.target.value)} style={{ paddingLeft: 27 }} /></div></Field>
+  return <Field label={label}><MoneyInput value={value} onChange={onChange} /></Field>
 }
 
 function Checkbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {

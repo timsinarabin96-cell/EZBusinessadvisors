@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { PIPELINE_STAGES, PipelineItem } from '@/lib/pipeline'
 import { Listing } from '@/lib/listings'
+import MoneyInput from '@/components/ui/MoneyInput'
 
 interface DealFormModalProps {
   deal: PipelineItem | null          // null = create
@@ -26,7 +27,7 @@ export default function DealFormModal({ deal, listings, onClose, onSubmit }: Dea
     try {
       await onSubmit({
         listing_id: listingId,
-        purchase_price: price ? Number(price) : null,
+        purchase_price: price ? Number(String(price).replace(/[$,]/g, '')) : null,
         status,
       })
     } catch (err: any) {
@@ -71,13 +72,7 @@ export default function DealFormModal({ deal, listings, onClose, onSubmit }: Dea
 
           <div style={{ marginBottom: 16 }}>
             <label className="label">Purchase Price ($)</label>
-            <input
-              className="input"
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="e.g. 1500000"
-            />
+            <MoneyInput value={price} onChange={setPrice} />
           </div>
 
           <div style={{ marginBottom: 20 }}>

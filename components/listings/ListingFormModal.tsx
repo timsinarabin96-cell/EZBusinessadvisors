@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Listing, LISTING_STATUSES } from '@/lib/listings'
+import MoneyInput from '@/components/ui/MoneyInput'
 
 interface ListingFormModalProps {
   listing: Listing | null
@@ -33,7 +34,7 @@ interface FormState {
   property_zip: string
 }
 
-const numOrNull = (s: string): number | null => (s === '' ? null : Number(s))
+const numOrNull = (s: string): number | null => (s === '' || s == null ? null : Number(String(s).replace(/[$,]/g, '')))
 
 export default function ListingFormModal({ listing, onClose, onSubmit }: ListingFormModalProps) {
   const [form, setForm] = useState<FormState>({
