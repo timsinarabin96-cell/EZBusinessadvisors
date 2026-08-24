@@ -106,6 +106,25 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
           parties,
         })
         created += 1
+
+        // Auto-set the listing expiration from the Listing Agreement's
+        // listing date + term months — agents track expiry with zero extra steps.
+        if (tpl.name.toLowerCase().includes('listing agreement')) {
+          const listingDate = String(filled.listing_date || '')
+          const termMonths = Number(filled.term_months || 0)
+          if (listingDate && termMonths > 0) {
+            const expiresAt = new Date(new Date(listingDate + 'T12:00:00').getTime() + termMonths * 30.44 * 86400000).toISOString().slice(0, 10)
+            const { supabase } = await import('@/lib/supabase/client')
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) {
+              await fetch('/api/listings/expiry', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', authorization: `Bearer ${session.access_token}` },
+                body: JSON.stringify({ action: 'set', listingId, expiresAt }),
+              }).catch(() => {})
+            }
+          }
+        }
       } catch (e) {
         setError((e as Error).message || `Failed to create ${tpl.name}`)
       }
