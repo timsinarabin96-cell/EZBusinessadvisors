@@ -8,8 +8,22 @@ const EMPTY: DealNetworkOverview = { passports: [], activeOffers: 0, exchangeOpp
 export default function DealIntelligenceDashboard() {
   const [overview, setOverview] = useState<DealNetworkOverview>(EMPTY)
   const [loading, setLoading] = useState(true)
+  const [market, setMarket] = useState<{ deals: number; avgMultiple: number | null; avgPrice: number | null; industries: number } | null>(null)
 
-  useEffect(() => { fetchDealNetworkOverview().then(setOverview).finally(() => setLoading(false)) }, [])
+  useEffect(() => {
+    fetchDealNetworkOverview().then(setOverview).finally(() => setLoading(false))
+    // Live market trend cards from anonymized sold comps (public RPC).
+    import('@/lib/soldComps').then(({ buildSoldCompsReport }) =>
+      buildSoldCompsReport().then((r) =>
+        setMarket({
+          deals: r.totals.deals,
+          avgMultiple: r.totals.avgMultiple,
+          avgPrice: r.totals.avgSalePrice,
+          industries: r.totals.industries,
+        }),
+      ),
+    ).catch(() => {})
+  }, [])
 
   return (
     <div style={{ maxWidth: 1280, margin: '0 auto' }}>
@@ -29,6 +43,26 @@ export default function DealIntelligenceDashboard() {
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
         {DEAL_INTELLIGENCE_MODULES.map((module, index) => <article key={module.title} className="card" style={{ padding: 22, borderTop: `4px solid ${module.accent}` }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span style={{ fontSize: 11, fontWeight: 900, color: module.accent }}>MODULE {String(index + 1).padStart(2, '0')}</span><span style={{ color: module.accent }}>●</span></div><h3 style={{ fontSize: 18, margin: '10px 0 8px' }}>{module.title}</h3><p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.55, margin: 0 }}>{module.description}</p></article>)}
+      </section>
+
+      {/* Market trend cards — live anonymized pulse from sold comps */}
+      <section style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 14 }}>
+          <div><h2 style={{ fontSize: 22, margin: 0 }}>Market pulse</h2><p style={{ color: 'var(--muted)', fontSize: 13, margin: '5px 0 0' }}>Live anonymized sold-deal trends to frame every deal conversation.</p></div>
+          <a href="/marketplace/pulse" style={{ fontSize: 12.5, color: '#0e7490', fontWeight: 700, textDecoration: 'none' }}>Full market pulse →</a>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 12 }}>
+          {market ? (
+          <>
+            <Metric label="Closed transactions" value={market.deals} color="#0e7490" />
+            <Metric label="Avg sale multiple" value={market.avgMultiple != null ? Number(market.avgMultiple).toFixed(2) + 'x' : 0} color="#b45309" />
+            <Metric label="Avg sale price" value={market.avgPrice != null ? '$' + Math.round(market.avgPrice / 1000) + 'k' : 0} color="#1d4ed8" />
+            <Metric label="Industries tracked" value={market.industries} color="#4338ca" />
+          </>
+          ) : (
+            <div style={{ color: 'var(--muted)', fontSize: 13, padding: 8 }}>Loading market data…</div>
+          )}
+        </div>
       </section>
     </div>
   )
