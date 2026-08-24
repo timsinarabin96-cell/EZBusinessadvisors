@@ -95,5 +95,45 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Could not record signature. Please try again.' }, { status: 500 })
   }
 
+  // --- Funnel: NDA signer → CRM buyer lead (so brokers see who's signing). ---
+  // Best-effort; a lead write failure never blocks the buyer's unlock.
+  try {
+    const profile = (buyerProfile || {}) as Record<string, unknown>
+    const phone =
+      String(profile.phone || profile.mobile || '').trim() ||
+      String(ndaFormData.phone || ndaFormData.cell || '').trim() ||
+      null
+    const fundsRaw = String(profile.down_payment_amount || '').replace(/[$,]/g, '')
+    const funds = fundsRaw ? Number(fundsRaw) || null : null
+    const sba = String(profile.qualified_sba_loan || '').toLowerCase()
+    const desired = String(profile.type_of_business_preferred || '').trim() || null
+    const location = String(profile.location_preference || '').trim() || null
+
+    // Upsert by email: enrich an existing lead, create a new one otherwise.
+    const { data: existing } = await svc.from('buyer_leads').select('id').eq('email', email).maybeSingle()
+    const leadPayload: Record<string, unknown> = {
+      full_name: name,
+      email,
+      phone,
+      desired_business_type: desired || listing.industry || null,
+      industry_interest: listing.industry || null,
+      preferred_location: location,
+      funds_available: funds,
+      financing_method: sba === 'yes' ? 'SBA' : null,
+      listing_id: listingId,
+      source: 'nda_sign',
+      notes: `Signed NDA for ${listing.business_name || 'a listing'} on ${signedAt.slice(0, 10)}`,
+      status: 'new',
+    }
+    if (existing) {
+      await svc.from('buyer_leads').update(leadPayload).eq('id', existing.id)
+    } else {
+      const { data: listingAgency } = await svc.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+      await svc.from('buyer_leads').insert({ ...leadPayload, agency_id: listingAgency?.agency_id || null })
+    }
+  } catch {
+    /* lead sync is best-effort */
+  }
+
   return NextResponse.json({ ok: true, token })
 }
