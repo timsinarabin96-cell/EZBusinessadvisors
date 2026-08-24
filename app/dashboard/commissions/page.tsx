@@ -193,6 +193,67 @@ function CommissionsApp() {
         )
       })()}
 
+      {/* Deal economics waterfall — per-deal commission flow */}
+      {commissions.length > 0 && (() => {
+        // Group commissions by deal/listing so each deal gets its own waterfall.
+        const groups = new Map<string, { name: string; items: Commission[]; total: number }>()
+        commissions.forEach((c) => {
+          const key = c.listing_id || c.deal_id || 'ungrouped'
+          const name = c.listings?.business_name || (c.listing_id ? 'Listing' : 'Deal')
+          if (!groups.has(key)) groups.set(key, { name, items: [], total: 0 })
+          const g = groups.get(key)!
+          g.items.push(c)
+          g.total += Number(c.amount) || 0
+        })
+        const deals = [...groups.values()].sort((a, b) => b.total - a.total).slice(0, 6)
+        const maxTotal = Math.max(...deals.map((d) => d.total), 1)
+
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="font-semibold">Deal economics waterfall</h2>
+              <span className="text-xs text-gray-400">Commission per deal — pending → approved → paid</span>
+            </div>
+            <div className="flex flex-col gap-4 mt-4">
+              {deals.map((deal) => {
+                const s = { pending: 0, approved: 0, paid: 0 }
+                deal.items.forEach((c) => {
+                  const amt = Number(c.amount) || 0
+                  if (c.status === 'pending' || c.status === 'approved' || c.status === 'paid') s[c.status] += amt
+                })
+                const earned = s.approved + s.paid
+                const pct = maxTotal > 0 ? (deal.total / maxTotal) * 100 : 0
+                return (
+                  <div key={deal.name}>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span className="font-medium truncate">{deal.name}</span>
+                      <span className="text-gray-500 shrink-0 ml-3">{money(deal.total)}{earned > 0 ? ` · ${Math.round((earned / deal.total) * 100)}% earned` : ''}</span>
+                    </div>
+                    {/* Stacked waterfall bar: paid (green) + approved (blue) + pending (amber) */}
+                    <div className="flex h-7 rounded-lg overflow-hidden bg-gray-50 border border-gray-100" style={{ maxWidth: `${Math.max(pct, 18)}%` }}>
+                      {s.paid > 0 && (
+                        <div className="h-full bg-green-500" style={{ width: `${(s.paid / deal.total) * 100}%` }} title={`Paid ${money(s.paid)}`} />
+                      )}
+                      {s.approved > 0 && (
+                        <div className="h-full bg-blue-500" style={{ width: `${(s.approved / deal.total) * 100}%` }} title={`Approved ${money(s.approved)}`} />
+                      )}
+                      {s.pending > 0 && (
+                        <div className="h-full bg-amber-400" style={{ width: `${(s.pending / deal.total) * 100}%` }} title={`Pending ${money(s.pending)}`} />
+                      )}
+                    </div>
+                    <div className="flex gap-4 text-[11px] text-gray-400 mt-1">
+                      {s.paid > 0 && <span>● {money(s.paid)} paid</span>}
+                      {s.approved > 0 && <span>● {money(s.approved)} approved</span>}
+                      {s.pending > 0 && <span>● {money(s.pending)} pending</span>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Record commission */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
         <h2 className="font-semibold mb-3">Record a commission</h2>
