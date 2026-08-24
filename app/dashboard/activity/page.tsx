@@ -39,6 +39,7 @@ export default function ActivityPage() {
 function ActivityFeed() {
   const [items, setItems] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [kindFilter, setKindFilter] = useState('all')
 
   const load = useCallback(async () => {
     const ctx = await getAgencyContext()
@@ -57,6 +58,9 @@ function ActivityFeed() {
 
   if (loading) return <LoadingState />
 
+  const kinds = Array.from(new Set(items.map((i) => i.kind).filter(Boolean))) as string[]
+  const visible = kindFilter === 'all' ? items : items.filter((i) => i.kind === kindFilter)
+
   return (
     <div>
       <div className="mb-6">
@@ -64,11 +68,32 @@ function ActivityFeed() {
         <p className="text-gray-500 text-sm mt-1">Every deal action across reviews, data rooms, matches, NDAs, and closing milestones.</p>
       </div>
 
-      {items.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">No activity yet.</div>
+      {/* Entity filter chips */}
+      {kinds.length > 1 && (
+        <div className="mb-4 flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setKindFilter('all')}
+            className={`text-xs px-3 py-1.5 rounded-full border font-medium ${kindFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+          >
+            All
+          </button>
+          {kinds.map((k) => (
+            <button
+              key={k}
+              onClick={() => setKindFilter(kindFilter === k ? 'all' : k)}
+              className={`text-xs px-3 py-1.5 rounded-full border font-medium ${kindFilter === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+            >
+              {KIND_ICONS[k] || '•'} {k}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {visible.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">No activity{items.length ? ' matches this filter' : ' yet'}.</div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-          {items.map((item) => (
+          {visible.map((item) => (
             <div key={item.id} className="p-4 flex items-start gap-3">
               <span className="text-xl shrink-0">{KIND_ICONS[item.kind] || '•'}</span>
               <div className="min-w-0">
