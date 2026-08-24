@@ -7,6 +7,7 @@
 // =============================================================================
 
 import { useState } from 'react'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 const MULTIPLES: Record<string, { lo: number; hi: number }> = {
   'Food & Beverage': { lo: 1.8, hi: 3.2 },
@@ -37,7 +38,7 @@ export default function InstantValuation({ onLead }: { onLead?: (data: { industr
   const [result, setResult] = useState<{ lo: number; hi: number } | null>(null)
 
   const estimate = () => {
-    const sdeNum = Number(sde)
+    const sdeNum = Number(String(sde).replace(/[$,]/g, ''))
     if (!industry || !sdeNum || sdeNum <= 0) return
     const m = MULTIPLES[industry] || MULTIPLES.Other
     const lo = sdeNum * m.lo
@@ -64,9 +65,9 @@ export default function InstantValuation({ onLead }: { onLead?: (data: { industr
         </select>
         <input
           value={sde}
-          onChange={(e) => setSde(e.target.value)}
-          type="number"
-          placeholder="Your annual profit (SDE) — e.g. 150000"
+          onChange={(e) => setSde(formatWithCommas(e.target.value))}
+          inputMode="decimal"
+          placeholder="Your annual profit (SDE) — e.g. 150,000"
           style={{ padding: '11px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 14, fontFamily: 'inherit' }}
         />
       </div>
