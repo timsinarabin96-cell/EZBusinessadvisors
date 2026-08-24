@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
 import { uploadListingDocument, fetchListingDocuments, completeStep } from '@/lib/workflow'
 import { supabase } from '@/lib/supabase/client'
+import DealDocsPanel from '@/components/documents/DealDocsPanel'
 
 // ---------------------------------------------------------------------------
 // Step 1 — Legal Docs (listing agreement + disclosures)
@@ -81,6 +82,11 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
           </div>
         ))}
         {docs.length === 0 && <div style={{ fontSize: 13, color: 'var(--muted)' }}>No documents uploaded yet.</div>}
+      </div>
+
+      {/* Deal Docs & eSign — one-click legal pack, auto-filled + signed */}
+      <div style={{ marginTop: 28 }}>
+        <DealDocsPanel listingId={listingId} />
       </div>
     </StepShell>
   )
