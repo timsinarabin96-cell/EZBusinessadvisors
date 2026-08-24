@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 interface Search {
   id: string
@@ -77,8 +78,8 @@ export default function WatchlistPage() {
         name: name.trim() || 'Untitled search',
         criteria: {
           industries: industries.split(',').map((s) => s.trim()).filter(Boolean),
-          max_price: maxPrice ? Number(maxPrice) : null,
-          min_sde: minSde ? Number(minSde) : null,
+          max_price: maxPrice ? Number(String(maxPrice).replace(/[$,]/g, '')) : null,
+          min_sde: minSde ? Number(String(minSde).replace(/[$,]/g, '')) : null,
         },
         notify_email: true,
       }),
@@ -149,8 +150,8 @@ export default function WatchlistPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Search name (e.g. Laundromats < $500k)" value={name} onChange={(e) => setName(e.target.value)} />
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Industries (comma-separated)" value={industries} onChange={(e) => setIndustries(e.target.value)} />
-          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Max price ($)" type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
-          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Min SDE ($)" type="number" value={minSde} onChange={(e) => setMinSde(e.target.value)} />
+          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Max price ($)" inputMode="decimal" value={maxPrice} onChange={(e) => setMaxPrice(formatWithCommas(e.target.value))} />
+          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Min SDE ($)" inputMode="decimal" value={minSde} onChange={(e) => setMinSde(formatWithCommas(e.target.value))} />
         </div>
         <button
           onClick={createSearch}

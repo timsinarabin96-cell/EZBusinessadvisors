@@ -7,6 +7,7 @@ import { fetchAllIndustries, fetchMarketplaceStats, searchPublicListings, type M
 import { parseNaturalQuery } from '@/lib/naturalSearch'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import SavedSearchAlert from '@/components/public/SavedSearchAlert'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 import MatchProfilePanel from '@/components/public/MatchProfilePanel'
 import AutocompleteInput from '@/components/public/AutocompleteInput'
 import RecentlyViewed from '@/components/public/RecentlyViewed'
@@ -168,7 +169,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Keyword" style={inputStyle} />
           <AutocompleteInput type="category" value={selIndustry} onChange={setSelIndustry} placeholder="Category (e.g. Retail, Restaurant)…" style={{ ...inputStyle, paddingLeft: 12 }} />
           <AutocompleteInput type="location" value={loc} onChange={setLoc} placeholder="City, county, or state…" style={inputStyle} />
-          <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Max Price ($)" type="number" style={inputStyle} />
+          <input value={price} onChange={(e) => setPrice(formatWithCommas(e.target.value))} placeholder="Max Price ($)" inputMode="decimal" style={inputStyle} />
           {advanced && (
             <>
               <input value={rev} onChange={(e) => setRev(e.target.value)} placeholder="Max Revenue ($)" type="number" style={inputStyle} />

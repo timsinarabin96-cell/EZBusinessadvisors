@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { LeadKind, LeadStatus, UnifiedLead, LEAD_STATUSES, BUSINESS_TYPES } from '@/lib/leads2'
 import { createBuyerLead, updateBuyerLead } from '@/lib/leads2'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 interface BuyerInput {
   desired_business_type?: string; budget_range?: string; funds_available?: number
@@ -54,7 +55,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
           email, phone, status,
           desired_business_type: effectiveType.trim() || null,
           budget_range: budget || null,
-          funds_available: funds === '' ? null : Number(funds),
+          funds_available: funds === '' ? null : Number(String(funds).replace(/[$,]/g, '')),
           financing_method: financing || null,
           preferred_location: location || null,
           notes: notes || null,
@@ -63,7 +64,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
           kind, email, phone, status,
           desired_business_type: effectiveType.trim() || undefined,
           budget_range: budget || undefined,
-          funds_available: funds === '' ? undefined : Number(funds),
+          funds_available: funds === '' ? undefined : Number(String(funds).replace(/[$,]/g, '')),
           financing_method: financing || undefined,
           preferred_location: location || undefined,
           notes: notes || undefined,
@@ -75,7 +76,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
           email, phone, status,
           desired_business_type: effectiveType.trim() || null,
           budget_range: budget || null,
-          funds_available: funds === '' ? null : Number(funds),
+          funds_available: funds === '' ? null : Number(String(funds).replace(/[$,]/g, '')),
           financing_method: financing || null,
           preferred_location: location || null,
           notes: notes || null,
@@ -86,7 +87,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
           ...(created.id ? {} : {}),
           desired_business_type: effectiveType.trim() || undefined,
           budget_range: budget || undefined,
-          funds_available: funds === '' ? undefined : Number(funds),
+          funds_available: funds === '' ? undefined : Number(String(funds).replace(/[$,]/g, '')),
           financing_method: financing || undefined,
           preferred_location: location || undefined,
           notes: notes || undefined,
@@ -180,7 +181,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
                   <label className="label">Funds available ($)</label>
-                  <input className="input" type="number" value={funds} onChange={(e) => setFunds(e.target.value)} placeholder="e.g. 750000" />
+                  <input className="input" inputMode="decimal" value={funds} onChange={(e) => setFunds(formatWithCommas(e.target.value))} placeholder="e.g. 750,000" />
                 </div>
                 <div>
                   <label className="label">Financing method</label>

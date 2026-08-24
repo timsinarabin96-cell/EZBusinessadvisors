@@ -11,6 +11,7 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import AppShell from '@/components/layout/AppShell'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 import {
   searchAll, fetchIndustries, fetchSavedSearches, saveSearch, deleteSavedSearch, logSearch,
   SCOPE_STATUSES,
@@ -63,8 +64,8 @@ function SearchInner() {
     scope,
     status: status || undefined,
     industry: industry || undefined,
-    minPrice: minPrice ? Number(minPrice) : undefined,
-    maxPrice: maxPrice ? Number(maxPrice) : undefined,
+    minPrice: minPrice ? Number(String(minPrice).replace(/[$,]/g, '')) : undefined,
+    maxPrice: maxPrice ? Number(String(maxPrice).replace(/[$,]/g, '')) : undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
   }), [scope, status, industry, minPrice, maxPrice, dateFrom, dateTo])
@@ -159,10 +160,10 @@ function SearchInner() {
             </select>
           </label>
           <label style={labelStyle}>Min price
-            <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="$0" style={selectStyle} />
+            <input inputMode="decimal" value={minPrice} onChange={(e) => setMinPrice(formatWithCommas(e.target.value))} placeholder="$0" style={selectStyle} />
           </label>
           <label style={labelStyle}>Max price
-            <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="$—" style={selectStyle} />
+            <input inputMode="decimal" value={maxPrice} onChange={(e) => setMaxPrice(formatWithCommas(e.target.value))} placeholder="$—" style={selectStyle} />
           </label>
           <label style={labelStyle}>From
             <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} style={selectStyle} />

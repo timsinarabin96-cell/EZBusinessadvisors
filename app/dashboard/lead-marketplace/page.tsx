@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 import { getAgencyContext } from '@/lib/agencyContext'
 
 interface MarketLead {
@@ -101,7 +102,7 @@ function LeadMarketplaceApp() {
         action: 'publish', agencyId, leadId,
         headline: headline || undefined, industry: industry || undefined,
         location: location || undefined, budget: budget || undefined, funds: funds || undefined,
-        priceCents: Math.round(Number(priceDollars) * 100),
+        priceCents: Math.round(Number(String(priceDollars).replace(/[$,]/g, '')) * 100),
       }),
     })
     const data = await res.json().catch(() => ({}))
@@ -223,7 +224,7 @@ function LeadMarketplaceApp() {
               <input style={inputStyle} placeholder="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
               <input style={inputStyle} placeholder="Budget range" value={budget} onChange={(e) => setBudget(e.target.value)} />
               <input style={inputStyle} placeholder="Funds available" value={funds} onChange={(e) => setFunds(e.target.value)} />
-              <input style={inputStyle} placeholder="Price ($)" type="number" value={priceDollars} onChange={(e) => setPriceDollars(e.target.value)} />
+              <input style={inputStyle} placeholder="Price ($)" inputMode="decimal" value={priceDollars} onChange={(e) => setPriceDollars(formatWithCommas(e.target.value))} />
             </div>
             <button onClick={publish} disabled={busy} className="btn btn-primary" style={{ marginTop: 12 }}>{busy ? 'Publishing…' : '📤 List lead for sale'}</button>
             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>Buyers see the teaser only — contact details are released at purchase. Never include the buyer's name or contact info in the headline.</p>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 
@@ -162,7 +163,7 @@ function ClosingTracker() {
         listing_id: selected,
         escrow_company: escrowForm.company.trim(),
         account_ref: escrowForm.ref.trim() || null,
-        amount: escrowForm.amount ? Number(escrowForm.amount) : null,
+        amount: escrowForm.amount ? Number(String(escrowForm.amount).replace(/[$,]/g, '')) : null,
         status: 'pending',
       }),
     })
@@ -313,7 +314,7 @@ function ClosingTracker() {
             <div className="flex flex-col md:flex-row gap-2 mt-4 pt-4 border-t border-gray-100">
               <input className="border rounded-lg px-3 py-2 text-sm flex-1" placeholder="Escrow company (e.g. First American Title)" value={escrowForm.company} onChange={(e) => setEscrowForm({ ...escrowForm, company: e.target.value })} />
               <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Acct ref" value={escrowForm.ref} onChange={(e) => setEscrowForm({ ...escrowForm, ref: e.target.value })} />
-              <input className="border rounded-lg px-3 py-2 text-sm" placeholder="$ amount" type="number" value={escrowForm.amount} onChange={(e) => setEscrowForm({ ...escrowForm, amount: e.target.value })} />
+              <input className="border rounded-lg px-3 py-2 text-sm" placeholder="$ amount" inputMode="decimal" value={escrowForm.amount} onChange={(e) => setEscrowForm({ ...escrowForm, amount: formatWithCommas(e.target.value) })} />
               <button onClick={addEscrow} disabled={busy || !escrowForm.company.trim()} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg">
                 + Add escrow
               </button>
