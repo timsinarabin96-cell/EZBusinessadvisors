@@ -115,6 +115,38 @@ function EmailTemplates() {
   const previewSubject = (selected?.subject || form.subject).replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars && vars[k] ? vars[k] : m))
   const previewBody = (selected?.body || form.body).replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vars && vars[k] ? vars[k] : m))
 
+  const sendTest = async () => {
+    const to = (window.localStorage.getItem('concord_broker_email') || '').trim()
+    if (!to || !to.includes('@')) {
+      toast('No broker email on file — set it in Settings first', 'error')
+      return
+    }
+    if (!previewSubject.trim() || !previewBody.trim()) {
+      toast('Subject and body are required', 'error')
+      return
+    }
+    setBusy(true)
+    try {
+      const { authenticatedFetch } = await import('@/lib/authenticatedFetch')
+      const res = await authenticatedFetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to,
+          subject: previewSubject,
+          html: `<p>${previewBody.replace(/\n/g, '<br/>')}</p>`,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Send failed')
+      toast(data.queued ? 'Test queued for delivery 📧' : 'Test sent 📧', 'success')
+    } catch (e) {
+      toast('Send failed: ' + (e as Error).message, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (loading && !templates.length) return <LoadingState />
 
   return (
@@ -191,6 +223,13 @@ function EmailTemplates() {
 
           <button onClick={save} disabled={busy} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg">
             {busy ? 'Saving…' : selected ? 'Save changes' : 'Create template'}
+          </button>
+          <button
+            onClick={sendTest}
+            disabled={busy}
+            className="w-full mt-2 border border-gray-300 hover:bg-gray-50 disabled:opacity-50 text-sm font-medium py-2 rounded-lg"
+          >
+            📧 Send test to my email
           </button>
         </div>
       </div>
