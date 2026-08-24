@@ -85,7 +85,7 @@ function DealTwin() {
   // Health history — snapshot scores to localStorage per listing so brokers
   // can see the trend even though the API only stores the latest snapshot.
   const HISTORY_KEY = (id: string) => `deal_twin_history_${id}`
-  const [history, setHistory] = useState<{ score: number; at: string }[]>([])
+  const [history, setHistory] = useState<{ score: number; at: string; components?: Record<string, number> }[]>([])
 
   useEffect(() => {
     if (!selected) return
@@ -100,11 +100,27 @@ function DealTwin() {
     try {
       const raw = window.localStorage.getItem(HISTORY_KEY(selected))
       const list = raw ? JSON.parse(raw) : []
-      list.push({ score: snapshot.health_score, at: snapshot.computed_at || new Date().toISOString() })
+      list.push({ score: snapshot.health_score, at: snapshot.computed_at || new Date().toISOString(), components: snapshot.components })
       window.localStorage.setItem(HISTORY_KEY(selected), JSON.stringify(list.slice(-30)))
       setHistory(list.slice(-30))
     } catch { /* storage unavailable */ }
   }, [selected, snapshot?.health_score])
+
+  // “What changed this week” — compare current component scores vs the
+  // earliest snapshot so brokers see which drivers moved.
+  const whatChanged = (() => {
+    if (history.length < 2 || !snapshot) return []
+    const first = history[0]
+    const out: { label: string; from: number; to: number }[] = []
+    for (const [key, label] of Object.entries(COMPONENT_LABELS)) {
+      const from = first.components?.[key]
+      const to = snapshot.components?.[key]
+      if (typeof from === 'number' && typeof to === 'number' && from !== to) {
+        out.push({ label, from, to })
+      }
+    }
+    return out
+  })()
 
   const recompute = async () => {
     if (!selected) return
