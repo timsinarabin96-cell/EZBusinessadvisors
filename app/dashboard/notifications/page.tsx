@@ -70,6 +70,29 @@ function Notifications() {
     await load()
   }
 
+  const [briefBusy, setBriefBusy] = useState(false)
+  const sendBrief = async () => {
+    const ctx = await getAgencyContext()
+    if (!ctx) return
+    setBriefBusy(true)
+    const token = localStorage.getItem('sb-access-token') || ''
+    try {
+      const res = await fetch('/api/captains-brief', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ agencyId: ctx.agencyId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.ok) {
+        alert(data.error || 'Could not send the brief')
+      } else {
+        alert(`Captain's Brief sent — ${data.recipients ?? 0} recipient(s)`)
+      }
+    } finally {
+      setBriefBusy(false)
+    }
+  }
+
   if (loading) return <LoadingState />
 
   const kinds = Array.from(new Set(items.map((i) => i.kind).filter(Boolean))) as string[]
@@ -90,9 +113,19 @@ function Notifications() {
           <h1 className="text-2xl font-bold">🛎️ Notifications</h1>
           <p className="text-gray-500 text-sm mt-1">Platform workflow alerts for your agency.</p>
         </div>
-        <button onClick={markAllRead} className="text-sm text-blue-600 hover:underline">
-          Mark all read{unreadCount ? ` (${unreadCount} unread)` : ''}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={sendBrief}
+            disabled={briefBusy}
+            className="text-sm bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-medium px-4 py-2 rounded-lg"
+            title="Email the weekly Captain's Brief to your agency owners/admins — stale deals, expiring listings, new buyers, commissions"
+          >
+            {briefBusy ? 'Sending…' : '📬 Send Captain\'s Brief now'}
+          </button>
+          <button onClick={markAllRead} className="text-sm text-blue-600 hover:underline">
+            Mark all read{unreadCount ? ` (${unreadCount} unread)` : ''}
+          </button>
+        </div>
       </div>
 
       {/* Digest controls — filter by kind + unread */}
