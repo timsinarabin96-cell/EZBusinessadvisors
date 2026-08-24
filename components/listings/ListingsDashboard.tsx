@@ -165,6 +165,12 @@ export default function ListingsDashboard() {
                   <span>Rev {listing.annual_revenue ? fmtMoney(listing.annual_revenue) : '—'}</span>
                   <span>SDE {listing.sde ? fmtMoney(listing.sde) : '—'}</span>
                   {listing.ebitda ? <span>EBITDA {fmtMoney(listing.ebitda)}</span> : null}
+                  {(() => {
+                    const start = listing.published_at || listing.created_at
+                    if (!start) return null
+                    const days = Math.max(0, Math.floor((Date.now() - new Date(start).getTime()) / 86400000))
+                    return <span style={{ color: days > 90 ? '#b91c1c' : days > 45 ? '#b45309' : 'var(--muted)' }}>⏱ {days}d on market</span>
+                  })()}
                 </div>
 
                 {/* Actions */}
