@@ -64,6 +64,8 @@ export interface Listing {
   image_urls: string[] | null
   primary_image_url: string | null
   featured_image_url: string | null
+  // Walkthrough / promo video (YouTube, Vimeo, or direct MP4)
+  video_url: string | null
   // Real-estate option (see sql/document_compliance_realestate_schema.sql)
   property_value: number | null
   property_description: string | null

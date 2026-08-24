@@ -62,6 +62,7 @@ export function listingToReadinessInput(row: any): IntelligentListingInput {
     public_title: row.public_title || '',
     public_summary: row.public_summary || '',
     public_highlights: row.public_highlights || '',
+    video_url: row.ai_metadata?.video_url || '',
     confidentiality_level: row.confidentiality_level || 'anonymous',
     show_financials: Boolean(row.show_financials),
     seller_approval_reference: '',

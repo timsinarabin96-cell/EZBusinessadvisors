@@ -33,6 +33,7 @@ export interface IntelligentListingInput {
   public_title: string
   public_summary: string
   public_highlights: string
+  video_url: string
   confidentiality_level: 'anonymous' | 'qualified_buyers' | 'broker_only'
   show_financials: boolean
   seller_approval_reference: string
@@ -45,7 +46,7 @@ export const EMPTY_INTELLIGENT_LISTING: IntelligentListingInput = {
   employees_full_time: '', employees_part_time: '', owner_hours_weekly: '', reason_for_sale: '', growth_opportunities: '',
   competitive_advantages: '', customer_concentration: '', facilities_summary: '', lease_monthly: '', lease_expires_on: '',
   real_estate_included: false, seller_financing_available: false, financing_notes: '', transition_support: '',
-  training_period_weeks: '', public_title: '', public_summary: '', public_highlights: '', confidentiality_level: 'anonymous',
+  training_period_weeks: '', public_title: '', public_summary: '', public_highlights: '', video_url: '', confidentiality_level: 'anonymous',
   show_financials: false, seller_approval_reference: '', source: 'broker_manual',
 }
 
@@ -106,6 +107,7 @@ export function buildListingInsert(input: IntelligentListingInput) {
       public_title: input.public_title.trim() || input.headline.trim() || null,
       public_summary: input.public_summary.trim() || null,
       public_highlights: parseHighlights(input.public_highlights),
+      video_url: input.video_url.trim() || null,
       show_financials: input.show_financials,
       seller_approval_reference: input.seller_approval_reference.trim() || null,
     },

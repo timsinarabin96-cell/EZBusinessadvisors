@@ -15,6 +15,7 @@ import StatusBadge from '@/components/listings/StatusBadge'
 import FeaturedSlotCard from '@/components/listing/FeaturedSlotCard'
 import PublishPanel from '@/components/listing/PublishPanel'
 import ListingViewStats from '@/components/listing/ListingViewStats'
+import ListingVideo from '@/components/listings/ListingVideo'
 
 const numOrNull = (s: string): number | null => (s === '' ? null : Number(s))
 
@@ -46,6 +47,7 @@ function EditForm() {
         asking_price: l.asking_price ?? '', annual_revenue: l.annual_revenue ?? '', sde: l.sde ?? '',
         ebitda: l.ebitda ?? '', reason_for_sale: l.reason_for_sale || '', real_estate_included: !!l.real_estate_included,
         sba_qualified: !!l.sba_qualified, is_off_market: !!l.is_off_market,
+        video_url: (l.ai_metadata as any)?.video_url || '',
       })
     })
   }, [listingId])
@@ -65,6 +67,7 @@ function EditForm() {
         sde: numOrNull(form.sde), ebitda: numOrNull(form.ebitda),
         reason_for_sale: form.reason_for_sale || null, real_estate_included: form.real_estate_included,
         sba_qualified: form.sba_qualified, is_off_market: form.is_off_market,
+        ai_metadata: { ...((await fetchListing(listingId))?.ai_metadata || {}), video_url: form.video_url?.trim() || null },
       })
       // Save = go live. Fire the publish pipeline (flags premature/unwanted listings automatically).
       const res = await fetch('/api/listings/publish', {
@@ -111,6 +114,12 @@ function EditForm() {
           <label style={lbl}>Description
             <textarea value={form.description || ''} onChange={(e) => set('description', e.target.value)} rows={3} placeholder="Describe the business…" style={{ ...fld, resize: 'vertical' }} />
           </label>
+        </div>
+        <div style={{ gridColumn: '1 / -1', marginBottom: 14 }}>
+          <label style={lbl}>Walkthrough / promo video URL (YouTube, Vimeo, or .mp4)
+            <input value={form.video_url || ''} onChange={(e) => set('video_url', e.target.value)} placeholder="https://youtube.com/watch?v=… or https://…/walkthrough.mp4" style={fld} />
+          </label>
+          {form.video_url?.trim() ? <ListingVideo url={form.video_url} title={form.business_name} style={{ maxWidth: 560 }} /> : null}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
           <input type="checkbox" checked={form.real_estate_included} onChange={(e) => set('real_estate_included', e.target.checked)} style={{ width: 16, height: 16 }} />
