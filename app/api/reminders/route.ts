@@ -5,6 +5,7 @@ import {
   createReminder,
   listReminders,
   setReminderStatus,
+  snoozeReminder,
   deleteReminder,
   reminderCounts,
   quickReminder,
