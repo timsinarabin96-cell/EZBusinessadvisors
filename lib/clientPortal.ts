@@ -71,6 +71,12 @@ export interface PortalSnapshot {
   documents: any[]
   milestones: PortalMilestone[]
   messages: PortalMessageUpdate[]
+  traction?: {
+    viewsTotal: number
+    views7d: number
+    ndaSigned: number
+    interestedBuyers: number
+  } | null
 }
 
 // -- Broker-side management (anon client, RLS) --------------------------------

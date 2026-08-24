@@ -55,8 +55,10 @@ function PortalBody() {
   const [documents, setDocuments] = useState<any[]>([])
   const [milestones, setMilestones] = useState<PortalMilestone[]>([])
   const [messages, setMessages] = useState<PortalMessageUpdate[]>([])
+  const [traction, setTraction] = useState<{ viewsTotal: number; views7d: number; ndaSigned: number; interestedBuyers: number } | null>(null)
   const [msg, setMsg] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [updateReq, setUpdateReq] = useState(false)
   const msgEndRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
@@ -65,6 +67,7 @@ function PortalBody() {
     setAuthorized(true)
     setClientName(snap.clientName)
     setDeal(snap.deal); setDocuments(snap.documents); setMilestones(snap.milestones); setMessages(snap.messages)
+    setTraction(snap.traction || null)
   }, [dealId, token])
 
   const handleUpload = async (file: File) => {
@@ -83,6 +86,13 @@ function PortalBody() {
     if (!msg.trim()) return
     const done = await sendPortalMessage(dealId, token, msg.trim(), clientName)
     if (done) { setMessages((p) => [...p, done]); setMsg(''); toast('Message sent') } else toast('Could not send message', 'error')
+  }
+
+  const requestUpdate = async () => {
+    setUpdateReq(true)
+    const done = await sendPortalMessage(dealId, token, '📋 Status update requested — please share the latest on my listing.', clientName)
+    setUpdateReq(false)
+    if (done) { setMessages((p) => [...p, done]); toast('Update requested — your broker will reply here') } else toast('Could not send request', 'error')
   }
 
 
@@ -135,6 +145,39 @@ function PortalBody() {
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
+          {/* Seller traction — anonymized listing performance */}
+          {traction && (
+            <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 20, gridColumn: '1 / -1' }}>
+              <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>📊 Your listing's traction</h2>
+              <p style={{ color: 'var(--muted)', fontSize: 13, margin: '0 0 14px' }}>How much interest your listing is generating — anonymized, updated live.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+                <div style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--paper)', border: '1px solid var(--line)' }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--muted)' }}>Total views</div>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--navy)' }}>{traction.viewsTotal}</div>
+                </div>
+                <div style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--paper)', border: '1px solid var(--line)' }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--muted)' }}>Views (7 days)</div>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--navy)' }}>{traction.views7d}</div>
+                </div>
+                <div style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--paper)', border: '1px solid var(--line)' }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--muted)' }}>NDAs signed</div>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: traction.ndaSigned > 0 ? '#15803d' : 'var(--navy)' }}>{traction.ndaSigned}</div>
+                </div>
+                <div style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--paper)', border: '1px solid var(--line)' }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--muted)' }}>Interested buyers</div>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: traction.interestedBuyers > 0 ? '#15803d' : 'var(--navy)' }}>{traction.interestedBuyers}</div>
+                </div>
+              </div>
+              <button
+                onClick={requestUpdate}
+                disabled={updateReq}
+                style={{ marginTop: 14, padding: '10px 18px', background: 'var(--navy)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13.5, opacity: updateReq ? 0.6 : 1 }}
+              >
+                {updateReq ? 'Requesting…' : '📋 Request status update'}
+              </button>
+            </div>
+          )}
+
           {/* Milestones */}
           <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 20 }}>
             <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>Transaction milestones</h2>

@@ -34,6 +34,32 @@ export async function GET(req: NextRequest) {
     SVC.from('portal_messages').select('*').eq('deal_id', dealId).order('created_at', { ascending: true }),
   ])
 
+  // Seller traction: anonymized listing views + NDA interest (when the deal
+  // links to a listing). Counts only — never buyer identities.
+  let traction: { viewsTotal: number; views7d: number; ndaSigned: number; interestedBuyers: number } | null = null
+  const listingId = dealRes.data?.listing_id
+  if (listingId) {
+    const cutoff7 = new Date(Date.now() - 7 * 86400000).toISOString()
+    const [viewsRes, ndaRes] = await Promise.all([
+      SVC.from('listing_views').select('visitor_id, viewed_at').eq('listing_id', listingId).limit(5000),
+      SVC.from('nda_requests').select('id, status').eq('listing_id', listingId),
+    ])
+    const views = viewsRes.data || []
+    const visitors = new Set<string>()
+    let views7d = 0
+    for (const v of views) {
+      visitors.add(v.visitor_id)
+      if (v.viewed_at >= cutoff7) views7d += 1
+    }
+    const ndaList = ndaRes.data || []
+    traction = {
+      viewsTotal: views.length,
+      views7d,
+      ndaSigned: ndaList.filter((n) => n.status === 'signed').length,
+      interestedBuyers: ndaList.filter((n) => n.status === 'signed' || n.status === 'approved').length,
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     clientName: access.client_name,
@@ -43,6 +69,7 @@ export async function GET(req: NextRequest) {
       title: m.title, date: m.due_date ? String(m.due_date) : undefined, status: m.status,
     })),
     messages: msgsRes.data || [],
+    traction,
   })
 }
 
