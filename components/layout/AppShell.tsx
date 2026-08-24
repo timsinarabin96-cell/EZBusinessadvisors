@@ -92,6 +92,8 @@ export default function AppShell({
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
   const [role, setRole] = useState<NavRole>('agent')
   const [brand, setBrand] = useState<{ name: string | null; logo: string | null; primary: string; accent: string; font: string } | null>(null)
@@ -220,15 +222,23 @@ export default function AppShell({
                 if (g) g.items.push(item)
                 else groups.push({ name, items: [item] })
               }
-              return groups.map((g) => (
+              return groups.map((g) => {
+                const isCollapsed = !!collapsed[g.name]
+                const showAll = !!expandedGroups[g.name]
+                const items = showAll ? g.items : g.items.slice(0, 8)
+                const hasMore = g.items.length > 8
+                return (
                 <div key={g.name} style={{ marginBottom: 14 }}>
-                  <div style={{
-                    fontSize: 10.5, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase',
-                    color: 'rgba(255,255,255,0.4)', padding: '6px 14px 6px', marginBottom: 2,
-                  }}>
-                    {g.name}
-                  </div>
-                  {g.items.map((item) => {
+                  <button
+                    onClick={() => setCollapsed((c) => ({ ...c, [g.name]: !isCollapsed }))}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '6px 14px 6px', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}
+                  >
+                    <span>{g.name}</span>
+                    <span style={{ fontSize: 10, opacity: 0.7 }}>{isCollapsed ? '▸' : '▾'}</span>
+                  </button>
+                  {!isCollapsed && (
+                    <>
+                  {items.map((item) => {
                     const activeItem = isActive(item.href)
                     return (
                       <Link
@@ -251,8 +261,19 @@ export default function AppShell({
                       </Link>
                     )
                   })}
+                  {hasMore && (
+                    <button
+                      onClick={() => setExpandedGroups((e) => ({ ...e, [g.name]: !showAll }))}
+                      style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '6px 14px 6px 44px', fontSize: 11.5, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.04em' }}
+                    >
+                      {showAll ? '▴ Show fewer' : `▾ Show all (${g.items.length})`}
+                    </button>
+                  )}
+                    </>
+                  )}
                 </div>
-              ))
+                )
+              })
             })()}
           </nav>
 
