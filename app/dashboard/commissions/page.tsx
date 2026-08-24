@@ -156,6 +156,43 @@ function CommissionsApp() {
         </p>
       </div>
 
+      {/* Waterfall summary — totals by status + payout pipeline */}
+      {commissions.length > 0 && (() => {
+        const byStatus = { pending: 0, approved: 0, paid: 0 }
+        let total = 0
+        commissions.forEach((c) => {
+          const amt = Number(c.amount) || 0
+          total += amt
+          if (c.status === 'pending' || c.status === 'approved' || c.status === 'paid') byStatus[c.status] += amt
+        })
+        const pipeline = total > 0 ? Math.round(((byStatus.paid + byStatus.approved) / total) * 100) : 0
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold">Payout pipeline</h2>
+              <span className="text-sm text-gray-500">{commissions.length} commission{commissions.length === 1 ? '' : 's'} · {money(total)} total</span>
+            </div>
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {(['pending', 'approved', 'paid'] as const).map((s) => (
+                <div key={s} className={`rounded-lg border p-3 ${STATUS_COLORS[s]}`}>
+                  <div className="text-xs font-medium uppercase tracking-wide">{s}</div>
+                  <div className="text-lg font-bold mt-1">{money(byStatus[s])}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-3 rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-green-500"
+                  style={{ width: `${pipeline}%`, transition: 'width .4s' }}
+                />
+              </div>
+              <span className="text-xs text-gray-500 shrink-0">{pipeline}% of pipeline earned (approved + paid)</span>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Record commission */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
         <h2 className="font-semibold mb-3">Record a commission</h2>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import NewsletterSignup from './NewsletterSignup'
 
 /** Public footer for the marketplace. */
 export default function PublicFooter() {
@@ -11,6 +12,9 @@ export default function PublicFooter() {
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, marginTop: 12, maxWidth: 260 }}>
             Confidential business brokerage for buyers and sellers of established companies.
           </p>
+          <div style={{ marginTop: 16 }}>
+            <NewsletterSignup />
+          </div>
         </div>
 
         <FooterCol title="For Buyers" links={[['Browse Listings', '/marketplace/listings'], ['How It Works', '/marketplace/buy'], ['Buyer Questionnaire', '/marketplace/qualify'], ['Acquisition Financing', '/marketplace/financing'], ['Sale Comps', '/marketplace/comps'], ['Recently Sold', '/marketplace/sold'], ['Market Pulse', '/marketplace/pulse']]} />
