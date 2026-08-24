@@ -7,6 +7,7 @@ import { submitSellerListingOrder } from '@/lib/sellerOrderClient'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import InstantValuation from '@/components/public/InstantValuation'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 export default function SellPage() {
   return (
@@ -33,8 +34,8 @@ function SellContent() {
       const res = await submitSellerListingOrder({
         planId: planId as 'free' | 'professional' | 'enterprise',
         business_name: form.businessName || 'Untitled business',
-        annual_revenue: form.annualRevenue ? Number(form.annualRevenue) : null,
-        asking_price: form.askingPrice ? Number(form.askingPrice) : null,
+        annual_revenue: form.annualRevenue ? Number(form.annualRevenue.replace(/[$,]/g, '')) : null,
+        asking_price: form.askingPrice ? Number(form.askingPrice.replace(/[$,]/g, '')) : null,
         seller_email: form.email,
         seller_name: form.name,
         seller_phone: form.phone || null,
@@ -125,9 +126,9 @@ function SellContent() {
           <Field label="Phone"><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Business Name"><input className="input" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} /></Field>
-            <Field label="Annual Revenue"><input className="input" type="number" value={form.annualRevenue} onChange={(e) => setForm({ ...form, annualRevenue: e.target.value })} /></Field>
+            <Field label="Annual Revenue"><input className="input" inputMode="decimal" value={form.annualRevenue} onChange={(e) => setForm({ ...form, annualRevenue: formatWithCommas(e.target.value) })} placeholder="e.g. 500,000" /></Field>
           </div>
-          <Field label="Thinking of Asking"><input className="input" type="number" value={form.askingPrice} onChange={(e) => setForm({ ...form, askingPrice: e.target.value })} /></Field>
+          <Field label="Thinking of Asking"><input className="input" inputMode="decimal" value={form.askingPrice} onChange={(e) => setForm({ ...form, askingPrice: formatWithCommas(e.target.value) })} placeholder="e.g. 1,200,000" /></Field>
           <Field label="Anything else?"><textarea className="textarea" rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} /></Field>
           <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: 6 }}>
             {submitting ? 'Sending...' : 'Request Confidential Valuation'}
