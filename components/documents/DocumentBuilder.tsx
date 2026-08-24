@@ -17,6 +17,7 @@ import {
   renderTemplateBody,
 } from '@/lib/documentBuilder'
 import { supabase } from '@/lib/supabase/client'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 const S = {
   wrap: { maxWidth: 820, margin: '0 auto' },
@@ -76,7 +77,7 @@ function FieldControl({
     case 'date':
       return <input type="date" style={S.input} value={value} onChange={(e) => onChange(e.target.value)} />
     case 'number':
-      return <input type="number" style={S.input} placeholder={field.placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
+      return <input inputMode="decimal" style={S.input} placeholder={field.placeholder} value={value} onChange={(e) => onChange(formatWithCommas(e.target.value))} />
     case 'signature':
       return <input type="text" style={S.input} placeholder="Type name to e-sign" value={value} onChange={(e) => onChange(e.target.value)} />
     default:
