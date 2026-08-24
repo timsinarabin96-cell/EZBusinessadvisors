@@ -144,6 +144,7 @@ export default function DealPipeline() {
           <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
             {PIPELINE_STAGES.map((stage) => {
               const stageDeals = dealsByStage(stage.id)
+              const stageTotal = stageDeals.reduce((s, d) => s + (Number((d as any).purchase_price) || 0), 0)
               return (
                 <Card key={stage.id} style={{ flex: 1, minWidth: 240, display: 'flex', flexDirection: 'column', background: 'var(--cream)' }}>
                   {/* Header */}
@@ -154,6 +155,12 @@ export default function DealPipeline() {
                       {stageDeals.length}
                     </span>
                   </div>
+                  {/* Column total — expected close value */}
+                  {stageDeals.length > 0 && (
+                    <div style={{ padding: '7px 14px', borderBottom: '1px solid var(--line)', fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>
+                      Expected close: <strong style={{ color: 'var(--navy)' }}>${stageTotal.toLocaleString()}</strong>
+                    </div>
+                  )}
                   {/* Cards */}
                   <div style={{ flex: 1, padding: 10, minHeight: 120 }}>
                     {stageDeals.length === 0 ? (
