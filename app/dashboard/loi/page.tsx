@@ -151,21 +151,42 @@ function LoiLab() {
           <p className="text-gray-400 text-sm">No LOIs yet.</p>
         ) : (
           <ul className="divide-y divide-gray-100">
-            {lois.map((loi) => (
-              <li key={loi.id} className="py-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium text-sm">{loi.content?.business_name || loi.listings?.business_name || 'LOI'}</p>
-                  <p className="text-xs text-gray-500">
-                    {money(loi.content?.purchase_price ?? loi.deal_offers?.purchase_price)} · {fmtDate(loi.created_at)} ·{' '}
-                    <span className="capitalize">{loi.status}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button onClick={() => openPreview(loi)} className="text-xs text-blue-600 hover:underline">Preview</button>
-                  <button onClick={() => openPreview(loi)} className="text-xs text-blue-600 hover:underline">Print / PDF</button>
-                </div>
-              </li>
-            ))}
+            {lois.map((loi) => {
+              const ageHours = loi.created_at ? (Date.now() - new Date(loi.created_at).getTime()) / 3600000 : 0
+              const needsNudge = ageHours >= 48 && !['signed', 'accepted', 'withdrawn'].includes(loi.status)
+              return (
+                <li key={loi.id} className="py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-sm">{loi.content?.business_name || loi.listings?.business_name || 'LOI'}</p>
+                    <p className="text-xs text-gray-500">
+                      {money(loi.content?.purchase_price ?? loi.deal_offers?.purchase_price)} · {fmtDate(loi.created_at)} ·{' '}
+                      <span className="capitalize">{loi.status}</span>
+                    </p>
+                    {needsNudge && (
+                      <p className="text-xs mt-1" style={{ color: '#b45309' }}>
+                        ⏰ No signature in 48h+ — follow up with the buyer
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => openPreview(loi)} className="text-xs text-blue-600 hover:underline">Preview</button>
+                    <button onClick={() => openPreview(loi)} className="text-xs text-blue-600 hover:underline">Print / PDF</button>
+                    {needsNudge && (
+                      <button
+                        onClick={() => {
+                          const buyer = loi.content?.buyer_name || 'buyer'
+                          const biz = loi.content?.business_name || loi.listings?.business_name || 'the deal'
+                          window.location.href = `mailto:?subject=${encodeURIComponent('LOI signature needed — ' + biz)}&body=${encodeURIComponent('Hi ' + buyer + ',\n\nJust checking in on the LOI for ' + biz + ' — we\'d love your signature so we can move to diligence.\n\nBest,\nYour broker')}`
+                        }}
+                        className="text-xs px-2 py-1 rounded-full border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      >
+                        🔔 Nudge
+                      </button>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
