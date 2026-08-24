@@ -204,6 +204,30 @@ function NurtureApp() {
         )}
       </div>
 
+      {/* Drip pipeline summary */}
+      {recipients.length > 0 && (() => {
+        const buyers = recipients.filter((r) => (r.lead_type || r.nurture_sequences?.audience) === 'buyer').length
+        const sellers = recipients.length - buyers
+        const active = recipients.filter((r) => r.status === 'active').length
+        const completed = recipients.filter((r) => r.status === 'completed').length
+        const paused = recipients.filter((r) => r.status === 'paused').length
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[
+              ['👥 Enrolled', recipients.length, '#1a1a2e'],
+              ['🔄 Active', active, '#3b82f6'],
+              ['✅ Completed', completed, '#22c55e'],
+              ['⏸️ Paused', paused, '#f59e0b'],
+            ].map(([label, value, color]) => (
+              <div key={label as string} style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 16px' }}>
+                <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700 }}>{label}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: color as string, fontFamily: 'Georgia, serif' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {/* Recipients */}
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h2 className="font-semibold mb-3">👥 Enrolled contacts</h2>
