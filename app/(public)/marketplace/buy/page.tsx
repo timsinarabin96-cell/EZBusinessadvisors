@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { capturePublicLead } from '@/lib/marketplace'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 const INITIAL = {
   name: '', email: '', phone: '', minBudget: '', maxBudget: '', availableCash: '', industries: '',
@@ -30,7 +31,7 @@ function BuyContent() {
       industries_interest: form.industries,
       preferred_location: form.locations,
       timeframe: form.timeline,
-      funds_available: form.availableCash ? Number(form.availableCash) : null,
+      funds_available: form.availableCash ? Number(form.availableCash.replace(/[$,]/g, '')) : null,
       financing_method: form.financing,
       message: `Owner involvement: ${form.ownerInvolvement || 'Not specified'} | Alerts consent: ${form.emailAlerts ? 'yes' : 'no'} | ${form.message}`,
     })
@@ -61,9 +62,9 @@ function BuyContent() {
             <Field label="Full name *"><input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></Field>
             <Field label="Email *"><input className="input" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></Field>
             <Field label="Phone"><input className="input" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} /></Field>
-            <Field label="Available cash"><input className="input" type="number" value={form.availableCash} onChange={(event) => setForm({ ...form, availableCash: event.target.value })} /></Field>
-            <Field label="Minimum purchase price"><input className="input" type="number" value={form.minBudget} onChange={(event) => setForm({ ...form, minBudget: event.target.value })} /></Field>
-            <Field label="Maximum purchase price"><input className="input" type="number" value={form.maxBudget} onChange={(event) => setForm({ ...form, maxBudget: event.target.value })} /></Field>
+            <Field label="Available cash"><input className="input" inputMode="decimal" value={form.availableCash} onChange={(event) => setForm({ ...form, availableCash: formatWithCommas(event.target.value) })} placeholder="e.g. 500,000" /></Field>
+            <Field label="Minimum purchase price"><input className="input" inputMode="decimal" value={form.minBudget} onChange={(event) => setForm({ ...form, minBudget: formatWithCommas(event.target.value) })} placeholder="e.g. 250,000" /></Field>
+            <Field label="Maximum purchase price"><input className="input" inputMode="decimal" value={form.maxBudget} onChange={(event) => setForm({ ...form, maxBudget: formatWithCommas(event.target.value) })} placeholder="e.g. 2,000,000" /></Field>
             <Field label="Target industries" span><input className="input" value={form.industries} onChange={(event) => setForm({ ...form, industries: event.target.value })} placeholder="HVAC, manufacturing, home care, B2B services" /></Field>
             <Field label="Target geography" span><input className="input" value={form.locations} onChange={(event) => setForm({ ...form, locations: event.target.value })} placeholder="Philadelphia metro, Eastern PA, relocatable" /></Field>
             <Field label="Financing plan"><select className="select" value={form.financing} onChange={(event) => setForm({ ...form, financing: event.target.value })}><option value="">Select…</option><option>SBA loan</option><option>Cash</option><option>Conventional loan</option><option>Seller financing</option><option>Investor / partner capital</option></select></Field>
