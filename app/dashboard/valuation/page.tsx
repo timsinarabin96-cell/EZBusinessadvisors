@@ -94,6 +94,33 @@ function ValuationEngine() {
     if (agencyId) await load(agencyId)
   }
 
+  const exportEstimates = () => {
+    if (!estimates.length) return
+    const header = 'business,industry,asking,estimate_min,estimate_max,midpoint,method,created_at'
+    const rows = estimates.map((est) =>
+      [
+        est.inputs?.business_name || est.listings?.business_name || '',
+        est.listings?.industry || est.multiples?.industry || '',
+        est.inputs?.asking_price ?? est.listings?.asking_price ?? '',
+        est.estimate_min ?? '',
+        est.estimate_max ?? '',
+        est.midpoint ?? '',
+        est.method || '',
+        est.created_at || '',
+      ].join(','),
+    )
+    const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `valuations-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    toast('Estimates exported', 'success')
+  }
+
   if (loading) return <LoadingState />
 
   return (
@@ -130,11 +157,40 @@ function ValuationEngine() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-semibold mb-3">Estimates</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Estimates — range history</h2>
+          {estimates.length > 1 && (
+            <button onClick={exportEstimates} className="text-xs border border-gray-300 hover:bg-gray-50 text-gray-600 font-medium px-3 py-1.5 rounded-lg">
+              ⬇ Export CSV
+            </button>
+          )}
+        </div>
         {estimates.length === 0 ? (
           <p className="text-gray-400 text-sm">No estimates yet.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <>
+            {/* Trend band — min/max range per estimate, oldest → newest */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 90, marginBottom: 18, padding: '0 4px' }}>
+              {estimates.slice().reverse().map((est) => {
+                const min = Number(est.estimate_min) || 0
+                const max = Number(est.estimate_max) || 0
+                const mid = Number(est.midpoint) || 0
+                const maxAll = Math.max(1, ...estimates.map((e) => Number(e.estimate_max) || 0))
+                const barMin = Math.round((min / maxAll) * 78) + 4
+                const barMax = Math.round((max / maxAll) * 78) + 4
+                const barMid = Math.round((mid / maxAll) * 78) + 4
+                return (
+                  <div key={est.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }} title={`${money(min)}–${money(max)}`}>
+                    <div style={{ position: 'relative', width: '100%', height: 84, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                      <div style={{ position: 'absolute', bottom: barMin, width: '60%', background: '#e2e8f0', borderRadius: 3, height: Math.max(2, barMax - barMin) }} />
+                      <div style={{ position: 'absolute', bottom: barMid - 2, width: '60%', background: '#1e40af', borderRadius: 3, height: 4 }} />
+                    </div>
+                    <span style={{ fontSize: 9.5, color: '#94a3b8', whiteSpace: 'nowrap' }}>{fmtDate(est.created_at)}</span>
+                  </div>
+                )
+              })}
+            </div>
+            <ul className="divide-y divide-gray-100">
             {estimates.map((est) => {
               const m = est.multiples || {}
               return (
