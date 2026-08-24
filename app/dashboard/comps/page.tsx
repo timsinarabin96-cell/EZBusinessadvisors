@@ -48,6 +48,7 @@ function CompsDb() {
   const [agencyId, setAgencyId] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [filter, setFilter] = useState('all')
   const [form, setForm] = useState({
     business_name: '', industry: '', location: '', sale_price: '', revenue: '', sde: '', multiple: '', sold_at: '', notes: '',
   })
@@ -173,22 +174,44 @@ function CompsDb() {
         {comps.length === 0 ? (
           <p className="text-gray-400 text-sm">No comps yet — add your first sold deal above.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
-            {comps.map((c) => (
-              <li key={c.id} className="py-3 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium">{c.business_name}</p>
-                  <p className="text-xs text-gray-500">
-                    {[c.industry, c.location].filter(Boolean).join(' · ') || '—'} · sold {fmtDate(c.sold_at)}
-                  </p>
+          <>
+            {/* Industry filter chips */}
+            {(() => {
+              const industries = Array.from(new Set(comps.map((c) => c.industry).filter(Boolean))) as string[]
+              if (!industries.length) return null
+              const chip = (active: boolean) => ({
+                padding: '5px 12px', borderRadius: 99, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                background: active ? '#1a1a2e' : '#fff', color: active ? '#fff' : '#666',
+                border: active ? '1px solid #1a1a2e' : '1px solid #e5e2d8',
+              })
+              return (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+                  <button style={chip(filter === 'all')} onClick={() => setFilter('all')}>All</button>
+                  {industries.map((ind) => (
+                    <button key={ind} style={chip(filter === ind)} onClick={() => setFilter(filter === ind ? 'all' : ind)}>
+                      {ind}
+                    </button>
+                  ))}
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold">{money(c.sale_price)}</p>
-                  <p className="text-xs text-gray-500">{c.multiple ? `${c.multiple}× SDE` : '—'}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+              )
+            })()}
+            <ul className="divide-y divide-gray-100">
+              {comps.filter((c) => filter === 'all' || c.industry === filter).map((c) => (
+                <li key={c.id} className="py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{c.business_name}</p>
+                    <p className="text-xs text-gray-500">
+                      {[c.industry, c.location].filter(Boolean).join(' · ') || '—'} · sold {fmtDate(c.sold_at)}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold">{money(c.sale_price)}</p>
+                    <p className="text-xs text-gray-500">{c.multiple ? `${c.multiple}× SDE` : '—'}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
     </div>
