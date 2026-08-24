@@ -29,6 +29,7 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
   const [me, setMe] = useState<{ id: string; email?: string; full_name?: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [signTarget, setSignTarget] = useState<{ sigId: string; partyName: string } | null>(null)
   const [error, setError] = useState('')
 
@@ -143,6 +144,36 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
     return sigs.filter((s) => s.status === 'signed').length
   }
 
+  const exportSignedPack = async () => {
+    setExporting(true)
+    setError('')
+    try {
+      const { supabase } = await import('@/lib/supabase/client')
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token || localStorage.getItem('sb-access-token') || ''
+      const res = await fetch(`/api/documents/bundle?listingId=${encodeURIComponent(listingId)}&download=1`, {
+        headers: { authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error || 'Could not build the signed pack')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `signed-pack-${listing?.business_name?.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'deal'}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      setError((e as Error).message || 'Export failed')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading) return <div style={{ color: 'var(--muted)', padding: 24 }}>Loading deal docs…</div>
 
   const sellerDocs = docs.filter((d) => tplMatches(templates.find((t) => t.id === d.template_id)?.name || '', SELLER_TEMPLATES))
@@ -160,6 +191,11 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn" onClick={() => genPack('seller')} disabled={busy} style={{ whiteSpace: 'nowrap' }}>📦 Generate Seller Pack</button>
           <button className="btn btn-primary" onClick={() => genPack('buyer')} disabled={busy} style={{ whiteSpace: 'nowrap' }}>🤝 Generate Buyer Pack</button>
+          {docs.length > 0 && (
+            <button className="btn" onClick={exportSignedPack} disabled={exporting} style={{ whiteSpace: 'nowrap', color: '#065f46', borderColor: '#a7f3d0', background: '#ecfdf5' }}>
+              {exporting ? 'Building PDF…' : '📎 Download signed pack (PDF)'}
+            </button>
+          )}
         </div>
       </div>
 
