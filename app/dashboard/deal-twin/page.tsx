@@ -82,6 +82,30 @@ function DealTwin() {
     setLoading(false)
   }
 
+  // Health history — snapshot scores to localStorage per listing so brokers
+  // can see the trend even though the API only stores the latest snapshot.
+  const HISTORY_KEY = (id: string) => `deal_twin_history_${id}`
+  const [history, setHistory] = useState<{ score: number; at: string }[]>([])
+
+  useEffect(() => {
+    if (!selected) return
+    try {
+      const raw = window.localStorage.getItem(HISTORY_KEY(selected))
+      setHistory(raw ? JSON.parse(raw) : [])
+    } catch { setHistory([]) }
+  }, [selected])
+
+  useEffect(() => {
+    if (!selected || !snapshot?.health_score) return
+    try {
+      const raw = window.localStorage.getItem(HISTORY_KEY(selected))
+      const list = raw ? JSON.parse(raw) : []
+      list.push({ score: snapshot.health_score, at: snapshot.computed_at || new Date().toISOString() })
+      window.localStorage.setItem(HISTORY_KEY(selected), JSON.stringify(list.slice(-30)))
+      setHistory(list.slice(-30))
+    } catch { /* storage unavailable */ }
+  }, [selected, snapshot?.health_score])
+
   const recompute = async () => {
     if (!selected) return
     setBusy(true)
@@ -144,6 +168,32 @@ function DealTwin() {
             <p className={`text-5xl font-bold ${scoreColor(snapshot.health_score)}`}>{snapshot.health_score}<span className="text-lg text-gray-400">/100</span></p>
             {snapshot.summary && <p className="text-sm text-gray-600 mt-3">{snapshot.summary}</p>}
             <p className="text-xs text-gray-400 mt-3">Computed {fmtDate(snapshot.computed_at)}</p>
+            {history.length >= 2 && (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>Trend</span>
+                  <span>
+                    {history[0].score} → {history[history.length - 1].score}
+                    <span className={scoreColor(history[history.length - 1].score - history[0].score)}>
+                      {' '}({history[history.length - 1].score - history[0].score >= 0 ? '+' : ''}{history[history.length - 1].score - history[0].score})
+                    </span>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 44 }}>
+                  {history.map((h, i) => (
+                    <div
+                      key={i}
+                      title={`${h.score}/100 · ${fmtDate(h.at)}`}
+                      style={{
+                        flex: 1, borderRadius: '2px 2px 0 0',
+                        height: `${Math.max(4, (h.score / 100) * 40)}px`,
+                        background: h.score >= 75 ? '#22c55e' : h.score >= 45 ? '#f59e0b' : '#ef4444',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Component breakdown */}
