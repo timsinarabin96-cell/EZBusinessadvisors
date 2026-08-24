@@ -83,6 +83,57 @@ function Performance() {
         </div>
       </Card>
 
+      <Card style={{ marginBottom: 20 }}>
+        <CardHeader title="🏆 Leaderboard" subtitle="Agents ranked by commission this period — gold, silver, bronze" />
+        <div style={{ padding: '16px 20px' }}>
+          {(() => {
+            const ranked = records
+              .slice()
+              .sort((a, b) => (Number(b.total_commission) || 0) - (Number(a.total_commission) || 0))
+              .slice(0, 8)
+            if (!ranked.length) {
+              return (
+                <div style={{ color: 'var(--muted)', fontSize: 13, padding: '12px 0' }}>
+                  No performance records yet — run <code>sql/workflow_schema.sql</code> and populate agent_performance to see the leaderboard.
+                </div>
+              )
+            }
+            const medals = ['🥇', '🥈', '🥉']
+            const max = Math.max(1, ...ranked.map((r) => Number(r.total_commission) || 0))
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {ranked.map((r, i) => {
+                  const agent = agents.find((a) => a.id === r.agent_id)
+                  const comm = Number(r.total_commission) || 0
+                  const deals = Number(r.total_deals) || 0
+                  const goal = Number(r.ytd_goal || r.commission_goal) || 50000
+                  const pct = Math.min(100, Math.round((comm / goal) * 100))
+                  return (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 34, textAlign: 'center', fontSize: 20 }}>{medals[i] || <span style={{ fontSize: 13, color: 'var(--muted)' }}>{i + 1}</span>}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 14 }}>{agent?.full_name || (r.agent_id || '').slice(0, 8)}</span>
+                          <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                            <strong style={{ color: 'var(--gold-dark)' }}>{fmtMoney(comm)}</strong> · {deals} deals
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                          <div style={{ flex: 1, height: 7, background: 'var(--line)', borderRadius: 99, overflow: 'hidden' }}>
+                            <div style={{ width: `${pct}%`, height: 7, background: 'linear-gradient(90deg, var(--gold-light), var(--gold))', borderRadius: 99 }} />
+                          </div>
+                          <span style={{ fontSize: 11.5, color: 'var(--muted-2)', whiteSpace: 'nowrap' }}>{pct}% of ${goal.toLocaleString()} goal</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+        </div>
+      </Card>
+
       <Card>
         <CardHeader title="Agent detail" subtitle="Performance records" />
         <div style={{ overflowX: 'auto' }}>
