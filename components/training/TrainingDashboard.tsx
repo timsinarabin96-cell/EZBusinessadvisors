@@ -7,6 +7,7 @@ import {
   fetchModules, fetchProgress, fetchCertificates, fetchUploads, ensureProgramCertificate,
 } from '@/lib/training'
 import { Card, CardHeader, StatCard, LoadingState, EmptyState, Badge } from '@/components/ui'
+import TrainingCertificatesSection from './TrainingCertificatesSection'
 
 export default function TrainingDashboard() {
   const [modules, setModules] = useState<TrainingModule[]>([])
@@ -45,7 +46,7 @@ export default function TrainingDashboard() {
       setCerts(c)
       setUploads(u)
 
-      // Auto-issue the full CBI program certificate when all 12 modules are
+      // Auto-issue the full CBI program certificate when all modules are
       // certified — the “Business Intermediary Course Completion” award.
       const prog = await safe(ensureProgramCertificate(getBrokerId()), null)
       if (prog) setProgramCert(prog)
@@ -62,9 +63,9 @@ export default function TrainingDashboard() {
     <div>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26 }}>Training & Certification</h1>
+          <h1 style={{ margin: 0, fontSize: 26 }}>Training</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>
-            Certified Business Intermediary (CBI) Program — master brokerage fundamentals, complete all 12 modules, earn your course-completion certificate.
+            Certified Business Intermediary (CBI) Program — master brokerage fundamentals, complete all {modules.length} modules, and your certificate is issued right here at the end.
           </p>
         </div>
         <Link href="/dashboard/training/upload" className="btn" style={{ textDecoration: 'none' }}>
@@ -85,15 +86,15 @@ export default function TrainingDashboard() {
             </div>
             <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, maxWidth: 560 }}>
               {programCert
-                ? 'Congratulations! Complete all 12 modules and you earned the full program certificate — downloadable with your name, agency, and logo.'
+                ? 'Congratulations! Complete all the modules and you earned the full program certificate — downloadable below with your name, agency, and logo.'
                 : `Earn your certificate by completing all ${modules.length} modules (${certs.length}/${modules.length} certified). Each module unlocks after its lessons and quiz are done.`}
             </div>
           </div>
           <div style={{ minWidth: 200 }}>
             {programCert ? (
-              <Link href="/dashboard/certificates" className="btn" style={{ textDecoration: 'none', background: 'var(--gold)', borderColor: 'var(--gold)', color: '#fff', width: '100%' }}>
-                🎓 View & Download Certificate
-              </Link>
+              <a href="#certificates" className="btn" style={{ textDecoration: 'none', background: 'var(--gold)', borderColor: 'var(--gold)', color: '#fff', width: '100%', textAlign: 'center' }}>
+                🎓 View Certificate ↓
+              </a>
             ) : (
               <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 10, padding: '12px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: 13, marginBottom: 6 }}>
@@ -163,6 +164,9 @@ export default function TrainingDashboard() {
           )
         })}
       </div>
+
+      {/* Certificates — inline at the END of the tab (course → test → certificate) */}
+      <TrainingCertificatesSection certs={certs} programCert={programCert} modules={modules} />
 
       {/* Recent uploads */}
       {uploads.length > 0 && (

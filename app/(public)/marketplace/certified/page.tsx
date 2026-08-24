@@ -14,7 +14,7 @@ interface CertifiedBroker {
 }
 
 // Public Certified Business Intermediaries directory — proof that our brokers
-// complete the full CBI training program (12 modules) before they represent
+// complete the full CBI training program (14 modules) before they represent
 // buyers and sellers.
 export default function CertifiedBrokersPage() {
   const [brokers, setBrokers] = useState<CertifiedBroker[]>([])
@@ -36,12 +36,12 @@ export default function CertifiedBrokersPage() {
         </div>
         <h1 style={{ fontSize: 42, color: '#102a43', margin: '8px 0 12px' }}>Certified Business Intermediaries</h1>
         <p style={{ color: '#666', fontSize: 15, maxWidth: 600, margin: '0 auto', lineHeight: 1.6 }}>
-          Every broker on this roster has completed the full 12-module CBI training program — valuation science, financial
-          recasting, confidentiality, deal structuring, SBA financing, negotiation, and closing — and earned a verifiable
+          Every broker on this roster has completed the full 14-module CBI training program — valuation science, financial
+          recasting, confidentiality, deal structuring, SBA financing, negotiation, ethics, brand awareness, and closing — and earned a verifiable
           course-completion certificate.
         </p>
         <div style={{ marginTop: 18, display: 'inline-flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <span style={{ padding: '6px 14px', background: '#edf6fa', color: '#155e75', borderRadius: 999, fontSize: 12.5, fontWeight: 700 }}>🎓 12 modules</span>
+          <span style={{ padding: '6px 14px', background: '#edf6fa', color: '#155e75', borderRadius: 999, fontSize: 12.5, fontWeight: 700 }}>🎓 14 modules</span>
           <span style={{ padding: '6px 14px', background: '#edf6fa', color: '#155e75', borderRadius: 999, fontSize: 12.5, fontWeight: 700 }}>🔎 Verifiable certificates</span>
           <span style={{ padding: '6px 14px', background: '#edf6fa', color: '#155e75', borderRadius: 999, fontSize: 12.5, fontWeight: 700 }}>🤝 NDA-first process</span>
         </div>

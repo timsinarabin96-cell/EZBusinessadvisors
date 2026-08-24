@@ -86,6 +86,30 @@ export interface TrainingCertificate {
   certificate_key?: string | null
 }
 
+// --- Certificate validity (DDL-free: computed from issued_at, no DB change) ---
+export const CERT_VALIDITY_YEARS = 2
+
+export interface CertExpiry {
+  expiresAt: string | null
+  status: 'valid' | 'expiring_soon' | 'expired' | 'unknown'
+  daysLeft: number | null
+}
+
+/**
+ * Certificates are valid for CERT_VALIDITY_YEARS from issue.
+ * expiring_soon = within 60 days of expiry. DDL-free — derived at read time.
+ */
+export function certExpiry(issuedAt: string | null | undefined, nowIso = new Date().toISOString()): CertExpiry {
+  if (!issuedAt) return { expiresAt: null, status: 'unknown', daysLeft: null }
+  const issued = Date.parse(issuedAt)
+  if (!Number.isFinite(issued)) return { expiresAt: null, status: 'unknown', daysLeft: null }
+  const expiresAt = new Date(issued + CERT_VALIDITY_YEARS * 365 * 86400000).toISOString()
+  const daysLeft = Math.floor((Date.parse(expiresAt) - Date.parse(nowIso)) / 86400000)
+  if (daysLeft < 0) return { expiresAt, status: 'expired', daysLeft }
+  if (daysLeft <= 60) return { expiresAt, status: 'expiring_soon', daysLeft }
+  return { expiresAt, status: 'valid', daysLeft }
+}
+
 export interface TrainingUpload {
   id: string
   broker_id: string

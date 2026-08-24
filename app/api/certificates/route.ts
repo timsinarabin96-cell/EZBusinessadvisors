@@ -129,6 +129,22 @@ export async function POST(req: NextRequest) {
     })()
   }
 
+  // Full CBI program completion → tell the broker (agency owner/admin) that
+  // this agent finished training. In-app notification + web push.
+  if (moduleId === 'c0dec0de-00ff-4000-8000-0000000000ff') {
+    const agencyId = authenticated.memberships?.[0]?.agency_id
+    if (agencyId) {
+      void (async () => {
+        try {
+          const { notifyTrainingCompleted } = await import('@/lib/notifications')
+          await notifyTrainingCompleted(agencyId, name)
+        } catch (e) {
+          console.log('[cert] broker notify skip:', (e as Error).message)
+        }
+      })()
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     certificate: {

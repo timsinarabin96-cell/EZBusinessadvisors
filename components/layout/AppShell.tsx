@@ -72,7 +72,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/calendar', label: 'Calendar', icon: '📅', minRole: 'agent', group: 'Team & Office' },
   { href: '/dashboard/communications', label: 'Communications', icon: '🗒️', minRole: 'agent', group: 'Team & Office' },
   { href: '/dashboard/reminders', label: 'Call-Backs & Reminders', icon: '📞', minRole: 'agent', group: 'Team & Office' },
-  { href: '/dashboard/training', label: 'Training & Certification', icon: '🎓', minRole: 'agent', group: 'Team & Office' },
+  { href: '/dashboard/training', label: 'Training', icon: '🎓', minRole: 'agent', group: 'Team & Office' },
   { href: '/dashboard/agents', label: 'Agents', icon: '🤖', minRole: 'admin', group: 'Team & Office' },
   { href: '/dashboard/hiring', label: 'Hiring', icon: '🤝', minRole: 'admin', group: 'Team & Office' },
   { href: '/dashboard/onboarding', label: 'Onboarding', icon: '🚀', minRole: 'admin', group: 'Team & Office' },
