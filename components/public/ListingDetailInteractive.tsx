@@ -6,6 +6,7 @@ import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fmt$ } from '@/lib/recast'
 import { priceTeaser, PRICING_CTA, PRICING_HINT } from '@/lib/pricingPolicy'
 import { trackListingView } from '@/lib/visitorIntent'
+import { formatWithCommas } from '@/components/ui/MoneyInput'
 import NdaFinancialsGate from '@/components/public/NdaFinancialsGate'
 import SbaCalculator from '@/components/public/SbaCalculator'
 import RequestPricingForm from '@/components/public/RequestPricingForm'
@@ -99,7 +100,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
           name: offerForm.name,
           email: offerForm.email,
           phone: offerForm.phone,
-          offerAmount: Number(offerForm.amount),
+          offerAmount: Number(String(offerForm.amount).replace(/[$,]/g, '')),
           financing: offerForm.financing,
           timeline: offerForm.timeline,
         }),
@@ -293,7 +294,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
                     <input required value={offerForm.name} onChange={(e) => setOfferForm({ ...offerForm, name: e.target.value })} placeholder="Full name" style={inputStyle} />
                     <input required type="email" value={offerForm.email} onChange={(e) => setOfferForm({ ...offerForm, email: e.target.value })} placeholder="Email" style={inputStyle} />
                     <input value={offerForm.phone} onChange={(e) => setOfferForm({ ...offerForm, phone: e.target.value })} placeholder="Phone" style={inputStyle} />
-                    <input required type="number" value={offerForm.amount} onChange={(e) => setOfferForm({ ...offerForm, amount: e.target.value })} placeholder="Your offer ($)" style={inputStyle} />
+                    <input required inputMode="decimal" value={offerForm.amount} onChange={(e) => setOfferForm({ ...offerForm, amount: formatWithCommas(e.target.value) })} placeholder="Your offer ($)" style={inputStyle} />
                     <select value={offerForm.financing} onChange={(e) => setOfferForm({ ...offerForm, financing: e.target.value })} style={inputStyle}>
                       <option value="cash">💵 Cash</option>
                       <option value="sba">🏦 SBA loan</option>

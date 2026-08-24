@@ -78,7 +78,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       industry: industry || undefined,
       location: location || undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      maxRevenue: maxRevenue ? Number(maxRevenue) : undefined,
+      maxRevenue: maxRevenue ? Number(String(maxRevenue).replace(/[$,]/g, '')) : undefined,
       maxSdeMultiple: maxSdeMultiple ? Number(maxSdeMultiple) : undefined,
       absenteeOnly: absenteeOnly || undefined,
       franchiseOnly: franchiseOnly || undefined,
@@ -102,7 +102,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
     if (location) params.set('location', location)
     if (price || parsed.maxPrice) params.set('maxPrice', String(price || parsed.maxPrice))
     if (parsed.minPrice) params.set('minPrice', String(parsed.minPrice))
-    if (rev || parsed.maxRevenue) params.set('maxRevenue', String(rev || parsed.maxRevenue))
+    if (rev || parsed.maxRevenue) params.set('maxRevenue', String(rev || parsed.maxRevenue).replace(/[$,]/g, ''))
     if (parsed.maxSdeMultiple) params.set('maxSdeMultiple', String(parsed.maxSdeMultiple))
     if (multiple) params.set('maxSdeMultiple', multiple)
     if (absentee || parsed.absenteeOnly) params.set('absenteeOnly', '1')
@@ -172,7 +172,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
           <input value={price} onChange={(e) => setPrice(formatWithCommas(e.target.value))} placeholder="Max Price ($)" inputMode="decimal" style={inputStyle} />
           {advanced && (
             <>
-              <input value={rev} onChange={(e) => setRev(e.target.value)} placeholder="Max Revenue ($)" type="number" style={inputStyle} />
+              <input value={rev} onChange={(e) => setRev(formatWithCommas(e.target.value))} placeholder="Max Revenue ($)" inputMode="decimal" style={inputStyle} />
               <input value={multiple} onChange={(e) => setMultiple(e.target.value)} placeholder="Max SDE multiple" type="number" step="0.1" style={inputStyle} />
               <input value={employees} onChange={(e) => setEmployees(e.target.value)} placeholder="Min FT employees" type="number" style={inputStyle} />
             </>

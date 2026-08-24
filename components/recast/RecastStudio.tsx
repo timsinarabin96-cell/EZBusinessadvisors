@@ -8,6 +8,7 @@ import {
   recastFinancials, fmt$, fmt$K,
 } from '@/lib/recast'
 import { UploadedFinancialDoc, uploadFinancialDocument, extractFinancialDocument } from '@/lib/recastDocs'
+import MoneyInput from '@/components/ui/MoneyInput'
 import { fetchListings, Listing } from '@/lib/listings'
 import { saveRecastProject } from '@/lib/recast'
 import { exportRecastToPdf } from '@/lib/pdfExport'
@@ -35,7 +36,7 @@ const emptyYear = (year: number): YearForm => ({
   depreciation: '', interest: '', otherExpenses: '', netIncome: '',
 })
 
-const n = (s: string) => (s === '' ? 0 : Number(s) || 0)
+const n = (s: string) => (s === '' ? 0 : Number(String(s).replace(/[$,]/g, '')) || 0)
 
 export default function RecastStudio() {
   const toast = useToast()
@@ -285,7 +286,7 @@ export default function RecastStudio() {
                 </div>
                 <div>
                   <label className="label">Amount</label>
-                  <input className="input" type="number" value={addBackDraft.amount} onChange={(e) => setAddBackDraft({ ...addBackDraft, amount: e.target.value })} />
+                  <MoneyInput value={addBackDraft.amount} onChange={(v) => setAddBackDraft({ ...addBackDraft, amount: v })} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-end' }}>
                   <button className="btn btn-navy" style={{ width: '100%', justifyContent: 'center' }} onClick={addAddBack}>+ Add</button>

@@ -148,19 +148,19 @@ export default function ListingFormModal({ listing, onClose, onSubmit }: Listing
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div>
               <label className="label">Asking Price</label>
-              <input className="input" type="number" value={form.asking_price} onChange={(e) => set('asking_price', e.target.value)} />
+              <MoneyInput value={form.asking_price} onChange={(v) => set('asking_price', v)} />
             </div>
             <div>
               <label className="label">Revenue</label>
-              <input className="input" type="number" value={form.annual_revenue} onChange={(e) => set('annual_revenue', e.target.value)} />
+              <MoneyInput value={form.annual_revenue} onChange={(v) => set('annual_revenue', v)} />
             </div>
             <div>
               <label className="label">SDE</label>
-              <input className="input" type="number" value={form.sde} onChange={(e) => set('sde', e.target.value)} />
+              <MoneyInput value={form.sde} onChange={(v) => set('sde', v)} />
             </div>
             <div>
               <label className="label">EBITDA</label>
-              <input className="input" type="number" value={form.ebitda} onChange={(e) => set('ebitda', e.target.value)} />
+              <MoneyInput value={form.ebitda} onChange={(v) => set('ebitda', v)} />
             </div>
           </div>
 
@@ -180,15 +180,15 @@ export default function ListingFormModal({ listing, onClose, onSubmit }: Listing
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <label className="label">Property Value</label>
-                  <input className="input" type="number" value={form.property_value} onChange={(e) => set('property_value', e.target.value)} />
+                  <MoneyInput value={form.property_value} onChange={(v) => set('property_value', v)} />
                 </div>
                 <div>
                   <label className="label">Square Footage</label>
-                  <input className="input" type="number" value={form.square_footage} onChange={(e) => set('square_footage', e.target.value)} />
+                  <MoneyInput prefix="" value={form.square_footage} onChange={(v) => set('square_footage', v)} />
                 </div>
                 <div>
                   <label className="label">Land (acres)</label>
-                  <input className="input" type="number" step="0.01" value={form.land_acres} onChange={(e) => set('land_acres', e.target.value)} />
+                  <MoneyInput prefix="" value={form.land_acres} onChange={(v) => set('land_acres', v)} />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>

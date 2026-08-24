@@ -127,7 +127,7 @@ function OfferLab() {
           <label><span className="label">Purchase price ($)</span><MoneyInput value={form.purchase_price} onChange={(v) => setForm({ ...form, purchase_price: v })} /></label>
           <label><span className="label">Cash at closing ($)</span><MoneyInput value={form.cash_at_closing} onChange={(v) => setForm({ ...form, cash_at_closing: v })} /></label>
           <label><span className="label">Seller note ($)</span><MoneyInput value={form.seller_note} onChange={(v) => setForm({ ...form, seller_note: v })} /></label>
-          <label><span className="label">Earnout ($)</span><input className="input" type="number" value={form.earnout_amount} onChange={(e) => setForm({ ...form, earnout_amount: e.target.value })} /></label>
+          <label><span className="label">Earnout ($)</span><MoneyInput value={form.earnout_amount} onChange={(v) => setForm({ ...form, earnout_amount: v })} /></label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <label><span className="label">Diligence days</span><input className="input" type="number" value={form.diligence_days} onChange={(e) => setForm({ ...form, diligence_days: e.target.value })} /></label>
             <label><span className="label">Training days</span><input className="input" type="number" value={form.training_days} onChange={(e) => setForm({ ...form, training_days: e.target.value })} /></label>
