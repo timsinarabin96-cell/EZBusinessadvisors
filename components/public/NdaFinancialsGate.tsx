@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/Toast'
 import type { PublicMarketplaceListing } from '@/lib/marketplace'
 import DynamicFormFields, { type FormValues } from '@/components/forms/DynamicFormFields'
 import { NDA_FORM_SECTIONS, BUYER_PROFILE_SECTIONS, BUYER_GUIDE_TEXT } from '@/lib/buyerFormSchemas'
+import { getVisitorId } from '@/lib/visitorIntent'
 
 interface Financials {
   annual_revenue: number | null
@@ -66,6 +67,7 @@ export default function NdaFinancialsGate({ listing, askingPrice }: { listing: P
         body: JSON.stringify({
           listingId: listing.id, name, email,
           guideAcknowledged: true, ndaFormData: ndaValues, buyerProfile: profileValues,
+          visitorId: getVisitorId(),
         }),
       })
       const data = await res.json()

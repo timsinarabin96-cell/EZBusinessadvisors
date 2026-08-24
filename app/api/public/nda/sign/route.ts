@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import { createServerClient } from '@/lib/supabase/server'
 import { generateNdaProfilePdf } from '@/lib/buyerFormPdf.server'
 import { FF_BUCKET } from '@/lib/storageBuckets'
+import { computeVisitorIntentScore, visitorRecencyWeight } from '@/lib/visitorIntent'
 
 // ---------------------------------------------------------------------------
 // POST /api/public/nda/sign — accountless, per-listing NDA + Buyer Profile
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
   const listingId = String(body?.listingId || '')
   const name = String(body?.name || '').trim()
   const email = String(body?.email || '').trim()
+  const visitorId = String(body?.visitorId || '').trim() || null
   const guideAcknowledged = body?.guideAcknowledged === true
   const ndaFormData = (body?.ndaFormData && typeof body.ndaFormData === 'object') ? body.ndaFormData : {}
   const buyerProfile = (body?.buyerProfile && typeof body.buyerProfile === 'object') ? body.buyerProfile : {}
@@ -111,6 +113,28 @@ export async function POST(req: NextRequest) {
 
     // Upsert by email: enrich an existing lead, create a new one otherwise.
     const { data: existing } = await svc.from('buyer_leads').select('id').eq('email', email).maybeSingle()
+
+    // Intent → lead score linkage: if the signer is an anonymous visitor we
+    // tracked, fold their browsing intent (views, breadth, recency) into the
+    // lead's record so brokers see how hot this buyer was before they signed.
+    let intentNote = ''
+    if (visitorId) {
+      const { data: views } = await svc
+        .from('listing_views')
+        .select('listing_id, viewed_at')
+        .eq('visitor_id', visitorId)
+        .limit(5000)
+      const viewRows = (views || []) as { listing_id: string; viewed_at: string }[]
+      if (viewRows.length > 0) {
+        const distinct = new Set(viewRows.map((v) => v.listing_id)).size
+        const score = computeVisitorIntentScore(
+          viewRows.map((v) => ({ viewedAtIso: v.viewed_at })),
+          distinct,
+        )
+        intentNote = ` 👀 Intent ${score}/100 — ${viewRows.length} views across ${distinct} listing${distinct === 1 ? '' : 's'} before signing`
+      }
+    }
+
     const leadPayload: Record<string, unknown> = {
       full_name: name,
       email,
@@ -122,7 +146,7 @@ export async function POST(req: NextRequest) {
       financing_method: sba === 'yes' ? 'SBA' : null,
       listing_id: listingId,
       source: 'nda_sign',
-      notes: `Signed NDA for ${listing.business_name || 'a listing'} on ${signedAt.slice(0, 10)}`,
+      notes: `Signed NDA for ${listing.business_name || 'a listing'} on ${signedAt.slice(0, 10)}` + intentNote,
       status: 'new',
     }
     if (existing) {

@@ -66,3 +66,49 @@ test('visitor-intent: dashboard nav includes Visitor Intent', () => {
   assert.match(shell, /dashboard\/visitor-intent/)
   assert.match(shell, /'Visitor Intent'/)
 })
+
+// --- New (audit A2): per-visitor path tracking + intent score → lead linkage ---
+
+test('visitor-intent: pure per-visitor score is recency-weighted + breadth-bonused, bounded 0-100', () => {
+  assert.match(lib, /export function visitorRecencyWeight/)
+  assert.match(lib, /days <= 7\) return 1/)
+  assert.match(lib, /days <= 30\) return 0\.6/)
+  assert.match(lib, /return 0\.3/)
+  assert.match(lib, /export function computeVisitorIntentScore/)
+  assert.match(lib, /14 \* Math\.log\(1 \+ activity\) \+ 6 \* Math\.min\(distinctListings, 4\)/)
+  assert.match(lib, /Math\.max\(0, Math\.min\(100, score\)\)/)
+})
+
+test('visitor-intent: fetchVisitorPaths groups views into ranked journeys', () => {
+  assert.match(lib, /export async function fetchVisitorPaths/)
+  assert.match(lib, /distinctListings/)
+  assert.match(lib, /firstSeenAt/)
+  assert.match(lib, /computeVisitorIntentScore\(e\.views/)
+  assert.match(lib, /sort\(\(a, b\) => b\.score - a\.score/)
+  assert.match(lib, /export async function fetchVisitorIntentForVisitor/)
+})
+
+test('visitor-intent: broker API route for visitor paths is auth-gated', () => {
+  const route = readFileSync('app/api/intelligence/visitor-paths/route.ts', 'utf8')
+  assert.match(route, /authenticateProfileRequest/)
+  assert.match(route, /unauthorizedResponse\(\)/)
+  assert.match(route, /fetchVisitorPaths/)
+  assert.match(route, /export const runtime = 'nodejs'/)
+})
+
+test('visitor-intent: NDA sign stamps visitor intent score onto converted lead', () => {
+  const sign = readFileSync('app/api/public/nda/sign/route.ts', 'utf8')
+  assert.match(sign, /visitorId/)
+  assert.match(sign, /computeVisitorIntentScore/)
+  assert.match(sign, /listing_views/)
+  assert.match(sign, /Intent \$\{score\}\/100/)
+})
+
+test('visitor-intent: NDA gate sends visitorId; dashboard renders journeys panel', () => {
+  const gate = readFileSync('components/public/NdaFinancialsGate.tsx', 'utf8')
+  assert.match(gate, /getVisitorId\(\)/)
+  assert.match(page, /Buyer journeys — ranked by intent/)
+  assert.match(page, /fetchVisitorPaths/)
+  assert.match(page, /expanded === p\.visitorId/)
+  assert.match(page, /HOT/)
+})

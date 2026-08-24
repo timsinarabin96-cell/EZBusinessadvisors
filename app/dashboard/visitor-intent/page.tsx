@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider } from '@/components/ui/Toast'
-import { fetchIntentForAgency, fetchIntentTotals, type ListingIntentStats, type IntentTotals } from '@/lib/visitorIntent'
+import { fetchIntentForAgency, fetchIntentTotals, fetchVisitorPaths, type ListingIntentStats, type IntentTotals, type VisitorPath } from '@/lib/visitorIntent'
 import ListingBuyerMatch from '@/components/intent/ListingBuyerMatch'
 
 const fmtDate = (iso: string | null | undefined) => {
@@ -33,12 +33,15 @@ export default function VisitorIntentPage() {
 function IntentBody() {
   const [stats, setStats] = useState<ListingIntentStats[]>([])
   const [totals, setTotals] = useState<IntentTotals>({ totalViews: 0, uniqueVisitors: 0, hotListings: 0, listingsTracked: 0 })
+  const [paths, setPaths] = useState<VisitorPath[]>([])
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const [s, t] = await Promise.all([fetchIntentForAgency(), fetchIntentTotals()])
+    const [s, t, p] = await Promise.all([fetchIntentForAgency(), fetchIntentTotals(), fetchVisitorPaths()])
     setStats(s)
     setTotals(t)
+    setPaths(p)
     setLoading(false)
   }, [])
 
@@ -79,6 +82,53 @@ function IntentBody() {
                     <span style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 14.5 }}>{s.businessName || 'Confidential listing'}</span>
                     <span style={{ fontSize: 13, color: '#5b6b7c' }}>{s.uniqueVisitors} unique · {s.totalViews} views · last {fmtDate(s.lastViewedAt)}</span>
                     <ListingBuyerMatch listingId={s.listingId} businessName={s.businessName} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Per-visitor paths — the anonymous 90% as ranked journeys */}
+          {paths.length > 0 && (
+            <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: 18, marginBottom: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>🧭 Buyer journeys — ranked by intent</div>
+                <span style={{ fontSize: 11.5, color: 'var(--muted)' }}>{paths.length} anonymous visitors</span>
+              </div>
+              <p style={{ fontSize: 12.5, color: 'var(--muted)', margin: '0 0 14px' }}>
+                Each anonymous visitor ranked by a recency-weighted intent score (views, re-reads, breadth). Expand to see which listings they walked through — the hot buyers you can't see in the CRM.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {paths.slice(0, 10).map((p, idx) => (
+                  <div key={p.visitorId} style={{ border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px' }}>
+                    <button
+                      onClick={() => setExpanded(expanded === p.visitorId ? null : p.visitorId)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', fontFamily: 'inherit' }}
+                    >
+                      <span style={{ width: 24, height: 24, borderRadius: 12, background: p.score >= 70 ? 'rgba(176,0,32,0.12)' : 'var(--paper)', color: p.score >= 70 ? '#b00020' : 'var(--navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{idx + 1}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--navy)' }}>Score {p.score}<span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 400 }}>/100</span></span>
+                          {p.score >= 70 && <span style={{ fontSize: 11, fontWeight: 700, color: '#b00020', background: 'rgba(176,0,32,0.08)', borderRadius: 10, padding: '1px 8px' }}>HOT</span>}
+                          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{p.totalViews} views · {p.distinctListings} listings · first {fmtDate(p.firstSeenAt)}</span>
+                        </div>
+                        <div style={{ marginTop: 6, height: 4, background: 'var(--line)', borderRadius: 2, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', borderRadius: 2, background: p.score >= 70 ? '#b00020' : p.score >= 40 ? '#d97706' : '#94a3b8', width: `${Math.max(6, p.score)}%` }} />
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 12, color: 'var(--muted)' }}>{expanded === p.visitorId ? '▲' : '▼'}</span>
+                    </button>
+                    {expanded === p.visitorId && (
+                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {p.listings.map((l) => (
+                          <div key={l.listingId} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+                            <span style={{ fontSize: 15 }}>📄</span>
+                            <span style={{ flex: 1, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.businessName || 'Confidential listing'}</span>
+                            <span style={{ color: 'var(--muted)', fontSize: 12 }}>{l.views}× · {fmtDate(l.lastViewedAt)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
