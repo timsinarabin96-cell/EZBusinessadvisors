@@ -69,6 +69,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // --- Valuation report: confirm payment → generate + deliver the PDF --------
+  if (kind === 'valuation_report') {
+    const { finalizeValuationReport } = await import('@/lib/valuationReports')
+    const result = await finalizeValuationReport(session?.id || '')
+    if (!result.ok) {
+      return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   // 1) Activate / upsert the subscription.
   const now = new Date()
   const periodEnd = new Date(Date.now() + 30 * 86400000).toISOString()

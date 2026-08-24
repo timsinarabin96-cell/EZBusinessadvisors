@@ -44,6 +44,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings' },
   { href: '/dashboard/comps', label: 'Comps', icon: '📊', minRole: 'broker', group: 'Deals & Listings' },
   { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/dashboard/valuation-reports', label: 'Sellable Reports', icon: '💎', minRole: 'broker', group: 'Deals & Listings' },
   { href: '/dashboard/readiness', label: 'Seller Readiness', icon: '🌱', minRole: 'broker', group: 'Deals & Listings' },
   { href: '/dashboard/expiry', label: 'Listing Expiry', icon: '⏳', minRole: 'broker', group: 'Deals & Listings' },
   // ── CLIENTS & DOCS ────────────────────────────────────────
