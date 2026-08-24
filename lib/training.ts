@@ -296,3 +296,65 @@ export async function fetchCertifiedBrokers(): Promise<CertifiedBroker[]> {
   if (error) throw new Error(error.message || 'Failed to load certified brokers')
   return (data as CertifiedBroker[]) || []
 }
+
+// ---------------------------------------------------------------------------
+// CBI Program completion certificate
+// The hidden program module (is_published=false, order 99) represents the full
+// “Business Intermediary Course Completion”. When ALL published modules are
+// certified, we auto-issue the program certificate server-side.
+// ---------------------------------------------------------------------------
+export const CBI_PROGRAM_MODULE_ID = 'c0dec0de-00ff-4000-8000-0000000000ff'
+
+export async function fetchAllModulesIncludingHidden(): Promise<TrainingModule[]> {
+  const { data, error } = await supabase
+    .from('training_modules')
+    .select('*')
+    .order('order', { ascending: true })
+  if (error) {
+    console.warn('fetchAllModules failed (non-fatal):', error.message)
+    return []
+  }
+  return (data as TrainingModule[]) || []
+}
+
+/** True when the broker has a certificate for every published module. */
+export function programModulesComplete(modules: TrainingModule[], certs: TrainingCertificate[]): boolean {
+  const published = modules.filter((m) => m.is_published)
+  if (!published.length) return false
+  const certModuleIds = new Set(certs.map((c) => c.module_id))
+  return published.every((m) => certModuleIds.has(m.id))
+}
+
+/**
+ * Auto-issue the program-completion certificate if all published modules are
+ * certified and the program cert doesn't exist yet. Returns the cert or null.
+ */
+export async function ensureProgramCertificate(brokerId: string): Promise<TrainingCertificate | null> {
+  try {
+    const [modules, certs] = await Promise.all([fetchAllModulesIncludingHidden(), fetchCertificates(brokerId)])
+    if (!programModulesComplete(modules, certs)) return null
+    if (certs.some((c) => c.module_id === CBI_PROGRAM_MODULE_ID)) {
+      return certs.find((c) => c.module_id === CBI_PROGRAM_MODULE_ID) || null
+    }
+    const brokerName = (typeof window !== 'undefined' && window.localStorage.getItem('concord_broker_name')) || ''
+    const brokerEmail = (typeof window !== 'undefined' && window.localStorage.getItem('concord_broker_email')) || ''
+    const { authenticatedFetch } = await import('@/lib/authenticatedFetch')
+    const res = await authenticatedFetch('/api/certificates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        brokerId,
+        moduleId: CBI_PROGRAM_MODULE_ID,
+        moduleTitle: 'Business Intermediary Course Completion',
+        brokerName: brokerName || undefined,
+        brokerEmail: brokerEmail || undefined,
+      }),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (json.ok && json.certificate) return json.certificate as TrainingCertificate
+    return null
+  } catch (e) {
+    console.warn('ensureProgramCertificate failed (non-fatal):', e)
+    return null
+  }
+}

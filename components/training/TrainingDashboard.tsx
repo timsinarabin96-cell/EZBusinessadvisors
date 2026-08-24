@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   TrainingModule, TrainingProgress, TrainingCertificate, TrainingUpload,
-  fetchModules, fetchProgress, fetchCertificates, fetchUploads,
+  fetchModules, fetchProgress, fetchCertificates, fetchUploads, ensureProgramCertificate,
 } from '@/lib/training'
 import { Card, CardHeader, StatCard, LoadingState, EmptyState, Badge } from '@/components/ui'
 
@@ -14,6 +14,7 @@ export default function TrainingDashboard() {
   const [certs, setCerts] = useState<TrainingCertificate[]>([])
   const [uploads, setUploads] = useState<TrainingUpload[]>([])
   const [loading, setLoading] = useState(true)
+  const [programCert, setProgramCert] = useState<TrainingCertificate | null>(null)
 
   useEffect(() => {
     (async () => {
@@ -43,6 +44,11 @@ export default function TrainingDashboard() {
       setProgress(p)
       setCerts(c)
       setUploads(u)
+
+      // Auto-issue the full CBI program certificate when all 12 modules are
+      // certified — the “Business Intermediary Course Completion” award.
+      const prog = await safe(ensureProgramCertificate(getBrokerId()), null)
+      if (prog) setProgramCert(prog)
     })()
   }, [])
 
@@ -56,15 +62,50 @@ export default function TrainingDashboard() {
     <div>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26 }}>Training Center</h1>
+          <h1 style={{ margin: 0, fontSize: 26 }}>Training & Certification</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>
-            Master brokerage fundamentals, complete modules, earn certificates.
+            Certified Business Intermediary (CBI) Program — master brokerage fundamentals, complete all 12 modules, earn your course-completion certificate.
           </p>
         </div>
         <Link href="/dashboard/training/upload" className="btn" style={{ textDecoration: 'none' }}>
           + Upload Training Material
         </Link>
       </header>
+
+      {/* CBI Program banner — full-program progress + completion certificate */}
+      <Card style={{ marginBottom: 24, background: 'linear-gradient(120deg, #0f2038, #14294f)', border: 'none' }}>
+        <div style={{ padding: '22px 24px', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 44 }}>🏆</div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ color: 'var(--gold)', fontSize: 12, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+              Certified Business Intermediary
+            </div>
+            <div style={{ color: '#fff', fontSize: 20, fontWeight: 700, fontFamily: 'Georgia, serif', margin: '4px 0' }}>
+              {programCert ? 'Course Completion — Certificate Earned! 🎉' : 'Business Intermediary Course Completion'}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, maxWidth: 560 }}>
+              {programCert
+                ? 'Congratulations! Complete all 12 modules and you earned the full program certificate — downloadable with your name, agency, and logo.'
+                : `Earn your certificate by completing all ${modules.length} modules (${certs.length}/${modules.length} certified). Each module unlocks after its lessons and quiz are done.`}
+            </div>
+          </div>
+          <div style={{ minWidth: 200 }}>
+            {programCert ? (
+              <Link href="/dashboard/certificates" className="btn" style={{ textDecoration: 'none', background: 'var(--gold)', borderColor: 'var(--gold)', color: '#fff', width: '100%' }}>
+                🎓 View & Download Certificate
+              </Link>
+            ) : (
+              <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 10, padding: '12px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: 13, marginBottom: 6 }}>
+                  <span>Program progress</span>
+                  <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{certs.length}/{modules.length} modules</span>
+                </div>
+                <ProgressBar pct={modules.length ? Math.round((certs.length / modules.length) * 100) : 0} height={8} />
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14, marginBottom: 24 }}>

@@ -8,6 +8,8 @@ export type CertTemplate = 'gold' | 'navy' | 'ivory'
 // Certificate generation — renders an elegant, printable certificate and lets
 // the broker download it as a PNG, with a scannable QR verification code and
 // selectable templates. Pure DOM + canvas, no heavy runtime deps.
+// White-label aware: when agencyName/agencyLogo are provided they replace the
+// generic CONCORD wordmark (used by the CBI program completion certificate).
 
 const TEMPLATES: Record<CertTemplate, {
   label: string
@@ -25,7 +27,10 @@ const TEMPLATES: Record<CertTemplate, {
 
 export default function TrainingCertificate({
   brokerName = 'Broker',
-  moduleTitle = 'Business Brokerage Fundamentals',
+  agencyName,
+  agencyLogo,
+  courseTitle = 'Business Intermediary Course Completion',
+  moduleTitle,
   moduleId,
   issuedAt,
   verificationCode,
@@ -33,6 +38,9 @@ export default function TrainingCertificate({
   defaultTemplate = 'gold',
 }: {
   brokerName?: string
+  agencyName?: string | null
+  agencyLogo?: string | null
+  courseTitle?: string
   moduleTitle?: string
   moduleId?: string
   issuedAt?: string | null
@@ -44,6 +52,9 @@ export default function TrainingCertificate({
   const t = TEMPLATES[template]
   const date = issuedAt ? new Date(issuedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''
   const vUrl = verifyUrl || (verificationCode ? `https://ezbusinessadvisors.vercel.app/dashboard/certificates?code=${verificationCode}` : '')
+  const title = moduleTitle || courseTitle
+  const brand = (agencyName && agencyName.trim()) || 'CONCORD'
+  const brandLine = agencyName && agencyName.trim() ? 'B U S I N E S S   I N T E R M E D I A R Y' : 'D E A L   P L A T F O R M'
 
   const download = () => {
     const w = 1200, h = 850
@@ -68,52 +79,72 @@ export default function TrainingCertificate({
     ctx.strokeRect(56, 56, w - 112, h - 112)
 
     ctx.textAlign = 'center'
-    // header
-    ctx.fillStyle = t.header
-    ctx.font = '600 44px Georgia, serif'
-    ctx.fillText('CONCORD', w / 2, 170)
-    ctx.font = '14px Georgia, serif'
-    ctx.fillStyle = t.accent
-    ctx.fillText('D E A L   P L A T F O R M', w / 2, 200)
 
-    ctx.fillStyle = t.body
-    ctx.font = '20px Georgia, serif'
-    ctx.fillText('Certificate of Completion', w / 2, 300)
-    ctx.fillStyle = t.body
-    ctx.font = '18px Georgia, serif'
-    ctx.fillText('This is to certify that', w / 2, 360)
-    ctx.fillStyle = t.header
-    ctx.font = '700 42px Georgia, serif'
-    ctx.fillText(brokerName, w / 2, 430)
-    ctx.fillStyle = t.body
-    ctx.font = '18px Georgia, serif'
-    ctx.fillText('has successfully completed the module', w / 2, 480)
-    ctx.fillStyle = t.accent
-    ctx.font = '700 28px Georgia, serif'
-    ctx.fillText(moduleTitle, w / 2, 530)
-    ctx.fillStyle = t.body
-    ctx.font = '16px Georgia, serif'
-    ctx.fillText(`${moduleId ? `Module ${moduleId} · ` : ''}Issued ${date || '—'}`, w / 2, 580)
-    if (verificationCode) {
-      ctx.font = '13px Georgia, serif'
-      ctx.fillStyle = t.body
-      ctx.fillText(`Verify: ${verificationCode} · concord.deal`, w / 2, 608)
+    const drawTextBrand = (c: CanvasRenderingContext2D, b: string) => {
+      c.fillStyle = t.header
+      c.font = '600 44px Georgia, serif'
+      c.fillText(b.toUpperCase(), w / 2, 170)
+      c.font = '14px Georgia, serif'
+      c.fillStyle = t.accent
+      c.fillText(brandLine, w / 2, 200)
     }
 
-    // seal
-    const cx = w - 180, cy = h - 150
-    ctx.beginPath(); ctx.arc(cx, cy, 42, 0, Math.PI * 2)
-    ctx.fillStyle = t.border; ctx.fill()
-    ctx.fillStyle = '#fff'
-    ctx.font = '700 14px Georgia, serif'
-    ctx.fillText('CONCORD', cx, cy - 2)
-    ctx.font = '10px Georgia, serif'
-    ctx.fillText('CERTIFIED', cx, cy + 14)
+    const finishCert = (c: CanvasRenderingContext2D) => {
+      c.fillStyle = t.body
+      c.font = '20px Georgia, serif'
+      c.fillText('Certificate of Completion', w / 2, 300)
+      c.fillStyle = t.body
+      c.font = '18px Georgia, serif'
+      c.fillText('This is to certify that', w / 2, 360)
+      c.fillStyle = t.header
+      c.font = '700 42px Georgia, serif'
+      c.fillText(brokerName, w / 2, 430)
+      c.fillStyle = t.body
+      c.font = '18px Georgia, serif'
+      c.fillText('has successfully completed the course', w / 2, 480)
+      c.fillStyle = t.accent
+      c.font = '700 28px Georgia, serif'
+      c.fillText(title, w / 2, 530)
+      c.fillStyle = t.body
+      c.font = '16px Georgia, serif'
+      c.fillText(`${brand} · ${moduleId ? `Module ${moduleId} · ` : ''}Issued ${date || '—'}`, w / 2, 580)
+      if (verificationCode) {
+        c.font = '13px Georgia, serif'
+        c.fillStyle = t.body
+        c.fillText(`Verify: ${verificationCode} · concord.deal`, w / 2, 608)
+      }
 
-    const a = document.createElement('a')
-    a.href = canvas.toDataURL('image/png')
-    a.download = `concord-certificate-${(moduleId || template || 'module').toLowerCase()}.png`
-    a.click()
+      // seal
+      const cx = w - 180, cy = h - 150
+      c.beginPath(); c.arc(cx, cy, 42, 0, Math.PI * 2)
+      c.fillStyle = t.border; c.fill()
+      c.fillStyle = '#fff'
+      c.font = '700 14px Georgia, serif'
+      c.fillText('CERTIFIED', cx, cy - 2)
+      c.font = '10px Georgia, serif'
+      c.fillText('INTERMEDIARY', cx, cy + 14)
+
+      const a = document.createElement('a')
+      a.href = canvas.toDataURL('image/png')
+      a.download = `business-intermediary-certificate-${(moduleId || template || 'program').toLowerCase()}.png`
+      a.click()
+    }
+
+    if (agencyLogo) {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        const lw = Math.min(200, w * 0.22)
+        const lh = (img.height / img.width) * lw
+        ctx.drawImage(img, w / 2 - lw / 2, 96, lw, lh)
+        finishCert(ctx)
+      }
+      img.onerror = () => { drawTextBrand(ctx, brand); finishCert(ctx) }
+      img.src = agencyLogo
+    } else {
+      drawTextBrand(ctx, brand)
+      finishCert(ctx)
+    }
   }
 
   return (
@@ -144,11 +175,17 @@ export default function TrainingCertificate({
           borderRadius: 6, padding: '44px 40px', maxWidth: 680, margin: '0 auto 12px', position: 'relative',
         }}
       >
-        <div style={{ fontSize: 40, fontWeight: 700, fontFamily: 'Georgia, serif', color: t.header, letterSpacing: 2 }}>
-          CONCORD
-        </div>
-        <div style={{ fontSize: 12, letterSpacing: '0.35em', color: t.accent, marginTop: 2 }}>
-          DEAL PLATFORM
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          {agencyLogo && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={agencyLogo} alt="agency logo" style={{ maxHeight: 52, maxWidth: 180, objectFit: 'contain' }} />
+          )}
+          <div style={{ fontSize: agencyLogo ? 24 : 40, fontWeight: 700, fontFamily: 'Georgia, serif', color: t.header, letterSpacing: 2 }}>
+            {brand}
+          </div>
+          <div style={{ fontSize: 12, letterSpacing: '0.35em', color: t.accent, marginTop: 2 }}>
+            {brandLine}
+          </div>
         </div>
         <div style={{ height: 2, width: 90, background: t.border, margin: '16px auto' }} />
         <div style={{ fontSize: 18, color: t.body }}>Certificate of Completion</div>
@@ -156,10 +193,10 @@ export default function TrainingCertificate({
         <div style={{ fontSize: 32, fontWeight: 700, fontFamily: 'Georgia, serif', color: t.header, margin: '10px 0' }}>
           {brokerName}
         </div>
-        <div style={{ fontSize: 14, color: t.body, marginBottom: 8 }}>has completed</div>
-        <div style={{ fontSize: 21, fontWeight: 700, color: t.accent, fontFamily: 'Georgia, serif' }}>{moduleTitle}</div>
+        <div style={{ fontSize: 14, color: t.body, marginBottom: 8 }}>has successfully completed the course</div>
+        <div style={{ fontSize: 21, fontWeight: 700, color: t.accent, fontFamily: 'Georgia, serif' }}>{title}</div>
         <div style={{ fontSize: 13, color: t.body, marginTop: 22 }}>
-          {moduleId && `Module ${moduleId} · `}Issued {date || '—'}
+          {brand}{moduleId && ` · Module ${moduleId}`} · Issued {date || '—'}
         </div>
 
         {/* verification code + QR */}
@@ -186,7 +223,7 @@ export default function TrainingCertificate({
             alignItems: 'center', justifyContent: 'center', fontFamily: 'Georgia, serif',
           }}
         >
-          <span style={{ fontWeight: 700, fontSize: 12 }}>CONCORD</span>
+          <span style={{ fontWeight: 700, fontSize: 12 }}>CBI</span>
           <span style={{ fontSize: 8, letterSpacing: 1 }}>CERTIFIED</span>
         </div>
       </div>

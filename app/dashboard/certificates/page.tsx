@@ -30,22 +30,54 @@ export default function CertificatesPage() {
   const [code, setCode] = useState('')
   const [verify, setVerify] = useState<VerifiedResult | null>(null)
   const [checking, setChecking] = useState(false)
+  const [brokerName, setBrokerName] = useState('Broker')
+  const [agencyName, setAgencyName] = useState<string | null>(null)
+  const [agencyLogo, setAgencyLogo] = useState<string | null>(null)
 
   useEffect(() => {
     const id = window.localStorage.getItem('concord_broker_id')
     setBrokerId(id || null)
+    const storedName = (window.localStorage.getItem('concord_broker_name') || '').trim()
+    if (storedName) setBrokerName(storedName)
+    // White-label branding: agency name + logo for the certificate.
+    ;(async () => {
+      try {
+        const { fetchBrokerBrandContext } = await import('@/lib/branding')
+        const ctx = await fetchBrokerBrandContext()
+        if (ctx?.agencyName) setAgencyName(ctx.agencyName)
+        if (ctx?.agency?.logoUrl) setAgencyLogo(ctx.agency.logoUrl)
+      } catch { /* keep defaults */ }
+    })()
+    // Current user's real name from the auth profile.
+    ;(async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase/client')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user?.user_metadata?.full_name) setBrokerName(user.user_metadata.full_name)
+        else if (user?.email) setBrokerName(user.email.split('@')[0])
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user?.id).maybeSingle()
+        if (profile?.full_name) setBrokerName(profile.full_name)
+      } catch { /* keep fallback */ }
+    })()
   }, [])
 
   useEffect(() => {
     if (!brokerId) { setLoading(false); return }
-    (async () => {
+    ;(async () => {
       try {
-        const { fetchCertificates, fetchModules } = await import('@/lib/training')
+        const { fetchCertificates, fetchModules, ensureProgramCertificate } = await import('@/lib/training')
         const [c, m] = await Promise.all([fetchCertificates(brokerId), fetchModules()])
         setCerts(c as Cert[])
         const map: Record<string, string> = {}
         m.forEach((mod) => { map[mod.id] = mod.title })
         setModules(map)
+        // Auto-issue the full-program certificate when every module is done.
+        const prog = await ensureProgramCertificate(brokerId)
+        if (prog) {
+          setCerts((prev) =>
+            prev.some((x) => x.module_id === prog.module_id) ? prev : [prog as Cert, ...prev],
+          )
+        }
       } catch {
         /* empty */
       } finally {
@@ -86,8 +118,10 @@ export default function CertificatesPage() {
         certs.map((c) => (
           <TrainingCertificate
             key={c.id}
-            brokerName={brokerId ? '' : 'Broker'}
-            moduleTitle={modules[c.module_id] || 'Training Module'}
+            brokerName={brokerName}
+            agencyName={agencyName}
+            agencyLogo={agencyLogo}
+            moduleTitle={modules[c.module_id] || 'Business Intermediary Course Completion'}
             moduleId={c.module_id.slice(0, 8)}
             issuedAt={c.issued_at}
             verificationCode={c.verification_code}

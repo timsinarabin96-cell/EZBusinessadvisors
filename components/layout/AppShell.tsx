@@ -1,74 +1,86 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ToastProvider } from '@/components/ui/Toast'
 import SearchBar from '@/components/search/SearchBar'
 import AuthGuard from '@/components/auth/AuthGuard'
+import GuideBot from '@/components/public/GuideBot'
+import { supabase } from '@/lib/supabase/client'
+import { fetchBrokerBrandContext, fontCss } from '@/lib/branding'
 
-const NAV = [
-  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/dashboard/autopilot', label: 'Deal Autopilot', icon: '✨' },
-  { href: '/dashboard/intelligence', label: 'Intelligence Network', icon: '◇' },
-  { href: '/dashboard/calendar', label: 'Calendar', icon: '📅' },
-  { href: '/dashboard/command-center', label: 'Command Center', icon: '🎛️' },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: '📈' },
-  { href: '/pipeline', label: 'Deal Pipeline', icon: '🔄' },
-  { href: '/listings', label: 'Listings', icon: '🏢' },
-  { href: '/dashboard/listings/new', label: 'New Listing', icon: '➕' },
-  { href: '/dashboard/performance', label: 'Performance', icon: '🏆' },
-  { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️' },
-  { href: '/dashboard/hiring', label: 'Hiring', icon: '🤝' },
-  { href: '/dashboard/offer-lab', label: 'Offer Lab', icon: '🧪' },
-  { href: '/dashboard/loi', label: 'LOI Lab', icon: '📝' },
-  { href: '/dashboard/nda-requests', label: 'NDA Requests', icon: '🛡️' },
-  { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁' },
-  { href: '/dashboard/deal-twin', label: 'Deal Twin', icon: '💠' },
-  { href: '/dashboard/call-summaries', label: 'Call Summaries', icon: '🎧' },
-  { href: '/dashboard/readiness', label: 'Seller Readiness', icon: '🌱' },
-  { href: '/dashboard/referrals', label: 'Referrals', icon: '🎁' },
-  { href: '/dashboard/professionals', label: 'Professional Network', icon: '🤝' },
-  { href: '/dashboard/syndication', label: 'Syndication', icon: '🔗' },
-  { href: '/dashboard/deal-doctor', label: 'Deal Doctor', icon: '🩺' },
-  { href: '/dashboard/red-flags', label: 'Red Flags', icon: '🔎' },
-  { href: '/dashboard/visitor-intent', label: 'Visitor Intent', icon: '👀' },
-  { href: '/dashboard/nurture', label: 'Nurture Drips', icon: '💌' },
-  { href: '/dashboard/commissions', label: 'Commissions', icon: '💰' },
-  { href: '/dashboard/data-room-qa', label: 'Data Room Q&A', icon: '💬' },
-  { href: '/dashboard/negotiation', label: 'Negotiation', icon: '🧭' },
-  { href: '/dashboard/valuation', label: 'Valuation', icon: '📐' },
-  { href: '/dashboard/expiry', label: 'Listing Expiry', icon: '⏳' },
-  { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰' },
-  { href: '/dashboard/comps', label: 'Comps', icon: '📊' },
-  { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋' },
-  { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️' },
-  { href: '/dashboard/reminders', label: 'Call-Backs & Reminders', icon: '📞' },
-  { href: '/dashboard/communications', label: 'Communications', icon: '🗒️' },
-  { href: '/dashboard/email-templates', label: 'Email Templates', icon: '✉️' },
-  { href: '/dashboard/security', label: 'Security', icon: '🛂' },
-  { href: '/dashboard/watchlist', label: 'Deal Alerts', icon: '🔔' },
-  { href: '/dashboard/financial-files', label: 'Financial Files', icon: '🗂️' },
-  { href: '/recast', label: 'Financial Recast', icon: '📊' },
-  { href: '/cim', label: 'CIM Generator', icon: '📑' },
-  { href: '/bov', label: 'BOV Generator', icon: '⚖️' },
-  { href: '/leads', label: 'Lead Management', icon: '🎯' },
-  { href: '/dashboard/search', label: 'Search', icon: '🔍' },
-  { href: '/documents', label: 'Documents', icon: '📁' },
-  { href: '/due-diligence', label: 'Due Diligence', icon: '🔍' },
-  { href: '/dashboard/portal', label: 'Client Portal', icon: '👥' },
-  { href: '/agencies', label: 'Agency Admin', icon: '🏛️' },
-  { href: '/billing', label: 'Billing', icon: '💳' },
-  { href: '/sync', label: 'BizBuySell', icon: '🔄' },
-  { href: '/dashboard/social', label: 'Social Media', icon: '📣' },
-  { href: '/dashboard/newspaper', label: 'Weekly Newspaper', icon: '📰' },
-  { href: '/dashboard/training', label: 'Training', icon: '🎓' },
-  { href: '/dashboard/onboarding', label: 'Onboarding', icon: '🚀' },
-  { href: '/dashboard/certificates', label: 'Certificates', icon: '🏆' },
-  { href: '/dashboard/certified-brokers', label: 'Certified Brokers', icon: '🎖️' },
-  { href: '/dashboard/agents', label: 'Agents', icon: '🤖' },
-  { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️' },
-  { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
+// minRole: 'agent' (daily tools) → 'broker' (deal tools) → 'admin' (everything)
+type NavRole = 'agent' | 'broker' | 'admin'
+interface NavItem { href: string; label: string; icon: string; minRole: NavRole; group?: string }
+
+const NAV: NavItem[] = [
+  // ── OVERVIEW ──────────────────────────────────────────────
+  { href: '/dashboard', label: 'Dashboard', icon: '📊', minRole: 'agent', group: 'Overview' },
+  { href: '/dashboard/command-center', label: 'Command Center', icon: '🎛️', minRole: 'broker', group: 'Overview' },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: '📈', minRole: 'broker', group: 'Overview' },
+  { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋', minRole: 'agent', group: 'Overview' },
+  { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️', minRole: 'agent', group: 'Overview' },
+  { href: '/dashboard/performance', label: 'Performance', icon: '🏆', minRole: 'broker', group: 'Overview' },
+  // ── AI AUTOPILOT ──────────────────────────────────────────
+  { href: '/dashboard/autopilot', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot' },
+  { href: '/dashboard/intelligence', label: 'Intelligence Network', icon: '◇', minRole: 'broker', group: 'AI Autopilot' },
+  { href: '/dashboard/deal-twin', label: 'Deal Twin', icon: '💠', minRole: 'broker', group: 'AI Autopilot' },
+  { href: '/dashboard/deal-doctor', label: 'Deal Doctor', icon: '🩺', minRole: 'broker', group: 'AI Autopilot' },
+  { href: '/dashboard/call-summaries', label: 'Call Summaries', icon: '🎧', minRole: 'broker', group: 'AI Autopilot' },
+  { href: '/dashboard/data-room-qa', label: 'Data Room Q&A', icon: '💬', minRole: 'broker', group: 'AI Autopilot' },
+  { href: '/dashboard/visitor-intent', label: 'Visitor Intent', icon: '👀', minRole: 'broker', group: 'AI Autopilot' },
+  { href: '/dashboard/red-flags', label: 'Red Flags', icon: '🔎', minRole: 'broker', group: 'AI Autopilot' },
+  // ── DEALS & LISTINGS ──────────────────────────────────────
+  { href: '/pipeline', label: 'Deal Pipeline', icon: '🔄', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/listings', label: 'Listings', icon: '🏢', minRole: 'agent', group: 'Deals & Listings' },
+  { href: '/dashboard/listings/new', label: 'New Listing', icon: '➕', minRole: 'agent', group: 'Deals & Listings' },
+  { href: '/leads', label: 'Lead Management', icon: '🎯', minRole: 'agent', group: 'Deals & Listings' },
+  { href: '/dashboard/seller-leads', label: 'Seller Leads', icon: '🏷️', minRole: 'agent', group: 'Deals & Listings' },
+  { href: '/dashboard/loi', label: 'LOI Lab', icon: '📝', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/dashboard/offer-lab', label: 'Offer Lab', icon: '🧪', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/dashboard/negotiation', label: 'Negotiation', icon: '🧭', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/dashboard/nda-requests', label: 'NDA Requests', icon: '🛡️', minRole: 'agent', group: 'Deals & Listings' },
+  { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/dashboard/comps', label: 'Comps', icon: '📊', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/dashboard/readiness', label: 'Seller Readiness', icon: '🌱', minRole: 'broker', group: 'Deals & Listings' },
+  { href: '/dashboard/expiry', label: 'Listing Expiry', icon: '⏳', minRole: 'broker', group: 'Deals & Listings' },
+  // ── CLIENTS & DOCS ────────────────────────────────────────
+  { href: '/dashboard/portal', label: 'Client Portal', icon: '👥', minRole: 'broker', group: 'Clients & Docs' },
+  { href: '/dashboard/watchlist', label: 'Deal Alerts', icon: '🔔', minRole: 'agent', group: 'Clients & Docs' },
+  { href: '/dashboard/professionals', label: 'Professional Network', icon: '🤝', minRole: 'broker', group: 'Clients & Docs' },
+  { href: '/dashboard/referrals', label: 'Referrals', icon: '🎁', minRole: 'broker', group: 'Clients & Docs' },
+  { href: '/dashboard/search', label: 'Search', icon: '🔍', minRole: 'agent', group: 'Clients & Docs' },
+  { href: '/documents', label: 'Documents', icon: '📁', minRole: 'agent', group: 'Clients & Docs' },
+  { href: '/due-diligence', label: 'Due Diligence', icon: '🔍', minRole: 'broker', group: 'Clients & Docs' },
+  { href: '/dashboard/financial-files', label: 'Financial Files', icon: '🗂️', minRole: 'broker', group: 'Clients & Docs' },
+  { href: '/recast', label: 'Financial Recast', icon: '📊', minRole: 'broker', group: 'Clients & Docs' },
+  { href: '/cim', label: 'CIM Generator', icon: '📑', minRole: 'broker', group: 'Clients & Docs' },
+  { href: '/bov', label: 'BOV Generator', icon: '⚖️', minRole: 'broker', group: 'Clients & Docs' },
+  // ── MARKETING & GROWTH ────────────────────────────────────
+  { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️', minRole: 'broker', group: 'Marketing & Growth' },
+  { href: '/dashboard/social', label: 'Social Media', icon: '📣', minRole: 'broker', group: 'Marketing & Growth' },
+  { href: '/dashboard/newspaper', label: 'Weekly Newspaper', icon: '📰', minRole: 'broker', group: 'Marketing & Growth' },
+  { href: '/dashboard/nurture', label: 'Nurture Drips', icon: '💌', minRole: 'broker', group: 'Marketing & Growth' },
+  { href: '/dashboard/syndication', label: 'Syndication', icon: '🔗', minRole: 'broker', group: 'Marketing & Growth' },
+  { href: '/dashboard/email-templates', label: 'Email Templates', icon: '✉️', minRole: 'broker', group: 'Marketing & Growth' },
+  // ── TEAM & OFFICE ─────────────────────────────────────────
+  { href: '/dashboard/calendar', label: 'Calendar', icon: '📅', minRole: 'agent', group: 'Team & Office' },
+  { href: '/dashboard/communications', label: 'Communications', icon: '🗒️', minRole: 'agent', group: 'Team & Office' },
+  { href: '/dashboard/reminders', label: 'Call-Backs & Reminders', icon: '📞', minRole: 'agent', group: 'Team & Office' },
+  { href: '/dashboard/training', label: 'Training & Certification', icon: '🎓', minRole: 'agent', group: 'Team & Office' },
+  { href: '/dashboard/agents', label: 'Agents', icon: '🤖', minRole: 'admin', group: 'Team & Office' },
+  { href: '/dashboard/hiring', label: 'Hiring', icon: '🤝', minRole: 'admin', group: 'Team & Office' },
+  { href: '/dashboard/onboarding', label: 'Onboarding', icon: '🚀', minRole: 'admin', group: 'Team & Office' },
+  // ── ADMIN ─────────────────────────────────────────────────
+  { href: '/dashboard/commissions', label: 'Commissions', icon: '💰', minRole: 'admin', group: 'Admin' },
+  { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️', minRole: 'admin', group: 'Admin' },
+  { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰', minRole: 'broker', group: 'Admin' },
+  { href: '/dashboard/security', label: 'Security', icon: '🛂', minRole: 'admin', group: 'Admin' },
+  { href: '/agencies', label: 'Agency Admin', icon: '🏛️', minRole: 'admin', group: 'Admin' },
+  { href: '/billing', label: 'Billing', icon: '💳', minRole: 'admin', group: 'Admin' },
+  { href: '/dashboard/settings', label: 'Settings', icon: '⚙️', minRole: 'admin', group: 'Admin' },
 ]
 
 export default function AppShell({
@@ -80,6 +92,51 @@ export default function AppShell({
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
+  const [role, setRole] = useState<NavRole>('agent')
+  const [brand, setBrand] = useState<{ name: string | null; logo: string | null; primary: string; accent: string; font: string } | null>(null)
+
+  // Apply the agency's white-label brand to the CRM chrome (CSS vars).
+  useEffect(() => {
+    (async () => {
+      try {
+        const ctx = await fetchBrokerBrandContext()
+        if (ctx?.agency) {
+          const a = ctx.agency
+          setBrand({ name: ctx.agencyName, logo: a.logoUrl, primary: a.primaryColor, accent: a.accentColor, font: fontCss(a.font) })
+          const root = document.documentElement
+          root.style.setProperty('--navy', a.primaryColor)
+          root.style.setProperty('--navy-2', a.secondaryColor)
+          root.style.setProperty('--navy-3', a.secondaryColor)
+          root.style.setProperty('--gold', a.accentColor)
+          root.style.setProperty('--gold-light', a.accentColor)
+          root.style.setProperty('--gold-dark', a.accentColor)
+        }
+      } catch { /* keep defaults */ }
+    })()
+  }, [])
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const [{ data: profile }, { data: member }] = await Promise.all([
+          supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
+          supabase.from('agency_members').select('role, is_owner').eq('profile_id', user.id).order('is_owner', { ascending: false }).limit(1).maybeSingle(),
+        ])
+        if (profile?.role === 'super_admin') setIsPlatformAdmin(true)
+        // Resolve nav level: owner/admin → admin, broker → broker, else agent.
+        const m = member as { role?: string; is_owner?: boolean | null } | null
+        if (profile?.role === 'admin' || m?.is_owner || m?.role === 'admin') setRole('admin')
+        else if (profile?.role === 'broker' || m?.role === 'broker') setRole('broker')
+        else setRole('agent')
+      } catch { /* degrade */ }
+    })()
+  }, [])
+
+  const roleRank: Record<NavRole, number> = { agent: 0, broker: 1, admin: 2 }
+  const visibleNav = NAV.filter((item) => roleRank[item.minRole] <= roleRank[role])
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
 
@@ -119,47 +176,89 @@ export default function AppShell({
             transform: open ? 'translateX(0)' : undefined,
           }}
         >
-          {/* Brand */}
+          {/* Brand — white-label: agency logo + name, or fallback text */}
           <div style={{ padding: '26px 20px 20px', borderBottom: '1px solid rgba(201,168,76,0.3)' }}>
-            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'Georgia, serif', color: '#fff', letterSpacing: 0.5 }}>
-              CONCORD
-            </div>
+            {brand?.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={brand.logo} alt="agency logo" style={{ maxHeight: 40, maxWidth: '100%', marginBottom: 6, objectFit: 'contain' }} />
+            ) : (
+              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: brand?.font || 'Georgia, serif', color: '#fff', letterSpacing: 0.5 }}>
+                {brand?.name || 'EZ Business Advisors'}
+              </div>
+            )}
             <div style={{ fontSize: 11, letterSpacing: '0.28em', color: 'var(--gold-light)', textTransform: 'uppercase', marginTop: 2 }}>
-              Deal Platform
+              Broker CRM
             </div>
             <div style={{ height: 2, width: 40, background: 'var(--gold)', marginTop: 10 }} />
           </div>
 
           {/* Nav */}
           <nav style={{ flex: 1, padding: '14px 12px', overflowY: 'auto' }}>
-            {NAV.map((item) => {
-              const activeItem = isActive(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '11px 14px', marginBottom: 4, borderRadius: 8,
-                    textDecoration: 'none', fontSize: 14.5,
-                    fontFamily: 'Georgia, serif',
-                    color: activeItem ? '#fff' : 'rgba(255,255,255,0.65)',
-                    background: activeItem ? 'rgba(201,168,76,0.18)' : 'transparent',
-                    borderLeft: activeItem ? `3px solid var(--gold)` : '3px solid transparent',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <span style={{ fontSize: 17 }}>{item.icon}</span>
-                  {item.label}
-                </Link>
-              )
-            })}
+            {isPlatformAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '11px 14px', marginBottom: 8, borderRadius: 8,
+                  textDecoration: 'none', fontSize: 14.5,
+                  fontFamily: 'Georgia, serif',
+                  color: active === 'Admin' ? '#fff' : '#c9a84c',
+                  background: active === 'Admin' ? 'rgba(201,168,76,0.18)' : 'rgba(201,168,76,0.08)',
+                  borderLeft: active === 'Admin' ? '3px solid var(--gold)' : '3px solid transparent',
+                }}
+              >
+                <span style={{ fontSize: 17 }}>🛡️</span>
+                Platform Admin
+              </Link>
+            )}
+            {(() => {
+              const groups: { name: string; items: NavItem[] }[] = []
+              for (const item of visibleNav) {
+                const name = item.group || 'Other'
+                const g = groups.find((x) => x.name === name)
+                if (g) g.items.push(item)
+                else groups.push({ name, items: [item] })
+              }
+              return groups.map((g) => (
+                <div key={g.name} style={{ marginBottom: 14 }}>
+                  <div style={{
+                    fontSize: 10.5, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase',
+                    color: 'rgba(255,255,255,0.4)', padding: '6px 14px 6px', marginBottom: 2,
+                  }}>
+                    {g.name}
+                  </div>
+                  {g.items.map((item) => {
+                    const activeItem = isActive(item.href)
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setOpen(false)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '10px 14px', marginBottom: 3, borderRadius: 8,
+                          textDecoration: 'none', fontSize: 14,
+                          fontFamily: 'Georgia, serif',
+                          color: activeItem ? '#fff' : 'rgba(255,255,255,0.65)',
+                          background: activeItem ? 'rgba(201,168,76,0.18)' : 'transparent',
+                          borderLeft: activeItem ? `3px solid var(--gold)` : '3px solid transparent',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        <span style={{ fontSize: 16 }}>{item.icon}</span>
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+                </div>
+              ))
+            })()}
           </nav>
 
           {/* Footer */}
           <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(201,168,76,0.3)', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-            CONCORD · v1.0
+            EZ Business Advisors · v1.0
           </div>
         </aside>
 
@@ -176,6 +275,7 @@ export default function AppShell({
           </div>
         </main>
         </div>
+        <GuideBot mode="crm" />
       </ToastProvider>
     </AuthGuard>
   )
