@@ -24,6 +24,53 @@ export const DEFAULT_MILESTONES: { title: string; category: string }[] = [
   { title: 'Transition / training completed', category: 'transition' },
 ]
 
+// Per-stage checklist templates — brokers load the stage they're entering
+// and get the full item list for that phase with one click.
+export const STAGE_TEMPLATES: Record<string, { title: string; category: string }[]> = {
+  loi: [
+    { title: 'LOI signed', category: 'loi' },
+    { title: 'Earnest money deposit collected', category: 'loi' },
+    { title: 'Confidentiality (NDA) confirmed for buyer', category: 'loi' },
+    { title: 'Financing pre-qualification letter received', category: 'loi' },
+    { title: 'Timeline for diligence agreed', category: 'loi' },
+  ],
+  psa: [
+    { title: 'Purchase agreement (PSA) drafted', category: 'psa' },
+    { title: 'PSA reviewed by seller attorney', category: 'psa' },
+    { title: 'PSA signed by both parties', category: 'psa' },
+    { title: 'Deposit held in escrow', category: 'psa' },
+    { title: 'Closing date + price locked', category: 'psa' },
+  ],
+  diligence: [
+    { title: '3 years financials delivered', category: 'diligence' },
+    { title: 'Tax returns reviewed', category: 'diligence' },
+    { title: 'Lease assignment confirmed', category: 'diligence' },
+    { title: 'Equipment / FFE inventory verified', category: 'diligence' },
+    { title: 'Customer concentration review', category: 'diligence' },
+    { title: 'Liens / litigation search clean', category: 'diligence' },
+    { title: 'Due diligence completed', category: 'diligence' },
+  ],
+  escrow: [
+    { title: 'Escrow account opened', category: 'escrow' },
+    { title: 'Escrow funded', category: 'escrow' },
+    { title: 'Title / UCC search ordered', category: 'escrow' },
+    { title: 'Prorations agreed (rent, utilities)', category: 'escrow' },
+    { title: 'Closing statement drafted', category: 'escrow' },
+  ],
+  closing: [
+    { title: 'Closing documents signed', category: 'closing' },
+    { title: 'Bill of sale executed', category: 'closing' },
+    { title: 'Funds disbursed', category: 'closing' },
+    { title: 'Keys / access transferred', category: 'closing' },
+    { title: 'Licenses / permits transferred', category: 'closing' },
+  ],
+  transition: [
+    { title: 'Transition / training completed', category: 'transition' },
+    { title: 'Customer / vendor introductions made', category: 'transition' },
+    { title: 'Post-close 30-day check-in', category: 'transition' },
+  ],
+}
+
 export interface MilestoneInput {
   listing_id: string
   deal_id?: string | null
@@ -90,6 +137,47 @@ export async function seedMilestones(listingId: string): Promise<{ ok: boolean; 
   const { error } = await svc.from('deal_closing_milestones').insert(rows)
   if (error) return { ok: false, error: error.message }
   return { ok: true }
+}
+
+/** Load a per-stage checklist template into a listing's tracker (append). */
+export async function loadStageTemplate(listingId: string, stage: string): Promise<{ ok: boolean; error?: string; added?: number }> {
+  if (!svc) return { ok: false, error: 'Database is not configured' }
+  const { data: listing } = await svc.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+  if (!listing?.agency_id) return { ok: false, error: 'Listing not found' }
+
+  const template = STAGE_TEMPLATES[stage]
+  if (!template || template.length === 0) return { ok: false, error: 'Unknown stage template' }
+
+  // Skip items already on the tracker (same title).
+  const { data: existing } = await svc
+    .from('deal_closing_milestones')
+    .select('title')
+    .eq('listing_id', listingId)
+  const have = new Set((existing || []).map((m: any) => String(m.title).toLowerCase().trim()))
+
+  const { data: maxRow } = await svc
+    .from('deal_closing_milestones')
+    .select('sort_order')
+    .eq('listing_id', listingId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  let order = (maxRow?.sort_order ?? -1) + 1
+
+  const rows = template
+    .filter((m) => !have.has(m.title.toLowerCase().trim()))
+    .map((m) => ({
+      agency_id: listing.agency_id,
+      listing_id: listingId,
+      title: m.title,
+      category: m.category,
+      sort_order: order++,
+    }))
+
+  if (rows.length === 0) return { ok: true, added: 0 }
+  const { error } = await svc.from('deal_closing_milestones').insert(rows)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true, added: rows.length }
 }
 
 /** Complete / reopen / update a milestone. */

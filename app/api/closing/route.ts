@@ -9,6 +9,7 @@ import {
   upsertEscrow,
   fetchClosingTracker,
   listTrackedListings,
+  loadStageTemplate,
 } from '@/lib/closingTracker'
 
 export const runtime = 'nodejs'
@@ -67,6 +68,14 @@ export async function POST(req: NextRequest) {
     const result = await seedMilestones(body.listingId)
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
     return NextResponse.json({ ok: true })
+  }
+
+  if (body.action === 'template') {
+    const { data: listing } = await db.from('listings').select('agency_id').eq('id', body.listingId).maybeSingle()
+    if (!listing || listing.agency_id !== agencyId) return forbiddenResponse()
+    const result = await loadStageTemplate(body.listingId, String(body.stage || ''))
+    if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
+    return NextResponse.json({ ok: true, added: result.added })
   }
 
   if (body.action === 'milestone') {

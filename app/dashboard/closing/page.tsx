@@ -151,6 +151,22 @@ function ClosingTracker() {
     await loadTracker(selected)
   }
 
+  const loadTemplate = async (stage: string) => {
+    if (!selected) return
+    setBusy(true)
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch('/api/closing', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'template', listingId: selected, stage }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok || !data.ok) return toast(data.error || 'Could not load template', 'error')
+    toast(`Stage checklist added (${data.added ?? 0} items)`, 'success')
+    await loadTracker(selected)
+  }
+
   const addEscrow = async () => {
     if (!selected || !escrowForm.company.trim()) return
     setBusy(true)
@@ -237,7 +253,25 @@ function ClosingTracker() {
 
           {/* Milestones */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-            <h2 className="font-semibold mb-3">Milestones</h2>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <h2 className="font-semibold">Milestones</h2>
+              {/* Per-stage checklist templates — one click loads the stage's full checklist */}
+              {selected && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs text-gray-400 mr-1">Load stage:</span>
+                  {[['loi', 'LOI'], ['psa', 'PSA'], ['diligence', 'Diligence'], ['escrow', 'Escrow'], ['closing', 'Closing'], ['transition', 'Transition']].map(([id, label]) => (
+                    <button
+                      key={id}
+                      onClick={() => loadTemplate(id)}
+                      disabled={busy}
+                      className="text-xs border border-gray-200 rounded-full px-3 py-1 font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      + {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {milestones.length === 0 ? (
               <p className="text-gray-400 text-sm">No milestones yet.</p>
             ) : (
