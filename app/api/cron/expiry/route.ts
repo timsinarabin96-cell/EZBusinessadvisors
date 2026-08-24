@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { processExpirations } from '@/lib/listingExpiry'
+import { processExpirations, proposeRenewals } from '@/lib/listingExpiry'
 
 export const runtime = 'nodejs'
 
@@ -26,7 +26,9 @@ export async function POST(req: Request) {
   const results: Record<string, unknown>[] = []
   for (const agency of agencies || []) {
     const summary = await processExpirations(agency.id)
-    results.push({ agencyId: agency.id, ...summary })
+    // Auto-renewal machine: also fire renewal proposals for the 30-day window.
+    const renewals = await proposeRenewals(agency.id)
+    results.push({ agencyId: agency.id, ...summary, ...renewals })
   }
   return NextResponse.json({ ok: true, agencies: results.length, results })
 }

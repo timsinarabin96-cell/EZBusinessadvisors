@@ -82,6 +82,20 @@ function ExpiryTracker() {
     setExpiresAt('')
   }
 
+  const proposeRenewals = async () => {
+    setBusy(true)
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch('/api/renewals', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'propose', agencyId }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok || !data.ok) return toast(data.error || 'Could not send proposals', 'error')
+    toast(`Renewal proposals sent — ${data.proposed ?? 0} emailed, ${data.skipped ?? 0} skipped`, 'success')
+  }
+
   if (loading) return <LoadingState />
 
   return (
@@ -106,6 +120,14 @@ function ExpiryTracker() {
           </button>
           <button onClick={() => act('process')} disabled={busy} className="bg-gray-800 hover:bg-gray-900 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg">
             Run expiry check
+          </button>
+          <button
+            onClick={proposeRenewals}
+            disabled={busy}
+            className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
+            title="Email renewal proposals (refreshed valuation + one-click renew) for listings expiring in the next 30 days"
+          >
+            📬 Send renewal proposals
           </button>
         </div>
       </div>

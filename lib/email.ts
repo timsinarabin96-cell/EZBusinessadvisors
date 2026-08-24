@@ -46,6 +46,9 @@ export type EmailKind =
   | 'social_post_success'
   | 'social_post_failure'
   | 'due_diligence_reminder'
+  | 'renewal_proposal'
+  | 'renewal_renewed'
+  | 'captains_brief'
   | 'password_reset'
   | 'generic'
 
@@ -224,6 +227,44 @@ export const emailTemplates = {
     return { subject, html: shell(subject, body) }
   },
 
+  renewalProposal(opts: { businessName?: string; expiresAt?: string; daysLeft?: number; price?: number | null; valuationLow?: number | null; valuationHigh?: number | null; renewUrl?: string }) {
+    const subject = `⏳ ${opts.businessName || 'Your listing'} expires ${opts.daysLeft != null ? `in ${opts.daysLeft} days` : 'soon'} — renew proposal inside`
+    const body = `
+      <p>Your listing for <strong>${esc(opts.businessName || 'your business')}</strong> expires ${opts.expiresAt ? `on <strong>${esc(opts.expiresAt)}</strong>` : 'soon'}.</p>
+      <p>We've refreshed the numbers so you can decide with fresh data:</p>
+      <table style="font-size:14px;border-collapse:collapse;width:100%;">
+        ${opts.price != null ? row('Asking price', '$' + Math.round(opts.price).toLocaleString()) : ''}
+        ${opts.valuationLow != null && opts.valuationHigh != null ? row('Fresh valuation range', '$' + Math.round(opts.valuationLow).toLocaleString() + ' – $' + Math.round(opts.valuationHigh).toLocaleString()) : ''}
+        ${opts.daysLeft != null ? row('Days until expiry', String(opts.daysLeft)) : ''}
+      </table>
+      <p>Renew now to keep your listing live in front of qualified buyers. Renewal restarts the term and keeps all your documents, stats, and momentum.</p>`
+    return { subject, html: shell(subject, body, opts.renewUrl ? { label: '✅ Renew for 6 months', href: opts.renewUrl } : undefined) }
+  },
+
+  renewalRenewed(opts: { businessName?: string; expiresAt?: string }) {
+    const subject = `✅ ${opts.businessName || 'Your listing'} renewed`
+    const body = `
+      <p>Your listing for <strong>${esc(opts.businessName || 'your business')}</strong> has been renewed.</p>
+      ${opts.expiresAt ? `<p>The new term runs through <strong>${esc(opts.expiresAt)}</strong>.</p>` : ''}
+      <p>Thank you for continuing to market with us.</p>`
+    return { subject, html: shell(subject, body) }
+  },
+
+  captainsBrief(opts: { agencyName?: string; followUps?: string[]; expiring?: string[]; matches?: string[]; commissions?: string[]; briefUrl?: string }) {
+    const subject = `📬 Captain's Brief — ${opts.agencyName || 'your agency'} · ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`
+    const section = (title: string, items: string[] = []) =>
+      items.length
+        ? `<h3 style="margin:18px 0 6px;font-size:14px;color:#1a1a2e;">${title}</h3><ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.7;color:#333;">${items.map((i) => `<li>${i}</li>`).join('')}</ul>`
+        : ''
+    const body = `
+      <p>Your weekly one-page brief:</p>
+      ${section('🔥 Needs your attention', opts.followUps)}
+      ${section('⏳ Expiring listings', opts.expiring)}
+      ${section('🎯 Hot buyer matches', opts.matches)}
+      ${section('💰 Commission pipeline', opts.commissions)}`
+    return { subject, html: shell(subject, body, opts.briefUrl ? { label: 'Open dashboard', href: opts.briefUrl } : undefined) }
+  },
+
   generic(opts: { title: string; message: string }) {
     const subject = opts.title
     return { subject, html: shell(opts.title, `<p>${esc(opts.message)}</p>`) }
@@ -362,6 +403,9 @@ export async function notify(
     case 'social_post_success': built = emailTemplates.socialPostSuccess(payload); break
     case 'social_post_failure': built = emailTemplates.socialPostFailure(payload); break
     case 'due_diligence_reminder': built = emailTemplates.dueDiligenceReminder(payload); break
+    case 'renewal_proposal': built = emailTemplates.renewalProposal(payload); break
+    case 'renewal_renewed': built = emailTemplates.renewalRenewed(payload); break
+    case 'captains_brief': built = emailTemplates.captainsBrief(payload); break
     case 'password_reset': built = emailTemplates.passwordReset(); break
     case 'generic': built = emailTemplates.generic({ title: payload.title || 'Notification', message: payload.message || '' }); break
   }
