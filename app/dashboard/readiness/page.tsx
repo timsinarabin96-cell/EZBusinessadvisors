@@ -17,6 +17,26 @@ interface Snapshot {
   updated_at: string
 }
 
+interface Funnel {
+  totalListings: number
+  scored: number
+  ready: number
+  needsWork: number
+  active: number
+  inDeal: number
+  closed: number
+  avgScore: number | null
+  topBlockers: { item: string; count: number }[]
+}
+
+interface BlockingSummary {
+  listingId: string
+  score: number
+  blockers: string[]
+  summary: string
+  model: 'deterministic' | 'ai'
+}
+
 const COMPONENT_LABELS: Record<string, string> = {
   financials: 'Financial recast',
   cim: 'CIM generated',
@@ -46,6 +66,8 @@ function SellerReadiness() {
   const [listings, setListings] = useState<{ id: string; label: string }[]>([])
   const [selected, setSelected] = useState('')
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
+  const [funnel, setFunnel] = useState<Funnel | null>(null)
+  const [summary, setSummary] = useState<BlockingSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
 
@@ -61,6 +83,21 @@ function SellerReadiness() {
     const res = await fetch(`/api/intelligence/readiness?listingId=${listingId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setSnapshot(data.snapshot || null)
+    setSummary(null)
+  }, [])
+
+  const loadFunnel = useCallback(async (agencyId: string) => {
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch(`/api/intelligence/readiness?agencyId=${agencyId}&action=funnel`, { headers: { authorization: `Bearer ${token}` } })
+    const data = await res.json().catch(() => ({}))
+    setFunnel(data.funnel || null)
+  }, [])
+
+  const loadSummary = useCallback(async (listingId: string) => {
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch(`/api/intelligence/readiness?listingId=${listingId}&action=blocking`, { headers: { authorization: `Bearer ${token}` } })
+    const data = await res.json().catch(() => ({}))
+    if (data.ok && data.summary) setSummary(data.summary)
   }, [])
 
   useEffect(() => {
@@ -68,6 +105,7 @@ function SellerReadiness() {
       const ctx = await getAgencyContext()
       if (!ctx) { setLoading(false); return }
       await loadListings(ctx.agencyId)
+      await loadFunnel(ctx.agencyId)
       setLoading(false)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,6 +115,7 @@ function SellerReadiness() {
     setSelected(id)
     setLoading(true)
     await loadSnapshot(id)
+    if (snapshot) await loadSummary(id)
     setLoading(false)
   }
 
@@ -93,6 +132,7 @@ function SellerReadiness() {
     setBusy(false)
     if (!res.ok || !data.ok) return toast(data.error || 'Failed to compute readiness', 'error')
     setSnapshot(data.snapshot || null)
+    if (selected) await loadSummary(selected)
     toast('Readiness score updated', 'success')
   }
 
@@ -129,6 +169,59 @@ function SellerReadiness() {
           </button>
         </div>
       </div>
+
+      {/* Readiness-to-close funnel */}
+      {funnel && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <h2 className="font-semibold mb-1">🫙 Readiness-to-close funnel</h2>
+          <p className="text-xs text-gray-400 mb-4">Where your listings sit between score and sale — and what's blocking the pipeline.</p>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+            {[
+              { label: 'Listings', value: funnel.totalListings, color: '#64748b' },
+              { label: 'Scored', value: funnel.scored, color: '#3b82f6' },
+              { label: 'Ready (75+)', value: funnel.ready, color: '#22c55e' },
+              { label: 'Live on market', value: funnel.active, color: '#0ea5e9' },
+              { label: 'In a deal', value: funnel.inDeal, color: '#f59e0b' },
+              { label: 'Closed', value: funnel.closed, color: '#10b981' },
+            ].map((s) => (
+              <div key={s.label} className="rounded-lg border border-gray-100 bg-gray-50/60 p-3 text-center">
+                <div className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</div>
+                <div className="text-[11px] text-gray-500 uppercase tracking-wide mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Average readiness score</span>
+                <span className="font-semibold">{funnel.avgScore != null ? `${funnel.avgScore}/100` : '—'}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${Math.max(4, funnel.avgScore || 0)}%`, background: (funnel.avgScore || 0) >= 75 ? '#22c55e' : (funnel.avgScore || 0) >= 45 ? '#f59e0b' : '#ef4444' }} />
+              </div>
+              <div className="flex justify-between text-xs text-gray-400 mt-2">
+                <span>{funnel.needsWork} need work</span>
+                <span>{funnel.ready} market-ready</span>
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Top blockers across listings</div>
+              {funnel.topBlockers.length === 0 ? (
+                <p className="text-sm text-gray-400">No blockers — every scored listing is ready.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {funnel.topBlockers.map((b) => (
+                    <li key={b.item} className="flex items-center justify-between text-sm">
+                      <span className="text-amber-800">☐ {b.item}</span>
+                      <span className="text-xs text-gray-400 font-medium">{b.count} listing{b.count === 1 ? '' : 's'}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {!selected ? (
         <p className="text-gray-400 text-sm">Pick a listing to score its market readiness.</p>
@@ -183,6 +276,18 @@ function SellerReadiness() {
                   </li>
                 ))}
               </ul>
+            )}
+            {/* What's blocking — plain-language summary */}
+            {summary && (
+              <div className="mt-4 border-t border-gray-100 pt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">🧠 What's blocking this close</h3>
+                  {summary.model === 'ai' && (
+                    <span className="text-[10px] text-violet-600 bg-violet-50 border border-violet-100 rounded-full px-2 py-0.5">AI</span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-700 leading-relaxed">{summary.summary}</p>
+              </div>
             )}
           </div>
         </div>

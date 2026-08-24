@@ -88,3 +88,44 @@ test('seller readiness: dashboard page has picker, score, action items, estimate
   assert.match(page, /valuation_estimate/)
   assert.match(page, /sb-access-token/)
 })
+
+// --- New (audit A2): readiness-to-close funnel + "what's blocking" summary ---
+
+test('readiness funnel: aggregates listings → scored/ready/live/in-deal/closed + blockers', () => {
+  assert.match(lib, /export async function fetchReadinessFunnel/)
+  assert.match(lib, /totalListings/)
+  assert.match(lib, /needsWork/)
+  assert.match(lib, /topBlockers/)
+  assert.match(lib, /pending_sale/)
+  assert.match(lib, /under_contract/)
+  assert.match(lib, /seller_readiness.*select\('listing_id, readiness_score, action_items'\)/)
+  assert.match(lib, /readiness_score >= 75/)
+})
+
+test('readiness blocking summary: deterministic text with score-graded lead + next action', () => {
+  assert.match(lib, /export async function buildBlockingSummary/)
+  assert.match(lib, /BLOCKER_LINES/)
+  assert.match(lib, /buildDeterministicSummary/)
+  assert.match(lib, /Nothing is blocking this listing/)
+  assert.match(lib, /Start with/)
+  assert.match(lib, /completeWithDeepSeek/)
+  assert.match(lib, /model: 'deterministic'/)
+})
+
+test('readiness route: funnel + blocking actions wired, agency-gated', () => {
+  assert.match(route, /action.*funnel/)
+  assert.match(route, /action.*blocking/)
+  assert.match(route, /fetchReadinessFunnel/)
+  assert.match(route, /buildBlockingSummary/)
+  assert.match(route, /authenticated\.memberships\[0\]/)
+})
+
+test('readiness page: funnel panel + blocking summary card rendered', () => {
+  assert.match(page, /Readiness-to-close funnel/)
+  assert.match(page, /Top blockers across listings/)
+  assert.match(page, /What's blocking this close/)
+  assert.match(page, /action=funnel/)
+  assert.match(page, /action=blocking/)
+  assert.match(page, /avgScore/)
+  assert.match(page, /summary\.model === 'ai'/)
+})

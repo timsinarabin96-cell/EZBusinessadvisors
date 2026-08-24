@@ -9,6 +9,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
+import { completeWithDeepSeek } from './deepseek/client'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const svc =
@@ -47,6 +48,154 @@ export interface ReadinessResult {
 const clamp = (n: number, min = 0, max = 100) => Math.max(min, Math.min(max, Math.round(n)))
 
 const COMPLIANT_STATUSES = new Set(['approved', 'compliant', 'complete', 'passed'])
+
+// --- Funnel -------------------------------------------------------------------
+export interface ReadinessFunnel {
+  agencyId: string
+  totalListings: number
+  scored: number
+  ready: number            // scored >= 75
+  needsWork: number        // scored < 75
+  active: number           // live on market
+  inDeal: number           // pending_sale / under_contract
+  closed: number           // sold
+  avgScore: number | null
+  topBlockers: { item: string; count: number }[]
+}
+
+/**
+ * Agency-wide readiness-to-close funnel: how many listings are scored, market-
+ * ready, live, in a deal, and closed — plus the most common blockers.
+ */
+export async function fetchReadinessFunnel(agencyId: string): Promise<{ ok: boolean; error?: string; funnel?: ReadinessFunnel }> {
+  if (!svc) return { ok: false, error: 'Database is not configured' }
+  if (!agencyId) return { ok: false, error: 'agencyId is required' }
+
+  const [listingsRes, snapshotsRes] = await Promise.all([
+    svc.from('listings').select('id, status').eq('agency_id', agencyId),
+    svc.from('seller_readiness').select('listing_id, readiness_score, action_items').eq('agency_id', agencyId),
+  ])
+  if (listingsRes.error || snapshotsRes.error) {
+    return { ok: false, error: listingsRes.error?.message || snapshotsRes.error?.message || 'Failed to load funnel' }
+  }
+
+  const listings = (listingsRes.data || []) as { id: string; status: string }[]
+  const snapshots = (snapshotsRes.data || []) as { listing_id: string; readiness_score: number; action_items: string[] }[]
+  const byListing = new Map(snapshots.map((s) => [s.listing_id, s]))
+
+  let scored = 0
+  let ready = 0
+  let needsWork = 0
+  let active = 0
+  let inDeal = 0
+  let closed = 0
+  let scoreSum = 0
+  const blockerCount = new Map<string, number>()
+
+  for (const l of listings) {
+    const snap = byListing.get(l.id)
+    if (snap) {
+      scored += 1
+      scoreSum += snap.readiness_score
+      if (snap.readiness_score >= 75) ready += 1
+      else needsWork += 1
+      for (const item of snap.action_items || []) {
+        blockerCount.set(item, (blockerCount.get(item) || 0) + 1)
+      }
+    }
+    if (l.status === 'active') active += 1
+    if (l.status === 'pending_sale' || l.status === 'under_contract') inDeal += 1
+    if (l.status === 'sold') closed += 1
+  }
+
+  const topBlockers = [...blockerCount.entries()]
+    .map(([item, count]) => ({ item, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6)
+
+  const funnel: ReadinessFunnel = {
+    agencyId,
+    totalListings: listings.length,
+    scored,
+    ready,
+    needsWork,
+    active,
+    inDeal,
+    closed,
+    avgScore: scored > 0 ? Math.round(scoreSum / scored) : null,
+    topBlockers,
+  }
+  return { ok: true, funnel }
+}
+
+// --- "What's blocking" summary ------------------------------------------------
+export interface BlockingSummary {
+  listingId: string
+  score: number
+  blockers: string[]
+  summary: string
+  model: 'deterministic' | 'ai'
+}
+
+const BLOCKER_LINES: Record<string, string> = {
+  'Recast financials': 'financials have not been recast, so buyers have no clean earnings picture',
+  'Generate CIM': 'no CIM exists yet, which is the key selling document for buyers',
+  'Generate BOV': 'no BOV has been prepared to justify the asking price',
+  'Populate data room': 'the data room is empty, so serious buyers cannot start diligence',
+  'Set asking price': 'no asking price is set, so the listing cannot go to market',
+  'Get written seller approval': 'written seller approval is missing, which blocks going live',
+  'Complete compliance review': 'compliance review has not passed, which is required before listing',
+}
+
+/**
+ * Plain-language "what's blocking this listing from closing" summary.
+ * Deterministic by default; polished by DeepSeek when configured (silent fallback).
+ */
+export async function buildBlockingSummary(snapshot: ReadinessSnapshot): Promise<BlockingSummary> {
+  const blockers = (snapshot.action_items || []).filter(Boolean)
+  const summary = buildDeterministicSummary(snapshot.readiness_score, blockers)
+
+  if (blockers.length > 0 && process.env.DEEPSEEK_API_KEY) {
+    try {
+      const ai = await completeWithDeepSeek({
+        context: {
+          kind: 'support',
+          entityId: snapshot.listing_id,
+          text:
+            `Seller-readiness score ${snapshot.readiness_score}/100. Open blockers: ${blockers.join(', ')}. ` +
+            `Write 2-3 plain sentences telling the broker exactly what to fix first and why, as if advising a colleague.`,
+        },
+        message: 'Summarize what is blocking this listing from closing and what to fix first.',
+        system: 'You are a deal-readiness advisor for a business brokerage. Be concise, specific, and actionable.',
+        maxTokens: 200,
+      })
+      const polished = ai.text?.trim()
+      if (polished) return { listingId: snapshot.listing_id, score: snapshot.readiness_score, blockers, summary: polished, model: 'ai' }
+    } catch { /* fall back to deterministic */ }
+  }
+
+  return { listingId: snapshot.listing_id, score: snapshot.readiness_score, blockers, summary, model: 'deterministic' }
+}
+
+function buildDeterministicSummary(score: number, blockers: string[]): string {
+  if (blockers.length === 0) {
+    return 'Nothing is blocking this listing — it is fully ready for market. Get it live and start generating buyer interest.'
+  }
+  const top = blockers.slice(0, 3)
+  const lines = top.map((b) => BLOCKER_LINES[b] || `${b.toLowerCase()} is outstanding`)
+  const lead =
+    score >= 75
+      ? 'This listing is close to market-ready, but a few items are still blocking a clean close:'
+      : score >= 45
+        ? 'This listing is partially ready. The main blockers are:'
+        : 'This listing is not ready for market yet. The critical blockers are:'
+  const next = top[0]
+  const nextLine = BLOCKER_LINES[next]
+  const nextAction = nextLine
+    ? `Start with ${next.toLowerCase()} — ${nextLine}.`
+    : `Start with ${next.toLowerCase()}.`
+  return `${lead} ${lines.join(' ')} ${nextAction}`
+}
 
 /**
  * Compute (and persist) a seller-readiness snapshot for a listing.
