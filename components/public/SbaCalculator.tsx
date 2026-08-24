@@ -1,83 +1,107 @@
 'use client'
 
-import { useState } from 'react'
-import { fmt$ } from '@/lib/recast'
+import { useMemo, useState } from 'react'
 
-// SBA 7(a) affordability estimate — deterministic, zero tokens.
-// Assumptions: 10% down, 10-yr term, ~8.5% blended rate (SBA prime + margin).
-const DOWN_PCT = 0.10
-const TERM_YEARS = 10
-const RATE = 0.085
+// SBA 7(a) payment calculator + quick eligibility quiz.
+// Pure client-side math — no API needed. Shows realistic monthly payments
+// for a 10% down acquisition loan (10-year term, current SBA rate band).
 
-export default function SbaCalculator({ askingPrice }: { askingPrice: number | null }) {
-  const [downPct, setDownPct] = useState(15)
-  const [rate, setRate] = useState(8.5)
-  const [termYears, setTermYears] = useState(10)
+const RATE_LOW = 0.085
+const RATE_HIGH = 0.105
 
-  if (askingPrice == null || askingPrice <= 0) {
-    return (
-      <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: 16, fontSize: 13, color: '#777' }}>
-        SBA financing estimate available once the asking price is shared.
-      </div>
-    )
-  }
+const QUIZ = [
+  { q: 'Is your credit score roughly 680 or above?', hint: 'SBA lenders typically look for 680+.' },
+  { q: 'Can you put down ~10% of the purchase price?', hint: 'Plus a few months of working capital.' },
+  { q: 'Do you have 2+ years of relevant industry experience?', hint: 'Or a strong, documented transition plan.' },
+  { q: 'Is your debt-to-income ratio manageable?', hint: 'Total monthly debt payments under ~43% of income.' },
+  { q: 'Are you ready to run the business full-time?', hint: 'SBA loans require the buyer to be an owner-operator.' },
+]
 
-  const downPctActual = downPct / 100
-  const loanAmount = askingPrice * (1 - downPctActual)
-  const monthlyRate = rate / 100 / 12
-  const months = termYears * 12
-  const monthlyPayment =
-    monthlyRate === 0 ? loanAmount / months : (loanAmount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months))
-  const totalInterest = monthlyPayment * months - loanAmount
-  const downPayment = askingPrice * downPctActual
+export default function SbaCalculator() {
+  const [price, setPrice] = useState(500000)
+  const [answers, setAnswers] = useState<Record<number, boolean>>({})
+
+  const loanAmount = Math.max(0, price * 0.9)
+  const monthly = useMemo(() => {
+    // 10-year amortization (120 months), SBA 7(a) standard.
+    const n = 120
+    const low = (RATE_LOW / 12) * Math.pow(1 + RATE_LOW / 12, n) / (Math.pow(1 + RATE_LOW / 12, n) - 1) * loanAmount
+    const high = (RATE_HIGH / 12) * Math.pow(1 + RATE_HIGH / 12, n) / (Math.pow(1 + RATE_HIGH / 12, n) - 1) * loanAmount
+    return { low: Math.round(low), high: Math.round(high) }
+  }, [loanAmount])
+
+  const answeredCount = Object.keys(answers).length
+  const readyCount = QUIZ.filter((_, i) => answers[i]).length
+  const allAnswered = answeredCount === QUIZ.length
+  const ready = allAnswered && readyCount >= 4
+
+  const fmt$ = (n: number) => '$' + Math.round(n).toLocaleString('en-US')
 
   return (
-    <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: 16 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e', marginBottom: 4 }}>🏦 SBA 7(a) affordability estimate</div>
-      <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>Illustrative only — actual terms depend on lender approval.</div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 12 }}>
-        <div>
-          <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Down payment</div>
-          <select value={downPct} onChange={(e) => setDownPct(Number(e.target.value))} style={{ width: '100%', padding: '7px 9px', border: '1px solid #d8d2c2', borderRadius: 6, fontSize: 13, background: '#fff' }}>
-            <option value={10}>10%</option>
-            <option value={15}>15%</option>
-            <option value={20}>20%</option>
-            <option value={25}>25%</option>
-            <option value={30}>30%</option>
-          </select>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginBottom: 32 }}>
+      {/* Payment calculator */}
+      <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 24 }}>
+        <div style={{ fontSize: 13, color: '#0e7490', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>SBA 7(a) Payment Calculator</div>
+        <h3 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '8px 0 18px' }}>What would the monthly payment be?</h3>
+        <label style={{ fontSize: 13, color: '#666', fontWeight: 600 }}>Purchase price</label>
+        <input
+          type="range"
+          min={50000}
+          max={3000000}
+          step={25000}
+          value={price}
+          onChange={(e) => setPrice(Number(e.target.value))}
+          style={{ width: '100%', margin: '10px 0 6px' }}
+        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#1a1a2e', fontWeight: 800, marginBottom: 18 }}>
+          <span>{fmt$(price)}</span>
+          <span style={{ color: '#0e7490' }}>{fmt$(price * 0.1)} down (10%)</span>
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Rate</div>
-          <select value={rate} onChange={(e) => setRate(Number(e.target.value))} style={{ width: '100%', padding: '7px 9px', border: '1px solid #d8d2c2', borderRadius: 6, fontSize: 13, background: '#fff' }}>
-            <option value={7.5}>7.5%</option>
-            <option value={8.5}>8.5%</option>
-            <option value={9.5}>9.5%</option>
-            <option value={10.5}>10.5%</option>
-          </select>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 }}>Term</div>
-          <select value={termYears} onChange={(e) => setTermYears(Number(e.target.value))} style={{ width: '100%', padding: '7px 9px', border: '1px solid #d8d2c2', borderRadius: 6, fontSize: 13, background: '#fff' }}>
-            <option value={7}>7 yrs</option>
-            <option value={10}>10 yrs</option>
-            <option value={15}>15 yrs</option>
-          </select>
+        <div style={{ background: '#f8f6ef', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Estimated monthly payment</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#1a1a2e', marginTop: 4 }}>
+            {fmt$(monthly.low)}–{fmt$(monthly.high)}
+          </div>
+          <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
+            Loan of {fmt$(loanAmount)} · 10 years · 8.5–10.5% APR (current SBA band)
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Down payment</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e' }}>{fmt$(downPayment)}</div>
+      {/* Eligibility quiz */}
+      <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 24 }}>
+        <div style={{ fontSize: 13, color: '#0e7490', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Quick Eligibility Quiz</div>
+        <h3 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '8px 0 14px' }}>Are you SBA-ready?</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {QUIZ.map((item, i) => {
+            const val = answers[i]
+            return (
+              <button
+                key={item.q}
+                onClick={() => setAnswers((a) => ({ ...a, [i]: !a[i] }))}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
+                  padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                  background: val ? '#ecfdf5' : '#fff', border: `1px solid ${val ? '#22c55e' : '#ece8dc'}`,
+                }}
+              >
+                <span style={{ fontSize: 16 }}>{val ? '✅' : '⬜'}</span>
+                <span style={{ fontSize: 13.5, color: '#1a1a2e' }}>
+                  {item.q}
+                  <span style={{ display: 'block', fontSize: 11.5, color: '#999', marginTop: 2 }}>{item.hint}</span>
+                </span>
+              </button>
+            )
+          })}
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Est. monthly payment</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#c9a84c' }}>{fmt$(Math.round(monthlyPayment))}/mo</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Total interest</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a2e' }}>{fmt$(Math.round(totalInterest))}</div>
+        <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 8, background: '#f8f6ef', fontSize: 13.5 }}>
+          {!allAnswered ? (
+            <span style={{ color: '#666' }}>Answer all 5 to get your readiness verdict.</span>
+          ) : ready ? (
+            <span style={{ color: '#15803d', fontWeight: 700 }}>🎯 Likely SBA-ready — {readyCount}/5. Talk to a lender to confirm.</span>
+          ) : (
+            <span style={{ color: '#b45309', fontWeight: 700 }}>⚠️ Borderline ({readyCount}/5). A lender can tell you what to fix.</span>
+          )}
         </div>
       </div>
     </div>

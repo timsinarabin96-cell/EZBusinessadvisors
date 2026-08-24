@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchFinancingHubStats } from '@/lib/financing'
 import { fetchPublicProfessionals, PROFESSIONAL_LABELS, type DealProfessional } from '@/lib/professionals'
+import SbaCalculator from '@/components/public/SbaCalculator'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +47,9 @@ export default async function FinancingPage() {
         <Metric label="Typical down payment" value="10%" />
         <Metric label="Typical term" value="10 years" />
       </div>
+
+      {/* Payment calculator + eligibility quiz */}
+      <SbaCalculator />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 24, alignItems: 'start', marginBottom: 40 }}>
         <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 16, padding: 28, boxShadow: '0 10px 35px rgba(16,42,67,0.07)' }}>
