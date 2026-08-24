@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchSoldListings, type SoldListing } from '@/lib/marketplace'
+import SoldFilters from '@/components/public/SoldFilters'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,11 +49,7 @@ export default async function SoldListingsPage() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
-          {sold.map((s) => (
-            <SoldCard key={s.listing_id} sold={s} />
-          ))}
-        </div>
+        <SoldFilters sold={sold} />
       )}
 
       <div style={{ textAlign: 'center', marginTop: 48, background: '#1a1a2e', borderRadius: 14, padding: '40px 24px', color: '#fff' }}>
