@@ -13,9 +13,9 @@ export default function PublicFooter() {
           </p>
         </div>
 
-        <FooterCol title="For Buyers" links={[['Browse Listings', '/marketplace/listings'], ['How It Works', '/marketplace/buy'], ['Buyer Questionnaire', '/marketplace/buy'], ['Acquisition Financing', '/marketplace/buy']]} />
-        <FooterCol title="For Sellers" links={[['Sell a Business', '/marketplace/sell'], ['Business Valuation', '/marketplace/sell'], ['Reasons to Sell', '/marketplace/sell'], ['Listing Your Business', '/marketplace/sell']]} />
-        <FooterCol title="Company" links={[['Our Brokers', '/marketplace/brokers'], ['About Concord', '/marketplace/brokers'], ['Contact', '/marketplace/brokers']]} />
+        <FooterCol title="For Buyers" links={[['Browse Listings', '/marketplace/listings'], ['How It Works', '/marketplace/buy'], ['Buyer Questionnaire', '/marketplace/qualify'], ['Acquisition Financing', '/marketplace/financing'], ['Sale Comps', '/marketplace/comps'], ['Recently Sold', '/marketplace/sold']]} />
+        <FooterCol title="For Sellers" links={[['Sell a Business', '/marketplace/sell'], ['Business Valuation', '/marketplace/sell'], ['Reasons to Sell', '/marketplace/sell'], ['Listing Your Business', '/marketplace/sell'], ['Seller Guides', '/marketplace/guides/sellers']]} />
+        <FooterCol title="Company" links={[['Our Brokers', '/marketplace/brokers'], ['Certified Intermediaries', '/marketplace/certified'], ['About Concord', '/about'], ['Trust Center', '/marketplace/trust'], ['Insights & Guides', '/marketplace/insights'], ['Reviews', '/marketplace/reviews'], ['Careers', '/marketplace/careers'], ['Pricing', '/pricing'], ['Contact', '/contact']]} />
       </div>
       <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '18px 24px', fontSize: 12, color: 'rgba(255,255,255,0.4)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
