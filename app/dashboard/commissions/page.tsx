@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import MoneyInput from '@/components/ui/MoneyInput'
 
 interface Commission {
   id: string
@@ -88,7 +89,7 @@ function CommissionsApp() {
         agencyId,
         listingId: listingId || null,
         agentProfileId: agentProfileId || null,
-        amount: amount ? Number(amount) : null,
+        amount: amount ? Number(amount.replace(/[$,]/g, '')) : null,
         commissionPct: commissionPct ? Number(commissionPct) : null,
         notes: notes || null,
       }),
@@ -260,7 +261,7 @@ function CommissionsApp() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Listing ID" value={listingId} onChange={(e) => setListingId(e.target.value)} />
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Agent profile ID" value={agentProfileId} onChange={(e) => setAgentProfileId(e.target.value)} />
-          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Amount ($) *" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <MoneyInput value={amount} onChange={setAmount} />
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Commission %" type="number" value={commissionPct} onChange={(e) => setCommissionPct(e.target.value)} />
           <input className="border rounded-lg px-3 py-2 text-sm md:col-span-2" placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>

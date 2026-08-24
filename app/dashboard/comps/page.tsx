@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import MoneyInput from '@/components/ui/MoneyInput'
 
 interface Comp {
   id: string
@@ -86,10 +87,10 @@ function CompsDb() {
         business_name: form.business_name.trim(),
         industry: form.industry.trim() || null,
         location: form.location.trim() || null,
-        sale_price: form.sale_price ? Number(form.sale_price) : null,
-        revenue: form.revenue ? Number(form.revenue) : null,
-        sde: form.sde ? Number(form.sde) : null,
-        multiple: form.multiple ? Number(form.multiple) : null,
+        sale_price: form.sale_price ? Number(form.sale_price.replace(/[$,]/g, '')) : null,
+        revenue: form.revenue ? Number(form.revenue.replace(/[$,]/g, '')) : null,
+        sde: form.sde ? Number(form.sde.replace(/[$,]/g, '')) : null,
+        multiple: form.multiple ? Number(form.multiple.replace(/[$,]/g, '')) : null,
         sold_at: form.sold_at || null,
         notes: form.notes.trim() || null,
       }),
@@ -150,9 +151,9 @@ function CompsDb() {
           <input className="border rounded-lg px-3 py-2 text-sm col-span-2" placeholder="Business name *" value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} />
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} />
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
-          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Sale price ($)" type="number" value={form.sale_price} onChange={(e) => setForm({ ...form, sale_price: e.target.value })} />
-          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Revenue ($)" type="number" value={form.revenue} onChange={(e) => setForm({ ...form, revenue: e.target.value })} />
-          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="SDE ($)" type="number" value={form.sde} onChange={(e) => setForm({ ...form, sde: e.target.value })} />
+          <MoneyInput value={form.sale_price} onChange={(v) => setForm({ ...form, sale_price: v })} />
+          <MoneyInput value={form.revenue} onChange={(v) => setForm({ ...form, revenue: v })} />
+          <MoneyInput value={form.sde} onChange={(v) => setForm({ ...form, sde: v })} />
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Multiple (auto if blank)" type="number" step="0.01" value={form.multiple} onChange={(e) => setForm({ ...form, multiple: e.target.value })} />
           <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Sold date" type="date" value={form.sold_at} onChange={(e) => setForm({ ...form, sold_at: e.target.value })} />
           <input className="border rounded-lg px-3 py-2 text-sm col-span-2" placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
