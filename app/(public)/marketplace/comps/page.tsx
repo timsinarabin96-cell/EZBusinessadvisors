@@ -39,6 +39,12 @@ export default async function SoldCompsPage() {
           Anonymized sale multiples and prices from businesses we&apos;ve closed — by industry and state.
           Names and owners stay confidential, always. Use this to price your business or benchmark a deal.
         </p>
+        <a
+          href="/api/public/comps-report"
+          style={{ display: 'inline-block', marginTop: 20, background: 'linear-gradient(135deg, #c9a84c, #a8873a)', color: '#1a1a2e', fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 14, padding: '12px 26px', borderRadius: 8, textDecoration: 'none', boxShadow: '0 2px 6px rgba(201,168,76,0.3)' }}
+        >
+          ⬇ Download market report (PDF)
+        </a>
       </div>
 
       {totals.deals === 0 ? (
