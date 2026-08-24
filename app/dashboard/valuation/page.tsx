@@ -48,6 +48,16 @@ function ValuationEngine() {
   const [selected, setSelected] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [market, setMarket] = useState<{ deals: number; avgMultiple: number | null; avgPrice: number | null } | null>(null)
+
+  // Live market reference — anonymized sold-comps averages to compare against.
+  useEffect(() => {
+    import('@/lib/soldComps').then(({ buildSoldCompsReport }) =>
+      buildSoldCompsReport().then((r) =>
+        setMarket({ deals: r.totals.deals, avgMultiple: r.totals.avgMultiple, avgPrice: r.totals.avgSalePrice }),
+      ),
+    ).catch(() => {})
+  }, [])
 
   const load = useCallback(async (agency: string) => {
     const token = localStorage.getItem('sb-access-token') || ''
@@ -131,6 +141,33 @@ function ValuationEngine() {
           Range estimates from an SDE-multiple table (default 2.5–3.5× SDE) cross-checked against 0.8–1.2× revenue, with industry and margin adjustments.
         </p>
       </div>
+
+      {/* Market reference — compare against live sold-comps averages */}
+      {market && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="font-semibold">📊 Market reference</h2>
+              <p className="text-xs text-gray-500 mt-1">Live anonymized averages from closed sales — sanity-check your estimate against the market.</p>
+            </div>
+            <a href="/marketplace/pulse" className="text-xs text-blue-600 hover:underline">Full market pulse →</a>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+              <p className="text-xs text-gray-400">Avg sale multiple</p>
+              <p className="text-lg font-bold text-gray-800 mt-1">{market.avgMultiple != null ? `${market.avgMultiple.toFixed(2)}×` : '—'}</p>
+            </div>
+            <div className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+              <p className="text-xs text-gray-400">Avg sale price</p>
+              <p className="text-lg font-bold text-gray-800 mt-1">{market.avgPrice != null ? `$${Math.round(market.avgPrice).toLocaleString()}` : '—'}</p>
+            </div>
+            <div className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+              <p className="text-xs text-gray-400">Closed transactions</p>
+              <p className="text-lg font-bold text-gray-800 mt-1">{market.deals.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
         <h2 className="font-semibold mb-3">Estimate a listing</h2>
