@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Verify the caller manages the agency that owns the offer.
-  const { data: offer } = await db.from('deal_offers').select('agency_id').eq('id', offerId).maybeSingle()
+  const { data: offer } = await db.from('deal_offers').select('agency_id, listing_id').eq('id', offerId).maybeSingle()
   if (!offer) return NextResponse.json({ ok: false, error: 'Offer not found' }, { status: 404 })
   if (!canManageAgency(authenticated, offer.agency_id)) return forbiddenResponse()
 
@@ -48,5 +48,19 @@ export async function POST(req: NextRequest) {
   if (!result.ok || !result.draft) {
     return NextResponse.json({ ok: false, error: result.error || 'Generation failed' }, { status: 500 })
   }
+
+  // Auto-log to Communications so every negotiation round is on the deal's record.
+  try {
+    const { logCommunication } = await import('@/lib/communications')
+    await logCommunication({
+      agency_id: offer.agency_id,
+      listing_id: offer.listing_id || null,
+      channel: 'ai_strategy' as any,
+      direction: 'outbound',
+      outcome: 'other',
+      summary: `AI counter-offer strategy generated (${(result.draft as any).content?.variants?.length || 3} variants)${body?.instructions ? ' — with custom instructions' : ''}`,
+    })
+  } catch { /* logging is best-effort */ }
+
   return NextResponse.json({ ok: true, draft: result.draft })
 }
