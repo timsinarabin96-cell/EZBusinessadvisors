@@ -68,7 +68,7 @@ export default function DealIntelligenceDashboard() {
   )
 }
 
-function Metric({ label, value, color }: { label: string; value: number; color: string }) { return <div className="card" style={{ padding: 16 }}><div style={{ fontSize: 28, fontWeight: 900, color }}>{value}</div><div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>{label}</div></div> }
+function Metric({ label, value, color }: { label: string; value: number | string; color: string }) { return <div className="card" style={{ padding: 16 }}><div style={{ fontSize: 28, fontWeight: 900, color }}>{value}</div><div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 4 }}>{label}</div></div> }
 
 function PassportCard({ passport }: { passport: DealNetworkOverview['passports'][number] }) { return <div style={{ padding: 16, border: '1px solid #dce6ef', borderRadius: 12 }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><strong>Listing {passport.listing_id.slice(0, 8)}</strong><span style={{ fontSize: 11, color: '#0e7490', fontWeight: 800 }}>{passport.status}</span></div><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 14 }}><Score label="Verification" value={passport.verification_score} /><Score label="Liquidity" value={passport.liquidity_score} /><Score label="Financing" value={passport.financing_score} /><Score label="Documents" value={passport.documentation_score} /></div></div> }
 
