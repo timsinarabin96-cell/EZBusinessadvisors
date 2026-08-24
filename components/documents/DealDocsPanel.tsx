@@ -14,8 +14,12 @@ import SignaturePad from './SignaturePad'
 // buyer. Every doc is saved under the listing and audit-logged.
 // =============================================================================
 
-const SELLER_TEMPLATES = ['Marketing Agreement', 'Listing Agreement', 'LLC Resolution', 'Corporate Resolution', 'Property Addendum']
-const BUYER_TEMPLATES = ['Standard NDA', 'Buyer Profile', 'Due Diligence Checklist', 'Purchase Agreement']
+const SELLER_TEMPLATES = ['Marketing Agreement', 'Listing Agreement', 'Resolution', 'Property Addendum']
+const BUYER_TEMPLATES = ['NDA', 'Buyer Profile', 'Due Diligence', 'Purchase Agreement']
+
+// Match by fuzzy substring so agencies' own templates (e.g. "EZ Marketing Agreement 2026")
+// land in the right pack automatically.
+const tplMatches = (name: string, keys: string[]) => keys.some((k) => name.toLowerCase().includes(k.toLowerCase()))
 
 export default function DealDocsPanel({ listingId }: { listingId: string }) {
   const [listing, setListing] = useState<Listing | null>(null)
@@ -73,6 +77,8 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         asking_price: listing.asking_price ?? '',
         agency_name: me?.full_name || '',
         effective_date: new Date().toISOString().slice(0, 10),
+        listing_date: new Date().toISOString().slice(0, 10),
+        agreement_year: String(new Date().getFullYear()),
         resolution_date: new Date().toISOString().slice(0, 10),
         checklist_date: new Date().toISOString().slice(0, 10),
         profile_date: new Date().toISOString().slice(0, 10),
@@ -120,8 +126,8 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
 
   if (loading) return <div style={{ color: 'var(--muted)', padding: 24 }}>Loading deal docs…</div>
 
-  const sellerDocs = docs.filter((d) => SELLER_TEMPLATES.includes(templates.find((t) => t.id === d.template_id)?.name || ''))
-  const buyerDocs = docs.filter((d) => BUYER_TEMPLATES.includes(templates.find((t) => t.id === d.template_id)?.name || ''))
+  const sellerDocs = docs.filter((d) => tplMatches(templates.find((t) => t.id === d.template_id)?.name || '', SELLER_TEMPLATES))
+  const buyerDocs = docs.filter((d) => tplMatches(templates.find((t) => t.id === d.template_id)?.name || '', BUYER_TEMPLATES))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

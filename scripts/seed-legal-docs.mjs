@@ -1,9 +1,11 @@
 // =============================================================================
-// Seed the brokerage legal pack into document_templates
+// Seed the EZ Business Advisors legal pack into document_templates
 // Usage: node scripts/seed-legal-docs.mjs
-// Adds Boss's forms: Marketing Agreement, LLC Resolution, Corporate Resolution,
-// Buyer Profile, Due Diligence Checklist, Property Addendum (+ keeps the
-// existing NDA / Listing Agreement / Purchase Agreement). Idempotent.
+// Rebuilt from Boss's actual forms (2026-08-24 uploads):
+//   • 5_Documentation_Checklist.pdf
+//   • 6_Buyer_Forms_Overview_and_Guide.pdf
+// PA law (Commonwealth of Pennsylvania, Dauphin County). Multiple-owner
+// signature slots. Idempotent (fixed UUIDs + upsert).
 // =============================================================================
 import { readFile } from 'node:fs/promises'
 import { createClient } from '@supabase/supabase-js'
@@ -28,90 +30,341 @@ if (!url || !serviceKey) throw new Error('Supabase URL and service-role key are 
 
 const db = createClient(url, serviceKey, { auth: { persistSession: false } })
 
-// Fixed UUIDs so re-seeding is idempotent.
+// --- Shared PA-law preamble helpers ------------------------------------------
+const PA_DISCLOSURE = 'EZ Business Advisors LLC acts as a business broker and transaction intermediary only. Broker is NOT a real estate broker or real estate agent, attorney, accountant, or tax advisor. All parties are strongly encouraged to consult qualified legal, financial, and tax professionals. This Agreement is governed by the laws of the Commonwealth of Pennsylvania; venue shall lie exclusively in Dauphin County, Pennsylvania.'
+
 const TEMPLATES = [
+  // -------------------------------------------------------------------------
+  // SELLER PACK
+  // -------------------------------------------------------------------------
   {
     id: 'd0c00000-0001-4000-8000-000000000001',
     name: 'Marketing Agreement',
-    description: 'Exclusive engagement authorizing the broker to market and sell the business. Signed by broker and every seller.',
+    description: 'Exclusive engagement authorizing the broker to market and sell the business. Broker + every owner signs (multi-owner support).',
     category: 'Marketing Agreement',
     fields: [
       { key: 'business_name', label: 'Business Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
-      { key: 'seller_entity', label: 'Seller Entity', type: 'text', required: true, placeholder: 'e.g. ABC Holdings, LLC' },
+      { key: 'seller_entity', label: 'Seller Entity / Owner(s)', type: 'text', required: true, placeholder: 'e.g. John Smith & Jane Smith' },
+      { key: 'entity_type', label: 'Entity Type', type: 'select', required: true, options: ['LLC', 'Corporation', 'Sole Proprietorship', 'Partnership'], placeholder: '' },
       { key: 'asking_price', label: 'Asking Price', type: 'number', required: true, placeholder: '500000' },
       { key: 'commission_rate', label: 'Commission Rate %', type: 'number', required: true, placeholder: '10' },
       { key: 'term_months', label: 'Term (months)', type: 'number', required: true, placeholder: '12' },
       { key: 'exclusive', label: 'Exclusive', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
       { key: 'effective_date', label: 'Effective Date', type: 'date', required: true, placeholder: '' },
+      { key: 'listing_date', label: 'Listing Date (for expiry tracking)', type: 'date', required: true, placeholder: '' },
+      { key: 'agreement_year', label: 'Year (2025 / 2026 / 2027)', type: 'select', required: true, options: ['2025', '2026', '2027', '2028'], placeholder: '' },
       { key: 'agency_name', label: 'Agency Name', type: 'text', required: false, placeholder: 'Your brokerage' },
       { key: 'property_included', label: 'Real Property Included?', type: 'select', required: true, options: ['No', 'Yes — see Property Addendum'], placeholder: '' },
     ],
     parties: [
       { key: 'agent', label: 'Broker / Agency', role: 'agent' },
-      { key: 'seller', label: 'Seller', role: 'seller' },
-      { key: 'seller2', label: 'Co-Seller (if any)', role: 'seller' },
+      { key: 'seller1', label: 'Owner 1', role: 'seller' },
+      { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
+      { key: 'seller3', label: 'Owner 3 (if any)', role: 'seller' },
+      { key: 'seller4', label: 'Owner 4 (if any)', role: 'seller' },
     ],
-    body_template: 'MARKETING AGREEMENT\n\nEffective Date: {{effective_date}}\n\nThis Marketing Agreement (the "Agreement") is entered into by and between {{agency_name}} ("Broker") and {{seller_entity}} ("Seller") for the exclusive {{exclusive.toLowerCase() === "yes" ? "exclusive" : "non-exclusive"}} right to market and sell {{business_name}}.\n\nAsking Price: {{asking_price}}\nCommission Rate: {{commission_rate}}%\nTerm: {{term_months}} months\nReal Property Included: {{property_included}}\n\nIN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.',
+    body_template: `MARKETING AGREEMENT\n\nEffective Date: {{effective_date}} · Listing Date: {{listing_date}}\n\nThis Marketing Agreement ("Agreement") is entered into by and between {{agency_name}} ("Broker") and {{seller_entity}} ("Seller") for the {{exclusive.toLowerCase() === "yes" ? "exclusive" : "non-exclusive"}} right to market and sell {{business_name}} (a {{entity_type}}).\n\nAsking Price: {{asking_price}}\nCommission Rate: {{commission_rate}}%\nTerm: {{term_months}} months\nReal Property Included: {{property_included}}\n\nEach Owner executing below confirms their authority to bind the Seller and agrees to the terms of this Agreement. If more than four owners exist, additional signature pages are attached.\n\nIN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date in the year {{agreement_year}}.\n\n${PA_DISCLOSURE}`,
+  },
+  {
+    id: 'd0c00000-0007-4000-8000-000000000007',
+    name: 'Listing Agreement',
+    description: 'Seller engagement agreement for listing, marketing, and sale of the business. Multi-owner signature slots.',
+    category: 'Marketing Agreement',
+    fields: [
+      { key: 'seller_name', label: 'Seller Name(s)', type: 'text', required: true, placeholder: 'e.g. John Smith & Jane Smith' },
+      { key: 'business_name', label: 'Business Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
+      { key: 'listing_price', label: 'Listing Price', type: 'number', required: true, placeholder: '500000' },
+      { key: 'commission_rate', label: 'Commission Rate %', type: 'number', required: true, placeholder: '10' },
+      { key: 'effective_date', label: 'Effective Date', type: 'date', required: true, placeholder: '' },
+      { key: 'listing_date', label: 'Listing Date (for expiry tracking)', type: 'date', required: true, placeholder: '' },
+      { key: 'agreement_year', label: 'Year (2025 / 2026 / 2027)', type: 'select', required: true, options: ['2025', '2026', '2027', '2028'], placeholder: '' },
+      { key: 'agency_name', label: 'Agency Name', type: 'text', required: false, placeholder: 'Your brokerage' },
+    ],
+    parties: [
+      { key: 'agent', label: 'Broker / Agency', role: 'agent' },
+      { key: 'seller1', label: 'Owner 1', role: 'seller' },
+      { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
+      { key: 'seller3', label: 'Owner 3 (if any)', role: 'seller' },
+    ],
+    body_template: `LISTING AGREEMENT\n\nEffective Date: {{effective_date}} · Listing Date: {{listing_date}}\n\nSeller: {{seller_name}}\nBusiness: {{business_name}}\nListing Price: {{listing_price}}\nCommission Rate: {{commission_rate}}%\nBroker: {{agency_name}}\nYear: {{agreement_year}}\n\nEach Owner executing below authorizes the listing and sale of {{business_name}}. This listing expires {{term_months ? term_months + ' months after the Listing Date' : 'per the agreed term'}} unless renewed in writing.\n\n${PA_DISCLOSURE}`,
   },
   {
     id: 'd0c00000-0002-4000-8000-000000000002',
     name: 'LLC Resolution',
-    description: 'Member resolution authorizing the sale of the company or its assets. One signature slot per member.',
+    description: 'Member resolution authorizing the sale of the company or its assets — one signature slot per member.',
     category: 'Corporate Documents',
     fields: [
       { key: 'company_name', label: 'LLC Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
-      { key: 'state', label: 'State of Formation', type: 'text', required: true, placeholder: 'e.g. Texas' },
+      { key: 'state', label: 'State of Formation', type: 'text', required: true, placeholder: 'e.g. Pennsylvania' },
       { key: 'business_name', label: 'Business Being Sold', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
       { key: 'resolution_date', label: 'Resolution Date', type: 'date', required: true, placeholder: '' },
       { key: 'authorized_price', label: 'Authorized Minimum Price', type: 'number', required: true, placeholder: '500000' },
+      { key: 'sale_assets', label: 'Sale of', type: 'select', required: true, options: ['All assets', 'All membership interests', 'Substantially all assets'], placeholder: '' },
     ],
     parties: [
       { key: 'member1', label: 'Member 1', role: 'seller' },
       { key: 'member2', label: 'Member 2 (if any)', role: 'seller' },
       { key: 'member3', label: 'Member 3 (if any)', role: 'seller' },
+      { key: 'member4', label: 'Member 4 (if any)', role: 'seller' },
     ],
-    body_template: 'LLC MEMBER RESOLUTION\n\n{{company_name}}, a {{state}} limited liability company\n\nRESOLVED, that the members of {{company_name}} authorize the sale of {{business_name}} for no less than {{authorized_price}}, and authorize the managers to execute all necessary documents to effect the sale.\n\nAdopted: {{resolution_date}}',
+    body_template: `LLC MEMBER RESOLUTION\n\n{{company_name}}, a {{state}} limited liability company\n\nRESOLVED, that the members of {{company_name}} authorize the sale of {{sale_assets}} of {{business_name}} for no less than {{authorized_price}}, and authorize the managers to execute all necessary documents to effect the sale.\n\nEach member executing below confirms their membership and authority.\n\nAdopted: {{resolution_date}}\n\n${PA_DISCLOSURE}`,
   },
   {
     id: 'd0c00000-0003-4000-8000-000000000003',
-    name: 'Corporate Resolution',
-    description: 'Board of directors resolution authorizing the sale. One signature slot per director.',
+    name: 'Corporate Authorization Resolution',
+    description: 'Board resolution authorizing the sale — use when Seller is organized as a Corporation. Mirrors EZ Business Advisors form: authorized officer, meeting details, multi-officer + witness signatures.',
     category: 'Corporate Documents',
     fields: [
-      { key: 'company_name', label: 'Corporation Name', type: 'text', required: true, placeholder: 'e.g. ABC Corporation' },
-      { key: 'state', label: 'State of Incorporation', type: 'text', required: true, placeholder: 'e.g. Delaware' },
+      { key: 'company_name', label: 'Corporation Full Legal Name', type: 'text', required: true, placeholder: 'e.g. ABC Corporation' },
+      { key: 'state', label: 'State of Incorporation', type: 'text', required: true, placeholder: 'e.g. Pennsylvania' },
       { key: 'business_name', label: 'Business Being Sold', type: 'text', required: true, placeholder: 'e.g. ABC Corporation' },
-      { key: 'resolution_date', label: 'Resolution Date', type: 'date', required: true, placeholder: '' },
+      { key: 'authorized_officer', label: 'Authorized Officer Full Name', type: 'text', required: true, placeholder: 'e.g. Jane Doe' },
+      { key: 'officer_title', label: 'Officer Title', type: 'text', required: true, placeholder: 'e.g. President' },
+      { key: 'meeting_date', label: 'Meeting / Consent Date', type: 'date', required: true, placeholder: '' },
+      { key: 'meeting_county_state', label: 'County & State of Meeting', type: 'text', required: true, placeholder: 'e.g. Dauphin County, Pennsylvania' },
+      { key: 'authorized_person', label: 'Person Authorized to Act for Corporation', type: 'text', required: true, placeholder: 'e.g. John Smith' },
       { key: 'authorized_price', label: 'Authorized Minimum Price', type: 'number', required: true, placeholder: '500000' },
+      { key: 'sale_assets', label: 'Sale of', type: 'select', required: true, options: ['All assets', 'All stock', 'Substantially all assets'], placeholder: '' },
     ],
     parties: [
-      { key: 'director1', label: 'Director 1', role: 'seller' },
-      { key: 'director2', label: 'Director 2 (if any)', role: 'seller' },
-      { key: 'director3', label: 'Director 3 (if any)', role: 'seller' },
+      { key: 'officer1', label: 'Officer / Director 1', role: 'seller' },
+      { key: 'officer2', label: 'Officer / Director 2 (if any)', role: 'seller' },
+      { key: 'witness', label: 'Witness', role: 'custom' },
     ],
-    body_template: 'BOARD RESOLUTION\n\n{{company_name}}, a {{state}} corporation\n\nRESOLVED, that the Board of Directors of {{company_name}} authorizes the sale of {{business_name}} for no less than {{authorized_price}}, and authorizes the officers to execute all necessary documents to effect the sale.\n\nAdopted: {{resolution_date}}',
+    body_template: `CORPORATE AUTHORIZATION RESOLUTION
+
+Corporation Full Legal Name: {{company_name}} · State of Incorporation: {{state}}
+Authorized Officer: {{authorized_officer}} · Title: {{officer_title}}
+Meeting / Consent Date: {{meeting_date}} · County & State of Meeting: {{meeting_county_state}}
+Person Authorized to Act on Behalf of Corporation: {{authorized_person}}
+
+BOARD RESOLUTIONS
+
+The undersigned hereby certifies that {{company_name}} adopted the following resolutions at a duly held meeting of the Board of Directors, or by unanimous written consent of the Board, in accordance with the Corporation's governing documents and applicable Pennsylvania law:
+
+RESOLVED, that the authorized officer identified above is hereby empowered with full authority to:
+(a) Sell, transfer, and convey any or all assets, real and personal, of the Corporation, in connection with a business sale transaction of {{business_name}} ({{sale_assets}}) for no less than {{authorized_price}};
+(b) Execute the Exclusive Marketing & Listing Agreement with {{agency_name}} and any amendments thereto; and
+(c) Execute and deliver all agreements, contracts, deeds, bills of sale, and other documents reasonably necessary or appropriate to complete a business sale or transfer transaction.
+
+And, be it further RESOLVED, that this authorization shall remain effective and in full force while the Exclusive Marketing & Listing Agreement is in force, and may not be revoked, amended, or modified without the prior written consent of the Broker during such period, to the extent permitted by applicable law.
+
+IN WITNESS WHEREOF, the undersigned certifies that the foregoing resolutions were duly adopted and are in full force and effect as of the date signed below.
+
+${PA_DISCLOSURE}`,
+  },
+  {
+    id: 'd0c00000-000b-4000-8000-00000000000b',
+    name: 'LLC Authorization Resolution',
+    description: 'Member resolution authorizing the sale — use when Seller is organized as an LLC. Multi-member signature slots + witness.',
+    category: 'Corporate Documents',
+    fields: [
+      { key: 'company_name', label: 'LLC Full Legal Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
+      { key: 'state', label: 'State of Formation', type: 'text', required: true, placeholder: 'e.g. Pennsylvania' },
+      { key: 'business_name', label: 'Business Being Sold', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
+      { key: 'authorized_member', label: 'Authorized Member Full Name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+      { key: 'meeting_date', label: 'Consent / Meeting Date', type: 'date', required: true, placeholder: '' },
+      { key: 'meeting_county_state', label: 'County & State', type: 'text', required: true, placeholder: 'e.g. Dauphin County, Pennsylvania' },
+      { key: 'authorized_price', label: 'Authorized Minimum Price', type: 'number', required: true, placeholder: '500000' },
+      { key: 'sale_assets', label: 'Sale of', type: 'select', required: true, options: ['All assets', 'All membership interests', 'Substantially all assets'], placeholder: '' },
+    ],
+    parties: [
+      { key: 'member1', label: 'Member 1', role: 'seller' },
+      { key: 'member2', label: 'Member 2 (if any)', role: 'seller' },
+      { key: 'member3', label: 'Member 3 (if any)', role: 'seller' },
+      { key: 'member4', label: 'Member 4 (if any)', role: 'seller' },
+      { key: 'witness', label: 'Witness', role: 'custom' },
+    ],
+    body_template: `LLC AUTHORIZATION RESOLUTION
+
+LLC Full Legal Name: {{company_name}} · State of Formation: {{state}}
+Authorized Member: {{authorized_member}}
+Consent / Meeting Date: {{meeting_date}} · County & State: {{meeting_county_state}}
+
+MEMBER RESOLUTIONS
+
+The undersigned hereby certifies that {{company_name}} adopted the following resolutions by member consent in accordance with the LLC's operating agreement and applicable Pennsylvania law:
+
+RESOLVED, that the members authorize the sale of {{sale_assets}} of {{business_name}} for no less than {{authorized_price}}, and authorize the authorized member identified above to execute all agreements, contracts, deeds, bills of sale, and other documents reasonably necessary to complete the transaction, including the Exclusive Marketing & Listing Agreement.
+
+And, be it further RESOLVED, that this authorization shall remain effective while the Exclusive Marketing & Listing Agreement is in force, and may not be revoked without the prior written consent of the Broker, to the extent permitted by applicable law.
+
+IN WITNESS WHEREOF, the undersigned certifies that the foregoing resolutions were duly adopted and are in full force and effect as of the date signed below. Each member executing below confirms their membership and authority.
+
+${PA_DISCLOSURE}`,
+  },
+  {
+    id: 'd0c00000-0006-4000-8000-000000000006',
+    name: 'Property Addendum',
+    description: 'Addendum when the business is sold together with real property.',
+    category: 'Marketing Agreement',
+    fields: [
+      { key: 'business_name', label: 'Business Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true, placeholder: 'e.g. 123 Industrial Blvd, Harrisburg, PA' },
+      { key: 'property_value', label: 'Property Value', type: 'number', required: true, placeholder: '750000' },
+      { key: 'sale_type', label: 'Sale Type', type: 'select', required: true, options: ['Asset + Real Estate', 'Stock + Real Estate'], placeholder: '' },
+      { key: 'addendum_date', label: 'Date', type: 'date', required: true, placeholder: '' },
+    ],
+    parties: [
+      { key: 'seller1', label: 'Seller / Owner 1', role: 'seller' },
+      { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
+      { key: 'buyer', label: 'Buyer', role: 'buyer' },
+    ],
+    body_template: `PROPERTY ADDENDUM\n\nBusiness: {{business_name}}\nProperty: {{property_address}}\nProperty Value: {{property_value}}\nSale Type: {{sale_type}}\n\nThis addendum confirms the real property at the above address is included in the sale of {{business_name}}. Broker acts as transaction intermediary only and is not a real estate broker or agent; the parties should engage licensed real estate counsel regarding the property transfer.\n\nDate: {{addendum_date}}\n\n${PA_DISCLOSURE}`,
+  },
+  // -------------------------------------------------------------------------
+  // BUYER PACK
+  // -------------------------------------------------------------------------
+  {
+    id: 'd0c00000-0008-4000-8000-000000000008',
+    name: 'Confidentiality, Disclosure & Registration Agreement (NDA)',
+    description: 'Buyer NDA per EZ Business Advisors form — full 12-term confidentiality, conduct, procuring cause, PA governing law, electronic signature provisions.',
+    category: 'NDA',
+    fields: [
+      { key: 'prospect_name', label: 'Prospect Full Legal Name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+      { key: 'address', label: 'Address', type: 'text', required: false, placeholder: 'Street' },
+      { key: 'city', label: 'City', type: 'text', required: false, placeholder: 'Harrisburg' },
+      { key: 'state', label: 'State', type: 'text', required: false, placeholder: 'PA' },
+      { key: 'zip', label: 'ZIP', type: 'text', required: false, placeholder: '17112' },
+      { key: 'email', label: 'Email', type: 'text', required: true, placeholder: 'buyer@email.com' },
+      { key: 'driver_license_ein', label: 'Driver License No. / EIN', type: 'text', required: false, placeholder: '' },
+      { key: 'phone', label: 'Phone', type: 'text', required: false, placeholder: '(717) 555-0100' },
+      { key: 'cell', label: 'Cell', type: 'text', required: false, placeholder: '' },
+      { key: 'business_listing_id', label: 'Business Listing ID No.', type: 'text', required: false, placeholder: '' },
+      { key: 'business_category', label: 'Business Category', type: 'text', required: false, placeholder: 'e.g. Manufacturing' },
+      { key: 'effective_date', label: 'Effective Date', type: 'date', required: true, placeholder: '' },
+      { key: 'agency_name', label: 'Agency Name', type: 'text', required: false, placeholder: 'EZ Business Advisors LLC' },
+    ],
+    parties: [
+      { key: 'seller', label: 'Seller', role: 'seller' },
+      { key: 'buyer', label: 'Prospect / Buyer', role: 'buyer' },
+    ],
+    body_template: `CONFIDENTIALITY, DISCLOSURE & REGISTRATION AGREEMENT
+(Non-Disclosure Agreement)
+
+{{agency_name}} acts as a Transaction Broker / Intermediary only. Not a Real Estate Broker or Real Estate Agent.
+
+This Agreement is entered into by and between {{agency_name}} of Harrisburg, Pennsylvania ("Broker") and the undersigned Prospect, effective as of {{effective_date}}.
+
+PROSPECT INFORMATION
+Prospect Full Legal Name: {{prospect_name}} · Address: {{address}}, {{city}}, {{state}} {{zip}}
+Email: {{email}} · Driver's License No. / EIN: {{driver_license_ein}}
+Phone: {{phone}} · Cell: {{cell}}
+Business Listing ID No.: {{business_listing_id}} · Business Category: {{business_category}}
+
+TERMS AND CONDITIONS
+
+1. Confidential Information. Prospect acknowledges that Broker and/or Seller may disclose confidential and proprietary information concerning the Business ("Confidential Information"), including non-public financial data, customer lists, supplier relationships, operational data, and business plans, whether disclosed orally, in writing, or by any other means. Prospect shall not disclose, share, or use any Confidential Information for any purpose other than evaluating a potential acquisition, and shall not disclose Confidential Information to any third party except to attorneys, accountants, lenders, or advisors who agree in writing to maintain its confidentiality.
+
+2. Conduct. All communications regarding the Business Listing shall be conducted exclusively through Broker unless Broker gives prior written consent otherwise. Prospect shall not directly contact the Seller, Seller's employees, customers, suppliers, or visit the business premises without Broker's prior written permission. Broker earns its commission when: (a) Prospect is ready, willing, and able to purchase; (b) Prospect acquires any interest in the Business within the protected period; (c) Seller and Prospect enter a purchase contract; or (d) Prospect otherwise circumvents Broker's role.
+
+3. Information. All documents and information provided to Prospect are for review purposes only and remain the property of Seller. Prospect shall independently verify all information and may not rely on Broker for legal, financial, tax, or business advice. Prospect agrees to indemnify and hold Broker harmless from claims arising from Prospect's use or reliance on information received.
+
+4. Seller as Third-Party Beneficiary. Seller is an intended third-party beneficiary of this Agreement and may directly enforce the confidentiality and non-contact obligations contained herein.
+
+5. Representation — Transaction Broker. Broker acts solely as a transaction broker and intermediary and is NOT an exclusive agent for either Seller or Prospect, unless otherwise agreed in writing. Broker is a business broker only and is not a real estate broker or real estate agent.
+
+6. Advice. Prospect is strongly advised to consult with a licensed attorney, certified public accountant, and other qualified advisors before evaluating, negotiating, or completing the acquisition of any business.
+
+7. Procuring Cause. Prospect acknowledges Broker as the procuring cause of any transaction involving the Business during the term of this Agreement and any applicable protected period, to the extent established by the parties' signed agreements and applicable Pennsylvania law. For a period of two (2) years from the date of this Agreement, Prospect shall not deal directly with Seller with respect to the Business without Broker's prior written consent.
+
+8. Warranties. Prospect represents that all information provided is accurate and complete, that Prospect has sufficient financial capacity to evaluate and potentially complete a purchase, that Prospect has not filed for undisclosed bankruptcy, and that Prospect has not been convicted of any felony or disqualifying crime.
+
+9. No Waiver. Failure by either party to enforce any term of this Agreement in any instance shall not constitute a waiver of that party's right to enforce such term in any other instance.
+
+10. Governing Law; Venue. This Agreement is governed by the laws of the Commonwealth of Pennsylvania. Venue for all disputes shall lie exclusively in Dauphin County, Pennsylvania, unless otherwise required by applicable law.
+
+11. Attorneys' Fees. The prevailing party in any dispute arising out of this Agreement is entitled to an award of its reasonable attorneys' fees and costs, to the extent permitted by law.
+
+12. Copies and Electronic Signatures. Electronic signatures and electronically transmitted copies are valid and binding to the fullest extent permitted by Pennsylvania's Electronic Transactions Act, 73 P.S. § 2260.101 et seq.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+
+${PA_DISCLOSURE}`,
   },
   {
     id: 'd0c00000-0004-4000-8000-000000000004',
-    name: 'Buyer Profile',
-    description: 'Buyer qualification profile — filled by the buyer, reviewed by the broker.',
+    name: 'Buyer Profile Form',
+    description: 'Buyer qualification profile — personal info, business preferences, background, financials, assets & liabilities. Mirrors EZ Business Advisors form.',
     category: 'Buyer Documents',
     fields: [
-      { key: 'buyer_name', label: 'Buyer Full Name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
-      { key: 'buyer_entity', label: 'Buyer Entity (if any)', type: 'text', required: false, placeholder: 'e.g. Smith Holdings LLC' },
-      { key: 'industry_pref', label: 'Target Industries', type: 'text', required: true, placeholder: 'e.g. Manufacturing, distribution' },
-      { key: 'price_range_min', label: 'Budget Min ($)', type: 'number', required: true, placeholder: '200000' },
-      { key: 'price_range_max', label: 'Budget Max ($)', type: 'number', required: true, placeholder: '1000000' },
-      { key: 'experience', label: 'Industry Experience', type: 'textarea', required: true, placeholder: 'Describe relevant background' },
-      { key: 'funding', label: 'Funding Source', type: 'text', required: true, placeholder: 'e.g. SBA 7(a), cash, seller note' },
-      { key: 'timeline', label: 'Target Timeline', type: 'text', required: true, placeholder: 'e.g. 3-6 months' },
+      { key: 'last_name', label: 'Last Name', type: 'text', required: true, placeholder: 'e.g. Smith' },
+      { key: 'first_name', label: 'First Name', type: 'text', required: true, placeholder: 'e.g. John' },
+      { key: 'middle_initial', label: 'Middle Initial', type: 'text', required: false, placeholder: 'A' },
+      { key: 'spouse_name', label: 'Spouse / Partner\'s Name', type: 'text', required: false, placeholder: '' },
+      { key: 'address', label: 'Address', type: 'text', required: false, placeholder: 'Street' },
+      { key: 'city', label: 'City', type: 'text', required: false, placeholder: 'Harrisburg' },
+      { key: 'state', label: 'State', type: 'text', required: false, placeholder: 'PA' },
+      { key: 'zip', label: 'ZIP', type: 'text', required: false, placeholder: '17112' },
+      { key: 'phone', label: 'Phone', type: 'text', required: false, placeholder: '(717) 555-0100' },
+      { key: 'mobile', label: 'Mobile', type: 'text', required: false, placeholder: '(717) 555-0101' },
+      { key: 'email', label: 'Email', type: 'text', required: true, placeholder: 'buyer@email.com' },
+      { key: 'marital_status', label: 'Marital Status', type: 'select', required: true, options: ['Married', 'Single', 'Divorced'], placeholder: '' },
+      { key: 'currently_employed', label: 'Currently Employed', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
+      { key: 'relocating', label: 'Relocating', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
+      { key: 'business_preference', label: 'Type of Business Preferred (in order)', type: 'textarea', required: true, placeholder: 'e.g. 1) Manufacturing 2) Distribution' },
+      { key: 'location_preference', label: 'Location Preference — County / City', type: 'text', required: false, placeholder: 'e.g. Dauphin County, PA' },
+      { key: 'franchise_ok', label: 'Consider a Franchise?', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
+      { key: 'franchise_type', label: 'If yes, what type?', type: 'text', required: false, placeholder: '' },
+      { key: 'buy_timeline', label: 'When do you plan to buy?', type: 'text', required: true, placeholder: 'e.g. 3-6 months' },
+      { key: 'buy_obstacles', label: 'Issues preventing you from buying now?', type: 'textarea', required: false, placeholder: '' },
+      { key: 'education', label: 'Education', type: 'select', required: true, options: ['High School', 'Some College', 'Bachelor\'s Degree', 'Graduate Degree'], placeholder: '' },
+      { key: 'field_of_study', label: 'Field of Study / Major', type: 'text', required: false, placeholder: '' },
+      { key: 'owned_business', label: 'Have you owned a business?', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
+      { key: 'owned_business_type', label: 'If yes, what type?', type: 'text', required: false, placeholder: '' },
+      { key: 'present_occupation', label: 'Present Occupation / Business', type: 'text', required: true, placeholder: '' },
+      { key: 'annual_income', label: 'Current Annual Income ($)', type: 'number', required: false, placeholder: '150000' },
+      { key: 'previous_occupation', label: 'Previous Occupation / Business', type: 'text', required: false, placeholder: '' },
+      { key: 'other_decision_makers', label: 'Who else is involved in this decision?', type: 'text', required: false, placeholder: '' },
+      { key: 'down_payment', label: 'Amount Set Aside for Down Payment ($)', type: 'number', required: true, placeholder: '100000' },
+      { key: 'funds_available_when', label: 'When Will Funds Be Available?', type: 'text', required: true, placeholder: 'e.g. Immediately' },
+      { key: 'min_owner_benefit', label: 'Minimum Owner Benefit / EBITDA Required ($)', type: 'number', required: false, placeholder: '100000' },
+      { key: 'sba_qualified', label: 'Qualified for SBA Loan?', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
+      { key: 'down_payment_source', label: 'Source of Down Payment', type: 'text', required: true, placeholder: 'e.g. Personal Savings' },
+      { key: 'total_assets', label: 'Total Assets ($)', type: 'number', required: false, placeholder: '500000' },
+      { key: 'total_liabilities', label: 'Total Liabilities ($)', type: 'number', required: false, placeholder: '100000' },
       { key: 'profile_date', label: 'Profile Date', type: 'date', required: true, placeholder: '' },
     ],
     parties: [
       { key: 'buyer', label: 'Buyer', role: 'buyer' },
       { key: 'agent', label: 'Broker', role: 'agent' },
     ],
-    body_template: 'BUYER PROFILE\n\nDate: {{profile_date}}\n\nBuyer: {{buyer_name}} ({{buyer_entity}})\nTarget Industries: {{industry_pref}}\nBudget: {{price_range_min}} – {{price_range_max}}\nExperience: {{experience}}\nFunding: {{funding}}\nTimeline: {{timeline}}\n\nI confirm the information above is accurate and I am prepared to provide proof of funds upon request.',
+    body_template: `BUYER PROFILE FORM
+
+Date: {{profile_date}}
+
+PERSONAL INFORMATION
+Name: {{first_name}} {{middle_initial}} {{last_name}} · Spouse/Partner: {{spouse_name}}
+Address: {{address}}, {{city}}, {{state}} {{zip}}
+Phone: {{phone}} · Mobile: {{mobile}} · Email: {{email}}
+Marital Status: {{marital_status}} · Employed: {{currently_employed}} · Relocating: {{relocating}}
+
+BUSINESS PREFERENCES
+Type of Business Preferred: {{business_preference}}
+Location Preference: {{location_preference}}
+Franchise Considered: {{franchise_ok}}{{franchise_type ? ' — ' + franchise_type : ''}}
+Plan to Buy: {{buy_timeline}}
+Obstacles: {{buy_obstacles}}
+
+BACKGROUND
+Education: {{education}} · Field of Study: {{field_of_study}}
+Owned a Business: {{owned_business}}{{owned_business_type ? ' — ' + owned_business_type : ''}}
+Present Occupation: {{present_occupation}}
+Current Annual Income: \${{annual_income}} · Previous Occupation: {{previous_occupation}}
+Others in Decision: {{other_decision_makers}}
+
+FINANCIAL INFORMATION
+Down Payment Set Aside: \${{down_payment}} · Funds Available: {{funds_available_when}}
+Minimum Owner Benefit / EBITDA Required: \${{min_owner_benefit}}
+SBA Qualified: {{sba_qualified}} · Source of Down Payment: {{down_payment_source}}
+
+ASSETS & LIABILITIES
+Total Assets: \${{total_assets}} · Total Liabilities: \${{total_liabilities}}
+
+BUYER CERTIFICATION
+Buyer represents that all information provided herein is true and correct to the best of Buyer's knowledge. Buyer understands that providing false or misleading information may result in termination of the engagement and potential legal liability.
+
+${PA_DISCLOSURE}`,
   },
   {
     id: 'd0c00000-0005-4000-8000-000000000005',
@@ -127,25 +380,134 @@ const TEMPLATES = [
       { key: 'buyer', label: 'Buyer', role: 'buyer' },
       { key: 'seller', label: 'Seller', role: 'seller' },
     ],
-    body_template: 'DUE DILIGENCE CHECKLIST\n\nBusiness: {{business_name}}\nDate: {{checklist_date}}\nDiligence Period: {{diligence_days}} days\n\n1. Three years of tax returns and P&Ls\n2. Balance sheets (3 years)\n3. Lease agreement(s)\n4. FFE (furniture, fixtures, equipment) list\n5. Customer concentration report\n6. Employee roster + compensation\n7. Material contracts and licenses\n8. Real estate details (if included)\n9. Insurance policies\n10. Pending litigation / liabilities\n\nBoth parties acknowledge the above checklist governs the diligence period.',
+    body_template: `DUE DILIGENCE CHECKLIST\n\nBusiness: {{business_name}}\nDate: {{checklist_date}}\nDiligence Period: {{diligence_days}} days\n\n1. Last 3 years federal and state business income tax returns\n2. Year-end P&L statements (3 years) + current YTD P&L\n3. Year-end balance sheets (3 years) + current interim balance sheet\n4. Monthly sales reports (3 years)\n5. Lease(s) and/or deed for business premises\n6. Itemized FF&E list (furniture, fixtures, equipment) owned or to be transferred\n7. List of equipment borrowed or leased (with copies of leases; vehicles with make/model/year/mileage)\n8. Top five customers by revenue (confidential)\n9. Major suppliers and key supplier contracts\n10. Employee list (name, title, length of service, compensation — last 12 months, including owners)\n11. Major creditors and outstanding balances\n12. Contractual obligations to be assumed (franchise, distribution, employment, equipment leases, service agreements)\n13. Appraisals from the last 24 months (if any)\n\nBoth parties acknowledge the above checklist governs the diligence period.\n\n${PA_DISCLOSURE}`,
   },
+  // -------------------------------------------------------------------------
+  // SELLER DOCUMENTATION CHECKLIST (from Boss's actual form)
+  // -------------------------------------------------------------------------
   {
-    id: 'd0c00000-0006-4000-8000-000000000006',
-    name: 'Property Addendum',
-    description: 'Addendum when the business is sold together with real property.',
-    category: 'Marketing Agreement',
+    id: 'd0c00000-0009-4000-8000-000000000009',
+    name: 'Documentation Checklist (Seller Package)',
+    description: 'EZ Business Advisors Documentation Checklist — financial, facility, operations, and marketing materials the seller must provide before listing.',
+    category: 'Seller Documents',
     fields: [
       { key: 'business_name', label: 'Business Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
-      { key: 'property_address', label: 'Property Address', type: 'text', required: true, placeholder: 'e.g. 123 Industrial Blvd' },
-      { key: 'property_value', label: 'Property Value', type: 'number', required: true, placeholder: '750000' },
-      { key: 'sale_type', label: 'Sale Type', type: 'select', required: true, options: ['Asset + Real Estate', 'Stock + Real Estate'], placeholder: '' },
-      { key: 'addendum_date', label: 'Date', type: 'date', required: true, placeholder: '' },
+      { key: 'checklist_date', label: 'Date', type: 'date', required: true, placeholder: '' },
+      { key: 'advisor_name', label: 'Advisor / Broker Name', type: 'text', required: false, placeholder: 'Your name' },
+      { key: 'contact_phone', label: 'Contact Phone', type: 'text', required: false, placeholder: '(717) 555-0100' },
     ],
     parties: [
-      { key: 'seller', label: 'Seller', role: 'seller' },
+      { key: 'seller1', label: 'Owner 1', role: 'seller' },
+      { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
+      { key: 'agent', label: 'Broker / Advisor', role: 'agent' },
+    ],
+    body_template: `DOCUMENTATION CHECKLIST — SELLER PACKAGE\n\nBusiness: {{business_name}}\nDate: {{checklist_date}}\nAdvisor: {{advisor_name}} · {{contact_phone}}\n\nFINANCIAL DOCUMENTS\n■ Last 3 years of federal and state business income tax returns\n■ Year-end Profit & Loss Statements for the last 3 years\n■ Current year interim (year-to-date) P&L Statement\n■ Year-end Balance Sheets for the last 3 years + current interim Balance Sheet\n■ Monthly sales reports for the last 3 years\n■ Name, firm, phone, and email of your Accountant or CPA\n\nFACILITY DOCUMENTS\n■ Complete copy of current Lease(s) and/or Deed for business premises\n■ Complete itemized list of all Furniture, Fixtures, and Equipment (FF&E) owned outright or to be transferred — exclude personal items not for sale\n■ Separate list of equipment NOT owned by the business (borrowed or leased); include equipment leases; for vehicles: make/model/year/mileage\n■ Any appraisals for business property or equipment completed in the last 24 months\n\nBUSINESS OPERATIONS\n■ Top five (5) customers by revenue contribution (held strictly confidential)\n■ List of major suppliers and copies of key supplier contracts\n■ Complete employee list: name, title, length of service, compensation (last 12 months) — include the owner(s)\n■ List of all major creditors and outstanding balances\n■ Ongoing or upcoming contractual obligations to be assumed by Purchaser (franchise agreements, distribution rights, employment contracts, equipment leases, service agreements, etc.)\n\nMARKETING MATERIALS\n■ Current price lists\n■ Menus, service descriptions, or product offering information\n■ Franchise documents and contracts (if applicable)\n■ Company brochures, flyers, and marketing collateral\n■ Website URL(s), login credentials (for transfer), social media profiles\n■ Product catalogs or portfolios\n■ Any other information relevant to the business offering\n\nYour Business Listing Information (BLI) will be prepared from this material. Notify your Advisor of any pertinent omissions.\n\n${PA_DISCLOSURE}`,
+  },
+  {
+    id: 'd0c00000-000a-4000-8000-00000000000a',
+    name: 'Purchase Agreement',
+    description: 'Sale and purchase agreement between buyer and seller — multi-owner signature slots.',
+    category: 'Purchase Agreement',
+    fields: [
+      { key: 'buyer_name', label: 'Buyer Name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+      { key: 'seller_name', label: 'Seller Name(s)', type: 'text', required: true, placeholder: 'e.g. John Smith & Jane Smith' },
+      { key: 'business_name', label: 'Business Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
+      { key: 'purchase_price', label: 'Purchase Price', type: 'number', required: true, placeholder: '500000' },
+      { key: 'closing_date', label: 'Target Closing Date', type: 'date', required: true, placeholder: '' },
+    ],
+    parties: [
+      { key: 'seller1', label: 'Seller / Owner 1', role: 'seller' },
+      { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
       { key: 'buyer', label: 'Buyer', role: 'buyer' },
     ],
-    body_template: 'PROPERTY ADDENDUM\n\nBusiness: {{business_name}}\nProperty: {{property_address}}\nProperty Value: {{property_value}}\nSale Type: {{sale_type}}\n\nThis addendum confirms the real property at the above address is included in the sale of {{business_name}}.\n\nDate: {{addendum_date}}',
+    body_template: `PURCHASE AGREEMENT\n\nBusiness: {{business_name}}\nPurchase Price: {{purchase_price}}\nTarget Closing: {{closing_date}}\n\nBuyer: {{buyer_name}}\nSeller(s): {{seller_name}}\n\nEach Seller executing below confirms their authority to sell. Buyer confirms financial capacity.\n\n${PA_DISCLOSURE}`,
+  },
+  {
+    id: 'd0c00000-000c-4000-8000-00000000000c',
+    name: 'Seller Interview Form',
+    description: 'Complete seller questionnaire used to prepare the Business Listing Information (BLI). Mirrors EZ Business Advisors form. Multi-owner certification signatures.',
+    category: 'Seller Documents',
+    fields: [
+      { key: 'business_name', label: 'Business Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
+      { key: 'legal_entity_name', label: 'Legal Entity Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
+      { key: 'seller_name', label: 'Principal / Owner Name', type: 'text', required: true, placeholder: 'e.g. John Smith' },
+      { key: 'owner_address', label: 'Principal Home Address', type: 'text', required: false, placeholder: 'Street, City, State, ZIP' },
+      { key: 'best_phone', label: 'Best Contact Phone', type: 'text', required: false, placeholder: '(717) 555-0100' },
+      { key: 'reason_for_sale', label: 'Reason for Sale', type: 'textarea', required: false, placeholder: 'e.g. Retirement' },
+      { key: 'business_phone', label: 'Business Telephone', type: 'text', required: false, placeholder: '(717) 555-0199' },
+      { key: 'website', label: 'Website', type: 'text', required: false, placeholder: 'https://…' },
+      { key: 'hours', label: 'Hours of Operation', type: 'text', required: false, placeholder: 'e.g. M–F 9–5' },
+      { key: 'owner_hours_week', label: 'Hours Owner Works per Week', type: 'text', required: false, placeholder: 'e.g. 50' },
+      { key: 'years_established', label: 'Years Established', type: 'number', required: false, placeholder: '15' },
+      { key: 'years_ownership', label: 'Years Under Current Ownership', type: 'number', required: false, placeholder: '10' },
+      { key: 'org_type', label: 'Organization Type', type: 'select', required: true, options: ['LLC', 'Corporation', 'Sole Proprietorship', 'Partnership'], placeholder: '' },
+      { key: 'state_formed', label: 'State of Incorporation / Formation', type: 'text', required: false, placeholder: 'e.g. Pennsylvania' },
+      { key: 'relocatable', label: 'Is Business Relocatable?', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
+      { key: 'home_based', label: 'Home-Based?', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
+      { key: 'franchise', label: 'Franchise?', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
+      { key: 'employees_managers', label: 'Managers', type: 'number', required: false, placeholder: '2' },
+      { key: 'employees_full_time', label: 'Full-Time Employees', type: 'number', required: false, placeholder: '8' },
+      { key: 'employees_part_time', label: 'Part-Time Employees', type: 'number', required: false, placeholder: '3' },
+      { key: 'lawsuits', label: 'Lawsuits Existing or Pending?', type: 'select', required: true, options: ['No', 'Yes — explained below'], placeholder: '' },
+      { key: 'tax_liens', label: 'Tax Liens?', type: 'select', required: true, options: ['No', 'Yes — explained below'], placeholder: '' },
+      { key: 'legal_notes', label: 'If yes to either, please explain', type: 'textarea', required: false, placeholder: '' },
+      { key: 'skills_licenses', label: 'Skills / Licenses Required to Operate', type: 'text', required: false, placeholder: 'e.g. HVAC license' },
+      { key: 'business_category', label: 'Business Category', type: 'text', required: true, placeholder: 'e.g. Manufacturing' },
+      { key: 'sub_category', label: 'Business Sub-Category / Detail', type: 'text', required: false, placeholder: 'e.g. Precision machining' },
+      { key: 'business_description', label: 'Business Description', type: 'textarea', required: false, placeholder: '' },
+      { key: 'growth_opportunities', label: 'Potential Growth Opportunities', type: 'textarea', required: false, placeholder: '' },
+      { key: 'competitive_overview', label: 'Competitive Overview', type: 'textarea', required: false, placeholder: '' },
+      { key: 'general_location', label: 'General Location', type: 'text', required: false, placeholder: 'e.g. Harrisburg, PA' },
+      { key: 'facility_type', label: 'Facility Type', type: 'select', required: false, options: ['Office', 'Retail', 'Warehouse', 'Other'], placeholder: '' },
+      { key: 'building_type', label: 'Building Type', type: 'select', required: false, options: ['Own', 'Lease'], placeholder: '' },
+      { key: 'leasable_sqft', label: 'Leasable Square Feet', type: 'number', required: false, placeholder: '5000' },
+      { key: 'monthly_rent', label: 'Monthly Rent / Lease ($)', type: 'number', required: false, placeholder: '4000' },
+      { key: 'lease_expiration', label: 'Lease Expiration Date', type: 'date', required: false, placeholder: '' },
+      { key: 'interview_date', label: 'Interview Date', type: 'date', required: true, placeholder: '' },
+    ],
+    parties: [
+      { key: 'seller1', label: 'Owner 1', role: 'seller' },
+      { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
+      { key: 'agent', label: 'Broker / Advisor', role: 'agent' },
+    ],
+    body_template: `SELLER INTERVIEW FORM
+
+Business: {{business_name}} · Legal Entity: {{legal_entity_name}}
+Organization Type: {{org_type}} · State: {{state_formed}}
+Interview Date: {{interview_date}}
+
+SELLER INFORMATION
+Principal / Owner: {{seller_name}} · Address: {{owner_address}}
+Best Contact Phone: {{best_phone}}
+Reason for Sale: {{reason_for_sale}}
+
+BUSINESS DETAILS
+Business Telephone: {{business_phone}} · Website: {{website}} · Hours: {{hours}}
+Owner Works: {{owner_hours_week}} hrs/week · Established: {{years_established}} · Under Current Ownership: {{years_ownership}}
+Relocatable: {{relocatable}} · Home-Based: {{home_based}} · Franchise: {{franchise}}
+
+EMPLOYEES (Excluding Owner)
+Managers: {{employees_managers}} · Full Time: {{employees_full_time}} · Part Time: {{employees_part_time}}
+
+LEGAL & OPERATIONS
+Lawsuits: {{lawsuits}} · Tax Liens: {{tax_liens}}
+Explanation: {{legal_notes}}
+Skills / Licenses Required: {{skills_licenses}}
+Business Category: {{business_category}} · Sub-Category: {{sub_category}}
+
+BUSINESS PROFILE
+Description: {{business_description}}
+Growth Opportunities: {{growth_opportunities}}
+Competitive Overview: {{competitive_overview}}
+
+LOCATION
+General Location: {{general_location}} · Facility Type: {{facility_type}} · Building: {{building_type}}
+Leasable SqFt: {{leasable_sqft}} · Monthly Rent: \${{monthly_rent}} · Lease Expires: {{lease_expiration}}
+
+CERTIFICATION
+The above information has been provided by Seller and is believed to be true and correct to the best of Seller's knowledge. Broker makes no independent representation or warranty as to accuracy. By signing below, each Seller certifies the above.
+
+${PA_DISCLOSURE}`,
   },
 ]
 
@@ -168,5 +530,5 @@ if (error) throw new Error('template upsert failed: ' + error.message)
 const { data, error: qErr } = await db.from('document_templates').select('name, category').order('name')
 if (qErr) throw new Error('verify failed: ' + qErr.message)
 
-console.log('\n✅ LEGAL PACK SEEDED')
+console.log('\n✅ EZ LEGAL PACK SEEDED (PA LAW + MULTI-OWNER)')
 data.forEach((t) => console.log(`  • ${t.name} (${t.category})`))

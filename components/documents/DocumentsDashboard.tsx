@@ -11,6 +11,7 @@ import {
 } from '@/lib/documents'
 import DocumentRow from './DocumentRow'
 import UploadModal, { UploadTargetOption } from './UploadModal'
+import TemplateManager from './TemplateManager'
 
 export default function DocumentsDashboard() {
   const [groups, setGroups] = useState<DocumentGroup[]>([])
@@ -19,6 +20,7 @@ export default function DocumentsDashboard() {
   const [error, setError] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [targets, setTargets] = useState<UploadTargetOption[]>([])
+  const [view, setView] = useState<'files' | 'templates'>('files')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -93,18 +95,26 @@ export default function DocumentsDashboard() {
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
+            onClick={() => setView(view === 'files' ? 'templates' : 'files')}
+            style={{ padding: '8px 16px', background: view === 'templates' ? '#0f172a' : '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500, color: view === 'templates' ? '#fff' : '#334155' }}
+          >
+            🗂️ Legal Templates
+          </button>
+          <button
             onClick={load}
             disabled={loading}
             style={{ padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: 500, color: '#334155' }}
           >
             {loading ? 'Loading...' : '↻ Refresh'}
           </button>
-          <button
-            onClick={() => setShowUpload(true)}
-            style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
-          >
-            + Upload Document
-          </button>
+          {view === 'files' && (
+            <button
+              onClick={() => setShowUpload(true)}
+              style={{ padding: '10px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              + Upload Document
+            </button>
+          )}
         </div>
       </div>
 
@@ -118,6 +128,9 @@ export default function DocumentsDashboard() {
       )}
 
       {/* Layout: documents (left, 2/3) + activity (right, 1/3) */}
+      {view === 'templates' ? (
+        <TemplateManager />
+      ) : (
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', alignItems: 'start' }}>
         {/* Documents grouped by deal/listing */}
         <div>
@@ -183,6 +196,7 @@ export default function DocumentsDashboard() {
           )}
         </div>
       </div>
+      )}
 
       {/* Upload modal */}
       {showUpload && (
