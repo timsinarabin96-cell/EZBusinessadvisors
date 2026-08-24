@@ -64,6 +64,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️', minRole: 'broker', group: 'Marketing & Growth' },
   { href: '/dashboard/social', label: 'Social Media', icon: '📣', minRole: 'broker', group: 'Marketing & Growth' },
   { href: '/dashboard/newspaper', label: 'Weekly Newspaper', icon: '📰', minRole: 'broker', group: 'Marketing & Growth' },
+  { href: '/dashboard/blog', label: 'Blog & Insights', icon: '📝', minRole: 'broker', group: 'Marketing & Growth' },
   { href: '/dashboard/nurture', label: 'Nurture Drips', icon: '💌', minRole: 'broker', group: 'Marketing & Growth' },
   { href: '/dashboard/syndication', label: 'Syndication', icon: '🔗', minRole: 'broker', group: 'Marketing & Growth' },
   { href: '/dashboard/email-templates', label: 'Email Templates', icon: '✉️', minRole: 'broker', group: 'Marketing & Growth' },

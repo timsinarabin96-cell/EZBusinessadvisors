@@ -1,65 +1,18 @@
 import Link from 'next/link'
+import { listPublishedPosts } from '@/lib/blog'
 
-// Insights — SEO content hub: guides, market notes, and how-tos for buyers and
-// sellers. Server component; articles are static content for now.
-
-const posts = [
-  {
-    slug: 'business-valuation-guide',
-    category: 'Valuation',
-    read: '8 min',
-    title: 'How to Value a Business: The Broker\'s Complete Guide',
-    excerpt: 'SDE vs EBITDA, market multiples, and the three methods every serious valuation triangulates. What your business is really worth — and why.',
-    date: '2026-08-18',
-  },
-  {
-    slug: 'sba-loan-guide',
-    category: 'Financing',
-    read: '10 min',
-    title: 'SBA 7(a) in 2026: The Buyer\'s Playbook',
-    excerpt: 'Down payments, credit requirements, DSCR, and how to structure a deal the bank will actually fund. The definitive Main Street financing guide.',
-    date: '2026-08-12',
-  },
-  {
-    slug: 'recast-explained',
-    category: 'Financials',
-    read: '6 min',
-    title: 'Recast Financials Explained: Add-Backs Without the Spin',
-    excerpt: 'Why owners understate profit, which add-backs are legitimate, and how a defensible recast closes deals (and an inflated one kills them).',
-    date: '2026-08-05',
-  },
-  {
-    slug: 'buyer-qualification',
-    category: 'Process',
-    read: '7 min',
-    title: 'The Three-Axis Buyer Qualification Test',
-    excerpt: 'Capacity, capability, commitment. How professional brokers separate serious buyers from tire-kickers — before anyone sees a CIM.',
-    date: '2026-07-28',
-  },
-  {
-    slug: 'seller-timeline',
-    category: 'Selling',
-    read: '5 min',
-    title: 'How Long Does Selling a Business Really Take?',
-    excerpt: 'The honest timeline: valuation to listing, LOI to diligence, diligence to close. And the three places deals get stuck (plus fixes).',
-    date: '2026-07-20',
-  },
-  {
-    slug: 'confidentiality-nda',
-    category: 'Process',
-    read: '5 min',
-    title: 'Why the NDA Comes First — Every Time',
-    excerpt: 'One leaked name can kill a sale, spook employees, and cost a seller their business. The confidentiality discipline that protects everyone.',
-    date: '2026-07-14',
-  },
-]
+// Insights — SEO content hub powered by the blog engine (audit Part C #1).
+// Server component: renders published posts from the engine (curated seed set
+// until brokers publish their own). Never empty.
 
 export const metadata = {
   title: 'Insights & Guides — Business Brokerage Knowledge',
   description: 'Valuation guides, SBA financing playbooks, recast tutorials, and selling advice from certified business intermediaries.',
 }
 
-export default function InsightsPage() {
+export default async function InsightsPage() {
+  const posts = await listPublishedPosts()
+
   return (
     <main style={{ background: '#f4f7fb', minHeight: '100vh' }}>
       {/* Hero */}
@@ -100,11 +53,11 @@ export default function InsightsPage() {
             Get a free, confidential valuation — or talk to a certified intermediary about buying or selling.
           </p>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/marketplace/sell" style={{ background: '#0e7490', color: '#fff', padding: '12px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
-              Get a free valuation
+            <Link href="/marketplace/sell" style={{ background: '#0e7490', color: '#fff', padding: '11px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+              Get your free valuation →
             </Link>
-            <Link href="/marketplace/certified" style={{ border: '1px solid #0e7490', color: '#0e7490', padding: '12px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
-              Meet certified intermediaries
+            <Link href="/marketplace/listings" style={{ border: '1px solid #0e7490', color: '#0e7490', padding: '11px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+              Browse businesses for sale
             </Link>
           </div>
         </div>
