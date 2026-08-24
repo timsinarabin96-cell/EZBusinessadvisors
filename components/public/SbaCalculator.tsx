@@ -17,8 +17,8 @@ const QUIZ = [
   { q: 'Are you ready to run the business full-time?', hint: 'SBA loans require the buyer to be an owner-operator.' },
 ]
 
-export default function SbaCalculator() {
-  const [price, setPrice] = useState(500000)
+export default function SbaCalculator({ askingPrice }: { askingPrice?: number | null }) {
+  const [price, setPrice] = useState(askingPrice && askingPrice > 0 ? askingPrice : 500000)
   const [answers, setAnswers] = useState<Record<number, boolean>>({})
 
   const loanAmount = Math.max(0, price * 0.9)
