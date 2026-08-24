@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { fetchPublicProfessional, PROFESSIONAL_LABELS } from '@/lib/professionals'
 import { createServerClient } from '@/lib/supabase/server'
+import { getBrokerVideo } from '@/lib/brokerVideos'
+import ListingVideo from '@/components/listings/ListingVideo'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
 
@@ -32,6 +34,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 export default async function ProfessionalProfilePage({ params }: { params: { id: string } }) {
   const pro = await getProfessional(params.id)
   if (!pro) notFound()
+
+  // Broker intro video (Part D #6) — DDL-free, stored in platform_settings.
+  const videoUrl = await getBrokerVideo(params.id).catch(() => null)
 
   const label = PROFESSIONAL_LABELS[pro.professional_type as keyof typeof PROFESSIONAL_LABELS] || 'Deal Professional'
   const jsonLd = {
@@ -73,6 +78,14 @@ export default async function ProfessionalProfilePage({ params }: { params: { id
         <Stat label="License" value={pro.license_verified ? `Verified (${pro.license_state || 'US'})` : 'On file'} />
         <Stat label="Rates" value={pro.rates || 'Contact for rates'} />
       </div>
+
+      {/* Broker intro video — Part D #6 "Video everywhere" */}
+      {videoUrl && (
+        <div style={{ marginTop: 28 }}>
+          <h2 style={{ fontSize: 15, color: '#102a43', textTransform: 'uppercase', letterSpacing: '.08em', margin: '0 0 14px' }}>🎥 Intro</h2>
+          <ListingVideo url={videoUrl} title={`${pro.name} intro`} style={{ maxWidth: 560 }} />
+        </div>
+      )}
 
       {pro.bio && (
         <div style={{ background: '#fff', border: '1px solid #dce6ef', borderRadius: 16, padding: 28, marginTop: 28, boxShadow: '0 10px 35px rgba(16,42,67,0.06)' }}>

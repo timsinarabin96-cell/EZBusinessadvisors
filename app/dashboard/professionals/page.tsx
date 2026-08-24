@@ -22,7 +22,7 @@ const EMPTY_FORM = {
   industries: '', states_served: '', country_code: 'US',
   license_number: '', license_state: '', license_verified: false,
   years_experience: '', deals_closed: '', bio: '', rates: '',
-  website: '', email: '', phone: '', avatar_url: '',
+  website: '', email: '', phone: '', avatar_url: '', video_url: '',
 }
 
 export default function ProfessionalsManagerPage() {
@@ -52,7 +52,14 @@ export default function ProfessionalsManagerPage() {
       years_experience: p.years_experience?.toString() || '', deals_closed: p.deals_closed?.toString() || '',
       bio: p.bio || '', rates: p.rates || '', website: p.website || '',
       email: p.email || '', phone: p.phone || '', avatar_url: p.avatar_url || '',
+      video_url: '',
     })
+    // Load the intro video (DDL-free, stored in platform_settings).
+    const token = localStorage.getItem('sb-access-token') || ''
+    fetch(`/api/professionals/video?id=${encodeURIComponent(p.id)}`, { headers: { authorization: `Bearer ${token}` } })
+      .then((r) => r.json().catch(() => ({})))
+      .then((d) => { if (d.ok && d.url) setForm((f) => ({ ...f, video_url: d.url })) })
+      .catch(() => {})
     setShowForm(true)
   }
 
@@ -83,6 +90,16 @@ export default function ProfessionalsManagerPage() {
     const res = editing
       ? await updateProfessional(editing.id, payload)
       : await createProfessional(payload)
+    // Save the intro video after the record exists (best-effort).
+    const savedId = editing ? editing.id : (res as any).id
+    if (res.ok && savedId) {
+      const token = localStorage.getItem('sb-access-token') || ''
+      await fetch('/api/professionals/video', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ id: savedId, url: form.video_url || '' }),
+      }).catch(() => {})
+    }
     setSaving(false)
     if (res.ok) {
       toast(editing ? 'Professional updated.' : 'Professional added — now live in the public directory.')
@@ -264,6 +281,7 @@ export default function ProfessionalsManagerPage() {
               <Grid>
                 <Field label="Website"><input style={inputStyle} value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="https://…" /></Field>
                 <Field label="Avatar URL"><input style={inputStyle} value={form.avatar_url} onChange={(e) => setForm({ ...form, avatar_url: e.target.value })} placeholder="https://…/photo.jpg" /></Field>
+                <Field label="Video intro URL (YouTube / Vimeo / .mp4)"><input style={inputStyle} value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} placeholder="https://youtube.com/watch?v=…" /></Field>
               </Grid>
               <Field label="Bio"><textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Background, focus areas, notable deals…" /></Field>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text)', margin: '12px 0' }}>
