@@ -1,6 +1,6 @@
 'use client'
 
-import { PipelineItem, formatMoney } from '@/lib/pipeline'
+import { PipelineItem, formatMoney, nextBestAction } from '@/lib/pipeline'
 
 interface DealCardProps {
   deal: PipelineItem
@@ -10,6 +10,13 @@ interface DealCardProps {
 }
 
 export default function DealCard({ deal, onClick, onEdit, stageDuration }: DealCardProps) {
+  const action = nextBestAction(deal)
+  const actionColors: Record<string, { bg: string; fg: string }> = {
+    green: { bg: '#ecfdf5', fg: '#047857' },
+    amber: { bg: '#fffbeb', fg: '#b45309' },
+    navy: { bg: '#eef4fb', fg: '#1e3a5f' },
+  }
+  const chip = actionColors[action.tone] || actionColors.navy
   return (
     <div
       onClick={onClick}
@@ -60,6 +67,18 @@ export default function DealCard({ deal, onClick, onEdit, stageDuration }: DealC
           <span>⏱</span> {stageDuration} in stage
         </div>
       )}
+
+      {/* Next best action */}
+      <div style={{ marginTop: 8 }}>
+        <span
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700,
+            background: chip.bg, color: chip.fg, borderRadius: 999, padding: '3px 10px',
+          }}
+        >
+          {action.tone === 'amber' ? '⚠️' : '➜'} {action.label}
+        </span>
+      </div>
     </div>
   )
 }

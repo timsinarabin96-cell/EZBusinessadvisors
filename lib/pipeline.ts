@@ -192,6 +192,41 @@ export function stageDurationDays(deal: Deal): string | null {
 }
 
 // ---------------------------------------------------------------------------
+// Next best action: the single highest-leverage move for a deal, derived from
+// its stage + how long it has been sitting there. Pure + deterministic.
+// ---------------------------------------------------------------------------
+export interface NextAction {
+  label: string
+  tone: 'green' | 'amber' | 'navy'
+}
+
+/** Days the deal has been in its current stage (0 if unknown). */
+export function daysInStage(deal: Deal): number {
+  const ref = deal.updated_at || deal.created_at
+  if (!ref) return 0
+  const days = Math.floor((Date.now() - new Date(ref).getTime()) / 86400000)
+  return Number.isFinite(days) && days > 0 ? days : 0
+}
+
+const STAGE_ACTIONS: Record<string, { fresh: string; stale: string; staleDays: number }> = {
+  letter_of_intent: { fresh: 'Follow up on LOI', stale: 'LOI stuck — call the seller', staleDays: 10 },
+  under_contract: { fresh: 'Confirm diligence timeline', stale: 'No diligence progress — chase the buyer', staleDays: 14 },
+  due_diligence: { fresh: 'Collect outstanding diligence docs', stale: 'Diligence stalled — broker check-in', staleDays: 14 },
+  closing: { fresh: 'Verify funds & closing date', stale: 'Closing overdue — confirm wire + date', staleDays: 10 },
+  closed: { fresh: 'Collect testimonial & referral', stale: 'Closed deal — send thank-you + review ask', staleDays: 7 },
+}
+
+/** The next best action chip for a deal card. */
+export function nextBestAction(deal: Deal): NextAction {
+  const cfg = STAGE_ACTIONS[String(deal.status || '')] || { fresh: 'Review deal status', stale: 'Review deal status', staleDays: 14 }
+  const days = daysInStage(deal)
+  const stale = days >= cfg.staleDays
+  return stale
+    ? { label: cfg.stale, tone: 'amber' }
+    : { label: cfg.fresh, tone: deal.status === 'closed' ? 'green' : 'navy' }
+}
+
+// ---------------------------------------------------------------------------
 // Format helpers
 // ---------------------------------------------------------------------------
 export const formatMoney = (n: number | null | undefined): string => {
