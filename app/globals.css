@@ -512,3 +512,16 @@ h1, h2, h3, h4 {
 @media (max-width: 600px) {
   .listing-gallery-image { height: 240px; }
 }
+
+/* ---- Mobile sweep: collapse inline multi-column grids on small screens ---- */
+@media (max-width: 680px) {
+  [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+  .btn, button {
+    min-height: 42px;
+  }
+  input, select, textarea {
+    font-size: 16px !important; /* prevents iOS zoom-on-focus */
+  }
+}
