@@ -156,13 +156,45 @@ function OfferLab() {
                         {o.cash_at_closing ? ` · $${Number(o.cash_at_closing).toLocaleString()} cash` : ''}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <span style={{ fontSize: 12, background: o.seller_value_score && o.seller_value_score >= 60 ? '#ecfdf5' : '#fef3c7', color: o.seller_value_score && o.seller_value_score >= 60 ? '#065f46' : '#92400e', padding: '3px 10px', borderRadius: 20 }}>
                         Seller value: {o.seller_value_score ?? '—'}/100
                       </span>
                       <span style={{ fontSize: 11, background: '#f1f5f9', padding: '3px 10px', borderRadius: 20 }}>{o.status}</span>
                     </div>
                   </div>
+                  {/* Deal structure comparison — cash vs seller note vs financed */}
+                  {(() => {
+                    const price = Number(o.purchase_price || 0)
+                    const cash = Number(o.cash_at_closing || 0)
+                    const note = Number(o.seller_note || 0)
+                    const financed = Math.max(price - cash - note, 0)
+                    const segments = [
+                      { label: 'Cash at closing', value: cash, color: '#15803d' },
+                      { label: 'Seller note', value: note, color: '#d97706' },
+                      { label: 'Bank / SBA financed', value: financed, color: '#2563eb' },
+                    ].filter((s) => s.value > 0)
+                    if (price > 0 && segments.length > 0) {
+                      return (
+                        <div style={{ marginTop: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 10, border: '1px solid #eef2f7' }}>
+                          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 8 }}>
+                            {segments.map((s) => (
+                              <span key={s.label} style={{ fontSize: 11.5, color: '#475569' }}>
+                                <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 99, background: s.color, marginRight: 5 }} />
+                                {s.label}: <strong style={{ color: '#0f172a' }}>${s.value.toLocaleString()}</strong> <span style={{ color: '#94a3b8' }}>({Math.round((s.value / price) * 100)}%)</span>
+                              </span>
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', height: 8, borderRadius: 99, overflow: 'hidden', background: '#e2e8f0' }}>
+                            {segments.map((s) => (
+                              <div key={s.label} style={{ width: `${(s.value / price) * 100}%`, background: s.color }} />
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                   {o.status === 'draft' && (
                     <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                       <button className="btn btn-primary" style={{ padding: '5px 12px', fontSize: 12 }} onClick={() => setStatus(o.id, 'submitted')}>Submit to seller</button>
