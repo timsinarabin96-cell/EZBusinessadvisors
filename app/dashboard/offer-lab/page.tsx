@@ -141,6 +141,31 @@ function OfferLab() {
 
         <section>
           <h2 style={{ fontSize: 18, margin: '0 0 14px' }}>Offers ({offers.length})</h2>
+          {/* Offer-to-close conversion stats (audit A1) */}
+          {offers.length > 0 && (() => {
+            const submitted = offers.filter((o) => o.status === 'submitted' || o.status === 'accepted' || o.status === 'rejected').length
+            const accepted = offers.filter((o) => o.status === 'accepted').length
+            const rejected = offers.filter((o) => o.status === 'rejected').length
+            const withdrawn = offers.filter((o) => o.status === 'withdrawn').length
+            const conversion = submitted > 0 ? Math.round((accepted / submitted) * 100) : 0
+            const acceptedValue = offers.filter((o) => o.status === 'accepted').reduce((s, o) => s + (Number((o as any).purchase_price) || 0), 0)
+            const stat = (label: string, value: string, color: string) => (
+              <div style={{ padding: '12px 16px', borderRadius: 10, background: '#fff', border: '1px solid var(--line)' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color, marginTop: 3 }}>{value}</div>
+              </div>
+            )
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 18 }}>
+                {stat('Submitted', String(submitted), 'var(--navy)')}
+                {stat('Accepted', String(accepted), '#15803d')}
+                {stat('Rejected', String(rejected), '#b91c1c')}
+                {stat('Withdrawn', String(withdrawn), '#64748b')}
+                {stat('Conversion', `${conversion}%`, conversion >= 40 ? '#15803d' : conversion >= 20 ? '#b45309' : '#b91c1c')}
+                {stat('Accepted value', acceptedValue ? '$' + acceptedValue.toLocaleString() : '—', 'var(--navy)')}
+              </div>
+            )
+          })()}
           {offers.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', background: '#fff', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--muted)' }}>
               No offers yet — draft your first one.
