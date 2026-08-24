@@ -13,7 +13,7 @@ export default function PublicFooter() {
           </p>
         </div>
 
-        <FooterCol title="For Buyers" links={[['Browse Listings', '/marketplace/listings'], ['How It Works', '/marketplace/buy'], ['Buyer Questionnaire', '/marketplace/qualify'], ['Acquisition Financing', '/marketplace/financing'], ['Sale Comps', '/marketplace/comps'], ['Recently Sold', '/marketplace/sold']]} />
+        <FooterCol title="For Buyers" links={[['Browse Listings', '/marketplace/listings'], ['How It Works', '/marketplace/buy'], ['Buyer Questionnaire', '/marketplace/qualify'], ['Acquisition Financing', '/marketplace/financing'], ['Sale Comps', '/marketplace/comps'], ['Recently Sold', '/marketplace/sold'], ['Market Pulse', '/marketplace/pulse']]} />
         <FooterCol title="For Sellers" links={[['Sell a Business', '/marketplace/sell'], ['Business Valuation', '/marketplace/sell'], ['Reasons to Sell', '/marketplace/sell'], ['Listing Your Business', '/marketplace/sell'], ['Seller Guides', '/marketplace/guides/sellers']]} />
         <FooterCol title="Company" links={[['Our Brokers', '/marketplace/brokers'], ['Certified Intermediaries', '/marketplace/certified'], ['About Concord', '/about'], ['Trust Center', '/marketplace/trust'], ['Insights & Guides', '/marketplace/insights'], ['Reviews', '/marketplace/reviews'], ['Careers', '/marketplace/careers'], ['Pricing', '/pricing'], ['Contact', '/contact']]} />
       </div>
