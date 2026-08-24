@@ -63,6 +63,17 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         {listing.location_general && <p style={{ color: '#888', fontSize: 14, margin: '8px 0 0' }}>📍 {listing.location_general}</p>}
       </div>
       <ListingDetailInteractive listing={listing} />
+      <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+        <Link
+          href={`/flyer/${listing.slug || listing.id}`}
+          style={{
+            padding: '11px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14,
+            background: '#1a1a2e', color: '#fff', fontFamily: 'Georgia, serif',
+          }}
+        >
+          🖨️ Print / Save Flyer
+        </Link>
+      </div>
       <DealProfessionalsPanel listing={listing} />
       <SimilarListings listing={listing} />
     </div>
