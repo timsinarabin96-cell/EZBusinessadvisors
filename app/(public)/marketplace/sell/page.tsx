@@ -151,6 +151,23 @@ function SellContent() {
           <h2 style={{ color: '#fff', fontSize: 36, margin: '12px 0' }}>List once. Stay confidential. Upgrade only when it helps.</h2>
           <p style={{ color: '#cbdbe7', lineHeight: 1.65 }}>Owners can create a one-time listing package, but every public listing remains subject to identity checks, broker review, seller approval, and applicable compliance rules.</p>
         </div>
+
+        {/* Data room as a selling point — Part D #10 */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,minmax(0,1fr))', gap: 14, marginBottom: 34 }} className="owner-plan-grid">
+          {[
+            ['🛡️', 'NDA-first access', 'Every buyer signs your confidentiality agreement before seeing financials — identity and exact details stay private.'],
+            ['📁', 'Your data room', 'Financials, lease, and FFE docs organized in one private room per listing — no more chasing files.'],
+            ['🤖', 'AI answers buyers', 'Qualified buyers ask questions about your business; the AI answers only from approved documents.'],
+            ['🔍', 'Buyer intent signals', 'See who views, re-reads, and signs — know which buyers are serious before the first call.'],
+          ].map(([icon, title, body]) => (
+            <div key={title} style={{ background: '#102b40', border: '1px solid rgba(255,255,255,.13)', borderRadius: 14, padding: 20 }}>
+              <div style={{ fontSize: 26 }}>{icon}</div>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: '#fff', marginTop: 10 }}>{title}</div>
+              <div style={{ fontSize: 12.5, color: '#cbdbe7', lineHeight: 1.6, marginTop: 6 }}>{body}</div>
+            </div>
+          ))}
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 18 }} className="owner-plan-grid">
           {OWNER_LISTING_PLANS.map((plan) => (
             <article key={plan.id} style={{ padding: 26, borderRadius: 16, background: plan.featured ? '#fff' : '#102b40', color: plan.featured ? '#102a43' : '#fff', border: plan.featured ? '2px solid #38bdf8' : '1px solid rgba(255,255,255,.13)' }}>
