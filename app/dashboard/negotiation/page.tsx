@@ -123,6 +123,16 @@ function NegotiationAssistant() {
     window.print()
   }
 
+  // --- BATNA guidance: walk-away zone from the original seller score ---
+  const batnaFor = (draft: DraftRow) => {
+    const score = draft.content?.offer?.original_score ?? 50
+    if (score >= 70) return { zone: 'Sellers may hold firm — prepare a strong walk-away floor', color: '#b91c1c', floor: 'Keep price within 5% of ask' }
+    if (score >= 45) return { zone: 'Balanced — push for a middle band and flexible terms', color: '#b45309', floor: 'Target 5–10% below ask' }
+    return { zone: 'Buyer-friendly — anchor low and protect your walk-away', color: '#15803d', floor: 'Anchor 10%+ below ask' }
+  }
+
+  const timeline = [...drafts].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
   if (loading) return <LoadingState />
 
   return (
@@ -183,6 +193,37 @@ function NegotiationAssistant() {
           ) : (
             <p className="text-gray-400 text-sm">No HTML preview available.</p>
           )}
+        </div>
+      )}
+
+      {/* Negotiation timeline + BATNA guidance (audit A2) */}
+      {timeline.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <h2 className="font-semibold mb-4">🧭 Negotiation timeline</h2>
+          <div style={{ position: 'relative', paddingLeft: 22 }}>
+            <div style={{ position: 'absolute', left: 7, top: 4, bottom: 4, width: 2, background: '#e2e8f0' }} />
+            {timeline.map((draft, i) => {
+              const batna = batnaFor(draft)
+              return (
+                <div key={draft.id} style={{ position: 'relative', marginBottom: 18 }}>
+                  <div style={{ position: 'absolute', left: -21, top: 4, width: 12, height: 12, borderRadius: 99, background: i === timeline.length - 1 ? '#2563eb' : '#94a3b8', border: '2px solid #fff' }} />
+                  <p className="text-sm font-semibold text-gray-800">
+                    Round {i + 1} — {draft.content?.offer?.business_name || draft.listings?.business_name || 'Offer'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {fmtDate(draft.created_at)} · {money(draft.deal_offers?.purchase_price)} · <span className="capitalize">{draft.draft_type}</span>
+                  </p>
+                  <div style={{ marginTop: 6, padding: '8px 12px', borderRadius: 8, background: '#f8fafc', border: '1px solid #eef2f7' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: batna.color }}>BATNA: {batna.zone}</span>
+                    <span style={{ fontSize: 12, color: '#64748b', marginLeft: 8 }}>· {batna.floor}</span>
+                  </div>
+                  <button onClick={() => setPreview(draft)} className="text-xs text-blue-600 hover:underline mt-2">
+                    View this round →
+                  </button>
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
