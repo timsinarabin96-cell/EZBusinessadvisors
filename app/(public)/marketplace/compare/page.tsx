@@ -10,9 +10,13 @@ import { LoadingState } from '@/components/ui'
 export default function ComparePage() {
   const [listings, setListings] = useState<PublicMarketplaceListing[]>([])
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    const ids = getCompare()
+    // Support shareable links: /marketplace/compare?ids=a,b,c
+    const params = new URLSearchParams(window.location.search)
+    const fromUrl = (params.get('ids') || '').split(',').filter(Boolean)
+    const ids = fromUrl.length ? fromUrl : getCompare()
     ;(async () => {
       const all = await fetchPublicFeed()
       const selected = all.filter((l) => ids.includes(l.id))
@@ -23,16 +27,28 @@ export default function ComparePage() {
     })()
   }, [])
 
+  const shareLink = async () => {
+    const ids = getCompare()
+    if (!ids.length) return
+    const url = `${window.location.origin}/marketplace/compare?ids=${ids.join(',')}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      window.prompt('Copy this compare link:', url)
+    }
+  }
+
   if (loading) return <LoadingState />
 
   const rows: { label: string; value: (l: PublicMarketplaceListing) => string }[] = [
     { label: 'Industry', value: (l) => l.industry || '—' },
     { label: 'Location', value: (l) => l.location_general || 'Confidential' },
-    { label: 'Asking Price', value: (l) => (l.asking_price !== null ? fmt$(l.asking_price) : 'Upon Request') },
+    { label: 'Pricing', value: (l) => 'On application' },
     { label: 'Annual Revenue', value: (l) => (l.annual_revenue !== null ? fmt$(l.annual_revenue) : '—') },
     { label: 'SDE', value: (l) => (l.sde !== null ? fmt$(l.sde) : '—') },
     { label: 'EBITDA', value: (l) => (l.ebitda !== null ? fmt$(l.ebitda) : '—') },
-    { label: 'Price / SDE', value: (l) => (l.asking_price !== null && l.sde ? `${(l.asking_price / l.sde).toFixed(2)}×` : '—') },
     { label: 'Employees (FT)', value: (l) => (l.employees_full_time != null ? String(l.employees_full_time) : '—') },
     { label: 'Established', value: (l) => (l.established_year ? String(l.established_year) : '—') },
     { label: 'Financing', value: (l) => (l.seller_financing_available ? '✓ Available' : '—') },
@@ -45,8 +61,23 @@ export default function ComparePage() {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
       <div style={{ marginBottom: 24 }}>
         <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Deal Comparison</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 32, color: '#1a1a2e', margin: '8px 0 0' }}>⚖ Compare Businesses</h1>
-        <p style={{ color: '#888', fontSize: 14, marginTop: 6 }}>Side-by-side view of up to 3 selected listings.</p>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 32, color: '#1a1a2e', margin: '8px 0 0' }}>⚖ Compare Businesses</h1>
+            <p style={{ color: '#888', fontSize: 14, marginTop: 6 }}>Side-by-side view of up to 3 selected listings.</p>
+          </div>
+          {listings.length > 0 && (
+            <button
+              onClick={shareLink}
+              style={{
+                background: copied ? '#22c55e' : '#1a1a2e', color: '#fff', border: 'none', borderRadius: 8,
+                padding: '10px 18px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer',
+              }}
+            >
+              {copied ? '✓ Link copied!' : '🔗 Share this comparison'}
+            </button>
+          )}
+        </div>
       </div>
 
       {listings.length === 0 ? (
