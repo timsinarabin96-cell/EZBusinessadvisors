@@ -105,6 +105,15 @@ export default function WatchlistPage() {
     if (res.ok) await load()
   }
 
+  const toggleEmail = async (search: Search) => {
+    const res = await fetch('/api/marketplace/watchlist', {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ searchId: search.id, notify_email: !search.notify_email }),
+    })
+    if (res.ok) await load()
+  }
+
   const deleteSearch = async (id: string) => {
     const res = await fetch('/api/marketplace/watchlist', {
       method: 'DELETE',
@@ -207,6 +216,13 @@ export default function WatchlistPage() {
                         className={`text-xs px-2 py-1 rounded-full border ${search.active ? 'bg-gray-100 border-gray-200 text-gray-600' : 'bg-green-50 border-green-200 text-green-700'}`}
                       >
                         {search.active ? 'Pause' : 'Resume'}
+                      </button>
+                      <button
+                        onClick={() => toggleEmail(search)}
+                        title="Turn email alerts on/off for this search"
+                        className={`text-xs px-2 py-1 rounded-full border ${search.notify_email ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-100 border-gray-200 text-gray-500'}`}
+                      >
+                        {search.notify_email ? '✉️ Alerts on' : '✉️ Alerts off'}
                       </button>
                       <button onClick={() => deleteSearch(search.id)} className="text-xs text-red-500 hover:underline">
                         Delete
