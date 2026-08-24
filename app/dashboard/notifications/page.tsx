@@ -41,6 +41,8 @@ export default function NotificationsPage() {
 function Notifications() {
   const [items, setItems] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [kindFilter, setKindFilter] = useState('all')
+  const [unreadOnly, setUnreadOnly] = useState(false)
 
   const load = useCallback(async () => {
     const ctx = await getAgencyContext()
@@ -67,6 +69,14 @@ function Notifications() {
 
   if (loading) return <LoadingState />
 
+  const kinds = Array.from(new Set(items.map((i) => i.kind).filter(Boolean))) as string[]
+  const visible = items.filter((i) => {
+    if (kindFilter !== 'all' && i.kind !== kindFilter) return false
+    if (unreadOnly && i.read_at) return false
+    return true
+  })
+  const unreadCount = items.filter((i) => !i.read_at).length
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -75,15 +85,38 @@ function Notifications() {
           <p className="text-gray-500 text-sm mt-1">Platform workflow alerts for your agency.</p>
         </div>
         <button onClick={markAllRead} className="text-sm text-blue-600 hover:underline">
-          Mark all read
+          Mark all read{unreadCount ? ` (${unreadCount} unread)` : ''}
         </button>
       </div>
 
-      {items.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">No notifications yet.</div>
+      {/* Digest controls — filter by kind + unread */}
+      <div className="mb-4 flex items-center gap-2 flex-wrap">
+        <button
+          onClick={() => setKindFilter('all')}
+          className={`text-xs px-3 py-1.5 rounded-full border font-medium ${kindFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+        >
+          All
+        </button>
+        {kinds.map((k) => (
+          <button
+            key={k}
+            onClick={() => setKindFilter(kindFilter === k ? 'all' : k)}
+            className={`text-xs px-3 py-1.5 rounded-full border font-medium ${kindFilter === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+          >
+            {KIND_ICONS[k] || '•'} {k}
+          </button>
+        ))}
+        <label className="ml-auto flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+          <input type="checkbox" checked={unreadOnly} onChange={(e) => setUnreadOnly(e.target.checked)} />
+          Unread only
+        </label>
+      </div>
+
+      {visible.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">No notifications{items.length ? ' match this filter' : ' yet'}.</div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-          {items.map((item) => (
+          {visible.map((item) => (
             <div key={item.id} className={`p-4 flex items-start gap-3 ${item.read_at ? '' : 'bg-blue-50/40'}`}>
               <span className="text-xl shrink-0">{KIND_ICONS[item.kind] || '•'}</span>
               <div className="min-w-0">
