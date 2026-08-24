@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
-import { buildLoiContent, saveLoi, listLois, notifyLoiGenerated } from '@/lib/loi'
+import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { buildLoiContent, saveLoi, listLois, notifyLoiGenerated, updateLoiStatus } from '@/lib/loi'
 
 export const runtime = 'nodejs'
 
@@ -56,4 +56,28 @@ export async function GET(req: NextRequest) {
 
   const lois = await listLois(agencyId)
   return NextResponse.json({ ok: true, lois })
+}
+
+/** PATCH /api/loi { loiId, status } — advance an LOI through its lifecycle. */
+export async function PATCH(req: NextRequest) {
+  const db = createServerClient()
+  if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
+  const auth = await authenticateProfileRequest(req)
+  if (!auth) return unauthorizedResponse()
+
+  const body = await req.json().catch(() => ({}))
+  const loiId = String(body?.loiId || '')
+  const status = String(body?.status || '')
+  const VALID = ['draft', 'sent', 'signed', 'accepted', 'withdrawn']
+  if (!loiId || !VALID.includes(status)) {
+    return NextResponse.json({ ok: false, error: 'loiId and a valid status are required' }, { status: 400 })
+  }
+
+  const { data: loi } = await db.from('letters_of_intent').select('agency_id').eq('id', loiId).maybeSingle()
+  if (!loi) return NextResponse.json({ ok: false, error: 'LOI not found' }, { status: 404 })
+  if (!canManageAgency(auth, loi.agency_id)) return forbiddenResponse()
+
+  const result = await updateLoiStatus(loiId, status as 'draft' | 'sent' | 'signed' | 'accepted' | 'withdrawn')
+  if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { renderLoiHtml } from '@/lib/loi'
 
 interface OfferOpt { id: string; label: string }
 interface LoiRow {
@@ -12,7 +13,7 @@ interface LoiRow {
   offer_id: string | null
   status: string
   created_at: string
-  content: { business_name?: string; purchase_price?: number | null; buyer_name?: string } | null
+  content: Record<string, unknown> | null
   listings?: { business_name: string } | null
   deal_offers?: { purchase_price: number | null } | null
 }
@@ -90,9 +91,27 @@ function LoiLab() {
   }
 
   const openPreview = async (loi: LoiRow) => {
-    // Render from stored content via a lightweight inline view.
-    const c = loi.content
-    setPreview(c?.business_name || loi.listings?.business_name || 'LOI')
+    // Render the REAL legal document (full HTML), not just the business name.
+    if (loi.content && typeof loi.content === 'object' && Object.keys(loi.content).length > 0) {
+      setPreview(renderLoiHtml(loi.content as any))
+      return
+    }
+    setPreview(`<p>LOI content unavailable — regenerate from the accepted offer.</p>`)
+  }
+
+  const setStatus = async (loi: LoiRow, status: string) => {
+    setBusy(true)
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch('/api/loi', {
+      method: 'PATCH',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ loiId: loi.id, status }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setBusy(false)
+    if (!res.ok || !data.ok) return toast(data.error || 'Failed to update LOI', 'error')
+    toast(`LOI marked ${status}`, 'success')
+    if (agencyId) await load(agencyId)
   }
 
   if (loading) return <LoadingState />
@@ -135,13 +154,15 @@ function LoiLab() {
       {preview && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Preview</h2>
+            <h2 className="font-semibold">LOI preview</h2>
             <button onClick={() => setPreview(null)} className="text-xs text-gray-400 hover:underline">Close</button>
           </div>
-          <div className="bg-gray-50 border border-gray-100 rounded-lg p-6 text-sm text-gray-600">
-            <p className="font-semibold text-gray-800">{preview}</p>
-            <p className="mt-2">LOI generated — open the item below and use your browser's print (Ctrl/Cmd+P) to save as PDF.</p>
-          </div>
+          <iframe
+            srcDoc={preview}
+            title="LOI document"
+            style={{ width: '100%', height: 560, border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff' }}
+          />
+          <p className="text-xs text-gray-400 mt-2">Use your browser's print (Ctrl/Cmd+P) to save as PDF.</p>
         </div>
       )}
 
@@ -152,14 +173,15 @@ function LoiLab() {
         ) : (
           <ul className="divide-y divide-gray-100">
             {lois.map((loi) => {
+              const content = loi.content as { business_name?: string; purchase_price?: number | null; buyer_name?: string } | null
               const ageHours = loi.created_at ? (Date.now() - new Date(loi.created_at).getTime()) / 3600000 : 0
               const needsNudge = ageHours >= 48 && !['signed', 'accepted', 'withdrawn'].includes(loi.status)
               return (
                 <li key={loi.id} className="py-3 flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-medium text-sm">{loi.content?.business_name || loi.listings?.business_name || 'LOI'}</p>
+                    <p className="font-medium text-sm">{content?.business_name || loi.listings?.business_name || 'LOI'}</p>
                     <p className="text-xs text-gray-500">
-                      {money(loi.content?.purchase_price ?? loi.deal_offers?.purchase_price)} · {fmtDate(loi.created_at)} ·{' '}
+                      {money(content?.purchase_price ?? loi.deal_offers?.purchase_price)} · {fmtDate(loi.created_at)} ·{' '}
                       <span className="capitalize">{loi.status}</span>
                     </p>
                     {needsNudge && (
@@ -170,7 +192,27 @@ function LoiLab() {
                   </div>
                   <div className="flex items-center gap-3">
                     <button onClick={() => openPreview(loi)} className="text-xs text-blue-600 hover:underline">Preview</button>
-                    <button onClick={() => openPreview(loi)} className="text-xs text-blue-600 hover:underline">Print / PDF</button>
+                    {/* LOI lifecycle actions */}
+                    {loi.status === 'draft' && (
+                      <button onClick={() => setStatus(loi, 'sent')} disabled={busy} className="text-xs px-2 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
+                        ✉️ Mark sent
+                      </button>
+                    )}
+                    {loi.status === 'sent' && (
+                      <button onClick={() => setStatus(loi, 'signed')} disabled={busy} className="text-xs px-2 py-1 rounded-full border border-green-200 bg-green-50 text-green-700 hover:bg-green-100">
+                        ✍️ Mark signed
+                      </button>
+                    )}
+                    {loi.status === 'signed' && (
+                      <button onClick={() => setStatus(loi, 'accepted')} disabled={busy} className="text-xs px-2 py-1 rounded-full border border-green-200 bg-green-50 text-green-700 hover:bg-green-100">
+                        ✅ Mark accepted
+                      </button>
+                    )}
+                    {!['withdrawn', 'accepted'].includes(loi.status) && (
+                      <button onClick={() => setStatus(loi, 'withdrawn')} disabled={busy} className="text-xs px-2 py-1 rounded-full border border-red-200 bg-red-50 text-red-600 hover:bg-red-100">
+                        Withdraw
+                      </button>
+                    )}
                     {needsNudge && (
                       <button
                         onClick={() => {

@@ -179,3 +179,19 @@ export async function notifyLoiGenerated(agencyId: string, businessName: string)
     if (p.email) await notify('loi_generated', p.email, { businessName })
   }
 }
+
+/** Update an LOI's status (draft → sent → signed → accepted/withdrawn). */
+export async function updateLoiStatus(
+  loiId: string,
+  status: 'draft' | 'sent' | 'signed' | 'accepted' | 'withdrawn',
+): Promise<{ ok: boolean; error?: string }> {
+  if (!svc) return { ok: false, error: 'Database is not configured' }
+  const { data: loi } = await svc.from('letters_of_intent').select('agency_id').eq('id', loiId).maybeSingle()
+  if (!loi) return { ok: false, error: 'LOI not found' }
+  const { error } = await svc
+    .from('letters_of_intent')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', loiId)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
