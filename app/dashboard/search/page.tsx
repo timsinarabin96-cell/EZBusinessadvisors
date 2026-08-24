@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import Link from 'next/link'
 import AppShell from '@/components/layout/AppShell'
 import {
   searchAll, fetchIndustries, fetchSavedSearches, saveSearch, deleteSavedSearch, logSearch,
@@ -224,6 +225,12 @@ function SearchInner() {
               ))
             )}
           </div>
+          <Link
+            href="/dashboard/watchlist"
+            style={{ display: 'block', marginTop: 10, fontSize: 13, fontWeight: 700, color: 'var(--gold-dark)', textDecoration: 'none' }}
+          >
+            🔔 Turn saved searches into auto-alerts →
+          </Link>
         </Card>
       </div>
     </div>
