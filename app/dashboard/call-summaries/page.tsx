@@ -62,6 +62,22 @@ function CallSummaries() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const makeReminder = async (item: string) => {
+    const token = localStorage.getItem('sb-access-token') || ''
+    const res = await fetch('/api/reminders', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title: `Follow up: ${item}`,
+        due_at: new Date(Date.now() + 24 * 3600000).toISOString(),
+        assignToMe: true,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) return toast(data.error || 'Could not create reminder', 'error')
+    toast('Reminder set for tomorrow ⏰', 'success')
+  }
+
   const generate = async () => {
     if (!callId.trim()) return toast('Enter a call session ID', 'error')
     setBusy(true)
@@ -131,6 +147,13 @@ function CallSummaries() {
                   {s.action_items.map((item, i) => (
                     <li key={i} className="text-xs text-gray-600 flex items-start gap-2">
                       <span className="text-blue-600 mt-0.5">☐</span> {item}
+                      <button
+                        onClick={() => makeReminder(item)}
+                        className="ml-auto shrink-0 text-blue-600 hover:underline"
+                        title="Turn this action item into a reminder"
+                      >
+                        ⏰ Remind
+                      </button>
                     </li>
                   ))}
                 </ul>
