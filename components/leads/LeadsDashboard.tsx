@@ -219,6 +219,25 @@ export default function LeadsDashboard() {
                     </div>
                   </div>
                 </div>
+                {/* Quick actions — text / call the lead in one tap */}
+                {lead.phone && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <a
+                      href={`sms:${lead.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ flex: 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#ecfdf5', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none' }}
+                    >
+                      💬 Text
+                    </a>
+                    <a
+                      href={`tel:${lead.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ flex: 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', textDecoration: 'none' }}
+                    >
+                      📞 Call
+                    </a>
+                  </div>
+                )}
               </Card>
             )
           })}
