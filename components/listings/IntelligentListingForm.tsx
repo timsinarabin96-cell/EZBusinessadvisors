@@ -17,6 +17,7 @@ import { checkListingDuplicates } from '@/lib/listingDedup'
 import type { ListingMatch } from '@/lib/listingDedup'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import { pricePosition } from '@/lib/listingMarketContextCore.ts'
+import { uploadListingImages, deleteListingImage } from '@/lib/supabase/listings'
 import {
   buildListingInsert,
   calculateListingReadiness,
@@ -24,13 +25,14 @@ import {
   IntelligentListingInput,
 } from '@/lib/listingIntelligence'
 
-type SectionId = 'identity' | 'financials' | 'operations' | 'transition' | 'public'
+type SectionId = 'identity' | 'financials' | 'operations' | 'transition' | 'media' | 'public'
 
 const SECTIONS: Array<{ id: SectionId; label: string; description: string }> = [
   { id: 'identity', label: 'Business', description: 'Identity, industry, location, and positioning' },
   { id: 'financials', label: 'Financials', description: 'Price, earnings, assets, and financing' },
   { id: 'operations', label: 'Operations', description: 'People, facilities, moat, and growth' },
   { id: 'transition', label: 'Seller & Deal', description: 'Motivation, support, confidentiality, and source' },
+  { id: 'media', label: 'Photos & Video', description: 'Gallery images and walkthrough video' },
   { id: 'public', label: 'Public Preview', description: 'Anonymous seller-approved marketplace content' },
 ]
 
@@ -101,6 +103,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
         public_summary: meta.public_summary || '',
         public_highlights: Array.isArray(meta.public_highlights) ? meta.public_highlights.join('\n') : '',
         video_url: meta.video_url || '',
+        gallery_images: Array.isArray((l as any).image_urls) ? (l as any).image_urls : [],
         confidentiality_level: (l.confidentiality_level as IntelligentListingInput['confidentiality_level']) || 'anonymous',
         show_financials: !!meta.show_financials,
         seller_approval_reference: meta.seller_approval_reference || '',
@@ -269,6 +272,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
           {section === 'financials' && <FinancialSection form={form} setValue={setValue} listingId={createdListingId} />}
           {section === 'operations' && <OperationsSection form={form} setValue={setValue} />}
           {section === 'transition' && <TransitionSection form={form} setValue={setValue} />}
+          {section === 'media' && <MediaSection form={form} setValue={setValue} listingId={createdListingId} />}
           {section === 'public' && <PublicSection form={form} setValue={setValue} />}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, borderTop: '1px solid var(--line)', marginTop: 28, paddingTop: 20 }}>
@@ -438,6 +442,68 @@ function TransitionSection({ form, setValue }: SectionProps) {
     <Field label="Confidentiality level"><select className="select" value={form.confidentiality_level} onChange={(event) => setValue('confidentiality_level', event.target.value as IntelligentListingInput['confidentiality_level'])}><option value="anonymous">Anonymous public teaser</option><option value="qualified_buyers">Qualified buyers only</option><option value="broker_only">Broker-only / off market</option></select></Field>
     <Field label="Seller approval reference"><input className="input" value={form.seller_approval_reference} onChange={(event) => setValue('seller_approval_reference', event.target.value)} placeholder="Agreement/envelope/document reference" /></Field>
   </Grid><div style={{ marginTop: 18, padding: 16, borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: 13, lineHeight: 1.55 }}>Creating this draft does not publish it. Broker review, jurisdictional compliance review, and documented seller approval remain separate required gates.</div></Section>
+}
+
+function MediaSection({ form, setValue, listingId }: SectionProps & { listingId?: string | null }) {
+  const toast = useToast()
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const [uploading, setUploading] = useState(false)
+
+  const upload = async (files: FileList | null) => {
+    if (!files || files.length === 0 || uploading) return
+    setUploading(true)
+    try {
+      const arr = Array.from(files).slice(0, 10)
+      const res = await uploadListingImages(listingId || 'pending', arr)
+      if (!res.success) throw new Error(res.error || 'Upload failed')
+      const next = [...form.gallery_images, ...res.urls]
+      setValue('gallery_images', next)
+      toast(`Uploaded ${res.urls.length} image${res.urls.length === 1 ? '' : 's'} — they appear in the public gallery`, 'success')
+    } catch (e: any) {
+      toast(e.message, 'error')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const remove = async (url: string) => {
+    setValue('gallery_images', form.gallery_images.filter((u) => u !== url))
+    // Best-effort storage cleanup (path is the last segment pair listingId/image-N.ext).
+    const m = url.match(/listing_images\/(.+)$/)
+    if (m) await deleteListingImage(m[1]).catch(() => {})
+    toast('Image removed', 'success')
+  }
+
+  return <Section title="Photos & Video" subtitle="Gallery images and a walkthrough video make the public listing stand out and build buyer trust.">
+    <div style={{ marginBottom: 16, padding: '12px 14px', background: '#f4f8fc', border: '1px solid #dbe7f3', borderRadius: 10, fontSize: 12.5, color: '#1e3a5f' }}>
+      <strong>📷 Gallery:</strong> upload up to 10 photos (JPG/PNG/WebP, 5MB each) — the first image is the listing cover. Photos appear on the public page after publishing.
+      <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={{ marginLeft: 10, padding: '5px 12px', borderRadius: 7, background: '#2563eb', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: uploading ? 'wait' : 'pointer' }}>
+        {uploading ? 'Uploading…' : 'Choose photos'}
+      </button>
+      <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={(e) => upload(e.target.files)} />
+    </div>
+
+    {form.gallery_images.length > 0 ? (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 18 }}>
+        {form.gallery_images.map((url, i) => (
+          <div key={url} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: i === 0 ? '2px solid var(--gold-dark)' : '1px solid var(--line)' }}>
+            <img src={url} alt={`Gallery ${i + 1}`} style={{ width: '100%', height: 96, objectFit: 'cover', display: 'block' }} />
+            {i === 0 && <div style={{ position: 'absolute', top: 6, left: 6, background: 'rgba(26,26,46,0.8)', color: '#fff', fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 999 }}>COVER</div>}
+            <button type="button" onClick={() => remove(url)} style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(220,38,38,0.9)', border: 'none', color: '#fff', width: 22, height: 22, borderRadius: '50%', cursor: 'pointer', fontSize: 12, lineHeight: 1 }}>✕</button>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div style={{ marginBottom: 18, padding: '28px 20px', border: '1px dashed var(--line)', borderRadius: 12, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        No photos yet — listings with a cover photo get significantly more buyer interest.
+      </div>
+    )}
+
+    <Field label="Walkthrough / promo video URL (YouTube, Vimeo, or .mp4)" span>
+      <input className="input" value={form.video_url} onChange={(event) => setValue('video_url', event.target.value)} placeholder="https://youtube.com/watch?v=… or https://…/walkthrough.mp4" />
+    </Field>
+  </Section>
 }
 
 function PublicSection({ form, setValue }: SectionProps) {
