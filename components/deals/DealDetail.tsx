@@ -15,10 +15,15 @@ interface DealDetailProps {
 // Standard brokerage fee tiers + agent split tiers (matches hiring packages).
 const FEE_RATES = [8, 10, 12]
 const SPLIT_TIERS = [50, 70, 80]
+const PRESET_SPLITS = new Set(SPLIT_TIERS)
 
 export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelete }: DealDetailProps) {
   const [feeRate, setFeeRate] = useState(10)
   const [split, setSplit] = useState(70)
+  const [customSplit, setCustomSplit] = useState('')
+
+  // Custom split box: typing a value (e.g. 30) overrides the preset pills.
+  const effectiveSplit = customSplit !== '' ? Math.min(100, Math.max(0, Number(customSplit) || 0)) : split
 
   const economics = useMemo(() => {
     const base = deal.purchase_price ?? deal.asking_price ?? 0
@@ -26,10 +31,10 @@ export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelet
     return {
       base,
       fee,
-      agentTake: (fee * split) / 100,
+      agentTake: (fee * effectiveSplit) / 100,
       sellerNet: base - fee,
     }
-  }, [deal.purchase_price, deal.asking_price, feeRate, split])
+  }, [deal.purchase_price, deal.asking_price, feeRate, effectiveSplit])
   const formatDate = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
@@ -80,7 +85,7 @@ export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelet
                   <span style={{ fontWeight: 700, color: '#b45309' }}>{formatMoney(economics.fee)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
-                  <span>Agent take ({split}% split)</span>
+                  <span>Agent take ({effectiveSplit}% split)</span>
                   <span style={{ fontWeight: 700, color: '#15803d' }}>{formatMoney(economics.agentTake)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
@@ -95,8 +100,23 @@ export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelet
                 ))}
                 <span style={{ fontSize: '11px', color: '#94a3b8', alignSelf: 'center', marginLeft: '8px' }}>Split</span>
                 {SPLIT_TIERS.map((s) => (
-                  <button key={s} onClick={() => setSplit(s)} style={pill(split === s)}>{s}/{100 - s}</button>
+                  <button key={s} onClick={() => { setSplit(s); setCustomSplit('') }} style={pill(split === s && customSplit === '')}>{s}/{100 - s}</button>
                 ))}
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  placeholder="%"
+                  value={customSplit}
+                  onChange={(e) => setCustomSplit(e.target.value)}
+                  title="Custom agent split %"
+                  style={{
+                    width: 52, padding: '4px 8px', borderRadius: 8, border: customSplit !== '' ? '2px solid #c9a84c' : '1px solid #e2e8f0',
+                    background: customSplit !== '' ? 'rgba(201,168,76,0.15)' : '#fff', color: '#334155',
+                    fontSize: 12, fontWeight: 700, fontFamily: 'inherit', textAlign: 'center',
+                  }}
+                />
+                {customSplit !== '' && <span style={{ fontSize: 11, color: '#94a3b8', alignSelf: 'center' }}>custom</span>}
               </div>
             </div>
           )}
