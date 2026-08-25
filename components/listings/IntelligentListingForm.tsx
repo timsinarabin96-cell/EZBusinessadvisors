@@ -238,7 +238,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
 
         <section className="card" style={{ padding: 28, minHeight: 620 }}>
           {section === 'identity' && <BusinessSection form={form} setValue={setValue} />}
-          {section === 'financials' && <FinancialSection form={form} setValue={setValue} />}
+          {section === 'financials' && <FinancialSection form={form} setValue={setValue} listingId={createdListingId} />}
           {section === 'operations' && <OperationsSection form={form} setValue={setValue} />}
           {section === 'transition' && <TransitionSection form={form} setValue={setValue} />}
           {section === 'public' && <PublicSection form={form} setValue={setValue} />}
@@ -311,8 +311,51 @@ function BusinessSection({ form, setValue }: SectionProps) {
   </Grid></Section>
 }
 
-function FinancialSection({ form, setValue }: SectionProps) {
-  return <Section title="Financial profile" subtitle="These values remain private unless a seller-approved public disclosure explicitly allows them."><Grid>
+function FinancialSection({ form, setValue, listingId }: SectionProps & { listingId?: string | null }) {
+  const toast = useToast()
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const [importing, setImporting] = useState(false)
+
+  const importFinancials = async (file: File) => {
+    if (importing) return
+    setImporting(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      if (listingId) fd.append('listingId', listingId)
+      const res = await fetch('/api/listings/financial-import', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: fd,
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Import failed')
+      const f = j.financials || {}
+      if (f.latestYearRevenue != null) setValue('annual_revenue', String(f.latestYearRevenue))
+      if (f.sde != null) setValue('sde', String(f.sde))
+      if (f.ebitda != null) setValue('ebitda', String(f.ebitda))
+      const parts = [`Extracted from ${file.name}`]
+      if (f.sde != null) parts.push(`SDE $${Math.round(Number(f.sde)).toLocaleString()}`)
+      if (f.ebitda != null) parts.push(`EBITDA $${Math.round(Number(f.ebitda)).toLocaleString()}`)
+      if (f.latestYearRevenue != null) parts.push(`Revenue $${Math.round(Number(f.latestYearRevenue)).toLocaleString()}`)
+      toast(parts.join(' · ') + ' — review before saving', 'success')
+      if (f.summary) toast(f.summary.slice(0, 160), 'info')
+    } catch (e: any) {
+      toast(e.message, 'error')
+    } finally {
+      setImporting(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  return <Section title="Financial profile" subtitle="These values remain private unless a seller-approved public disclosure explicitly allows them.">
+    <div style={{ marginBottom: 16, padding: '12px 14px', background: '#f4f8fc', border: '1px solid #dbe7f3', borderRadius: 10, fontSize: 12.5, color: '#1e3a5f' }}>
+      <strong>📄 Import financials:</strong> upload a P&L, tax return, bank statement or CSV — the AI extracts revenue, SDE and EBITDA automatically.
+      <button type="button" onClick={() => fileRef.current?.click()} disabled={importing} style={{ marginLeft: 10, padding: '5px 12px', borderRadius: 7, background: '#2563eb', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: importing ? 'wait' : 'pointer' }}>
+        {importing ? 'Analyzing…' : 'Choose file'}
+      </button>
+      <input ref={fileRef} type="file" accept=".pdf,.csv,.tsv,.txt,.xlsx,.xls,.png,.jpg" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) importFinancials(f) }} />
+    </div><Grid>
     <MoneyField label="Asking price" value={form.asking_price} onChange={(value) => setValue('asking_price', value)} />
     <MoneyField label="Annual revenue" value={form.annual_revenue} onChange={(value) => setValue('annual_revenue', value)} />
     <MoneyField label="Seller discretionary earnings" value={form.sde} onChange={(value) => setValue('sde', value)} />
