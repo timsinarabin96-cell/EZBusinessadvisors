@@ -395,7 +395,15 @@ export async function recordPurchaseAgreement(listingId: string, buyerId: string
 export async function recordClosing(listingId: string, details: Partial<any>): Promise<boolean> {
   try {
     const agreement = await getAgreement(listingId)
-    const { error } = await supabase.from('deal_closing_details').insert({ listing_id: listingId, ...details, closed_at: new Date().toISOString() })
+    const { data: { user } } = await supabase.auth.getUser()
+    // Live table columns: closing_date, final_purchase_price, final_terms,
+    // closing_costs, net_proceeds, closed_by, created_at — NO closed_at.
+    const { error } = await supabase.from('deal_closing_details').insert({
+      listing_id: listingId,
+      closing_date: details.closing_date || null,
+      final_purchase_price: details.final_purchase_price ?? null,
+      closed_by: user?.id || null,
+    })
     if (error) return false
     if (agreement) {
       await supabase.from('deal_agreements').update({ status: 'closing' }).eq('id', agreement.id)
