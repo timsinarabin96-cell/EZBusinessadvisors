@@ -4,21 +4,32 @@ import { useEffect, useState } from 'react'
 import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
 import { publishListing, completeStep } from '@/lib/workflow'
 import { fetchListing } from '@/lib/listings'
+import { fetchListingReadiness } from '@/lib/listingReadiness'
 import StatusBadge from '@/components/listings/StatusBadge'
 
 // ---------------------------------------------------------------------------
 // Step 8 — List Business: publish the listing to the marketplace (live on website).
+// Publish is GATED on readiness — the listing cannot go live with blockers.
 // ---------------------------------------------------------------------------
 
 export default function Step8ListBusiness({ listingId, onNext }: { listingId: string; onNext: () => void }) {
   const [listing, setListing] = useState<any>(null)
   const [pushResult, setPushResult] = useState<string>('')
   const [busy, setBusy] = useState(false)
+  const [readiness, setReadiness] = useState<{ canPublish: boolean; blockers: string[]; score: number } | null>(null)
 
-  const load = async () => setListing(await fetchListing(listingId))
+  const load = async () => {
+    setListing(await fetchListing(listingId))
+    const r = await fetchListingReadiness(listingId)
+    setReadiness({ canPublish: r.canPublish, blockers: r.blockers, score: r.score })
+  }
   useEffect(() => { load() }, [listingId])
 
   const publish = async () => {
+    if (readiness && !readiness.canPublish) {
+      setPushResult('Not publish-ready — resolve blockers first')
+      return
+    }
     setBusy(true)
     const ok = await publishListing(listingId)
     setPushResult(ok ? 'Listing is live on the website ✓' : 'Publish failed')
@@ -42,7 +53,24 @@ export default function Step8ListBusiness({ listingId, onNext }: { listingId: st
       </div>
 
       {!isActive ? (
-        <button onClick={publish} disabled={busy} style={stepBtn(true)}>{busy ? 'Publishing…' : '🌐 Publish to marketplace'}</button>
+        <>
+          {readiness && !readiness.canPublish && readiness.blockers.length > 0 && (
+            <div style={{ marginBottom: 14, padding: '12px 14px', background: '#fdf3e3', border: '1px solid #f0dfc0', borderRadius: 10, fontSize: 12.5, color: '#92400e' }}>
+              <strong>🚧 Readiness {readiness.score}/100 — resolve before publishing:</strong>
+              <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                {readiness.blockers.slice(0, 4).map((b) => <li key={b} style={{ marginTop: 2 }}>{b}</li>)}
+              </ul>
+            </div>
+          )}
+          {readiness && readiness.canPublish && (
+            <div style={{ marginBottom: 14, padding: '12px 14px', background: '#e8f7ee', border: '1px solid #c6e9d3', borderRadius: 10, fontSize: 12.5, color: '#166534' }}>
+              ✅ Readiness {readiness.score}/100 — everything required is complete.
+            </div>
+          )}
+          <button onClick={publish} disabled={busy || (readiness ? !readiness.canPublish : false)} style={{ ...stepBtn(true), opacity: readiness && !readiness.canPublish ? 0.5 : 1 }}>
+            {busy ? 'Publishing…' : readiness && !readiness.canPublish ? '🔒 Not ready to publish' : '🌐 Publish to marketplace'}
+          </button>
+        </>
       ) : (
         <div style={{ fontSize: 14, color: '#16a34a', fontWeight: 600 }}>✓ Listing is live on the website.</div>
       )}

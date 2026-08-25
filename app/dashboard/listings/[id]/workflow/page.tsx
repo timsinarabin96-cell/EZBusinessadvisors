@@ -24,6 +24,8 @@ import Step9BuyerManagement from '@/components/listings/Step9BuyerManagement'
 import Step10DealClosing from '@/components/listings/Step10DealClosing'
 import StatusBadge from '@/components/listings/StatusBadge'
 import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
+import ListingReadinessPanel from '@/components/listings/ListingReadinessPanel'
+import { autoAdvance } from '@/lib/listingPipeline'
 import { getWorkflow, startWorkflow, WORKFLOW_STEPS } from '@/lib/workflow'
 import { fetchListing, fmtMoney } from '@/lib/listings'
 
@@ -68,10 +70,13 @@ function WorkflowBody() {
     setListing(l)
   }
 
-  const goNext = () => {
+  const goNext = async () => {
     const next = Math.min(10, activeStep + 1)
     setActiveStep(next)
     refresh()
+    // Auto-advance: completed step may unlock doc generation (BOV/CIM/BLI).
+    const notes = await autoAdvance(listingId, activeStep)
+    if (notes.length) toast(notes.join(' · '), 'success')
   }
   const goStep = (s: number) => setActiveStep(s)
 
@@ -101,6 +106,8 @@ function WorkflowBody() {
       <div style={{ marginBottom: 18 }}>
         <WorkflowDashboard currentStep={workflow?.current_step || activeStep} completedSteps={workflow?.completed_steps} onNavigate={goStep} listingId={listingId} />
       </div>
+
+      <ListingReadinessPanel listingId={listingId} />
 
       {/* Two-column: step editor + AI guidance rail */}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: 18, alignItems: 'start' }}>
