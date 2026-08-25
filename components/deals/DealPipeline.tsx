@@ -17,7 +17,7 @@ import {
   PipelineItem,
   PIPELINE_STAGES,
   fetchPipelineDeals,
-  moveDealStage,
+  moveDealStageServer,
   deleteDeal,
   stageDurationDays,
 } from '@/lib/pipeline'
@@ -75,8 +75,8 @@ export default function DealPipeline() {
     const prevStage = deal.stage
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: overStage } : d)))
     try {
-      await moveDealStage(dealId, overStage)
-      toast(`Moved to ${overStage.replace(/_/g, ' ')}`, 'success')
+      await moveDealStageServer(dealId, overStage)
+      toast(`Moved to ${overStage.replace(/_/g, ' ')}${overStage === 'closed' ? ' — commission recorded 💰' : ''}`, 'success')
     } catch (err: any) {
       toast(err.message, 'error')
       setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage: prevStage } : d)))
@@ -206,7 +206,8 @@ export default function DealPipeline() {
             setSelectedDeal({ ...selectedDeal, stage })
             setDeals((p) => p.map((d) => (d.id === selectedDeal.id ? { ...d, stage } : d)))
             try {
-              await moveDealStage(selectedDeal.id, stage)
+              await moveDealStageServer(selectedDeal.id, stage)
+              if (stage === 'closed') toast('Closed — commission recorded 💰', 'success')
             } catch (e: any) {
               toast(e.message, 'error')
               setSelectedDeal(prev)

@@ -125,6 +125,28 @@ export async function moveDealStage(id: string, stage: DealStage): Promise<void>
   }
 }
 
+/**
+ * Server-side stage change — used by the pipeline UI so that moving a deal to
+ * `closed` AUTO-RECORDS the commission (POST /api/deals/[id]/stage). Falls
+ * back to the direct update when the route is unavailable.
+ */
+export async function moveDealStageServer(id: string, stage: DealStage): Promise<void> {
+  try {
+    const { authenticatedFetch } = await import('@/lib/authenticatedFetch')
+    const res = await authenticatedFetch(`/api/deals/${encodeURIComponent(id)}/stage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage }),
+    })
+    const j = await res.json().catch(() => ({}))
+    if (!res.ok || j.ok === false) throw new Error(j.error || 'Failed to move deal')
+  } catch (e) {
+    // Fall back to the direct client update (no commission auto-record).
+    console.warn('moveDealStageServer fell back to direct update:', (e as Error).message)
+    await moveDealStage(id, stage)
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Create a new deal linked to a listing
 // ---------------------------------------------------------------------------
