@@ -94,7 +94,7 @@ function Performance() {
             if (!ranked.length) {
               return (
                 <div style={{ color: 'var(--muted)', fontSize: 13, padding: '12px 0' }}>
-                  No performance records yet — run <code>sql/workflow_schema.sql</code> and populate agent_performance to see the leaderboard.
+                  No performance records yet — closed deals will appear here once they're logged.
                 </div>
               )
             }
@@ -144,7 +144,7 @@ function Performance() {
               </tr>
             </thead>
             <tbody>
-              {records.length === 0 && <tr><td colSpan={8} style={{ padding: 24, color: 'var(--muted)', textAlign: 'center' }}>No agent performance records yet — run sql/workflow_schema.sql and populate agent_performance.</td></tr>}
+              {records.length === 0 && <tr><td colSpan={8} style={{ padding: 24, color: 'var(--muted)', textAlign: 'center' }}>No agent performance records yet — closed deals will appear here once they're logged.</td></tr>}
               {records.map((r) => {
                 const agent = agents.find((a) => a.id === r.agent_id)
                 return (

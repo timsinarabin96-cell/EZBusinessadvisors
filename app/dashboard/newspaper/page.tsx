@@ -70,7 +70,7 @@ function NewspaperDashboard() {
     const id = await createEdition()
     setBusy(false)
     if (id) { toast('Edition created & auto-generated'); await load(); setSelectedId(id); setTab('editor'); fetchArticles(id).then(setArticles) }
-    else toast('Could not create edition (run sql/newspaper_schema.sql)', 'error')
+    else toast('Could not create edition — try again', 'error')
   }
 
   const handleSaveMeta = async () => {

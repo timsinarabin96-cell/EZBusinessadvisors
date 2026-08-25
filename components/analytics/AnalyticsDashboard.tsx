@@ -195,7 +195,7 @@ export default function AnalyticsDashboard() {
           <CardHeader title="Revenue & Commissions" subtitle="Monthly totals" />
           <div style={{ padding: 16, height: 280 }}>
             {revenue.length === 0 ? (
-              <EmptyBox label="No revenue data yet — run analytics_schema.sql" />
+              <EmptyBox label="No revenue data yet — totals will appear as deals close" />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={revenue} margin={{ left: 8, right: 8, top: 10, bottom: 0 }}>
@@ -217,7 +217,7 @@ export default function AnalyticsDashboard() {
           <CardHeader title="Broker Performance" subtitle="Commissions by broker" />
           <div style={{ padding: 16, height: 280 }}>
             {brokers.length === 0 ? (
-              <EmptyBox label="No commission data — run analytics_schema.sql" />
+              <EmptyBox label="No commission data yet — totals will appear as deals close" />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>

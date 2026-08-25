@@ -91,7 +91,7 @@ function SearchInner() {
     if (!saveName.trim()) { toast('Enter a name for this search', 'info'); return }
     const created = await saveSearch({ name: saveName.trim(), scope, query: q, filters: filter })
     if (created) { toast('Search saved'); setSaveName(''); loadSaved() }
-    else toast('Could not save search (run sql/search_schema.sql)', 'info')
+    else toast('Could not save search — try again', 'info')
   }
 
   async function handleDeleteSaved(id: string) {

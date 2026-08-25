@@ -63,7 +63,7 @@ function PortalManager() {
       toast('Client access granted — share the link below')
       setName(''); setEmail('')
       loadAccess(selected)
-    } else toast('Could not grant access (run sql/client_portal_schema.sql)', 'error')
+    } else toast('Could not grant access — try again', 'error')
   }
 
   const handleRevoke = async (id: string) => {
