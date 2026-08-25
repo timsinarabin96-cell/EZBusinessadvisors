@@ -307,7 +307,7 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
               <div style={{ marginTop: 12 }}>
                 {activities.length === 0 && comms.length === 0 ? (
                   <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: 16, border: '2px dashed var(--line)', borderRadius: 8 }}>
-                    No activity yet. (Run the lead_activities SQL to enable logging.)
+                    No activity yet — add a note or log a call, email, or meeting to start the timeline.
                   </div>
                 ) : (
                   <div>
@@ -377,7 +377,7 @@ function ActivityNoteForm({ leadId, onAdded }: { leadId: string; onAdded: (a: Le
     const a = await addLeadActivity(leadId, type, text.trim())
     setAdding(false)
     if (a) { onAdded(a); setText('') }
-    else toast('Could not log activity — run lead_activities SQL', 'error')
+    else toast('Could not log activity — try again', 'error')
   }
 
   return (
