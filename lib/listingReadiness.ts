@@ -82,15 +82,15 @@ export async function fetchListingReadiness(listingId: string): Promise<Readines
       recast: { exists: Boolean(recastRes.data) },
       bov: {
         exists: Boolean(bovRes.data),
-        finalized: (bovRes.data as { status?: string } | null)?.status === 'finalized',
+        finalized: ['final', 'finalized'].includes((bovRes.data as { status?: string } | null)?.status || ''),
       },
       cim: {
         exists: Boolean(cimRes.data),
-        finalized: (cimRes.data as { status?: string } | null)?.status === 'finalized',
+        finalized: ['final', 'finalized'].includes((cimRes.data as { status?: string } | null)?.status || ''),
       },
       bli: {
         exists: Boolean(bliRes.data),
-        finalized: (bliRes.data as { status?: string } | null)?.status === 'finalized',
+        finalized: ['final', 'finalized'].includes((bliRes.data as { status?: string } | null)?.status || ''),
       },
       sba: { exists: Boolean(sbaRes.data) },
     }
