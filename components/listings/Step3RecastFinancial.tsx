@@ -19,6 +19,42 @@ export default function Step3RecastFinancial({ listingId, onNext }: { listingId:
   const [addBacks, setAddBacks] = useState<{ id: number; label: string; amount: string }[]>([{ ...EMPTY_BACK, id: Date.now() + 1 }])
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggestError, setSuggestError] = useState('')
+
+  const loadSuggestions = async () => {
+    setSuggesting(true)
+    setSuggestError('')
+    try {
+      const { supabase } = await import('@/lib/supabase/client')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setSuggestError('Not signed in'); return }
+      const res = await fetch(`/api/listings/recast-suggest?listingId=${encodeURIComponent(listingId)}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const j = await res.json()
+      if (!j.ok) throw new Error(j.error || 'Could not generate suggestions')
+      const suggestions = j.suggestions || []
+      if (!suggestions.length) { setSuggestError('No add-back suggestions for this profile — add them manually.'); return }
+      // Merge into existing add-back rows (replace empties, append the rest).
+      const rows = [...addBacks]
+      let i = 0
+      for (const s of suggestions) {
+        if (i < rows.length) rows[i] = { id: rows[i].id, label: s.label, amount: String(s.amount) }
+        else rows.push({ id: Date.now() + i, label: s.label, amount: String(s.amount) })
+        i++
+      }
+      setAddBacks(rows)
+      if (suggestions.length) {
+        const total = suggestions.reduce((s2: number, x: any) => s2 + (Number(x.amount) || 0), 0)
+        setNotes((n) => (n ? n : `AI add-back suggestions applied (${suggestions.length} items, +$${total.toLocaleString()}) — review each before completing.`))
+      }
+    } catch (e: any) {
+      setSuggestError(e.message || 'Could not generate suggestions')
+    } finally {
+      setSuggesting(false)
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -60,6 +96,17 @@ export default function Step3RecastFinancial({ listingId, onNext }: { listingId:
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
         <label style={stepLabel}>Original SDE<MoneyInput value={originalSde} onChange={(v) => setOriginalSde(v)} /></label>
         <label style={stepLabel}>Original EBITDA<MoneyInput value={originalEbitda} onChange={(v) => setOriginalEbitda(v)} /></label>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+        <button
+          onClick={loadSuggestions}
+          disabled={suggesting}
+          style={{ ...stepBtn(true), background: suggesting ? '#aaa' : '#1a1a2e', color: '#c9a84c' }}
+        >
+          {suggesting ? '✨ Analyzing…' : '✨ AI Suggest add-backs'}
+        </button>
+        {suggestError && <span style={{ fontSize: 12.5, color: '#b91c1c' }}>{suggestError}</span>}
       </div>
 
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>Add-backs</div>
