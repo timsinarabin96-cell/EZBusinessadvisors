@@ -55,5 +55,5 @@ export async function POST(req: NextRequest) {
 
   // Free 2-month window starts now; renewal is $50/listing/month after.
   await setExpiry(listingId, new Date(Date.now() + 60 * 86400000).toISOString()).catch(() => {})
-  return NextResponse.json({ ok: true, published: true, score: res.score, flagged: res.flagged || false })
+  return NextResponse.json({ ok: true, published: true, score: res.score, flagged: res.flagged || false, compliance: res.compliance || null })
 }

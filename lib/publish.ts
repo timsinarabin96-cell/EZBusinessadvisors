@@ -15,6 +15,7 @@ import { calculateListingReadiness, type IntelligentListingInput } from '@/lib/l
 import { runWatchlistMatching } from '@/lib/watchlist'
 import { createNotification, notifyMatch } from '@/lib/notifications'
 import { fireDealRadar } from '@/lib/dealRadar'
+import { evaluateListingCompliance } from '@/lib/compliance'
 import { sendEmail } from '@/lib/email'
 import { recordSuccessFee } from '@/lib/successFee'
 import { matchPublicSubscriptions } from '@/lib/notifySubscriptions'
@@ -141,11 +142,21 @@ async function firePublishBlast(listingId: string, agencyId: string): Promise<vo
  * Returns blocked with missing items when the gate fails.
  */
 export async function publishListing(listingId: string, actorProfileId?: string, opts?: { force?: boolean }): Promise<{
-  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean
+  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation
 }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   const { data: listing } = await svc.from('listings').select('*').eq('id', listingId).maybeSingle()
   if (!listing) return { ok: false, error: 'Listing not found' }
+
+  // Compliance evaluation — advisory jurisdiction check (license-required
+  // flags + required disclosures). Surfaced in the publish response so the
+  // broker sees the institutional-grade checklist at the moment of go-live.
+  let compliance = null
+  try {
+    compliance = await evaluateListingCompliance(listing as import('@/lib/compliance').ListingComplianceInput)
+  } catch {
+    compliance = null
+  }
 
   const readiness = calculateListingReadiness(listingToReadinessInput(listing))
   const force = opts?.force === true
@@ -176,7 +187,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
   await syncPublicListingRow(listing)
 
   await firePublishBlast(listingId, listing.agency_id)
-  return { ok: true, published: true, score: readiness.score, flagged }
+  return { ok: true, published: true, score: readiness.score, flagged, compliance }
 }
 
 /** Ensure the public feed row exists for a published listing. */
