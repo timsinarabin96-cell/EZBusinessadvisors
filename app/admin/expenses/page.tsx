@@ -38,6 +38,7 @@ export default function AdminExpensesPage() {
   })
   const [busy, setBusy] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [pnl, setPnl] = useState<any>(null)
 
   const loadPnl = useCallback(async () => {
@@ -49,6 +50,27 @@ export default function AdminExpensesPage() {
   }, [month])
 
   useEffect(() => { loadPnl() }, [loadPnl])
+
+  const onImportCsv = async (file: File) => {
+    setImporting(true)
+    try {
+      const text = await file.text()
+      const res = await authenticatedFetch('/api/admin/expenses/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csv: text }),
+      })
+      const j = await res.json()
+      if (!j.ok) throw new Error(j.error || 'Import failed')
+      toast(`📥 Imported ${j.summary.added} expenses (${j.summary.skipped} duplicates skipped, ${j.summary.aiCategorized} AI-categorized)`, 'success')
+      load()
+      loadPnl()
+    } catch (e: any) {
+      toast(e.message, 'error')
+    } finally {
+      setImporting(false)
+    }
+  }
 
   const autoSync = async () => {
     setSyncing(true)
@@ -154,6 +176,10 @@ export default function AdminExpensesPage() {
           <button onClick={autoSync} disabled={syncing} title="Pull real usage costs from Twilio, DeepSeek, Anthropic, Supabase & Vercel — AI categorizes everything" style={{ padding: '11px 20px', background: syncing ? '#aaa' : '#45a29e', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 800, fontSize: 14, cursor: syncing ? 'not-allowed' : 'pointer' }}>
             {syncing ? 'Syncing…' : '🤖 Auto-Sync Costs'}
           </button>
+          <label style={{ padding: '11px 20px', background: importing ? '#aaa' : '#0e7490', color: '#fff', borderRadius: 9, fontWeight: 800, fontSize: 14, cursor: importing ? 'not-allowed' : 'pointer', display: 'inline-block' }}>
+            {importing ? 'Importing…' : '📥 Import CSV'}
+            <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onImportCsv(f); e.target.value = '' }} />
+          </label>
           <button onClick={() => setShowForm((v) => !v)} style={{ padding: '11px 20px', background: '#1a1a2e', color: '#c9a84c', border: 'none', borderRadius: 9, fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
             {showForm ? '✕ Close' : '+ Add Expense'}
           </button>
