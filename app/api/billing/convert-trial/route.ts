@@ -45,7 +45,10 @@ export async function POST(req: NextRequest) {
   if (!agencyId || !plan) {
     return NextResponse.json({ ok: false, error: 'missing agencyId or invalid plan' }, { status: 400 })
   }
-  if (!canManageAgency(authenticated, agencyId)) return forbiddenResponse()
+  // Platform admins (super_admin/admin) can convert ANY agency from the admin
+  // trials page; otherwise the caller must manage the agency itself.
+  const isPlatformAdmin = authenticated.profile.role === 'super_admin' || authenticated.profile.role === 'admin'
+  if (!isPlatformAdmin && !canManageAgency(authenticated, agencyId)) return forbiddenResponse()
 
   const { data: agency } = await db.from('agencies').select('*').eq('id', agencyId).maybeSingle()
   if (!agency) return NextResponse.json({ ok: false, error: 'agency not found' }, { status: 404 })
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
   const amount = body.amount ?? (billingCycle === 'annual' ? plan.annual : plan.monthly)
 
   // 1) Mark paid + clear trial/grace/lock/archive state (retain all data).
-  await db.from('agencies').update({
+  const { error: updateErr } = await db.from('agencies').update({
     paid_plan_active: true,
     trial_active: false,
     plan_type: planType,
@@ -63,32 +66,37 @@ export async function POST(req: NextRequest) {
     locked_at: null,
     archive_at: null,
   }).eq('id', agencyId)
+  if (updateErr) return NextResponse.json({ ok: false, error: updateErr.message }, { status: 500 })
 
-  // 2) Record subscription history.
-  await db.from('subscription_history').insert({
-    agency_id: agencyId,
-    plan_type: planType,
-    start_date: new Date().toISOString(),
-    end_date: billingCycle === 'annual'
-      ? new Date(Date.now() + 365 * 86400000).toISOString()
-      : new Date(Date.now() + 30 * 86400000).toISOString(),
-    amount,
-    status: 'active',
-    notes: `Converted from trial via ${billingCycle} billing${body.paymentMethod ? ` · ${body.paymentMethod}` : ''}`,
-  })
+  // 2) Record subscription history (best-effort; history table may be optional).
+  try {
+    await db.from('subscription_history').insert({
+      agency_id: agencyId,
+      plan_type: planType,
+      start_date: new Date().toISOString(),
+      end_date: billingCycle === 'annual'
+        ? new Date(Date.now() + 365 * 86400000).toISOString()
+        : new Date(Date.now() + 30 * 86400000).toISOString(),
+      amount,
+      status: 'active',
+      notes: `Converted from trial via ${billingCycle} billing${body.paymentMethod ? ` · ${body.paymentMethod}` : ''}`,
+    })
+  } catch { /* history is informational */ }
 
-  // 3) Open a fresh usage period.
-  const now = new Date()
-  const end = new Date(Date.now() + 30 * 86400000).toISOString()
-  await db.from('agency_usage').insert({
-    agency_id: agencyId,
-    listings_used: 0,
-    leads_used: 0,
-    deals_used: 0,
-    storage_used: 0,
-    period_start: now.toISOString(),
-    period_end: end,
-  })
+  // 3) Open a fresh usage period (best-effort).
+  try {
+    const now = new Date()
+    const end = new Date(Date.now() + 30 * 86400000).toISOString()
+    await db.from('agency_usage').insert({
+      agency_id: agencyId,
+      listings_used: 0,
+      leads_used: 0,
+      deals_used: 0,
+      storage_used: 0,
+      period_start: now.toISOString(),
+      period_end: end,
+    })
+  } catch { /* usage is best-effort */ }
 
   return NextResponse.json({ ok: true, agencyId, planType, amount, billingCycle, status: 'paid' })
 }
