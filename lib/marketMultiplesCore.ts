@@ -44,7 +44,32 @@ const raw: [string, string[], 'SDE' | 'EBITDA', number, number, string?][] = [
   ['Gas station / C-Store', ['gas', 'convenience store', 'fuel', 'c-store'], 'SDE', 2.0, 3.0, 'Gas stations & convenience stores'],
   ['Gas station / C-Store', ['gas', 'convenience store', 'fuel', 'c-store'], 'EBITDA', 3.5, 4.5, 'Gas stations with fuel contracts trade 3.5-4.5x EBITDA'],
   ['Fitness / Gym', ['gym', 'fitness', 'crossfit', 'yoga', 'pilates'], 'SDE', 2.0, 3.0, 'Gyms & fitness studios'],
+  ['Hotels / Motels', ['hotel', 'motel', 'inn', 'bed and breakfast', 'bnb'], 'EBITDA', 4.5, 6.5, 'Hotels & motels trade 4.5-6.5x EBITDA'],
+  ['Hotels / Motels', ['hotel', 'motel', 'inn', 'bed and breakfast', 'bnb'], 'SDE', 2.5, 3.5, 'SDE band for smaller hospitality assets'],
+  ['Warehouse / Industrial', ['warehouse', 'industrial', 'storage facility', 'distribution center'], 'EBITDA', 4.0, 5.5, 'Warehouses & industrial real estate trade 4-5.5x EBITDA'],
+  ['Vending', ['vending machine', 'vending route', 'coin-op'], 'SDE', 2.5, 3.5, 'Vending routes trade 2.5-3.5x SDE'],
+  ['Liquor store', ['liquor', 'beer wine', 'package store', 'spirits'], 'SDE', 2.0, 3.0, 'Liquor & package stores'],
+  ['Bakery', ['bakery', 'baking', 'pastry', 'donut', 'doughnut'], 'SDE', 1.8, 2.6, 'Bakeries trade ~2-2.5x SDE'],
+  ['Coffee shop', ['coffee', 'cafe', 'espresso'], 'SDE', 2.0, 3.0, 'Coffee shops trade 2-3x SDE'],
+  ['Printing', ['print shop', 'printing', 'sign shop', 'copy'], 'SDE', 2.0, 3.0, 'Print & sign shops'],
+  ['Funeral home', ['funeral', 'crematory', 'mortuary'], 'SDE', 2.5, 3.5, 'Funeral homes trade 2.5-3.5x SDE'],
+  ['Funeral home', ['funeral', 'crematory', 'mortuary'], 'EBITDA', 4.0, 5.0, 'Funeral homes with scale trade 4-5x EBITDA'],
+  ['Franchise', ['franchise', 'franchisee', 'franchisor'], 'SDE', 2.5, 3.5, 'Franchise businesses trade 2.5-3.5x SDE'],
+  ['Staffing', ['staffing', 'recruiting', 'employment agency', 'temp agency'], 'EBITDA', 3.5, 5.0, 'Staffing firms trade 3.5-5x EBITDA'],
+  ['Insurance agency', ['insurance', 'agency', 'brokerage', 'independent agent'], 'EBITDA', 3.5, 5.5, 'Insurance agencies trade 3.5-5.5x EBITDA'],
+  ['Insurance agency', ['insurance', 'agency', 'brokerage', 'independent agent'], 'SDE', 2.5, 3.5, 'SDE band for smaller agencies'],
+  ['Accounting / Bookkeeping', ['accounting', 'bookkeeping', 'cpa', 'tax prepar', 'payroll'], 'SDE', 2.0, 3.0, 'Accounting & bookkeeping practices'],
+  ['Auto dealership', ['dealership', 'car dealer', 'used cars', 'auto sales'], 'SDE', 2.0, 3.0, 'Auto dealerships (asset-heavy)'],
+  ['Marina', ['marina', 'boat slip', 'boatyard'], 'EBITDA', 5.0, 7.0, 'Marinas trade 5-7x EBITDA'],
+  ['Golf course', ['golf', 'country club', 'driving range'], 'EBITDA', 4.0, 6.0, 'Golf courses trade 4-6x EBITDA'],
+  ['Real estate brokerage', ['real estate', 'realtor', 'property management', 'title'], 'SDE', 2.0, 3.0, 'Real estate & property management firms'],
 ]
+
+// Universal fallback — every business gets a defensible market band, even
+// when the industry is unusual or brand new. This is what makes the system
+// work for ANY M&A deal or side business, not just known industries.
+export const DEFAULT_BAND: MarketBand = { industry: 'General small business', basis: 'SDE', min: 2.5, max: 3.5, sourceNote: 'Fallback band — typical range for an established small business' }
+export const DEFAULT_EBITDA_BAND: MarketBand = { industry: 'General small business', basis: 'EBITDA', min: 3.5, max: 5.0, sourceNote: 'Fallback band — typical EBITDA range for an established small business' }
 
 export const MARKET_MULTIPLES: MarketBand[] = raw.map(([industry, , basis, min, max, sourceNote]) => ({
   industry, basis, min, max, sourceNote,
@@ -111,12 +136,18 @@ export function bandsForIndustry(industry: string | null | undefined): MarketBan
 export function bandForIndustry(
   industry: string | null | undefined,
   preferBasis?: 'SDE' | 'EBITDA'
-): MarketBand | null {
+): MarketBand {
   const bands = bandsForIndustry(industry)
-  if (!bands || bands.length === 0) return null
-  if (preferBasis) {
-    const match = bands.find((b) => b.basis === preferBasis)
-    if (match) return match
+  if (bands && bands.length > 0) {
+    if (preferBasis) {
+      const match = bands.find((b) => b.basis === preferBasis)
+      if (match) return match
+    }
+    const ebitda = bands.find((b) => b.basis === 'EBITDA')
+    if (ebitda) return ebitda
+    return bands[0]
   }
-  return bands.find((b) => b.basis === 'EBITDA') || bands[0]
+  // Universal fallback: unknown industries still get a defensible band so
+  // valuation, marketing docs and the website always have a market read.
+  return preferBasis === 'EBITDA' ? DEFAULT_EBITDA_BAND : DEFAULT_BAND
 }

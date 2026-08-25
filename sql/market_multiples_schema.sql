@@ -20,6 +20,11 @@ create table if not exists public.market_multiples (
 
 alter table public.market_multiples enable row level security;
 
+-- Idempotency guard: unique per (industry, basis, band) so re-seeding never duplicates.
+-- Must exist BEFORE the seed insert below (on conflict do nothing needs it).
+create unique index if not exists market_multiples_band_key
+  on public.market_multiples (industry, basis, min_multiple, max_multiple);
+
 drop policy if exists market_multiples_read on public.market_multiples;
 create policy market_multiples_read on public.market_multiples
   for select to authenticated using (true);
@@ -57,5 +62,26 @@ insert into public.market_multiples (industry, aliases, basis, min_multiple, max
   ('Childcare',            array['daycare','child care','preschool','learning center'], 'EBITDA', 4.0, 5.0, 'Childcare with enrollment scale trades 4-5x EBITDA'),
   ('Gas station / C-Store', array['gas','convenience store','fuel','c-store'], 'SDE', 2.0, 3.0, 'Gas stations & convenience stores'),
   ('Gas station / C-Store', array['gas','convenience store','fuel','c-store'], 'EBITDA', 3.5, 4.5, 'Gas stations with fuel contracts trade 3.5-4.5x EBITDA'),
-  ('Fitness / Gym',        array['gym','fitness','crossfit','yoga','pilates'], 'SDE', 2.0, 3.0, 'Gyms & fitness studios')
+  ('Fitness / Gym',        array['gym','fitness','crossfit','yoga','pilates'], 'SDE', 2.0, 3.0, 'Gyms & fitness studios'),
+  ('Hotels / Motels',      array['hotel','motel','inn','bed and breakfast','bnb'], 'EBITDA', 4.5, 6.5, 'Hotels & motels trade 4.5-6.5x EBITDA'),
+  ('Hotels / Motels',      array['hotel','motel','inn','bed and breakfast','bnb'], 'SDE', 2.5, 3.5, 'SDE band for smaller hospitality assets'),
+  ('Warehouse / Industrial', array['warehouse','industrial','storage facility','distribution center'], 'EBITDA', 4.0, 5.5, 'Warehouses & industrial real estate trade 4-5.5x EBITDA'),
+  ('Vending',              array['vending machine','vending route','coin-op'], 'SDE', 2.5, 3.5, 'Vending routes trade 2.5-3.5x SDE'),
+  ('Liquor store',         array['liquor','beer wine','package store','spirits'], 'SDE', 2.0, 3.0, 'Liquor & package stores'),
+  ('Bakery',               array['bakery','baking','pastry','donut','doughnut'], 'SDE', 1.8, 2.6, 'Bakeries trade ~2-2.5x SDE'),
+  ('Coffee shop',          array['coffee','cafe','espresso'], 'SDE', 2.0, 3.0, 'Coffee shops trade 2-3x SDE'),
+  ('Printing',             array['print shop','printing','sign shop','copy'], 'SDE', 2.0, 3.0, 'Print & sign shops'),
+  ('Funeral home',         array['funeral','crematory','mortuary'], 'SDE', 2.5, 3.5, 'Funeral homes trade 2.5-3.5x SDE'),
+  ('Funeral home',         array['funeral','crematory','mortuary'], 'EBITDA', 4.0, 5.0, 'Funeral homes with scale trade 4-5x EBITDA'),
+  ('Franchise',            array['franchise','franchisee','franchisor'], 'SDE', 2.5, 3.5, 'Franchise businesses trade 2.5-3.5x SDE'),
+  ('Staffing',             array['staffing','recruiting','employment agency','temp agency'], 'EBITDA', 3.5, 5.0, 'Staffing firms trade 3.5-5x EBITDA'),
+  ('Insurance agency',     array['insurance','agency','brokerage','independent agent'], 'EBITDA', 3.5, 5.5, 'Insurance agencies trade 3.5-5.5x EBITDA'),
+  ('Insurance agency',     array['insurance','agency','brokerage','independent agent'], 'SDE', 2.5, 3.5, 'SDE band for smaller agencies'),
+  ('Accounting / Bookkeeping', array['accounting','bookkeeping','cpa','tax prepar','payroll'], 'SDE', 2.0, 3.0, 'Accounting & bookkeeping practices'),
+  ('Auto dealership',      array['dealership','car dealer','used cars','auto sales'], 'SDE', 2.0, 3.0, 'Auto dealerships (asset-heavy)'),
+  ('Marina',               array['marina','boat slip','boatyard'], 'EBITDA', 5.0, 7.0, 'Marinas trade 5-7x EBITDA'),
+  ('Golf course',          array['golf','country club','driving range'], 'EBITDA', 4.0, 6.0, 'Golf courses trade 4-6x EBITDA'),
+  ('Real estate brokerage', array['real estate','realtor','property management','title'], 'SDE', 2.0, 3.0, 'Real estate & property management firms'),
+  ('General small business', array['small business','side business','main street','mom and pop'], 'SDE', 2.5, 3.5, 'Fallback band — typical range for an established small business'),
+  ('General small business', array['small business','side business','main street','mom and pop'], 'EBITDA', 3.5, 5.0, 'Fallback band — typical EBITDA range for an established small business')
 on conflict do nothing;

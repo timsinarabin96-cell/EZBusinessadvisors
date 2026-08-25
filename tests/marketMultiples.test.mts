@@ -58,6 +58,31 @@ test('market-multiples: seed covers key industries', () => {
   }
 })
 
+test('market-multiples: ANY business gets a band — universal fallback', () => {
+  // Unknown niche industries must still resolve to a defensible default band
+  // (this is the 'any M&A deal or side business' guarantee).
+  const sde = bandForIndustry('Oddball niche nobody seeded')
+  assert.ok(sde, 'unknown industry must still get an SDE band')
+  assert.equal(sde.industry, 'General small business')
+  assert.equal(sde.basis, 'SDE')
+  assert.equal(sde.min, 2.5)
+  assert.equal(sde.max, 3.5)
+
+  const ebitda = bandForIndustry('Oddball niche nobody seeded', 'EBITDA')
+  assert.equal(ebitda.basis, 'EBITDA')
+  assert.equal(ebitda.min, 3.5)
+  assert.equal(ebitda.max, 5.0)
+
+  // Broad M&A categories resolve to real seeded bands.
+  assert.equal(bandForIndustry('Hotel business', 'EBITDA').industry, 'Hotels / Motels')
+  assert.equal(bandForIndustry('Staffing agency', 'EBITDA').industry, 'Staffing')
+  assert.equal(bandForIndustry('Insurance agency', 'EBITDA').industry, 'Insurance agency')
+  assert.equal(bandForIndustry('Vending route', 'SDE').industry, 'Vending')
+  assert.equal(bandForIndustry('Bakery', 'SDE').industry, 'Bakery')
+  assert.equal(bandForIndustry('Marina', 'EBITDA').industry, 'Marina')
+  assert.equal(bandForIndustry('Golf course', 'EBITDA').industry, 'Golf course')
+})
+
 // ---------------------------------------------------------------------------
 // Wiring
 // ---------------------------------------------------------------------------
