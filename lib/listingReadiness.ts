@@ -29,9 +29,9 @@ export async function fetchListingReadiness(listingId: string): Promise<Readines
       supabase.from('documents').select('title, status').eq('listing_id', listingId),
       supabase.from('listing_financials').select('sde, annual_revenue').eq('listing_id', listingId).maybeSingle(),
       supabase.from('listing_recasts').select('id').eq('listing_id', listingId).maybeSingle(),
-      supabase.from('bov_versions').select('status').eq('listing_id', listingId).maybeSingle(),
-      supabase.from('cim_versions').select('status').eq('listing_id', listingId).maybeSingle(),
-      supabase.from('bli_versions').select('id').eq('listing_id', listingId).maybeSingle(),
+      supabase.from('bov_versions').select('status').eq('listing_id', listingId).limit(1).maybeSingle(),
+      supabase.from('cim_versions').select('status').eq('listing_id', listingId).limit(1).maybeSingle(),
+      supabase.from('bli_versions').select('id').eq('listing_id', listingId).limit(1).maybeSingle(),
       supabase.from('sba_qualifications').select('id').eq('listing_id', listingId).maybeSingle(),
     ])
 
