@@ -35,6 +35,37 @@ export async function createNotification(input: NotificationInput): Promise<{ ok
     link: input.link || null,
   })
   if (error) return { ok: false, error: error.message }
+
+  // Fire a web push for the same event so brokers on their phones get pinged
+  // too (PWA push — best-effort; silently skipped when VAPID isn't configured).
+  try {
+    const { sendPushToProfile } = await import('@/lib/webPush')
+    if (input.profile_id) {
+      await sendPushToProfile(input.profile_id, {
+        title: input.title,
+        body: input.body || undefined,
+        link: input.link || '/dashboard/notifications',
+      })
+    } else {
+      // Agency-wide: ping owners + admins.
+      const { data: members } = await svc
+        .from('agency_members')
+        .select('profile_id')
+        .eq('agency_id', input.agency_id)
+        .or('is_owner.eq.true,role.eq.admin')
+      const ids = [...new Set((members || []).map((m) => m.profile_id).filter(Boolean))] as string[]
+      for (const pid of ids) {
+        await sendPushToProfile(pid, {
+          title: input.title,
+          body: input.body || undefined,
+          link: input.link || '/dashboard/notifications',
+        })
+      }
+    }
+  } catch {
+    // best-effort — in-app notification already recorded
+  }
+
   return { ok: true }
 }
 
