@@ -22,10 +22,11 @@ export async function fetchListingReadiness(listingId: string): Promise<Readines
   if (!listingId) return empty
 
   try {
-    const [listingRes, wfRes, docsRes, finRes, recastRes, bovRes, cimRes, bliRes, sbaRes] = await Promise.all([
+    const [listingRes, wfRes, docsRes, genDocsRes, finRes, recastRes, bovRes, cimRes, bliRes, sbaRes] = await Promise.all([
       supabase.from('listings').select('business_name, headline, description, industry, location_general, asking_price, sde, ebitda, annual_revenue, status, featured_image_url, primary_image_url, image_urls').eq('id', listingId).maybeSingle(),
       supabase.from('listing_workflows').select('current_step, completed_steps').eq('listing_id', listingId).maybeSingle(),
       supabase.from('listing_documents').select('category, body_text').eq('listing_id', listingId),
+      supabase.from('documents').select('title, status').eq('listing_id', listingId),
       supabase.from('listing_financials').select('sde, annual_revenue').eq('listing_id', listingId).maybeSingle(),
       supabase.from('listing_recasts').select('id').eq('listing_id', listingId).maybeSingle(),
       supabase.from('bov_versions').select('status').eq('listing_id', listingId).maybeSingle(),
@@ -37,10 +38,17 @@ export async function fetchListingReadiness(listingId: string): Promise<Readines
     const l = listingRes.data as Record<string, unknown> | null
     const wf = wfRes.data as { current_step?: number; completed_steps?: unknown } | null
     const docs = (docsRes.data as Record<string, unknown>[] | null) || []
+    // Generated docs live in `documents` (template-based, e.g. seller pack),
+    // uploads live in `listing_documents`. An agreement from EITHER satisfies
+    // the legal step.
+    const genDocs = (genDocsRes.data as Record<string, unknown>[] | null) || []
 
     const hasAgreement = docs.some((d) => {
       const t = (d.category as string) || (d.body_text as string) || ''
       return t.includes('listing_agreement') || t.includes('agreement')
+    }) || genDocs.some((d) => {
+      const t = (d.title as string) || ''
+      return /listing agreement|marketing agreement/i.test(t)
     })
 
     const fin = finRes.data as { sde?: number | null; annual_revenue?: number | null } | null
