@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { fetchPublicFeed, type PublicMarketplaceListing } from '@/lib/marketplace'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
+import { resolveLocationSlug } from '@/lib/locationPages'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +39,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const label = titleCase(params.slug)
+  const resolved = await resolveLocationSlug(params.slug)
+  const label = resolved?.label || titleCase(params.slug)
   const title = `Businesses for Sale in ${label}`
   const description = `Browse businesses for sale in ${label}. Vetted, profitable opportunities with confidential financials available to qualified buyers.`
   return {
@@ -50,15 +52,30 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function LocationPage({ params }: { params: { slug: string } }) {
-  const label = titleCase(params.slug)
-  const abbrev = STATE_MAP[params.slug]
+  // Resolve ANY city/county/state against the US locations table (33k+ rows)
+  // so every place gets a real SEO page — even with zero listings today.
+  const resolved = await resolveLocationSlug(params.slug)
+  if (!resolved) {
+    return (
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: 44, marginBottom: 12 }}>📍</div>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: '#1a1a2e' }}>Location not found</h1>
+        <p style={{ color: '#888', fontSize: 14 }}>We couldn't match that city, county, or state.</p>
+        <Link href="/marketplace/listings" style={{ color: '#c9a84c', fontWeight: 700, textDecoration: 'none' }}>← Browse all businesses for sale</Link>
+      </div>
+    )
+  }
+
+  const label = resolved.label
+  const abbrev = resolved.stateCode
   const all = await fetchPublicFeed()
 
   const matches = all.filter((l) => {
     const loc = (l.location_general || '').toLowerCase()
     if (!loc) return false
     if (abbrev && loc.includes(abbrev.toLowerCase())) return true
-    return loc.includes(label.toLowerCase())
+    if (resolved.placeType === 'state') return true // state page shows everything in state
+    return loc.includes(label.toLowerCase().split(',')[0])
   })
 
   const jsonLd = {
@@ -157,6 +174,26 @@ export default async function LocationPage({ params }: { params: { slug: string 
           {matches.map((l) => (
             <PublicListingCard key={l.id} listing={l} />
           ))}
+        </div>
+      )}
+
+      {/* Nearby cities — SEO interlinking across the locations table */}
+      {resolved.nearby.length > 0 && (
+        <div style={{ marginTop: 36, paddingTop: 24, borderTop: '1px solid #ece8dc' }}>
+          <div style={{ fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700, marginBottom: 12 }}>
+            {resolved.stateName ? `More businesses near ${resolved.stateName}` : 'Nearby cities'}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {resolved.nearby.slice(0, 24).map((n) => (
+              <Link
+                key={n.slug}
+                href={`/marketplace/location/${n.slug}`}
+                style={{ padding: '7px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 700, textDecoration: 'none', background: '#faf9f4', color: '#1a1a2e', border: '1px solid #ece8dc' }}
+              >
+                {n.label}
+              </Link>
+            ))}
+          </div>
         </div>
       )}
       </div>
