@@ -2,8 +2,9 @@
 
 // ---------------------------------------------------------------------------
 // /dashboard/listings/[id]/workflow — Guided Listing Workflow view.
-// Shows the 10-step tracker + the active step's editor. Navigating steps is
-// allowed for completed/current steps.
+// 10-step tracker + active step editor + AI guidance rail. Same navy/gold
+// visual language as the listings list so the whole listing system feels
+// like one surface. Step 9 (Buyer Management) is rendered here too.
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useState } from 'react'
@@ -22,16 +23,15 @@ import Step8ListBusiness from '@/components/listings/Step8ListBusiness'
 import Step9BuyerManagement from '@/components/listings/Step9BuyerManagement'
 import Step10DealClosing from '@/components/listings/Step10DealClosing'
 import StatusBadge from '@/components/listings/StatusBadge'
-import SBABadge from '@/components/listings/SBABadge'
-import VerifiedFinancialsPanel from '@/components/listing/VerifiedFinancialsPanel'
-import { getWorkflow, startWorkflow } from '@/lib/workflow'
+import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
+import { getWorkflow, startWorkflow, WORKFLOW_STEPS } from '@/lib/workflow'
 import { fetchListing, fmtMoney } from '@/lib/listings'
 
 export default function WorkflowPage() {
   return (
     <AppShell active="Listings">
       <ToastProvider>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1240, margin: '0 auto' }}>
           <WorkflowBody />
         </div>
       </ToastProvider>
@@ -75,9 +75,12 @@ function WorkflowBody() {
   }
   const goStep = (s: number) => setActiveStep(s)
 
+  const stepMeta = WORKFLOW_STEPS.find((s) => s.step === activeStep)
+  const doneSteps = new Set<number>((workflow?.completed_steps || []).map(Number))
+
   return (
     <div>
-      {/* Header */}
+      {/* Header — same language as the listings list */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 16, flexWrap: 'wrap' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -86,11 +89,11 @@ function WorkflowBody() {
             <StatusBadge status={listing?.status} />
           </div>
           <p style={{ margin: '6px 0 0', fontSize: 13.5, color: 'var(--muted)' }}>
-            {listing?.industry} · {listing?.location_general} · {listing?.asking_price ? fmtMoney(listing.asking_price) : 'price TBD'}
+            {listing?.industry || 'Industry TBD'} · {listing?.location_general || 'Location TBD'} · {listing?.asking_price ? fmtMoney(listing.asking_price) : 'price TBD'}
           </p>
         </div>
         <button onClick={() => router.push(`/dashboard/listings/${listingId}/edit`)} style={{ padding: '9px 16px', background: 'transparent', color: 'var(--navy)', border: '1px solid var(--gold)', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
-          Edit details
+          ✎ Edit details (AI Studio)
         </button>
       </div>
 
@@ -99,16 +102,29 @@ function WorkflowBody() {
         <WorkflowDashboard currentStep={workflow?.current_step || activeStep} completedSteps={workflow?.completed_steps} onNavigate={goStep} listingId={listingId} />
       </div>
 
-      {/* Active step component */}
-      {activeStep === 1 && <Step1LegalDocs listingId={listingId} onNext={goNext} />}
-      {activeStep === 2 && <Step2FinancialDetails listingId={listingId} onNext={goNext} />}
-      {activeStep === 3 && <Step3RecastFinancial listingId={listingId} onNext={goNext} />}
-      {activeStep === 4 && <Step4GenerateBOV listingId={listingId} onNext={goNext} />}
-      {activeStep === 5 && <Step5GenerateCIM listingId={listingId} onNext={goNext} />}
-      {activeStep === 6 && <Step6GenerateBLI listingId={listingId} onNext={goNext} />}
-      {activeStep === 7 && <Step7SBAQualification listingId={listingId} onNext={goNext} />}
-      {activeStep === 8 && <Step8ListBusiness listingId={listingId} onNext={goNext} />}
-      {activeStep === 10 && <Step10DealClosing listingId={listingId} onNext={goNext} />}
+      {/* Two-column: step editor + AI guidance rail */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: 18, alignItems: 'start' }}>
+        <div>
+          {activeStep === 1 && <Step1LegalDocs listingId={listingId} onNext={goNext} />}
+          {activeStep === 2 && <Step2FinancialDetails listingId={listingId} onNext={goNext} />}
+          {activeStep === 3 && <Step3RecastFinancial listingId={listingId} onNext={goNext} />}
+          {activeStep === 4 && <Step4GenerateBOV listingId={listingId} onNext={goNext} />}
+          {activeStep === 5 && <Step5GenerateCIM listingId={listingId} onNext={goNext} />}
+          {activeStep === 6 && <Step6GenerateBLI listingId={listingId} onNext={goNext} />}
+          {activeStep === 7 && <Step7SBAQualification listingId={listingId} onNext={goNext} />}
+          {activeStep === 8 && <Step8ListBusiness listingId={listingId} onNext={goNext} />}
+          {activeStep === 9 && <Step9BuyerManagement listingId={listingId} onNext={goNext} />}
+          {activeStep === 10 && <Step10DealClosing listingId={listingId} onNext={goNext} />}
+        </div>
+
+        <WorkflowGuidance
+          step={activeStep}
+          stepLabel={stepMeta?.label || ''}
+          listing={listing}
+          workflow={workflow}
+          doneSteps={doneSteps}
+        />
+      </div>
     </div>
   )
 }
