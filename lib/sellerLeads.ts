@@ -119,8 +119,7 @@ export async function deleteSellerLead(id: string): Promise<void> {
 
 // ---------------------------------------------------------------------------
 // Activity logging
-// Uses the `lead_activities` table — create it with the SQL in
-// sql/create_activity_tables.sql if it does not exist.
+// Uses the `lead_activities` table (live — see sql/create_activity_tables.sql).
 // ---------------------------------------------------------------------------
 export interface LeadActivity {
   id: string
@@ -138,8 +137,8 @@ export async function fetchLeadActivities(leadId: string): Promise<LeadActivity[
     .order('created_at', { ascending: false })
 
   if (error) {
-    // Table may not exist yet — surface empty instead of crashing
-    console.warn('fetchLeadActivities error (table may not exist):', error.message)
+    // Fail soft on read errors (RLS/table) — surface empty instead of crashing
+    console.warn('fetchLeadActivities error:', error.message)
     return []
   }
   return (data as LeadActivity[]) || []
