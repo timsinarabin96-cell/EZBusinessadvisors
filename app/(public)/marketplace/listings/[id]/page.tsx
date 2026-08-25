@@ -7,7 +7,11 @@ import ListingDetailInteractive from '@/components/public/ListingDetailInteracti
 import SimilarListings from '@/components/public/SimilarListings'
 import DealProfessionalsPanel from '@/components/public/DealProfessionalsPanel'
 import AgentContactCard from '@/components/public/AgentContactCard'
+import ListingMarketContextPanel from '@/components/public/ListingMarketContextPanel'
 import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
+import { fetchListingMarketContext } from '@/lib/listingMarketContext'
+
+export const dynamic = 'force-dynamic'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
 
@@ -45,6 +49,16 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   // Listing ID (listing_ref) + assigned agent contact — server-side enrichment.
   const meta = await fetchPublicListingMeta(listing.slug || listing.id)
 
+  // Buyer-facing market context: typical sale multiple, price position, comps.
+  const marketCtx = await fetchListingMarketContext({
+    industry: listing.industry,
+    asking_price: listing.asking_price,
+    sde: listing.sde,
+    ebitda: listing.ebitda,
+    location_general: listing.location_general,
+    established_year: listing.established_year,
+  })
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -75,6 +89,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
       <div style={{ marginBottom: 20 }}>
         <AgentContactCard agent={meta?.agent || null} />
       </div>
+      <ListingMarketContextPanel ctx={marketCtx} />
       <ListingDetailInteractive listing={listing} />
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
         <Link
