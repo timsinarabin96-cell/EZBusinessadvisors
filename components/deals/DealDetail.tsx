@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { DealStage, PipelineItem, PIPELINE_STAGES, formatMoney } from '@/lib/pipeline'
 import BuyerScorecards from './BuyerScorecards'
 
@@ -11,7 +12,24 @@ interface DealDetailProps {
   onDelete: (deal: PipelineItem) => void
 }
 
+// Standard brokerage fee tiers + agent split tiers (matches hiring packages).
+const FEE_RATES = [8, 10, 12]
+const SPLIT_TIERS = [50, 70, 80]
+
 export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelete }: DealDetailProps) {
+  const [feeRate, setFeeRate] = useState(10)
+  const [split, setSplit] = useState(70)
+
+  const economics = useMemo(() => {
+    const base = deal.purchase_price ?? deal.asking_price ?? 0
+    const fee = (base * feeRate) / 100
+    return {
+      base,
+      fee,
+      agentTake: (fee * split) / 100,
+      sellerNet: base - fee,
+    }
+  }, [deal.purchase_price, deal.asking_price, feeRate, split])
   const formatDate = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
@@ -47,6 +65,41 @@ export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelet
             <StatBox label="Stage" value={stageLabel(deal.stage)} />
             <StatBox label="Updated" value={formatDate(deal.updated_at)} />
           </div>
+
+          {/* Deal economics — estimated fee, agent take, seller net */}
+          {economics.base > 0 && (
+            <div style={{ marginBottom: '20px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+              <div style={sectionLabel}>Deal Economics</div>
+              <div style={{ fontSize: '13px', color: '#334155' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <span>Price basis</span>
+                  <span style={{ fontWeight: 700 }}>{formatMoney(economics.base)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <span>Broker fee ({feeRate}%)</span>
+                  <span style={{ fontWeight: 700, color: '#b45309' }}>{formatMoney(economics.fee)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <span>Agent take ({split}% split)</span>
+                  <span style={{ fontWeight: 700, color: '#15803d' }}>{formatMoney(economics.agentTake)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+                  <span>Seller net</span>
+                  <span style={{ fontWeight: 700, color: '#1d4ed8' }}>{formatMoney(economics.sellerNet)}</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8', alignSelf: 'center' }}>Fee</span>
+                {FEE_RATES.map((r) => (
+                  <button key={r} onClick={() => setFeeRate(r)} style={pill(feeRate === r)}>{r}%</button>
+                ))}
+                <span style={{ fontSize: '11px', color: '#94a3b8', alignSelf: 'center', marginLeft: '8px' }}>Split</span>
+                {SPLIT_TIERS.map((s) => (
+                  <button key={s} onClick={() => setSplit(s)} style={pill(split === s)}>{s}/{100 - s}</button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Headline */}
           {deal.headline && (
@@ -132,6 +185,14 @@ function StatBox({ label, value }: { label: string; value: string }) {
       <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>{value}</div>
     </div>
   )
+}
+
+function pill(active: boolean): React.CSSProperties {
+  return {
+    padding: '4px 10px', borderRadius: '999px', border: active ? '2px solid #c9a84c' : '1px solid #e2e8f0',
+    background: active ? 'rgba(201,168,76,0.15)' : '#fff', color: active ? '#8a6d1a' : '#64748b',
+    fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+  }
 }
 
 const sectionLabel: React.CSSProperties = {
