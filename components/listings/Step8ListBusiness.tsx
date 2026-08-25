@@ -6,6 +6,7 @@ import { publishListing, completeStep } from '@/lib/workflow'
 import { fetchListing } from '@/lib/listings'
 import { fetchListingReadiness } from '@/lib/listingReadiness'
 import StatusBadge from '@/components/listings/StatusBadge'
+import SyndicationPanel from '@/components/listings/SyndicationPanel'
 
 // ---------------------------------------------------------------------------
 // Step 8 — List Business: publish the listing to the marketplace (live on website).
@@ -78,8 +79,11 @@ export default function Step8ListBusiness({ listingId, onNext }: { listingId: st
       {pushResult && <div style={{ marginTop: 10, fontSize: 13, color: pushResult.includes('failed') ? '#dc2626' : '#16a34a' }}>{pushResult}</div>}
 
       <div style={{ marginTop: 16, fontSize: 12.5, color: 'var(--muted)' }}>
-        Publishing sets the listing status to <strong>Active</strong> and makes it live on the website. Once a buyer signs a letter of intent, the status will automatically advance to Pending Sale. Syndication to other sources (BizBuySell, LoopNet, etc.) is manual — enter them yourself from your own accounts.
+        Publishing sets the listing status to <strong>Active</strong> and makes it live on the website. Once a buyer signs a letter of intent, the status will automatically advance to Pending Sale.
       </div>
+
+      {/* One-click marketplace syndication with per-source status */}
+      <SyndicationPanel listingId={listingId} />
     </StepShell>
   )
 }
