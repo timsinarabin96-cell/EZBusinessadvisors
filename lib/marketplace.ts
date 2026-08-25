@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
+import { publicListingSorter, type PublicListingSortBy } from '@/lib/publicListingSort'
 
 export interface PublicMarketplaceListing {
   id: string
@@ -112,6 +113,8 @@ export interface SearchFilters {
   sbaOnly?: boolean
   status?: 'active' | 'under_contract' | 'sold'
   country?: string
+  /** sort order for results: default = featured-first, then newest */
+  sortBy?: PublicListingSortBy
 }
 
 function numberOrNull(value: number | string | null): number | null {
@@ -233,8 +236,16 @@ export async function searchPublicListings(filters: SearchFilters = {}): Promise
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(query))
     })
+    .slice(0, 200)
+    .sort(publicListingSorter(filters.sortBy))
     .slice(0, 100)
 }
+
+/**
+ * Pure sort comparator for public listings — lives in lib/publicListingSort.ts
+ * (dependency-free, unit-testable). Re-exported here for convenience.
+ */
+export { publicListingSorter }
 
 export async function fetchFeaturedListings(limit = 6): Promise<PublicMarketplaceListing[]> {
   return (await fetchPublicFeed())

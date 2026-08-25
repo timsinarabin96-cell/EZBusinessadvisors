@@ -46,6 +46,8 @@ export default function SearchListingsClient({ initialResults, initialIndustries
   const sbaOnly = searchParams.get('sbaOnly') === '1'
   const status = searchParams.get('status') || ''
   const minEmployees = searchParams.get('minEmployees') || ''
+  const sortBy = searchParams.get('sortBy') || ''
+  const minPriceParam = searchParams.get('minPrice') || ''
 
   const [query, setQuery] = useState(q)
   const [selIndustry, setSelIndustry] = useState(industry)
@@ -60,6 +62,8 @@ export default function SearchListingsClient({ initialResults, initialIndustries
   const [statusFilter, setStatusFilter] = useState(status)
   const [employees, setEmployees] = useState(minEmployees)
   const [advanced, setAdvanced] = useState(false)
+  const [sort, setSort] = useState(sortBy)
+  const [minPrice, setMinPrice] = useState(minPriceParam)
 
   // Refresh side panels (industries/stats) if the server didn't provide them.
   useEffect(() => {
@@ -77,6 +81,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       query: q || undefined,
       industry: industry || undefined,
       location: location || undefined,
+      minPrice: minPriceParam ? Number(minPriceParam) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       maxRevenue: maxRevenue ? Number(String(maxRevenue).replace(/[$,]/g, '')) : undefined,
       maxSdeMultiple: maxSdeMultiple ? Number(maxSdeMultiple) : undefined,
@@ -86,8 +91,9 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       sbaOnly: sbaOnly || undefined,
       status: (status as any) || undefined,
       minEmployees: minEmployees ? Number(minEmployees) : undefined,
+      sortBy: (sortBy as any) || undefined,
     }).then(setResults).finally(() => setLoading(false))
-  }, [q, industry, location, maxPrice, maxRevenue, maxSdeMultiple, absenteeOnly, franchiseOnly, financingAvailable, sbaOnly, status, minEmployees])
+  }, [q, industry, location, minPriceParam, maxPrice, maxRevenue, maxSdeMultiple, absenteeOnly, franchiseOnly, financingAvailable, sbaOnly, status, minEmployees, sortBy])
 
   const applyFilters = (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,6 +117,8 @@ export default function SearchListingsClient({ initialResults, initialIndustries
     if (sba) params.set('sbaOnly', '1')
     if (statusFilter) params.set('status', statusFilter)
     if (employees || parsed.minEmployees) params.set('minEmployees', String(employees || parsed.minEmployees))
+    if (minPrice) params.set('minPrice', String(minPrice))
+    if (sort) params.set('sortBy', sort)
     router.push(`/marketplace/listings?${params.toString()}`)
   }
 
@@ -172,6 +180,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
           <input value={price} onChange={(e) => setPrice(formatWithCommas(e.target.value))} placeholder="Max Price ($)" inputMode="decimal" style={inputStyle} />
           {advanced && (
             <>
+              <input value={minPrice} onChange={(e) => setMinPrice(formatWithCommas(e.target.value))} placeholder="Min Price ($)" inputMode="decimal" style={inputStyle} />
               <input value={rev} onChange={(e) => setRev(formatWithCommas(e.target.value))} placeholder="Max Revenue ($)" inputMode="decimal" style={inputStyle} />
               <input value={multiple} onChange={(e) => setMultiple(e.target.value)} placeholder="Max SDE multiple" type="number" step="0.1" style={inputStyle} />
               <input value={employees} onChange={(e) => setEmployees(e.target.value)} placeholder="Min FT employees" type="number" style={inputStyle} />
@@ -188,6 +197,14 @@ export default function SearchListingsClient({ initialResults, initialIndustries
             <option value="active">● Active</option>
             <option value="under_contract">📝 Under Contract</option>
             <option value="sold">✅ Sold</option>
+          </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value)} style={inputStyle}>
+            <option value="">Sort: Featured first</option>
+            <option value="newest">🕒 Newest</option>
+            <option value="price_asc">💰 Price: Low → High</option>
+            <option value="price_desc">💰 Price: High → Low</option>
+            <option value="revenue_desc">📈 Revenue: High → Low</option>
+            <option value="multiple_desc">⚖️ Multiple: High → Low</option>
           </select>
           <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: 14 }}>Apply Filters</button>
         </div>

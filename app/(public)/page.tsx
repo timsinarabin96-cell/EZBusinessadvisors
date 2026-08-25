@@ -8,6 +8,7 @@ import PublicListingCard from '@/components/public/PublicListingCard'
 import AuthRedirect from '@/components/public/AuthRedirect'
 import ValuationLeadForm from '@/components/public/ValuationLeadForm'
 import HomeSearchLocation from '@/components/public/HomeSearchLocation'
+import HomeSearchCategory from '@/components/public/HomeSearchCategory'
 import InstantValuation from '@/components/public/InstantValuation'
 import HomeCountUp from '@/components/public/HomeCountUp'
 import { CRM_LICENSE } from '@/lib/billing'
@@ -84,10 +85,7 @@ export default async function HomePage() {
             } as React.CSSProperties}
           >
             <input name="q" placeholder="Keyword (e.g. restaurant, HVAC, e-commerce)" style={searchInput} />
-            <select name="industry" defaultValue="" style={searchInput}>
-              <option value="">All Industries</option>
-              {industries.map((i) => <option key={i} value={i}>{i}</option>)}
-            </select>
+            <HomeSearchCategory style={searchInput} />
             <HomeSearchLocation style={searchInput} />
             <button type="submit" className="home-glow" style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', borderRadius: 8, padding: '0 26px', fontWeight: 800, fontFamily: 'Georgia, serif', fontSize: 14.5, cursor: 'pointer' }}>
               Search →
