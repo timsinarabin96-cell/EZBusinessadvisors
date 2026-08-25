@@ -113,6 +113,12 @@ function PortalBody() {
 
   useEffect(() => { load() }, [load])
 
+  // Auto-refresh: pick up broker replies / new docs without a manual reload.
+  useEffect(() => {
+    const t = setInterval(() => { load() }, 20000)
+    return () => clearInterval(t)
+  }, [load])
+
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages.length])
 
   // --- Unauthorized ------------------------------------------------------

@@ -4,6 +4,9 @@ import test from 'node:test'
 
 const schema = readFileSync('sql/loi_schema.sql', 'utf8')
 const lib = readFileSync('lib/loi.ts', 'utf8')
+// renderLoiHtml lives in the dependency-free module (keeps nodemailer out of
+// the client bundle); loi.ts re-exports it for server callers.
+const render = readFileSync('lib/loiRender.ts', 'utf8')
 const route = readFileSync('app/api/loi/route.ts', 'utf8')
 const page = readFileSync('app/dashboard/loi/page.tsx', 'utf8')
 const email = readFileSync('lib/email.ts', 'utf8')
@@ -30,12 +33,12 @@ test('loi: builder produces full term sheet content', () => {
 })
 
 test('loi: renders a printable letter with terms + signature blocks', () => {
-  assert.match(lib, /export function renderLoiHtml/)
-  assert.match(lib, /Letter of Intent/)
-  assert.match(lib, /Purchase price/)
-  assert.match(lib, /Due diligence period/)
-  assert.match(lib, /Signed: ____________________/)
-  assert.match(lib, /This Letter of Intent is non-binding/)
+  assert.match(render, /export function renderLoiHtml/)
+  assert.match(render, /Letter of Intent/)
+  assert.match(render, /Purchase price/)
+  assert.match(render, /Due diligence period/)
+  assert.match(render, /Signed: ____________________/)
+  assert.match(render, /This Letter of Intent is non-binding/)
 })
 
 test('loi: persists idempotently per offer and lists per agency', () => {
