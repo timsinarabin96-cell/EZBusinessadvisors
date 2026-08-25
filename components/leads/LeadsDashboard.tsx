@@ -1,11 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   UnifiedLead, LeadKind, LeadStatus, LEAD_STATUSES, statusMeta,
   fetchAllLeads, createLead, updateLead, deleteLead, convertLeadToDeal,
-  fetchLeadActivities, addLeadActivity, LeadActivity, initials,
+  fetchLeadActivities, addLeadActivity, LeadActivity, initials, mergeLeads,
 } from '@/lib/leads2'
+import { findDuplicateGroups, findCrossKindPairs } from '@/lib/leadDedup'
+import type { DupGroup } from '@/lib/leadDedup'
 import { fetchListings, Listing } from '@/lib/listings'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
@@ -43,6 +45,7 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
   const [activities, setActivities] = useState<LeadActivity[]>([])
   const [comms, setComms] = useState<LeadComm[]>([])
   const [converting, setConverting] = useState(false)
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -75,6 +78,14 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
   }
 
   const handleCreate = async (input: { kind: LeadKind; business_name?: string; email?: string; phone?: string; status?: LeadStatus }) => {
+    if (input.kind === 'buyer') {
+      // The modal already persisted the enriched buyer lead — refresh to pick it
+      // up instead of double-inserting through the generic path.
+      setShowForm(false)
+      await load()
+      toast('Lead created', 'success')
+      return
+    }
     const created = await createLead(input.kind, input)
     setShowForm(false)
     setLeads((p) => [created, ...p])
@@ -132,6 +143,41 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
     }
   }
 
+  // --- Lead hygiene: duplicates + cross-kind matches + sources ----------
+  const dupGroups = useMemo(() => findDuplicateGroups(leads), [leads])
+  const crossPairs = useMemo(
+    () => findCrossKindPairs(
+      leads.filter((l) => l.kind === 'buyer'),
+      leads.filter((l) => l.kind === 'seller'),
+    ),
+    [leads],
+  )
+  const groupKey = (g: DupGroup) => g.members.map((m) => m.id).sort().join('|')
+  const visibleGroups = dupGroups.filter((g) => !dismissed.has(groupKey(g)))
+  const visiblePairs = crossPairs.filter((p) => !dismissed.has(`pair:${p.buyer.id}:${p.seller.id}`))
+
+  const sourceSummary = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const l of leads) {
+      const key = l.source || 'Unattributed'
+      m.set(key, (m.get(key) || 0) + 1)
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1])
+  }, [leads])
+
+  const handleMergeGroup = async (g: DupGroup) => {
+    const keeper = g.members[0]
+    try {
+      for (let i = 1; i < g.members.length; i++) {
+        await mergeLeads(keeper.kind, keeper.id, g.members[i].id)
+      }
+      toast('Duplicates merged', 'success')
+      await load()
+    } catch (e: any) {
+      toast(e.message, 'error')
+    }
+  }
+
   const filtered = leads.filter((l) => {
     if (kindFilter !== 'all' && l.kind !== kindFilter) return false
     if (statusFilter !== 'all' && l.status !== statusFilter) return false
@@ -153,6 +199,15 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
           <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>
             {leads.length} total · {countKind('buyer')} buyers · {countKind('seller')} sellers
           </p>
+          {sourceSummary.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+              {sourceSummary.map(([s, c]) => (
+                <span key={s} style={{ fontSize: 11.5, padding: '3px 10px', borderRadius: 999, background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', fontWeight: 600 }}>
+                  {s} · {c}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>+ Add Lead</button>
       </header>
@@ -182,6 +237,65 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
           ))}
         </div>
       </div>
+
+      {/* Lead hygiene — duplicates + cross-kind matches */}
+      {(visibleGroups.length > 0 || visiblePairs.length > 0) && (
+        <div className="card" style={{ padding: 18, marginBottom: 20, border: '1px solid rgba(201,168,76,0.45)' }}>
+          <div className="section-title" style={{ marginBottom: 4 }}>🧹 Lead hygiene</div>
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--muted)' }}>
+            {visibleGroups.length} duplicate {visibleGroups.length === 1 ? 'group' : 'groups'}
+            {visiblePairs.length > 0 && ` · ${visiblePairs.length} buyer↔seller ${visiblePairs.length === 1 ? 'match' : 'matches'}`} detected.
+          </p>
+
+          {visibleGroups.map((g) => {
+            const keeper = g.members[0]
+            return (
+              <div key={groupKey(g)} style={{ border: '1px solid #e7edf3', borderRadius: 10, padding: 14, marginBottom: 10, background: '#fffdf7' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                  <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)' }}>
+                    Duplicate group — {g.reason} ({g.members.length} leads)
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>oldest → newest</span>
+                </div>
+                {g.members.map((m, i) => (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', fontSize: 13, gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: i === 0 ? 700 : 500 }}>
+                      {i === 0 ? '📌 ' : '➖ '}{m.business_name || m.email || 'Unnamed lead'} <span style={{ color: 'var(--muted)', fontSize: 12 }}>{m.kind === 'buyer' ? '👤 buyer' : '🏢 seller'}</span>
+                    </span>
+                    <span style={{ color: 'var(--muted)', fontSize: 12 }}>
+                      {m.email || '—'} · {m.phone || '—'} · {m.created_at ? new Date(m.created_at).toLocaleDateString() : ''}
+                    </span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                  <button className="btn btn-navy" style={{ padding: '7px 14px', fontSize: 12.5 }} onClick={() => handleMergeGroup(g)}>
+                    Merge into {keeper.business_name || keeper.email || 'oldest lead'}
+                  </button>
+                  <button className="btn btn-ghost" style={{ padding: '7px 14px', fontSize: 12.5 }} onClick={() => setDismissed((p) => new Set(p).add(groupKey(g)))}>
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+
+          {visiblePairs.map((p) => (
+            <div key={`pair:${p.buyer.id}:${p.seller.id}`} style={{ border: '1px solid #bfdbfe', borderRadius: 10, padding: 14, marginBottom: 10, background: '#f8faff' }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 6 }}>
+                🔗 Same person is both a buyer and a seller — {p.via === 'email' ? 'same email' : 'same phone'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>
+                🏢 {p.seller.business_name || p.seller.email} (seller) · 👤 {p.buyer.email || p.buyer.phone} (buyer)
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-navy" style={{ padding: '7px 14px', fontSize: 12.5 }} onClick={() => setProfileLead(p.seller as UnifiedLead)}>Open seller profile</button>
+                <button className="btn btn-navy" style={{ padding: '7px 14px', fontSize: 12.5 }} onClick={() => setProfileLead(p.buyer as UnifiedLead)}>Open buyer profile</button>
+                <button className="btn btn-ghost" style={{ padding: '7px 14px', fontSize: 12.5 }} onClick={() => setDismissed((s) => new Set(s).add(`pair:${p.buyer.id}:${p.seller.id}`))}>Dismiss</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? <LoadingState /> : null}
 
@@ -220,6 +334,7 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                       {lead.phone || '—'} · {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : ''}
+                      {lead.source ? ` · ${lead.source}` : ''}
                     </div>
                   </div>
                 </div>
@@ -285,6 +400,7 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
               </div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 6 }}>
                 {selected.kind === 'seller' ? 'Seller Lead' : 'Buyer Lead'} · {selected.email || 'no email'} · {selected.phone || 'no phone'}
+                {selected.source ? ` · from ${selected.source}` : ''}
               </div>
               <div style={{ marginTop: 10 }}>
                 <Badge color={statusMeta(selected.status).color}>{statusMeta(selected.status).label}</Badge>

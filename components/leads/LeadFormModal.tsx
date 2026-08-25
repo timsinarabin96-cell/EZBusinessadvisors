@@ -7,18 +7,19 @@ import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 interface BuyerInput {
   desired_business_type?: string; budget_range?: string; funds_available?: number
-  financing_method?: string; preferred_location?: string; notes?: string
+  financing_method?: string; preferred_location?: string; notes?: string; source?: string
 }
 
 interface LeadFormModalProps {
   lead: UnifiedLead | null
   mode: LeadKind
   onClose: () => void
-  onSubmit: (input: { kind: LeadKind; business_name?: string; email?: string; phone?: string; status?: LeadStatus } & BuyerInput) => Promise<void>
+  onSubmit: (input: { kind: LeadKind; business_name?: string; email?: string; phone?: string; status?: LeadStatus; source?: string } & BuyerInput) => Promise<void>
 }
 
 const FINANCING_OPTIONS = ['Cash', 'SBA Loan', 'Bank Financing', 'Private Investor', 'Seller Financing', 'Combination']
 const BUDGET_RANGES = ['Under $250K', '$250K–$500K', '$500K–$1M', '$1M–$2M', '$2M–$5M', '$5M+']
+export const SOURCE_OPTIONS = ['Web form', 'BizBuySell', 'Referral', 'Phone call', 'Marketplace', 'Import', 'Manual', 'Other']
 
 export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubmit }: LeadFormModalProps) {
   const [kind, setKind] = useState<LeadKind>(lead?.kind || initialMode)
@@ -35,6 +36,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
   const [financing, setFinancing] = useState(lead?.financing_method || '')
   const [location, setLocation] = useState(lead?.preferred_location || '')
   const [notes, setNotes] = useState(lead?.notes || '')
+  const [source, setSource] = useState(lead?.source || '')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -59,9 +61,11 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
           financing_method: financing || null,
           preferred_location: location || null,
           notes: notes || null,
+          source: source || null,
         })
         await onSubmit({
           kind, email, phone, status,
+          source: source || undefined,
           desired_business_type: effectiveType.trim() || undefined,
           budget_range: budget || undefined,
           funds_available: funds === '' ? undefined : Number(String(funds).replace(/[$,]/g, '')),
@@ -80,10 +84,12 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
           financing_method: financing || null,
           preferred_location: location || null,
           notes: notes || null,
+          source: source || null,
         })
         // Let the parent refresh via its own create path; pass input through.
         await onSubmit({
           kind, email, phone, status,
+          source: source || undefined,
           ...(created.id ? {} : {}),
           desired_business_type: effectiveType.trim() || undefined,
           budget_range: budget || undefined,
@@ -98,6 +104,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
         kind,
         business_name: kind === 'seller' ? businessName : undefined,
         email, phone, status,
+        source: source || undefined,
       })
     } catch (err: any) {
       setError(err.message || 'Failed to save lead')
@@ -203,6 +210,14 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
               </div>
             </>
           )}
+
+          <div style={{ marginBottom: 20 }}>
+            <label className="label">Lead source</label>
+            <select className="select" value={source} onChange={(e) => setSource(e.target.value)} style={{ width: '100%' }}>
+              <option value="">Unattributed</option>
+              {SOURCE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
 
           <div style={{ marginBottom: 20 }}>
             <label className="label">Status</label>

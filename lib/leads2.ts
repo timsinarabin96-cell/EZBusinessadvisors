@@ -47,6 +47,7 @@ export interface UnifiedLead {
   phone: string | null
   status: string
   created_at?: string | null
+  source?: string | null
   // Buyer-lead enrichment (financials + desired business type)
   desired_business_type?: string | null
   budget_range?: string | null
@@ -73,6 +74,7 @@ export async function fetchAllLeads(): Promise<UnifiedLead[]> {
       rows.push({
         kind: 'seller', id: r.id, business_name: r.business_name, email: r.email,
         phone: r.phone, status: r.status || 'new', created_at: r.created_at,
+        source: r.source || null,
       })
     }
   }
@@ -83,6 +85,7 @@ export async function fetchAllLeads(): Promise<UnifiedLead[]> {
       rows.push({
         kind: 'buyer', id: r.id, business_name: null, email: r.email,
         phone: r.phone, status: r.status || 'new', created_at: r.created_at,
+        source: r.source || null,
       })
     }
   }
@@ -118,6 +121,7 @@ export async function fetchBuyerLeads(): Promise<UnifiedLead[]> {
   return (data || []).map((r) => ({
     kind: 'buyer' as LeadKind, id: r.id, business_name: null,
     email: r.email, phone: r.phone, status: r.status || 'new', created_at: r.created_at,
+    source: r.source || null,
     desired_business_type: r.desired_business_type || null,
     budget_range: r.budget_range || null,
     funds_available: r.funds_available ?? null,
@@ -164,7 +168,7 @@ export async function matchBuyerLeads(listingIndustry?: string | null): Promise<
 }
 
 export async function createBuyerLead(input: {
-  email?: string; phone?: string; status?: LeadStatus
+  email?: string; phone?: string; status?: LeadStatus; source?: string
   desired_business_type?: string; budget_range?: string; funds_available?: number
   financing_method?: string; preferred_location?: string; notes?: string
 }): Promise<UnifiedLead> {
@@ -172,6 +176,7 @@ export async function createBuyerLead(input: {
     email: input.email || null,
     phone: input.phone || null,
     status: input.status || 'new',
+    source: input.source || null,
     desired_business_type: input.desired_business_type || null,
     budget_range: input.budget_range || null,
     funds_available: input.funds_available ?? null,
@@ -187,6 +192,7 @@ export async function createBuyerLead(input: {
   return {
     kind: 'buyer', id: data.id, business_name: null,
     email: data.email, phone: data.phone, status: data.status || 'new', created_at: data.created_at,
+    source: data.source || null,
     desired_business_type: data.desired_business_type, budget_range: data.budget_range,
     funds_available: data.funds_available, financing_method: data.financing_method,
     preferred_location: data.preferred_location, notes: data.notes,
@@ -198,6 +204,7 @@ export async function updateBuyerLead(id: string, input: Partial<Parameters<type
   if (input.email !== undefined) payload.email = input.email || null
   if (input.phone !== undefined) payload.phone = input.phone || null
   if (input.status !== undefined) payload.status = input.status
+  if (input.source !== undefined) payload.source = input.source || null
   if (input.desired_business_type !== undefined) payload.desired_business_type = input.desired_business_type || null
   if (input.budget_range !== undefined) payload.budget_range = input.budget_range || null
   if (input.funds_available !== undefined) payload.funds_available = input.funds_available ?? null
@@ -212,19 +219,21 @@ export async function updateBuyerLead(id: string, input: Partial<Parameters<type
   return {
     kind: 'buyer', id: data.id, business_name: null,
     email: data.email, phone: data.phone, status: data.status || 'new', created_at: data.created_at,
+    source: data.source || null,
     desired_business_type: data.desired_business_type, budget_range: data.budget_range,
     funds_available: data.funds_available, financing_method: data.financing_method,
     preferred_location: data.preferred_location, notes: data.notes,
   }
 }
 export async function createLead(kind: LeadKind, input: {
-  business_name?: string; email?: string; phone?: string; status?: LeadStatus
+  business_name?: string; email?: string; phone?: string; status?: LeadStatus; source?: string
 }): Promise<UnifiedLead> {
   const table = kind === 'seller' ? 'seller_leads' : 'buyer_leads'
   const payload: Record<string, unknown> = {
     email: input.email || null,
     phone: input.phone || null,
     status: input.status || 'new',
+    source: input.source || null,
   }
   if (kind === 'seller') payload.business_name = input.business_name || ''
   if (kind === 'seller') payload.status = normalizeSellerStatus(input.status || 'new')
@@ -267,6 +276,42 @@ export async function deleteLead(kind: LeadKind, id: string): Promise<void> {
     console.error('deleteLead error:', error)
     throw new Error(error.message || 'Failed to delete lead')
   }
+}
+
+// ---------------------------------------------------------------------------
+// Merge duplicates (same kind only — buyer into buyer, seller into seller).
+// Moves the merged lead's activity rows onto the keeper, concatenates notes,
+// backfills any contact fields the keeper lacks, then deletes the merged row.
+// ---------------------------------------------------------------------------
+export async function mergeLeads(kind: LeadKind, keepId: string, mergeId: string): Promise<void> {
+  const table = kind === 'seller' ? 'seller_leads' : 'buyer_leads'
+
+  // 1. Re-point the duplicate's activity timeline onto the keeper.
+  await supabase.from('lead_activities').update({ lead_id: keepId }).eq('lead_id', mergeId)
+
+  // 2. Pull both rows and fold info into the keeper.
+  const { data: merged } = await supabase.from(table).select('*').eq('id', mergeId).single()
+  const { data: keeper } = await supabase.from(table).select('*').eq('id', keepId).single()
+  if (!merged || !keeper) throw new Error('One of the leads no longer exists')
+
+  const notes = [keeper.notes, merged.notes].filter(Boolean).join('\n') || null
+  const patch: Record<string, unknown> = { notes }
+  if (!keeper.email && merged.email) patch.email = merged.email
+  if (!keeper.phone && merged.phone) patch.phone = merged.phone
+  if (kind === 'seller' && !keeper.business_name && merged.business_name) patch.business_name = merged.business_name
+  if (kind === 'buyer' && !keeper.desired_business_type && merged.desired_business_type) {
+    patch.desired_business_type = merged.desired_business_type
+  }
+  if (!keeper.source && merged.source) patch.source = merged.source
+
+  await supabase.from(table).update(patch).eq('id', keepId)
+  await supabase.from(table).delete().eq('id', mergeId)
+
+  await addLeadActivity(
+    keepId,
+    'merge',
+    `Merged duplicate ${merged.email || merged.business_name || mergeId.slice(0, 8)} into this lead`
+  )
 }
 
 // ---------------------------------------------------------------------------
