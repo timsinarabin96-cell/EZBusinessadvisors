@@ -1,9 +1,22 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
 // White-Label Platform — B2B2C play: brokerages launch their own branded
 // business-for-sale marketplace on the Concord engine (their domain, logo,
 // colors, fonts, listings, buyers). This page sells the platform and funnels
 // to agency signup.
+
+export const metadata: Metadata = {
+  title: 'White-Label Brokerage Platform — Launch Your Own Business-For-Sale Marketplace | Concord',
+  description: 'Launch a branded business-for-sale marketplace on your own domain with the full Concord engine: listings, buyer matching, AI autopilot, CIM/BOV, NDAs, data rooms, and certified training.',
+  alternates: { canonical: '/platform' },
+  openGraph: {
+    title: 'White-Label Brokerage Platform — Concord',
+    description: 'Your brand, your domain, your keys. Run the full brokerage operating system under your own name.',
+    url: '/platform',
+    type: 'website',
+  },
+}
 
 const features = [
   ['🌐', 'Your own branded domain', 'Run the marketplace on your domain — your logo, colors, fonts, and hero. Visitors never see "Concord"; they see your firm.'],

@@ -1,7 +1,20 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
 // Marketplace Trust Center — public trust, security, and compliance page.
 // Explains platform controls + gives buyers/sellers the confidence signals.
+
+export const metadata: Metadata = {
+  title: 'Trust Center — How We Protect Buyers & Sellers | Concord Deal Platform',
+  description: 'See the controls behind every transaction: NDA-first confidentiality, verified recast financials, SBA-ready deal structuring, escrow and compliance, and permission-aware AI.',
+  alternates: { canonical: '/marketplace/trust' },
+  openGraph: {
+    title: 'Trust Center — Concord Deal Platform',
+    description: 'Confidential transactions need visible controls. See how every listing is vetted, verified, and protected.',
+    url: '/marketplace/trust',
+    type: 'website',
+  },
+}
 
 const controls = [
   { title: 'Confidentiality by design', body: 'Private business identity, addresses, internal notes, call transcripts, and unapproved financial details are never part of the public listing feed.' },

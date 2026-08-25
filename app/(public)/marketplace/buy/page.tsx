@@ -6,6 +6,18 @@ import { capturePublicLead } from '@/lib/marketplace'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 
+export const metadata = {
+  title: 'Buy a Business — Browse Vetted Businesses for Sale | Concord Deal Platform',
+  description: 'Tell us what you\'re looking for — industry, budget, location — and get matched with vetted, cash-flowing businesses for sale. Confidential, NDA-first process.',
+  alternates: { canonical: '/marketplace/buy' },
+  openGraph: {
+    title: 'Buy a Business — Concord Deal Platform',
+    description: 'Get matched with vetted, cash-flowing businesses for sale.',
+    url: '/marketplace/buy',
+    type: 'website',
+  },
+}
+
 const INITIAL = {
   name: '', email: '', phone: '', minBudget: '', maxBudget: '', availableCash: '', industries: '',
   locations: '', financing: '', ownerInvolvement: '', timeline: '', message: '', emailAlerts: true,
