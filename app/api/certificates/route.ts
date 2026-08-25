@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     if (agencyId) {
       void (async () => {
         try {
-          const { notifyTrainingCompleted } = await import('@/lib/notifications')
+          const { notifyTrainingCompleted } = await import('@/lib/notificationsServer')
           await notifyTrainingCompleted(agencyId, name)
         } catch (e) {
           console.log('[cert] broker notify skip:', (e as Error).message)

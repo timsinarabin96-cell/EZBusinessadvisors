@@ -104,45 +104,8 @@ export async function notifyMatch(agencyId: string, businessName: string, score:
 }
 
 /**
- * Notify the broker (agency owner + admins) that an agent completed the full
- * CBI training program. Creates an in-app notification per broker profile and
- * best-effort fires a web push to each. Never throws.
+ * Notify the broker that an agent completed the full CBI training program.
+ * MOVED to lib/notificationsServer.ts — web-push is Node-only and this module
+ * is reachable from client bundles via lib/syndication.ts.
  */
-export async function notifyTrainingCompleted(
-  agencyId: string,
-  agentName: string,
-  link = '/dashboard/training#certificates',
-): Promise<void> {
-  if (!svc) return
-  try {
-    const { data: members } = await svc
-      .from('agency_members')
-      .select('profile_id')
-      .eq('agency_id', agencyId)
-      .or('is_owner.eq.true,role.eq.admin')
-    const brokerProfileIds = [...new Set((members || []).map((m) => m.profile_id).filter(Boolean))]
 
-    for (const profileId of brokerProfileIds.length ? brokerProfileIds : [null]) {
-      await createNotification({
-        agency_id: agencyId,
-        profile_id: profileId as string | null,
-        title: '🎓 Agent completed training',
-        body: `${agentName} finished the full Certified Business Intermediary (CBI) program.`, 
-        kind: 'training',
-        link,
-      })
-      if (profileId) {
-        const { sendPushToProfile } = await import('@/lib/webPush').catch(() => ({ sendPushToProfile: null }))
-        if (sendPushToProfile) {
-          await sendPushToProfile(profileId, {
-            title: '🎓 Agent completed training',
-            body: `${agentName} finished the full CBI program.`,
-            link,
-          }).catch(() => {})
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('[notifyTrainingCompleted] skip:', (e as Error).message)
-  }
-}
