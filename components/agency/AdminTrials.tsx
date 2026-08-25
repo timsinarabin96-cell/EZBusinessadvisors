@@ -69,6 +69,15 @@ export default function AdminTrials() {
     if (json.ok) load()
   }
 
+  async function removeAgency(a: Row) {
+    const confirmText = `Delete "${a.name}" permanently? This removes all its listings, leads, deals, and data. This cannot be undone.`
+    if (!window.confirm(confirmText)) return
+    const res = await authenticatedFetch(`/api/admin/agencies/${a.id}`, { method: 'DELETE' })
+    const json = await res.json()
+    toast(json.ok ? `Deleted ${a.name}` : json.error || 'Delete failed', json.ok ? 'success' : 'error')
+    if (json.ok) load()
+  }
+
   const filtered = rows.filter((a) => {
     const s = statusFromAgency(a as Agency)
     switch (filter) {
@@ -141,6 +150,10 @@ export default function AdminTrials() {
                   </div>
                 )}
                 {s.status === 'paid' && <div style={{ fontSize: 12, color: '#1e7e34', fontWeight: 700 }}>✓ Active paying customer</div>}
+                {/* danger zone */}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid #f0ecdf', paddingTop: 10 }}>
+                  <button onClick={() => removeAgency(a)} style={{ padding: '7px 12px', background: 'transparent', color: '#c0392b', border: '1px solid #e8b4b4', borderRadius: 9, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>🗑 Delete agency</button>
+                </div>
               </div>
             )
           })}
