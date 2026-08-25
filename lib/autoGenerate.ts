@@ -238,6 +238,29 @@ export async function runAutoGeneration(input: {
     /* footer falls back to generic */
   }
 
+  // Preload fonts + cover imagery for the Open Claw PDF theme (server-side).
+  let assets: { fonts?: Record<string, string>; images?: Record<string, string> } | undefined
+  try {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const root = process.cwd()
+    const b64 = (rel: string) => fs.readFileSync(path.join(root, 'public', rel)).toString('base64')
+    assets = {
+      fonts: {
+        '/fonts/PlayfairDisplay_700Bold.ttf': b64('fonts/PlayfairDisplay_700Bold.ttf'),
+        '/fonts/PlayfairDisplay_400Regular.ttf': b64('fonts/PlayfairDisplay_400Regular.ttf'),
+        '/fonts/Inter_400Regular.ttf': b64('fonts/Inter_400Regular.ttf'),
+        '/fonts/Inter_700Bold.ttf': b64('fonts/Inter_700Bold.ttf'),
+      },
+      images: {
+        '/brand/claw-cover.jpg': b64('brand/claw-cover.jpg'),
+        '/brand/claw-data.jpg': b64('brand/claw-data.jpg'),
+      },
+    }
+  } catch {
+    assets = undefined
+  }
+
   // 2) Load existing source financial docs for this listing
   const { data: sourceDocs } = await supabase
     .from('financial_documents')
@@ -264,7 +287,7 @@ export async function runAutoGeneration(input: {
       addBacks: [], // auto recast uses the built-in add-back modeling in SDE/EBITDA
     }
     const recast = recastFinancials(recastInput)
-    const bytes = await exportRecastToPdf(recast, { returnBytes: true, agency })
+    const bytes = await exportRecastToPdf(recast, { returnBytes: true, agency, assets })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,
@@ -283,7 +306,7 @@ export async function runAutoGeneration(input: {
   // 6) BOV
   try {
     const bov = generateBovContent(L)
-    const bytes = await exportBovToPdf(bov, { returnBytes: true, agency })
+    const bytes = await exportBovToPdf(bov, { returnBytes: true, agency, assets })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,
@@ -302,7 +325,7 @@ export async function runAutoGeneration(input: {
   // 7) CIM
   try {
     const cim = generateCimContent(L)
-    const bytes = await exportCimToPdf(cim, { returnBytes: true, agency })
+    const bytes = await exportCimToPdf(cim, { returnBytes: true, agency, assets })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,
@@ -321,7 +344,7 @@ export async function runAutoGeneration(input: {
   // 8) BLI
   try {
     const bli = generateBliContent(L)
-    const bytes = await exportBliToPdf(bli, { returnBytes: true, agency })
+    const bytes = await exportBliToPdf(bli, { returnBytes: true, agency, assets })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,

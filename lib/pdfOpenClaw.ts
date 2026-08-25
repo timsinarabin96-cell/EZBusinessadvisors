@@ -3,10 +3,8 @@
 // Palette: #0B0C10 near-black · #C9A84C gold · #45A29E teal · #F5F5F5 body.
 // Type: Playfair Display (headlines) · Inter (body/data).
 // -----------------------------------------------------------------------------
-// jsPDF helpers: cover page with claw imagery + gradient overlay, dark section
-// pages, gold rules, pull-quote watermarks, and the agency footer line pulled
-// from the agencies table ([AGENCY] | Business Advisors | [Phone] | [Email] |
-// Strictly Confidential). Fonts + cover images are loaded from /public.
+// BROWSER-ONLY asset loading (fetch from /public). Server-side callers
+// (autoGenerate pipeline) must pass preloaded base64 assets via `assets`.
 // =============================================================================
 
 import { jsPDF } from 'jspdf'
@@ -30,40 +28,24 @@ export interface DocAgency {
   email?: string | null
 }
 
+/** Preloaded base64 assets (server pipeline). Keys are the public paths. */
+export interface ClawAssets {
+  fonts?: Record<string, string>
+  images?: Record<string, string>
+}
+
 const A4_W = 595.28
 const A4_H = 841.89
 const M = 56 // page margin (pt)
 
-// ---- Asset loading (browser fetch → node fs fallback) -----------------------
-function arrayBufferToBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf)
-  let bin = ''
-  const chunk = 0x8000
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)))
-  }
-  return btoa(bin)
-}
-
+// ---- Asset loading (browser only) --------------------------------------------
 async function loadBase64(publicPath: string): Promise<string | null> {
-  // Browser: fetch from the public route.
-  if (typeof window !== 'undefined') {
-    try {
-      const res = await fetch(publicPath)
-      if (!res.ok) return null
-      const buf = await res.arrayBuffer()
-      return arrayBufferToBase64(buf)
-    } catch {
-      return null
-    }
-  }
-  // Node (autoGenerate server pipeline): read from disk.
+  if (typeof window === 'undefined') return null
   try {
-    const fs = await import('node:fs')
-    const path = await import('node:path')
-    const p = path.join(process.cwd(), 'public', publicPath.replace(/^\//, ''))
-    const data = fs.readFileSync(p)
-    const bytes = new Uint8Array(data)
+    const res = await fetch(publicPath)
+    if (!res.ok) return null
+    const buf = await res.arrayBuffer()
+    const bytes = new Uint8Array(buf)
     let bin = ''
     const chunk = 0x8000
     for (let i = 0; i < bytes.length; i += chunk) {
@@ -73,6 +55,14 @@ async function loadBase64(publicPath: string): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+/** Resolve an asset: prefer preloaded (server), else fetch (browser). */
+async function assetB64(assets: ClawAssets | undefined, kind: 'fonts' | 'images', key: string): Promise<string | null> {
+  const pre = assets?.[kind]?.[key]
+  if (pre) return pre
+  if (typeof window !== 'undefined') return loadBase64(key)
+  return null
 }
 
 // ---- Font registration -------------------------------------------------------
@@ -88,11 +78,11 @@ const FONT_FILES = [
   { file: '/fonts/Inter_700Bold.ttf', family: FONT_BODY, style: 'bold' },
 ]
 
-export async function registerClawFonts(doc: jsPDF): Promise<ClawFonts> {
+export async function registerClawFonts(doc: jsPDF, assets?: ClawAssets): Promise<ClawFonts> {
   const ok: ClawFonts = { headOk: false, bodyOk: false }
   for (const f of FONT_FILES) {
     try {
-      const b64 = await loadBase64(f.file)
+      const b64 = await assetB64(assets, 'fonts', f.file)
       if (!b64) continue
       doc.addFileToVFS(f.file, b64)
       doc.addFont(f.file, f.family, f.style)
@@ -130,11 +120,9 @@ export function setBody(doc: jsPDF, fonts: ClawFonts, size: number, bold = false
 export function clawFooter(doc: jsPDF, agency: DocAgency | null | undefined, fonts?: ClawFonts): void {
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()
-  // Gold 2pt rule
   doc.setDrawColor(...CLAW_GOLD)
   doc.setLineWidth(2)
   doc.line(M, H - 44, W - M, H - 44)
-  // [AGENCY] | Business Advisors | [Phone] | [Email] | Strictly Confidential
   const name = agency?.name?.trim() || 'Concord Deal Platform'
   const phone = agency?.phone?.trim() || ''
   const email = agency?.email?.trim() || ''
@@ -200,7 +188,6 @@ export function clawTable(
   const moneyCols = opts.moneyCols || []
   const highlight = opts.highlightRows || []
 
-  // Header row — gold fill, near-black bold text
   doc.setFillColor(...CLAW_GOLD)
   doc.rect(M, y, W - M * 2, headerH, 'F')
   doc.setTextColor(...CLAW_BG)
@@ -210,9 +197,8 @@ export function clawTable(
   }
   y += headerH
 
-  // Data rows — alternating fills, teal 0.5pt borders
   rows.forEach((r, ri) => {
-    const fill = highlight.includes(ri) ? [40, 34, 18] as [number, number, number] : ri % 2 === 0 ? CLAW_ROW_A : CLAW_ROW_B
+    const fill = highlight.includes(ri) ? ([40, 34, 18] as [number, number, number]) : ri % 2 === 0 ? CLAW_ROW_A : CLAW_ROW_B
     doc.setFillColor(...fill)
     doc.rect(M, y, W - M * 2, rowH, 'F')
     doc.setDrawColor(...CLAW_TEAL)
@@ -227,7 +213,6 @@ export function clawTable(
     })
     y += rowH
   })
-  // bottom border
   doc.setDrawColor(...CLAW_TEAL)
   doc.setLineWidth(0.5)
   doc.line(M, y, W - M, y)
@@ -239,22 +224,22 @@ export async function clawCover(
   doc: jsPDF,
   fonts: ClawFonts,
   opts: {
-    image?: string // '/brand/claw-cover.jpg'
+    image?: string
     eyebrow: string
     title: string
     subtitle: string
     agency?: DocAgency | null
     prepared: string
     extra?: string[]
+    assets?: ClawAssets
   },
 ): Promise<void> {
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()
   clawPageBg(doc)
 
-  // Full-bleed cover image (cover-crop: scale to fill page).
   if (opts.image) {
-    const b64 = await loadBase64(opts.image)
+    const b64 = await assetB64(opts.assets, 'images', opts.image)
     if (b64) {
       try {
         const props = (doc as any).getImageProperties ? (doc as any).getImageProperties(b64) : null
@@ -275,7 +260,7 @@ export async function clawCover(
   const bands = 12
   const startY = H * 0.32
   for (let i = 0; i < bands; i++) {
-    const t = i / (bands - 1) // 0 top → 1 bottom
+    const t = i / (bands - 1)
     const opacity = 0.7 * t * t
     const bandH = (H - startY) / bands
     doc.saveGraphicsState()
@@ -289,17 +274,14 @@ export async function clawCover(
     doc.restoreGraphicsState()
   }
 
-  // Gold rule at 42% height
   doc.setDrawColor(...CLAW_GOLD)
   doc.setLineWidth(2.5)
   doc.line(0, H * 0.42, W, H * 0.42)
 
-  // Eyebrow
   setHead(doc, fonts, 11, 4)
   doc.setTextColor(...CLAW_GOLD)
   doc.text(opts.eyebrow.toUpperCase(), M, H * 0.42 + 40)
 
-  // Title (Playfair bold, wraps)
   setHead(doc, fonts, 30, 2)
   doc.setTextColor(...CLAW_BODY)
   const titleLines = doc.splitTextToSize(opts.title, W - M * 2) as string[]
@@ -309,7 +291,6 @@ export async function clawCover(
     ty += 34
   }
 
-  // Subtitle
   setBody(doc, fonts, 14)
   doc.setTextColor(...CLAW_GOLD)
   const subLines = doc.splitTextToSize(opts.subtitle, W - M * 2) as string[]
@@ -319,7 +300,6 @@ export async function clawCover(
     ty += 18
   }
 
-  // Extra meta lines (entity, periods, etc.)
   ty += 10
   setBody(doc, fonts, 10)
   doc.setTextColor(...CLAW_MUTED)
@@ -328,7 +308,6 @@ export async function clawCover(
     ty += 15
   }
 
-  // Prepared + agency
   setBody(doc, fonts, 10)
   doc.setTextColor(...CLAW_MUTED)
   doc.text(`Prepared: ${opts.prepared}`, M, H - 78)
@@ -337,5 +316,5 @@ export async function clawCover(
     doc.text(opts.agency.name, M, H - 62)
   }
 
-  clawFooter(doc, opts.agency)
+  clawFooter(doc, opts.agency, fonts)
 }

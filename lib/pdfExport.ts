@@ -30,11 +30,13 @@ import {
   clawTable,
   type ClawTableCol,
   clawCover,
+  type ClawAssets,
 } from '@/lib/pdfOpenClaw'
 
 export interface PdfOpts {
   returnBytes?: boolean
   agency?: DocAgency | null
+  assets?: ClawAssets
 }
 
 const M = 56 // page margin (pt)
@@ -103,8 +105,9 @@ function clawBody(doc: jsPDF, fonts: ClawFonts, agency: DocAgency | null | undef
 // =============================================================================
 export async function exportCimToPdf(content: CimContent, opts?: PdfOpts): Promise<Uint8Array | void> {
   const agency = opts?.agency || null
+  const assets = opts?.assets
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-  const fonts = await registerClawFonts(doc)
+  const fonts = await registerClawFonts(doc, assets)
   const W = doc.internal.pageSize.getWidth()
 
   // ---- Cover ----
@@ -116,6 +119,7 @@ export async function exportCimToPdf(content: CimContent, opts?: PdfOpts): Promi
     agency,
     prepared: content.generatedAt,
     extra: ['CONFIDENTIAL — UNDER NDA'],
+    assets,
   })
 
   // ---- Table of contents ----
@@ -177,8 +181,9 @@ export async function exportCimToPdf(content: CimContent, opts?: PdfOpts): Promi
 // =============================================================================
 export async function exportBovToPdf(content: BovContent, opts?: PdfOpts): Promise<Uint8Array | void> {
   const agency = opts?.agency || null
+  const assets = opts?.assets
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-  const fonts = await registerClawFonts(doc)
+  const fonts = await registerClawFonts(doc, assets)
   const W = doc.internal.pageSize.getWidth()
 
   // ---- Cover ----
@@ -190,6 +195,7 @@ export async function exportBovToPdf(content: BovContent, opts?: PdfOpts): Promi
     agency,
     prepared: content.generatedAt,
     extra: [`For: ${content.preparedFor}`, 'PRIVILEGED & CONFIDENTIAL — UNDER NON-DISCLOSURE'],
+    assets,
   })
 
   // ---- Table of contents ----
@@ -303,8 +309,9 @@ export async function exportBovToPdf(content: BovContent, opts?: PdfOpts): Promi
 // =============================================================================
 export async function exportRecastToPdf(result: RecastResult, opts?: PdfOpts): Promise<Uint8Array | void> {
   const agency = opts?.agency || null
+  const assets = opts?.assets
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-  const fonts = await registerClawFonts(doc)
+  const fonts = await registerClawFonts(doc, assets)
   const W = doc.internal.pageSize.getWidth()
 
   // ---- Cover ----
@@ -320,6 +327,7 @@ export async function exportRecastToPdf(result: RecastResult, opts?: PdfOpts): P
       `Fiscal Periods Covered: ${result.years.length}`,
       'CONFIDENTIAL',
     ],
+    assets,
   })
 
   // ---- Summary ----
@@ -423,8 +431,9 @@ export async function exportRecastToPdf(result: RecastResult, opts?: PdfOpts): P
 // =============================================================================
 export async function exportBliToPdf(content: BliContent, opts?: PdfOpts): Promise<Uint8Array | void> {
   const agency = opts?.agency || null
+  const assets = opts?.assets
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
-  const fonts = await registerClawFonts(doc)
+  const fonts = await registerClawFonts(doc, assets)
   const W = doc.internal.pageSize.getWidth()
 
   await clawCover(doc, fonts, {
@@ -435,6 +444,7 @@ export async function exportBliToPdf(content: BliContent, opts?: PdfOpts): Promi
     agency,
     prepared: content.generatedAt,
     extra: ['PRIVILEGED & CONFIDENTIAL — UNDER NON-DISCLOSURE'],
+    assets,
   })
 
   let y = clawSectionPage(doc, fonts, agency, 'Offer Summary')
