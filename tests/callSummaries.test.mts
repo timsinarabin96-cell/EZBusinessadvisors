@@ -74,5 +74,5 @@ test('call summaries: dashboard page lists summaries and generates', () => {
   assert.match(page, /Generate summary/)
   assert.match(page, /action_items/)
   assert.match(page, /sentiment/)
-  assert.match(page, /sb-access-token/)
+  assert.match(page, /getStoredAccessToken/)
 })

@@ -86,7 +86,7 @@ test('seller readiness: dashboard page has picker, score, action items, estimate
   assert.match(page, /api\/intelligence\/readiness/)
   assert.match(page, /Action items/)
   assert.match(page, /valuation_estimate/)
-  assert.match(page, /sb-access-token/)
+  assert.match(page, /getStoredAccessToken/)
 })
 
 // --- New (audit A2): readiness-to-close funnel + "what's blocking" summary ---

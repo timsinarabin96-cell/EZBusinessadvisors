@@ -4,6 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/naturalSearch.ts', 'utf8')
 const page = readFileSync('app/(public)/marketplace/listings/page.tsx', 'utf8')
+const client = readFileSync('components/public/SearchListingsClient.tsx', 'utf8')
 const marketplace = readFileSync('lib/marketplace.ts', 'utf8')
 const card = readFileSync('components/public/PublicListingCard.tsx', 'utf8')
 
@@ -40,10 +41,11 @@ test('nl search: boolean flags for absentee/franchise/financing/relocatable', ()
 })
 
 test('nl search: listings page wires parser into filter submission', () => {
-  assert.match(page, /parseNaturalQuery/)
-  assert.match(page, /parsed\.maxPrice/)
-  assert.match(page, /parsed\.absenteeOnly/)
-  assert.match(page, /parsed\.financingAvailable/)
+  assert.match(page, /SearchListingsClient/)
+  assert.match(client, /parseNaturalQuery/)
+  assert.match(client, /parsed\.maxPrice/)
+  assert.match(client, /parsed\.absenteeOnly/)
+  assert.match(client, /parsed\.financingAvailable/)
 })
 
 test('nl search: marketplace search supports new advanced filters', () => {
@@ -75,9 +77,9 @@ test('website: card shows marketing badges', () => {
 })
 
 test('website: listings page has advanced filter controls', () => {
-  assert.match(page, /Max SDE multiple/)
-  assert.match(page, /Min FT employees/)
-  assert.match(page, /🏖️ Absentee/)
-  assert.match(page, /🏷️ Franchise/)
-  assert.match(page, /💰 Financing/)
+  assert.match(client, /Max SDE multiple/)
+  assert.match(client, /Min FT employees/)
+  assert.match(client, /🏖️ Absentee/)
+  assert.match(client, /🏷️ Franchise/)
+  assert.match(client, /💰 Financing/)
 })

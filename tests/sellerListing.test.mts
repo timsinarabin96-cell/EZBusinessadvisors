@@ -39,8 +39,8 @@ test('sell page offers paid plans and submits real orders', () => {
 
 test('plans exist with the new monthly model', () => {
   const plans = readFileSync('lib/listingIntelligence.ts', 'utf8')
-  assert.match(plans, /Owner Free/)
-  assert.match(plans, /Professional/)
-  assert.match(plans, /Enterprise/)
-  assert.match(plans, /per month/)
+  assert.match(plans, /Free Listing/)
+  assert.match(plans, /per listing \/ month/)
+  assert.match(plans, /Enterprise Network/)
+  assert.match(plans, /monthly: 499/)
 })

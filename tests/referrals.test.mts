@@ -79,7 +79,7 @@ test('referrals: dashboard page renders form + list with status pills and advanc
 
 test('referrals: dashboard fetches with Bearer token and advances status', () => {
   assert.match(page, /\/api\/referrals/)
-  assert.match(page, /sb-access-token/)
+  assert.match(page, /getStoredAccessToken/)
   assert.match(page, /Bearer/)
   assert.match(page, /STATUS_FLOW/)
   assert.match(page, /Mark \{next\}/)

@@ -77,6 +77,6 @@ test('deal twin: dashboard page has picker, score, risk flags, component bars', 
   assert.match(page, /health_score/)
   assert.match(page, /risk_flags/)
   assert.match(page, /Component breakdown/)
-  assert.match(page, /sb-access-token/)
+  assert.match(page, /getStoredAccessToken/)
   assert.match(page, /api\/intelligence\/deal-twin/)
 })

@@ -90,7 +90,7 @@ test('commissions: dashboard page renders form, list, and CSV export', () => {
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext\(\)/)
   assert.match(page, /Record a commission/)
-  assert.match(page, /Amount \(\$\) \*/)
+  assert.match(page, /MoneyInput/)
   assert.match(page, /Commission %/)
   assert.match(page, /Export CSV/)
   assert.match(page, /Commissions/)
@@ -98,7 +98,7 @@ test('commissions: dashboard page renders form, list, and CSV export', () => {
 
 test('commissions: dashboard downloads CSV as a client-side blob', () => {
   assert.match(page, /\/api\/commissions/)
-  assert.match(page, /sb-access-token/)
+  assert.match(page, /getStoredAccessToken/)
   assert.match(page, /&format=csv/)
   assert.match(page, /URL\.createObjectURL\(blob\)/)
   assert.match(page, /a\.download = 'commissions\.csv'/)

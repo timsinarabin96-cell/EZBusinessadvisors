@@ -10,6 +10,7 @@ const comparePage = readFileSync('app/(public)/marketplace/compare/page.tsx', 'u
 const alertComp = readFileSync('components/public/SavedSearchAlert.tsx', 'utf8')
 const profilePanel = readFileSync('components/public/MatchProfilePanel.tsx', 'utf8')
 const listingsPage = readFileSync('app/(public)/marketplace/listings/page.tsx', 'utf8')
+const searchClient = readFileSync('components/public/SearchListingsClient.tsx', 'utf8')
 const nav = readFileSync('components/public/PublicNav.tsx', 'utf8')
 
 test('favorites: localStorage helpers for favorites, compare, buyer profile', () => {
@@ -69,9 +70,9 @@ test('favorites page: renders saved listings with remove', () => {
 test('compare page: side-by-side table with key metrics', () => {
   assert.match(comparePage, /Compare Businesses/)
   assert.match(comparePage, /getCompare/)
-  assert.match(comparePage, /Asking Price/)
+  assert.match(comparePage, /EBITDA/)
   assert.match(comparePage, /Annual Revenue/)
-  assert.match(comparePage, /Price \/ SDE/)
+  assert.match(comparePage, /Pricing/)
   assert.match(comparePage, /Absentee/)
   assert.match(comparePage, /Nothing to compare yet/)
 })
@@ -95,8 +96,9 @@ test('match profile: panel saves buyer profile for scoring', () => {
 })
 
 test('listings page: wires alert + match profile panels', () => {
-  assert.match(listingsPage, /SavedSearchAlert/)
-  assert.match(listingsPage, /MatchProfilePanel/)
+  assert.match(listingsPage, /SearchListingsClient/)
+  assert.match(searchClient, /SavedSearchAlert/)
+  assert.match(searchClient, /MatchProfilePanel/)
 })
 
 test('public nav: exposes Saved and Compare links', () => {

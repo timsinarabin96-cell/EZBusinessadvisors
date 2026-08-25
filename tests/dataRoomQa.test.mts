@@ -74,7 +74,7 @@ test('dataRoomQa: dashboard page has room picker, question input, and answer dis
   assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext/)
-  assert.match(page, /sb-access-token/)
+  assert.match(page, /getStoredAccessToken/)
   assert.match(page, /Ask a question/)
   assert.match(page, /Q&A history/)
   assert.match(page, /\/api\/intelligence\/data-room-qa/)

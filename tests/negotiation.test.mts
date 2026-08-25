@@ -82,7 +82,7 @@ test('negotiation: dashboard page picks offers, generates, and prints', () => {
   assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext/)
-  assert.match(page, /sb-access-token/)
+  assert.match(page, /getStoredAccessToken/)
   assert.match(page, /\/api\/offers\?agencyId=/)
   assert.match(page, /\/api\/intelligence\/negotiation/)
   assert.match(page, /window\.print\(\)/)

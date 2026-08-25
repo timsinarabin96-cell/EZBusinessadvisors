@@ -27,13 +27,13 @@ test('industry hubs: filters listings by industry + industry quick-nav', () => {
 })
 
 test('sba calculator: deterministic affordability estimate with controls', () => {
-  assert.match(sba, /SBA 7\(a\) affordability estimate/)
-  assert.match(sba, /DOWN_PCT/)
-  assert.match(sba, /monthlyPayment/)
-  assert.match(sba, /down payment/i)
+  assert.match(sba, /SBA 7\(a\) Payment Calculator/)
+  assert.match(sba, /RATE_LOW/)
+  assert.match(sba, /monthly\.low/)
+  assert.match(sba, /down \(10%\)/)
   assert.match(sba, /monthly payment/i)
-  assert.match(sba, /total interest/i)
-  assert.match(sba, /lender approval/)
+  assert.match(sba, /APR/)
+  assert.match(sba, /lender to confirm/)
   assert.doesNotMatch(sba, /deepseek|claude|anthropic|openai/i)
 })
 

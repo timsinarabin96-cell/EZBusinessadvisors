@@ -93,6 +93,6 @@ test('global: currency symbols + multi-currency formatting', () => {
 
 test('global: public card uses free stock images + currency display', () => {
   assert.match(card, /stockImageFor/)
-  assert.match(card, /fmtMoney/)
-  assert.match(card, /currency_code/)
+  assert.match(card, /fmt\$/)
+  assert.match(card, /priceTeaser/)
 })

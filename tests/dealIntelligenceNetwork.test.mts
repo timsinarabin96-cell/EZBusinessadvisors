@@ -41,7 +41,7 @@ test('sensitive deal actions require approval', () => {
 
 test('trust center remains brokerage-specific legal content', () => {
   const page = readFileSync('app/(public)/marketplace/trust/page.tsx', 'utf8')
-  assert.match(page, /Each brokerage must publish its own approved legal/)
+  assert.match(page, /Each brokerage publishes its own approved legal/)
   assert.match(page, /Permission-aware AI/)
   assert.match(page, /Evidence-backed answers/)
 })

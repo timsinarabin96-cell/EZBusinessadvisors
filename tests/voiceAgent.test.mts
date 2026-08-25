@@ -17,8 +17,8 @@ test('phone agent listens first and confirms briefly', () => {
 })
 
 test('phone agent keeps replies to one short sentence', () => {
-  assert.match(agent, /AT MOST ONE short sentence/)
-  assert.match(agent, /Under 15 words/)
+  assert.match(agent, /Keep every reply SHORT and natural/)
+  assert.match(agent, /under 15 words/)
   assert.match(agent, /NEVER recap, summarize, or repeat back/)
 })
 
@@ -39,7 +39,7 @@ test('phone agent asks for name and callback number only when missing', () => {
 
 test('twilio webhook uses a natural human voice (Polly.Matthew)', () => {
   assert.match(twilio, /Polly\.Matthew/)
-  assert.match(twilio, /<Gather input="speech"/)
+  assert.match(twilio, /<Gather \$\{GATHER_OPTS\}/)
   assert.match(twilio, /<Hangup\/>/)
 })
 

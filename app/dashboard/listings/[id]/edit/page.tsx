@@ -9,6 +9,7 @@
 import AppShell from '@/components/layout/AppShell'
 import { ToastProvider } from '@/components/ui/Toast'
 import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
+import FeaturedSlotCard from '@/components/listing/FeaturedSlotCard'
 import { useParams } from 'next/navigation'
 
 export default function EditListingPage() {
@@ -18,7 +19,13 @@ export default function EditListingPage() {
     <AppShell active="Listings">
       <ToastProvider>
         <div style={{ maxWidth: 1380, margin: '0 auto' }}>
-          <IntelligentListingForm listingId={listingId} />
+          {/* Studio editor + featured-slot promotion rail */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 20, alignItems: 'start' }}>
+            <IntelligentListingForm listingId={listingId} />
+            <div style={{ position: 'sticky', top: 16 }}>
+              <FeaturedSlotCard listingId={listingId} />
+            </div>
+          </div>
         </div>
       </ToastProvider>
     </AppShell>
