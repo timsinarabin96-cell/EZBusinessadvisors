@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 
@@ -36,8 +37,8 @@ export default function AdminUsersPage() {
   const load = useCallback(async () => {
     try {
       const [uRes, aRes] = await Promise.all([
-        fetch('/api/admin/users'),
-        fetch('/api/admin/agencies').then((r) => r.json().catch(() => ({ ok: false }))),
+        authenticatedFetch('/api/admin/users'),
+        authenticatedFetch('/api/admin/agencies').then((r) => r.json().catch(() => ({ ok: false }))),
       ])
       const u = await uRes.json()
       if (!uRes.ok || !u.ok) { setError(u.error || 'Access denied'); return }
@@ -51,7 +52,7 @@ export default function AdminUsersPage() {
   const createUser = async () => {
     setBusy(true)
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await authenticatedFetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, agencyId: form.agencyId || null }),
@@ -66,7 +67,7 @@ export default function AdminUsersPage() {
   }
 
   const patchUser = async (userId: string, patch: Record<string, unknown>) => {
-    const res = await fetch('/api/admin/users', {
+    const res = await authenticatedFetch('/api/admin/users', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, ...patch }),

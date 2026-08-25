@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { LoadingState } from '@/components/ui'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // =============================================================================
 // /admin — Platform owner dashboard (super admin only).
@@ -30,7 +31,7 @@ export default function PlatformAdminPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/admin/overview')
+        const res = await authenticatedFetch('/api/admin/overview')
         const j = await res.json()
         if (!res.ok || !j.ok) {
           setError(j.error || 'Access denied — platform admin only.')

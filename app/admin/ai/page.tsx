@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 
@@ -30,7 +31,7 @@ export default function AdminAiPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/ai')
+      const res = await authenticatedFetch('/api/admin/ai')
       const j = await res.json()
       if (!res.ok || !j.ok) { setError(j.error || 'Access denied'); return }
       setAgents(j.agents || [])
@@ -45,7 +46,7 @@ export default function AdminAiPage() {
   useEffect(() => { load() }, [load])
 
   const toggleAgent = async (agentKey: string, enabled: boolean, agencyId?: string) => {
-    const res = await fetch('/api/admin/ai', {
+    const res = await authenticatedFetch('/api/admin/ai', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agentKey, enabled, agencyId: agencyId || null }),
@@ -58,7 +59,7 @@ export default function AdminAiPage() {
   const saveTwilio = async () => {
     setSavingTwilio(true)
     try {
-      const res = await fetch('/api/admin/ai', {
+      const res = await authenticatedFetch('/api/admin/ai', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ twilio: twilio }),
@@ -70,7 +71,7 @@ export default function AdminAiPage() {
   }
 
   const saveDefaults = async () => {
-    const res = await fetch('/api/admin/ai', {
+    const res = await authenticatedFetch('/api/admin/ai', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ defaults }),
