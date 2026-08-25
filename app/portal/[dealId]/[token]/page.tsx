@@ -14,6 +14,7 @@ import {
   type PortalDeal, type PortalMilestone, type PortalMessageUpdate,
 } from '@/lib/clientPortal'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
+import DealDataRoom from '@/components/dataRoom/DealDataRoom'
 
 const STAGE_LABEL: Record<string, { label: string; color: string }> = {
   new: { label: 'New', color: '#3b82f6' },
@@ -265,6 +266,11 @@ function PortalBody() {
               }}
             />
             <p style={{ fontSize: 12, color: 'var(--muted-2)', margin: '8px 0 0' }}>Share contracts, financials, or other due-diligence documents. Files are private to this deal.</p>
+          </div>
+
+          {/* Shared Data Room — Dropbox-style, everyone can edit & delete */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <DealDataRoom dealId={dealId} token={token} compact />
           </div>
 
           {/* Chat */}
