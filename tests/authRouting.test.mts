@@ -20,7 +20,7 @@ test('auth routing: admin via profile role, membership role, or ownership', () =
 test('auth routing: broker is distinct from agent — broker lands in deal tools', () => {
   assert.equal(resolvePortalRole({ role: 'broker' }, { role: null, is_owner: null }), 'broker')
   assert.equal(resolvePortalRole({ role: 'agent' }, { role: 'broker', is_owner: null }), 'broker')
-  assert.equal(resolveLoginDestination('broker'), '/dashboard/listings')
+  assert.equal(resolveLoginDestination('broker'), '/listings')
 })
 
 test('auth routing: CRM seat without broker/admin role is an agent', () => {

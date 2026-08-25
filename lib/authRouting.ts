@@ -41,7 +41,7 @@ export function resolvePortalRole(
  * Where should this user land right after login?
  *   super_admin → /admin (see everything)
  *   admin       → /dashboard/command-center (agency admin)
- *   broker      → /dashboard/listings (deal tools)
+ *   broker      → /listings (deal tools — matches the AppShell nav target)
  *   agent       → /dashboard (daily workspace)
  *   owner       → /dashboard/owner (listing portal)
  */
@@ -49,7 +49,7 @@ export function resolveLoginDestination(role: PortalRole): string {
   switch (role) {
     case 'super_admin': return '/admin'
     case 'admin': return '/dashboard/command-center'
-    case 'broker': return '/dashboard/listings'
+    case 'broker': return '/listings'
     case 'agent': return '/dashboard'
     case 'owner': return '/dashboard/owner'
   }
