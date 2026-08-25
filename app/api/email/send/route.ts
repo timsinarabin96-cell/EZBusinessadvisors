@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { sendEmail, notify, emailTemplates, type EmailKind } from '@/lib/email'
+import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
 export const runtime = 'nodejs'
 
@@ -10,17 +12,13 @@ export const runtime = 'nodejs'
  * ({ to, subject, html, kind, meta }) or a template call
  * ({ to, kind, payload }).
  *
- * Body: {
- *   to: string
- *   // Option A: direct email
- *   subject?: string
- *   html?: string
- *   // Option B: template
- *   kind?: EmailKind
- *   payload?: Record<string, any>
- * }
+ * AUTH: broker/admin session required — this is a mail relay, not a
+ * public endpoint (previously unauthenticated, could be abused for spam).
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return unauthorizedResponse()
+
   try {
     const body = await req.json()
     const to: string = body?.to

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { listTemplates, saveTemplate, deleteTemplate, sendTemplate, seedTemplates } from '@/lib/emailTemplates'
 
 export const runtime = 'nodejs'
@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
 
   const agencyId = req.nextUrl.searchParams.get('agencyId') || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
+  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
 
   const templates = await listTemplates(agencyId, req.nextUrl.searchParams.get('category') || undefined)
   return NextResponse.json({ ok: true, templates })

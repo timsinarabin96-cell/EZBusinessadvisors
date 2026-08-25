@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { listNotifications, markRead, unreadCount } from '@/lib/notifications'
 
 export const runtime = 'nodejs'
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
 
   const agencyId = req.nextUrl.searchParams.get('agencyId') || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
+  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
 
   if (req.nextUrl.searchParams.get('unread') === '1') {
     const count = await unreadCount(agencyId, auth.user.id)

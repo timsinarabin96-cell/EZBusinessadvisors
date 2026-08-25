@@ -35,6 +35,20 @@ export async function POST(req: NextRequest) {
   }
   const { listingId } = parsed
 
+  // Agency gate: caller must belong to the listing's agency (IDOR guard).
+  try {
+    const { data: listingMeta } = await supabase.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+    const agencyId = (listingMeta as { agency_id?: string | null } | null)?.agency_id
+    if (!agencyId) return NextResponse.json({ ok: false, error: 'Listing not found.' }, { status: 404 })
+    const { data: memberships } = await supabase.from('agency_members').select('agency_id').eq('profile_id', auth.user.id)
+    const mine = new Set((memberships || []).map((m) => m.agency_id))
+    if (!mine.has(agencyId)) {
+      return NextResponse.json({ ok: false, error: 'Not a member of this listing\'s agency.' }, { status: 403 })
+    }
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Agency check failed.' }, { status: 500 })
+  }
+
   // 1) Load listing
   const { data: listing, error: lErr } = await supabase
     .from('listings').select('id, business_name, asking_price, annual_revenue, sde, ebitda').eq('id', listingId).maybeSingle()

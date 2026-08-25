@@ -54,6 +54,14 @@ export async function GET(req: NextRequest) {
   } else {
     const authenticated = await authenticateProfileRequest(req)
     if (!authenticated) return unauthorizedResponse()
+    // Session path MUST verify the caller belongs to the deal's agency —
+    // otherwise any signed-in user could read/write any agency's data room.
+    const { data: deal } = await SVC.from('deals').select('id, agency_id').eq('id', dealId).maybeSingle()
+    const dealAgency = (deal as { agency_id?: string | null } | null)?.agency_id
+    if (!dealAgency) return NextResponse.json({ ok: false, error: 'Deal not found' }, { status: 404 })
+    if (!authenticated.memberships.some((m) => m.agency_id === dealAgency)) {
+      return NextResponse.json({ ok: false, error: 'Not a member of this deal\'s agency' }, { status: 403 })
+    }
     actor = { userId: authenticated.user.id, email: authenticated.user.email || null }
   }
 
@@ -82,6 +90,13 @@ export async function POST(req: NextRequest) {
   } else {
     const authenticated = await authenticateProfileRequest(req)
     if (!authenticated) return unauthorizedResponse()
+    // Same agency-membership gate as GET (cross-agency data room protection).
+    const { data: deal } = await SVC.from('deals').select('id, agency_id').eq('id', dealId).maybeSingle()
+    const dealAgency = (deal as { agency_id?: string | null } | null)?.agency_id
+    if (!dealAgency) return NextResponse.json({ ok: false, error: 'Deal not found' }, { status: 404 })
+    if (!authenticated.memberships.some((m) => m.agency_id === dealAgency)) {
+      return NextResponse.json({ ok: false, error: 'Not a member of this deal\'s agency' }, { status: 403 })
+    }
     actor = { userId: authenticated.user.id, email: authenticated.user.email || null }
   }
 

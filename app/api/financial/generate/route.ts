@@ -68,6 +68,21 @@ export async function POST(req: NextRequest) {
 
   const { listingId, dealId } = parsed.data
 
+  // Agency gate: the caller must belong to the listing's agency — otherwise
+  // any signed-in user could generate docs from any agency's financials.
+  try {
+    const { data: listing } = await supabase.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+    const agencyId = (listing as { agency_id?: string | null } | null)?.agency_id
+    if (!agencyId) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
+    const { data: memberships } = await supabase.from('agency_members').select('agency_id').eq('profile_id', user.user.id)
+    const mine = new Set((memberships || []).map((m) => m.agency_id))
+    if (!mine.has(agencyId)) {
+      return NextResponse.json({ ok: false, error: 'Not a member of this listing\'s agency' }, { status: 403 })
+    }
+  } catch {
+    return NextResponse.json({ ok: false, error: 'Agency check failed' }, { status: 500 })
+  }
+
   try {
     const result = await runAutoGeneration({ listingId, dealId: dealId ?? null })
     return NextResponse.json(result, { status: result.ok ? 200 : 500 })
