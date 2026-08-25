@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runMatchingForListing } from '@/lib/buyerMatching'
 import { sendEmail } from '@/lib/email'
 import { createClient } from '@supabase/supabase-js'
+import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
 export const runtime = 'nodejs'
 
@@ -20,11 +21,26 @@ const svc =
  * publish flow or a scheduled job.
  */
 export async function POST(req: NextRequest) {
+  // Broker/admin session required — this fires buyer-match email blasts.
+  const auth = await authenticateProfileRequest(req)
+  if (!auth) return unauthorizedResponse()
+  const svcClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+    { auth: { persistSession: false } },
+  )
   try {
     const body = await req.json().catch(() => ({}))
     const listingId = String(body.listingId || '')
     if (!listingId) {
       return NextResponse.json({ error: 'listingId is required' }, { status: 400 })
+    }
+    // Verify the listing belongs to the caller's agency (cross-tenant guard).
+    const { data: listingRow } = await svcClient.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+    const listingAgency = (listingRow as { agency_id?: string | null } | null)?.agency_id
+    if (!listingAgency) return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+    if (!auth.memberships.some((m) => m.agency_id === listingAgency)) {
+      return NextResponse.json({ error: 'Not a member of this listing\'s agency' }, { status: 403 })
     }
 
     const matches = await runMatchingForListing(listingId)

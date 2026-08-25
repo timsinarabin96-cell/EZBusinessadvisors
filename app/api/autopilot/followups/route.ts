@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { findFollowUpLeads, sendFollowUpText } from '@/lib/followups'
 
 export const runtime = 'nodejs'
@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
 
   const agencyId = req.nextUrl.searchParams.get('agencyId') || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
+  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
 
   const days = Math.max(1, Math.min(365, Number(req.nextUrl.searchParams.get('days')) || 3))
   const items = await findFollowUpLeads(agencyId, days)
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const agencyId = body.agencyId || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
+  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
 
   const kind = body.kind === 'seller' ? 'seller' : 'buyer'
   const leadId = String(body.leadId || '')

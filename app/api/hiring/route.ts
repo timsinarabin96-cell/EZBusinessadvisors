@@ -72,11 +72,10 @@ export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
   const authenticated = await authenticateProfileRequest(req)
   if (!authenticated) return unauthorizedResponse()
-  const { data, error } = await db
-    .from('agent_applications')
-    .select('*, hiring_packages(name, commission_split, role)')
-    .order('submitted_at', { ascending: false })
-    .limit(100)
+  const agencyId = authenticated.memberships[0]?.agency_id
+  let q = db.from('agent_applications').select('*, hiring_packages(name, commission_split, role)')
+  if (agencyId) q = q.eq('agency_id', agencyId)
+  const { data, error } = await q.order('submitted_at', { ascending: false }).limit(100)
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true, applications: data || [] })
 }

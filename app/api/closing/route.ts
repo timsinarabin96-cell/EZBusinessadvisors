@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
 
   const agencyId = req.nextUrl.searchParams.get('agencyId') || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
+  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
 
   const listingId = req.nextUrl.searchParams.get('listingId')
   if (listingId) {

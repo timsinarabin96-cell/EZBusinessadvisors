@@ -27,10 +27,11 @@ export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get('mine') === '1') {
     const auth = await authenticateProfileRequest(req)
     if (!auth) return unauthorizedResponse()
-    const { data, error } = await db
-      .from('deal_professionals')
-      .select(PUBLIC_SELECT)
-      .order('created_at', { ascending: false })
+    const { data: profile } = await db.from('profiles').select('agency_id').eq('id', auth.user.id).maybeSingle()
+    const myAgency = profile?.agency_id || auth.memberships[0]?.agency_id || null
+    let q2 = db.from('deal_professionals').select(PUBLIC_SELECT)
+    if (myAgency) q2 = q2.eq('agency_id', myAgency)
+    const { data, error } = await q2.order('created_at', { ascending: false })
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true, professionals: data })
   }
@@ -88,6 +89,11 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ ok: false, error: 'Invalid body' }, { status: 400 })
 
+  const { data: rec } = await db.from('deal_professionals').select('agency_id').eq('id', id).maybeSingle()
+  if (!rec) return NextResponse.json({ ok: false, error: 'Professional not found' }, { status: 404 })
+  if (!auth.memberships.some((m) => m.agency_id === rec.agency_id)) {
+    return NextResponse.json({ ok: false, error: 'Not a member of this record\'s agency' }, { status: 403 })
+  }
   const { error } = await db.from('deal_professionals').update(body).eq('id', id)
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
@@ -98,9 +104,13 @@ export async function DELETE(req: NextRequest) {
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
   const auth = await authenticateProfileRequest(req)
   if (!auth) return unauthorizedResponse()
-
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 })
+  const { data: rec } = await db.from('deal_professionals').select('agency_id').eq('id', id).maybeSingle()
+  if (!rec) return NextResponse.json({ ok: false, error: 'Professional not found' }, { status: 404 })
+  if (!auth.memberships.some((m) => m.agency_id === rec.agency_id)) {
+    return NextResponse.json({ ok: false, error: 'Not a member of this record\'s agency' }, { status: 403 })
+  }
 
   const { error } = await db.from('deal_professionals').delete().eq('id', id)
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
