@@ -6,6 +6,13 @@ import { resolveListingAgency } from '@/lib/sellerListing'
 
 export const runtime = 'nodejs'
 
+/** Cryptographically-random portal token (URL-safe, unguessable). */
+function generatePortalToken(): string {
+  const bytes = new Uint8Array(18)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 const AGENCY_ID = process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-8454854e731a' // EZ Business Advisors default
 
 /**
@@ -54,6 +61,9 @@ export async function POST(req: NextRequest) {
   const agencyId = agencySlug ? (await resolveListingAgency(agencySlug)) || AGENCY_ID : AGENCY_ID
 
   // 1) Record the seller lead (with agency — fixes the invisible-lead bug).
+  //    Generate a portal token so the seller gets their self-service link.
+  const portalToken = generatePortalToken()
+  const portalUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'}/seller/${portalToken}`
   const { error: leadErr } = await svc.from('seller_leads').insert({
     agency_id: agencyId,
     full_name: name,
@@ -66,6 +76,7 @@ export async function POST(req: NextRequest) {
     timeframe: timeframe || null,
     message: [asking ? `Thinking of asking: ${asking}` : '', employees ? `Employees: ${employees}` : '', message].filter(Boolean).join(' | ') || 'Seller intake portal submission.',
     source: 'seller_self_service',
+    portal_token: portalToken,
     status: 'new',
   })
   if (leadErr) {
@@ -100,5 +111,5 @@ export async function POST(req: NextRequest) {
     ].filter(Boolean).join('<br/>'),
   })
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, portalUrl })
 }

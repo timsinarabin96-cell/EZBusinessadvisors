@@ -22,6 +22,7 @@ function SellContent() {
   const [planId, setPlanId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
+  const [portalUrl, setPortalUrl] = useState('')
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,6 +66,7 @@ function SellContent() {
     setSubmitting(false)
     if (res.ok) {
       setDone(true)
+      if (typeof res.portalUrl === 'string' && res.portalUrl) setPortalUrl(res.portalUrl)
       toast('Valuation request received — a broker will contact you confidentially.', 'success')
     } else {
       toast(res.error || 'Submission failed', 'error')
@@ -79,6 +81,18 @@ function SellContent() {
         <p style={{ color: '#666', fontSize: 16, lineHeight: 1.6, maxWidth: 520, margin: '0 auto' }}>
           Your request has been received. A Concord broker will reach out within one business day to arrange a confidential valuation consultation.
         </p>
+        {portalUrl && (
+          <div style={{ marginTop: 24, background: '#f4f8fc', border: '1px solid #dbe7f3', borderRadius: 12, padding: '18px 22px', textAlign: 'left' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#1e3a5f', marginBottom: 6 }}>🔐 Your private seller portal</div>
+            <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.6 }}>
+              Track your listing progress — status, buyer views, and next steps — anytime:
+            </div>
+            <a href={portalUrl} style={{ display: 'inline-block', marginTop: 10, color: '#2563eb', fontWeight: 700, fontSize: 13.5, wordBreak: 'break-all' }}>
+              {portalUrl}
+            </a>
+            <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 8 }}>Save this link — it is your private access (also emailed to you).</div>
+          </div>
+        )}
         <Link href="/" style={{ display: 'inline-block', marginTop: 24, color: '#c9a84c', fontWeight: 700, fontFamily: 'Georgia, serif' }}>← Back to home</Link>
       </div>
     )
