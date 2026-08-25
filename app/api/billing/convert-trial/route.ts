@@ -19,6 +19,8 @@ interface Body {
   paymentMethod?: string
   amount?: number
   billingCycle?: 'monthly' | 'annual'
+  ownerEmail?: string // new agency owner — gets a "create your login" invite
+  paymentConfirmed?: boolean
 }
 
 const PLANS: Record<string, { monthly: number; annual: number }> = {
@@ -26,6 +28,15 @@ const PLANS: Record<string, { monthly: number; annual: number }> = {
   professional: { monthly: 49, annual: 470 },
   enterprise: { monthly: 99, annual: 950 },
 }
+
+const ONBOARDING_STEPS = [
+  { key: 'profile', label: 'Set up your profile (name, photo, role)' },
+  { key: 'agency', label: 'Brand your agency (name, logo, colors)' },
+  { key: 'api_key', label: 'Connect your own AI provider API key' },
+  { key: 'first_listing', label: 'Add your first listing' },
+  { key: 'team', label: 'Invite your team' },
+  { key: 'billing', label: 'Review billing & plan' },
+]
 
 export async function POST(req: NextRequest) {
   const db = createServerClient()
@@ -98,5 +109,60 @@ export async function POST(req: NextRequest) {
     })
   } catch { /* usage is best-effort */ }
 
-  return NextResponse.json({ ok: true, agencyId, planType, amount, billingCycle, status: 'paid' })
+  // 4) AI-controlled login activation: if an owner email is supplied and
+  //    payment is confirmed, create (or invite) the owner account and start
+  //    the guided onboarding week.
+  let login: { email: string; inviteUrl?: string } | null = null
+  const ownerEmail = String(body.ownerEmail || '').trim().toLowerCase()
+  if (ownerEmail && ownerEmail.includes('@') && (planType === 'professional' || planType === 'enterprise')) {
+    // Existing auth user?
+    const { data: existingUsers } = await db.auth.admin.listUsers({ page: 1, perPage: 200 })
+    const existing = existingUsers?.users?.find((u: any) => u.email === ownerEmail)
+    let userId = existing?.id || null
+
+    if (!existing) {
+      // Send a "create your password" invite email — the owner clicks the
+      // link, sets a password, and their login is activated.
+      try {
+        const { data: invite, error: inviteErr } = await db.auth.admin.inviteUserByEmail(ownerEmail, {
+          data: { full_name: 'Agency Owner' },
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'}/onboarding`,
+        })
+        if (!inviteErr && invite?.user?.id) {
+          userId = invite.user.id
+          login = { email: ownerEmail }
+        }
+      } catch { /* fall through */ }
+    } else {
+      login = { email: ownerEmail }
+    }
+
+    if (userId) {
+      // Profile + agency membership (owner/admin).
+      await db.from('profiles').upsert({
+        id: userId, email: ownerEmail, full_name: 'Agency Owner', role: planType === 'enterprise' ? 'admin' : 'broker', status: 'active',
+      }, { onConflict: 'id' })
+      await db.from('agency_members').upsert({
+        agency_id: agencyId, profile_id: userId, role: 'admin', is_owner: true,
+      }, { onConflict: 'agency_id,profile_id' })
+      // Start the guided onboarding week (steps seeded, 7-day window).
+      try {
+        await db.from('agency_onboarding').upsert({
+          agency_id: agencyId,
+          owner_email: ownerEmail,
+          status: 'active',
+          plan_type: planType,
+          amount_paid: amount,
+          payment_method: body.paymentMethod || null,
+          current_step: 0,
+          steps: ONBOARDING_STEPS.map((s) => ({ ...s, done: false })),
+          invite_sent_at: existing ? null : new Date().toISOString(),
+          activated_at: new Date().toISOString(),
+          week_ends_at: new Date(Date.now() + 7 * 86400000).toISOString(),
+        }, { onConflict: 'agency_id' })
+      } catch { /* onboarding is best-effort */ }
+    }
+  }
+
+  return NextResponse.json({ ok: true, agencyId, planType, amount, billingCycle, status: 'paid', login })
 }

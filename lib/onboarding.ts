@@ -1,8 +1,16 @@
 // =============================================================================
-// Onboarding — types + Supabase data layer for the Agent Onboarding checklist
+// Onboarding — two systems share this module:
+//   1) Agent Onboarding checklist (training) — onboarding_steps/tasks tables.
+//   2) Agency Onboarding (new): AI-guided first-week setup after a plan
+//      conversion. Convert → payment confirmed → owner gets a "create your
+//      login" invite email → /onboarding wizard with an AI bot → "I'm good".
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
+
+// ---------------------------------------------------------------------------
+// 1) Agent onboarding checklist (existing)
+// ---------------------------------------------------------------------------
 
 export interface OnboardingStep {
   id: string
@@ -106,4 +114,114 @@ export async function upsertOnboardingTask(
     .single()
   if (error) throw new Error(error.message || 'Failed to update onboarding')
   return data
+}
+
+// ---------------------------------------------------------------------------
+// 2) Agency onboarding — AI-guided first-week setup after plan conversion.
+// ---------------------------------------------------------------------------
+
+export interface AgencyOnboardingStep {
+  key: string
+  label: string
+  done: boolean
+}
+
+export interface AgencyOnboarding {
+  id: string
+  agency_id: string
+  owner_email: string
+  status: 'invited' | 'active' | 'completed'
+  plan_type: string | null
+  amount_paid: number | null
+  current_step: number
+  steps: AgencyOnboardingStep[]
+  invite_sent_at: string | null
+  activated_at: string | null
+  completed_at: string | null
+  week_ends_at: string | null
+  created_at?: string | null
+}
+
+/** The default guided checklist — order matters. */
+export const DEFAULT_ONBOARDING_STEPS: { key: string; label: string }[] = [
+  { key: 'profile', label: 'Set up your profile (name, photo, role)' },
+  { key: 'agency', label: 'Brand your agency (name, logo, colors)' },
+  { key: 'api_key', label: 'Connect your own AI provider API key' },
+  { key: 'first_listing', label: 'Add your first listing' },
+  { key: 'team', label: 'Invite your team' },
+  { key: 'billing', label: 'Review billing & plan' },
+]
+
+export const STEP_LINKS: Record<string, string> = {
+  profile: '/dashboard/settings',
+  agency: '/dashboard/settings',
+  api_key: '/dashboard/settings',
+  first_listing: '/dashboard/listings/new',
+  team: '/dashboard/agents',
+  billing: '/dashboard/settings',
+}
+
+export const STEP_HELP: Record<string, string> = {
+  profile: 'Click "Set up your profile" to add your name, photo and role. This is what buyers and your team see.',
+  agency: 'Add your agency name, logo and brand colors so every document and your public site carries your identity.',
+  api_key: 'Add your own AI provider API key (DeepSeek, OpenAI, Anthropic) so your CRM uses YOUR account and costs stay yours.',
+  first_listing: 'Create your first listing — the 10-step guided workflow walks you from legal docs to going live.',
+  team: 'Invite brokers and agents to your agency with their own logins and roles.',
+  billing: 'Confirm your plan, payment method and invoice details are correct.',
+}
+
+export async function fetchAgencyOnboarding(agencyId?: string): Promise<AgencyOnboarding | null> {
+  let q = supabase.from('agency_onboarding').select('*').order('created_at', { ascending: false }).limit(1)
+  if (agencyId) q = q.eq('agency_id', agencyId)
+  const { data, error } = await q
+  if (error) return null
+  return (data?.[0] as AgencyOnboarding) || null
+}
+
+export async function markAgencyStepDone(stepKey: string): Promise<{ ok: boolean; error?: string }> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: 'Not signed in' }
+  const { data: onboard } = await supabase.from('agency_onboarding').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (!onboard) return { ok: false, error: 'No onboarding found' }
+
+  const steps: AgencyOnboardingStep[] = onboard.steps || []
+  const idx = steps.findIndex((s) => s.key === stepKey)
+  if (idx >= 0 && !steps[idx].done) steps[idx].done = true
+  const nextStep = steps.findIndex((s) => !s.done)
+
+  const { error } = await supabase
+    .from('agency_onboarding')
+    .update({ steps, current_step: nextStep === -1 ? steps.length : nextStep, updated_at: new Date().toISOString() })
+    .eq('id', onboard.id)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
+export async function completeAgencyOnboarding(): Promise<{ ok: boolean; error?: string }> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false, error: 'Not signed in' }
+  const { data: onboard } = await supabase.from('agency_onboarding').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (!onboard) return { ok: false, error: 'No onboarding found' }
+
+  const steps: AgencyOnboardingStep[] = (onboard.steps || []).map((s: AgencyOnboardingStep) => ({ ...s, done: true }))
+  const { error } = await supabase
+    .from('agency_onboarding')
+    .update({
+      steps,
+      status: 'completed',
+      current_step: steps.length,
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', onboard.id)
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}
+
+/** Days remaining in the guided week (null if not started). */
+export function agencyDaysRemaining(o: AgencyOnboarding | null): number | null {
+  if (!o?.week_ends_at || o.status === 'completed') return null
+  const end = new Date(o.week_ends_at).getTime()
+  const days = Math.ceil((end - Date.now()) / 86400000)
+  return Math.max(0, days)
 }

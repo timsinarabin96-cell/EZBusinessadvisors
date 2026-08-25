@@ -63,9 +63,19 @@ export default function AdminTrials() {
   }
 
   async function convert(a: Row, plan: 'free' | 'professional' | 'enterprise') {
-    const res = await authenticatedFetch('/api/billing/convert-trial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agencyId: a.id, planType: plan }) })
+    // For paid plans, AI-controlled onboarding: ask for the owner's email and
+    // confirm payment before activating the login + invite.
+    let ownerEmail = ''
+    let paymentConfirmed = false
+    if (plan !== 'free') {
+      ownerEmail = (window.prompt(`Convert ${a.name} to ${plan}?\n\nEnter the agency owner's email — they'll get a "create your login" link and a week of AI-guided setup:`) || '').trim()
+      if (!ownerEmail || !ownerEmail.includes('@')) { toast('Owner email required for paid plans', 'error'); return }
+      paymentConfirmed = window.confirm(`Confirm: payment of $${plan === 'professional' ? 49 : 99}/mo received from ${ownerEmail}?\nTheir login will be activated and an invite email sent.`)
+      if (!paymentConfirmed) { toast('Conversion cancelled — payment not confirmed', 'error'); return }
+    }
+    const res = await authenticatedFetch('/api/billing/convert-trial', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agencyId: a.id, planType: plan, ownerEmail: ownerEmail || undefined, paymentConfirmed, paymentMethod: paymentConfirmed ? 'card' : undefined }) })
     const json = await res.json()
-    toast(json.ok ? `Converted to ${plan}` : json.error || 'Convert failed', json.ok ? 'success' : 'error')
+    toast(json.ok ? (json.login ? `Converted to ${plan} — login invite sent to ${json.login.email} 📧` : `Converted to ${plan}`) : json.error || 'Convert failed', json.ok ? 'success' : 'error')
     if (json.ok) load()
   }
 
