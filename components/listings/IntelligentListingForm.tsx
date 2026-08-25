@@ -11,6 +11,9 @@ import MoneyInput from '@/components/ui/MoneyInput'
 import { getStoredAccessToken, authHeaders } from '@/lib/authToken'
 import GrammarCheckButton from './GrammarCheckButton'
 import SuggestionInput from './SuggestionInput'
+import ListingIntakeModal from './ListingIntakeModal'
+import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
+import { pricePosition } from '@/lib/listingMarketContextCore.ts'
 import {
   buildListingInsert,
   calculateListingReadiness,
@@ -35,6 +38,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
   const [form, setForm] = useState<IntelligentListingInput>(EMPTY_INTELLIGENT_LISTING)
   const [busy, setBusy] = useState(false)
   const [matched, setMatched] = useState<UnifiedLead[] | null>(null)
+  const [showIntake, setShowIntake] = useState(false)
   const [createdListingId, setCreatedListingId] = useState<string | null>(editListingId || null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -136,6 +140,19 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
     setForm((current) => ({ ...current, [key]: value }))
   }
 
+  // Apply an AI intake draft onto the form (only known fields overwrite).
+  const applyIntakeDraft = (draft: Record<string, string | boolean | number | null>) => {
+    setForm((current) => {
+      const next = { ...current }
+      for (const [key, value] of Object.entries(draft)) {
+        if (key in next && value !== undefined && value !== null && value !== '') {
+          ;(next as Record<string, unknown>)[key] = value
+        }
+      }
+      return next
+    })
+  }
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!form.business_name.trim()) {
@@ -193,7 +210,10 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-          <ReadinessCard score={readiness.score} label={readiness.label} />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="btn btn-navy" onClick={() => setShowIntake(true)} style={{ fontSize: 13 }}>✨ AI Intake</button>
+            <ReadinessCard score={readiness.score} label={readiness.label} />
+          </div>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: saveState === 'saved' ? '#16a34a' : saveState === 'error' ? '#b91c1c' : '#9a6700', minHeight: 16 }}>
             {saveState === 'saving' ? '⏳ Saving…' : saveState === 'saved' ? (editListingId ? '✓ Changes saved' : '✓ Draft auto-saved') : saveState === 'error' ? '⚠ Save failed — check connection' : ''}
           </div>
@@ -239,6 +259,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
             <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 8 }}>{readiness.label}</div>
             {readiness.missing.slice(0, 5).map((missingItem) => <div key={missingItem} style={{ fontSize: 12, color: 'var(--muted)', padding: '5px 0', borderTop: '1px solid #edf0f3' }}>○ {missingItem}</div>)}
           </div>
+          <MarketRadarCard form={form} />
           <div className="card" style={{ padding: 18, background: '#f4f8fc' }}>
             <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: 8 }}>What happens next</div>
             {['Agent completes intake', 'Broker reviews compliance', 'Seller approves public fields', 'AI matches qualified buyers', 'Approved channels publish'].map((item, index) => <div key={item} style={{ display: 'flex', gap: 9, fontSize: 12.5, lineHeight: 1.4, marginTop: 9 }}><span style={{ color: '#2563eb', fontWeight: 800 }}>{index + 1}</span><span>{item}</span></div>)}
@@ -247,7 +268,34 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
       </div>
 
       {matched && <MatchedBuyersModal matches={matched} listingIndustry={form.industry} onDone={finishMatching} />}
+      {showIntake && <ListingIntakeModal onApply={applyIntakeDraft} onClose={() => setShowIntake(false)} />}
     </form>
+  )
+}
+
+// Live market radar — shows the industry band + where the asking price sits.
+function MarketRadarCard({ form }: { form: IntelligentListingInput }) {
+  const band = bandForIndustry(form.industry, form.ebitda ? 'EBITDA' : 'SDE')
+  const price = form.asking_price ? Number(form.asking_price.replace(/[$,]/g, '')) : null
+  const sde = form.sde ? Number(form.sde.replace(/[$,]/g, '')) : null
+  const ebitda = form.ebitda ? Number(form.ebitda.replace(/[$,]/g, '')) : null
+  const pos = pricePosition(price, sde, ebitda, band)
+  if (!band) return null
+  return (
+    <div className="card" style={{ padding: 18, background: '#fffdf7' }}>
+      <div className="section-title">📈 Market check</div>
+      <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 6 }}>
+        {band.industry} typically sells at{' '}
+        <strong style={{ color: 'var(--navy)' }}>{band.min.toFixed(1)}–{band.max.toFixed(1)}× {band.basis}</strong>
+      </div>
+      {pos && pos.multiple != null ? (
+        <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: pos.position === 'within' ? '#e8f7ee' : pos.position === 'below' ? '#eff6ff' : '#fdf3e3', color: pos.position === 'within' ? '#166534' : pos.position === 'below' ? '#1d4ed8' : '#92400e' }}>
+          Asking price = {pos.multiple.toFixed(1)}× {pos.basis} — {pos.position === 'within' ? 'in line with market' : pos.position === 'below' ? 'below the typical band (value play)' : 'above the typical band'}
+        </div>
+      ) : (
+        <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>Enter an asking price + SDE/EBITDA to see where it sits.</div>
+      )}
+    </div>
   )
 }
 
@@ -321,7 +369,51 @@ function TransitionSection({ form, setValue }: SectionProps) {
 }
 
 function PublicSection({ form, setValue }: SectionProps) {
-  return <Section title="Seller-approved public preview" subtitle="Write a useful anonymous opportunity—not a copy of the private record. Never include the legal name, exact address, customer names, or identifying details."><Grid>
+  const toast = useToast()
+  const [drafting, setDrafting] = useState(false)
+
+  const draftPublic = async () => {
+    const context = [
+      `Industry: ${form.industry || 'n/a'}`,
+      `Sub-industry: ${form.sub_industry || 'n/a'}`,
+      `Location: ${form.location_general || 'n/a'}`,
+      `Description: ${form.description || 'n/a'}`,
+      `Established: ${form.established_year || 'n/a'}`,
+      `Employees: ${form.employees_full_time || 'n/a'} FT`,
+      `Revenue: ${form.annual_revenue || 'n/a'}`,
+      `SDE: ${form.sde || 'n/a'}`,
+      `EBITDA: ${form.ebitda || 'n/a'}`,
+      `Growth: ${form.growth_opportunities || 'n/a'}`,
+      `Advantages: ${form.competitive_advantages || 'n/a'}`,
+      `Show financials publicly: ${form.show_financials ? 'yes' : 'no'}`,
+    ].join('\n')
+    setDrafting(true)
+    try {
+      const res = await fetch('/api/listings/intake', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ notes: context, mode: 'public' }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Draft failed')
+      if (j.draft.public_title) setValue('public_title', j.draft.public_title)
+      if (j.draft.public_summary) setValue('public_summary', j.draft.public_summary)
+      if (j.draft.public_highlights) setValue('public_highlights', j.draft.public_highlights)
+      if (typeof j.draft.show_financials === 'boolean') setValue('show_financials', j.draft.show_financials)
+      toast('Drafted anonymous public preview — review before saving', 'success')
+    } catch (e: any) {
+      toast(e.message, 'error')
+    } finally {
+      setDrafting(false)
+    }
+  }
+
+  return <Section title="Seller-approved public preview" subtitle="Write a useful anonymous opportunity—not a copy of the private record. Never include the legal name, exact address, customer names, or identifying details."><div style={{ marginBottom: 14, padding: '12px 14px', background: '#f4f8fc', border: '1px solid #dbe7f3', borderRadius: 10, fontSize: 12.5, color: '#1e3a5f' }}>
+      <strong>✨ One-click public draft:</strong> generate the anonymized title, summary and highlights from the private record — then edit.
+      <button type="button" onClick={draftPublic} disabled={drafting} style={{ marginLeft: 10, padding: '5px 12px', borderRadius: 7, background: '#2563eb', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: drafting ? 'wait' : 'pointer' }}>
+        {drafting ? 'Drafting…' : 'Draft public preview'}
+      </button>
+    </div><Grid>
     <Field label="Anonymous public title" span><input className="input" value={form.public_title} onChange={(event) => setValue('public_title', event.target.value)} placeholder="Recurring-Revenue Commercial Services Company" /></Field>
     <Field label="Public summary" span><textarea className="textarea" rows={7} value={form.public_summary} onChange={(event) => setValue('public_summary', event.target.value)} /><GrammarCheckButton kind="public_summary" text={form.public_summary} onApply={(corrected) => setValue('public_summary', corrected)} /></Field>
     <Field label="Public highlights — one per line" span><textarea className="textarea" rows={7} value={form.public_highlights} onChange={(event) => setValue('public_highlights', event.target.value)} placeholder={'High percentage of recurring revenue\nExperienced management team\nSeller transition support available'} /><GrammarCheckButton kind="highlights" text={form.public_highlights} onApply={(corrected) => setValue('public_highlights', corrected)} /></Field>
