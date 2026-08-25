@@ -8,18 +8,6 @@ import InstantValuation from '@/components/public/InstantValuation'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 
-export const metadata = {
-  title: 'Sell a Business — Free Valuation & Confidential Listing | Concord Deal Platform',
-  description: 'Sell your business confidentially. Get a free broker valuation, list on a vetted marketplace, and reach qualified buyers — NDA-first, recast financials, SBA-ready.',
-  alternates: { canonical: '/marketplace/sell' },
-  openGraph: {
-    title: 'Sell a Business — Concord Deal Platform',
-    description: 'Free, no-obligation valuation and confidential listing for business owners.',
-    url: '/marketplace/sell',
-    type: 'website',
-  },
-}
-
 export default function SellPage() {
   return (
     <ToastProvider>
