@@ -25,6 +25,12 @@ export interface PublicMarketplaceListing {
   published_at: string | null
   show_financials: boolean
   broker_id?: string | null
+  listing_ref?: string | null
+  agent_name?: string | null
+  agent_title?: string | null
+  agent_photo?: string | null
+  agent_phone?: string | null
+  agent_email?: string | null
   is_absentee_owner?: boolean | null
   is_franchise?: boolean | null
   is_relocatable?: boolean | null
@@ -62,6 +68,12 @@ interface PublicListingFeedRow {
   vetted?: boolean | null
   status?: string | null
   broker_id?: string | null
+  listing_ref?: string | null
+  agent_name?: string | null
+  agent_title?: string | null
+  agent_photo?: string | null
+  agent_phone?: string | null
+  agent_email?: string | null
   sba_qualified?: boolean | null
   views_total?: number | null
   views_7d?: number | null
@@ -141,6 +153,12 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     published_at: row.published_at,
     show_financials: Boolean(row.show_financials),
     broker_id: row.broker_id || null,
+    listing_ref: row.listing_ref || null,
+    agent_name: row.agent_name || null,
+    agent_title: row.agent_title || null,
+    agent_photo: row.agent_photo || null,
+    agent_phone: row.agent_phone || null,
+    agent_email: row.agent_email || null,
     is_absentee_owner: row.is_absentee_owner ?? null,
     is_franchise: row.is_franchise ?? null,
     is_relocatable: row.is_relocatable ?? null,
@@ -232,6 +250,7 @@ export async function fetchAllIndustries(): Promise<string[]> {
 export interface PublicBroker {
   id: string
   profile_id: string | null
+  agency_id: string | null
   public_name: string
   title: string
   bio: string
@@ -288,6 +307,7 @@ export async function fetchPublicBrokers(): Promise<PublicBroker[]> {
   return (data as any[]).map((broker) => ({
     id: broker.id,
     profile_id: broker.profile_id || null,
+    agency_id: broker.agency_id || null,
     public_name: broker.public_name || '',
     title: broker.title || 'Business Broker',
     bio: broker.bio || '',
@@ -319,6 +339,7 @@ export async function fetchPublicBrokerById(id: string): Promise<PublicBroker | 
   return {
     id: b.id,
     profile_id: b.profile_id || null,
+    agency_id: b.agency_id || null,
     public_name: b.public_name || '',
     title: b.title || 'Business Broker',
     bio: b.bio || '',
@@ -350,6 +371,7 @@ export async function fetchBrokerByProfileId(profileId: string): Promise<PublicB
   return {
     id: b.id,
     profile_id: b.profile_id || null,
+    agency_id: b.agency_id || null,
     public_name: b.public_name || '',
     title: b.title || 'Business Broker',
     bio: b.bio || '',

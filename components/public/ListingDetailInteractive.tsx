@@ -356,7 +356,9 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
                 <button
                   onClick={() => {
                     const url = window.location.href
-                    window.location.href = `mailto:?subject=${encodeURIComponent(listing.public_title)}&body=${encodeURIComponent('Check out this business: ' + url)}`
+                    // Open mailto in a new tab — navigating the current page to
+                    // mailto: white-screens browsers with no mail client.
+                    window.open(`mailto:?subject=${encodeURIComponent(listing.public_title)}&body=${encodeURIComponent('Check out this business: ' + url)}`, '_blank')
                   }}
                   title="Share by email"
                   style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1px solid #d8d2c2', background: '#faf9f4', color: '#1a1a2e', fontWeight: 800, cursor: 'pointer', fontSize: 13 }}

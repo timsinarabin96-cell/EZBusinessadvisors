@@ -6,6 +6,8 @@ import { normalizePublicListing, type PublicMarketplaceListing } from '@/lib/mar
 import ListingDetailInteractive from '@/components/public/ListingDetailInteractive'
 import SimilarListings from '@/components/public/SimilarListings'
 import DealProfessionalsPanel from '@/components/public/DealProfessionalsPanel'
+import AgentContactCard from '@/components/public/AgentContactCard'
+import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
 
@@ -40,6 +42,9 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   const listing = await getListing(params.id)
   if (!listing) notFound()
 
+  // Listing ID (listing_ref) + assigned agent contact — server-side enrichment.
+  const meta = await fetchPublicListingMeta(listing.slug || listing.id)
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -58,9 +63,17 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: 0 }}>{listing.public_title}</h1>
           <span style={{ background: '#f0ecdf', color: '#1a1a2e', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>{listing.industry || 'Business'}</span>
+          {meta?.listingRef && (
+            <span style={{ background: '#1a1a2e', color: '#c9a84c', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+              🆔 {meta.listingRef}
+            </span>
+          )}
           {listing.is_confidential && <span style={{ background: '#1a1a2e', color: '#fff', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>Confidential</span>}
         </div>
         {listing.location_general && <p style={{ color: '#888', fontSize: 14, margin: '8px 0 0' }}>📍 {listing.location_general}</p>}
+      </div>
+      <div style={{ marginBottom: 20 }}>
+        <AgentContactCard agent={meta?.agent || null} />
       </div>
       <ListingDetailInteractive listing={listing} />
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>

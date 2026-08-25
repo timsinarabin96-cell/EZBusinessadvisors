@@ -1,6 +1,8 @@
 import { fetchPublicListing } from '@/lib/marketplace'
 import { fmt$ } from '@/lib/recast'
 import Link from 'next/link'
+import AgentContactCard from '@/components/public/AgentContactCard'
+import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +24,9 @@ export default async function FlyerPage({ params }: { params: { id: string } }) 
       </div>
     )
   }
+
+  // Listing ID + assigned agent (server-side enrichment, same as detail page).
+  const meta = await fetchPublicListingMeta(listing.slug || listing.id)
 
   const multiple = listing.sde && listing.asking_price ? (listing.asking_price / listing.sde).toFixed(2) : null
 
@@ -87,6 +92,18 @@ export default async function FlyerPage({ params }: { params: { id: string } }) 
               </ul>
             </div>
           )}
+
+          {/* Listing ID + agent */}
+          <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {meta?.listingRef && (
+              <div style={{ fontSize: 12, color: '#888' }}>
+                <span style={{ background: '#f0ecdf', color: '#1a1a2e', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                  🆔 {meta.listingRef}
+                </span>
+              </div>
+            )}
+            <AgentContactCard agent={meta?.agent || null} />
+          </div>
 
           {/* Confidentiality note */}
           <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '14px 16px', fontSize: 12.5, color: '#888', lineHeight: 1.6 }}>

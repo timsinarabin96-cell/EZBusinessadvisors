@@ -81,6 +81,7 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
         </div>
         <div style={{ padding: 16 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+            {listing.listing_ref && <BadgeTone color="#1a1a2e">🆔 {listing.listing_ref}</BadgeTone>}
             {(listing.views_7d != null && listing.views_7d > 0) && <BadgeTone color="#e11d48">🔥 {listing.views_7d} viewed this week</BadgeTone>}
             {listing.vetted && <BadgeTone color="#0e7490">🏅 Vetted</BadgeTone>}
             {listing.status === 'active' && <BadgeTone color="#1e7e34">● Active</BadgeTone>}
@@ -106,6 +107,20 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
             {listing.public_title}
           </div>
           <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>{listing.location_general || 'Location confidential'}</div>
+          {listing.agent_name && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, paddingTop: 10, borderTop: '1px solid #f0ecdf' }}>
+              {listing.agent_photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={listing.agent_photo} alt={listing.agent_name} style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#1a1a2e', color: '#c9a84c', fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {listing.agent_name.split(' ').map((p) => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()}
+                </span>
+              )}
+              <span style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>{listing.agent_name}</span>
+              {listing.agent_title && <span style={{ fontSize: 11, color: '#aaa' }}>· {listing.agent_title}</span>}
+            </div>
+          )}
           {listing.public_summary && (
             <div style={{ fontSize: 13, color: '#666', marginTop: 8, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {listing.public_summary}

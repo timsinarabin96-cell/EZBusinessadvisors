@@ -10,6 +10,7 @@ import { fetchListings, Listing } from '@/lib/listings'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
 import LeadFormModal from './LeadFormModal'
+import BuyerProfilePopup from './BuyerProfilePopup'
 
 type KindFilter = 'all' | 'buyer' | 'seller'
 type StatusFilter = LeadStatus | 'all'
@@ -36,6 +37,7 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
   const [editing, setEditing] = useState<UnifiedLead | null>(null)
 
   const [selected, setSelected] = useState<UnifiedLead | null>(null)
+  const [profileLead, setProfileLead] = useState<UnifiedLead | null>(null)
   const [activities, setActivities] = useState<LeadActivity[]>([])
   const [comms, setComms] = useState<LeadComm[]>([])
   const [converting, setConverting] = useState(false)
@@ -219,25 +221,33 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
                     </div>
                   </div>
                 </div>
-                {/* Quick actions — text / call the lead in one tap */}
-                {lead.phone && (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <a
-                      href={`sms:${lead.phone}`}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ flex: 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#ecfdf5', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none' }}
-                    >
-                      💬 Text
-                    </a>
-                    <a
-                      href={`tel:${lead.phone}`}
-                      onClick={(e) => e.stopPropagation()}
-                      style={{ flex: 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', textDecoration: 'none' }}
-                    >
-                      📞 Call
-                    </a>
-                  </div>
-                )}
+                {/* Quick actions — text / call the lead in one tap + profile popup */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  {lead.phone && (
+                    <>
+                      <a
+                        href={`sms:${lead.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ flex: 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#ecfdf5', color: '#15803d', border: '1px solid #bbf7d0', textDecoration: 'none' }}
+                      >
+                        💬 Text
+                      </a>
+                      <a
+                        href={`tel:${lead.phone}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ flex: 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', textDecoration: 'none' }}
+                      >
+                        📞 Call
+                      </a>
+                    </>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setProfileLead(lead) }}
+                    style={{ flex: lead.phone ? 0.7 : 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#fff7ed', color: '#92400e', border: '1px solid #fed7aa', cursor: 'pointer', fontFamily: 'Georgia, serif' }}
+                  >
+                    👤 Profile
+                  </button>
+                </div>
               </Card>
             )
           })}
@@ -261,7 +271,15 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
             <div style={{ background: 'var(--navy)', color: '#fff', padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h2 style={{ margin: 0, fontSize: 18, color: '#fff' }}>{selected.business_name || selected.email || 'Lead'}</h2>
-                <button onClick={() => setSelected(null)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 30, height: 30, borderRadius: '50%', cursor: 'pointer' }}>✕</button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button
+                    onClick={() => setProfileLead(selected)}
+                    style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.35)', color: '#fff', padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif' }}
+                  >
+                    👤 Profile
+                  </button>
+                  <button onClick={() => setSelected(null)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 30, height: 30, borderRadius: '50%', cursor: 'pointer' }}>✕</button>
+                </div>
               </div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 6 }}>
                 {selected.kind === 'seller' ? 'Seller Lead' : 'Buyer Lead'} · {selected.email || 'no email'} · {selected.phone || 'no phone'}
@@ -344,6 +362,11 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
             </div>
           </div>
         </div>
+      )}
+
+      {/* Buyer / Seller profile popup (business-card + deal context) */}
+      {profileLead && (
+        <BuyerProfilePopup lead={profileLead} onClose={() => setProfileLead(null)} />
       )}
     </div>
   )

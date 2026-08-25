@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { fetchPublicBrokerById, fetchListingsByBroker, PublicBroker, PublicMarketplaceListing } from '@/lib/marketplace'
+import { fetchPublicBrokerById, fetchListingsByBroker, fetchPublicBrokers, PublicBroker, PublicMarketplaceListing } from '@/lib/marketplace'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import { LoadingState } from '@/components/ui'
 
@@ -17,6 +17,7 @@ export default function BrokerProfilePage() {
   const id = params?.id as string
   const [broker, setBroker] = useState<PublicBroker | null>(null)
   const [listings, setListings] = useState<PublicMarketplaceListing[]>([])
+  const [team, setTeam] = useState<PublicBroker[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,6 +27,11 @@ export default function BrokerProfilePage() {
       setBroker(b)
       if (b?.profile_id) {
         setListings(await fetchListingsByBroker(b.profile_id))
+      }
+      // Agents working with the same broker (same agency, excluding self).
+      if (b?.agency_id) {
+        const all = await fetchPublicBrokers()
+        setTeam(all.filter((x) => x.agency_id === b.agency_id && x.id !== b.id))
       }
       setLoading(false)
     })()
@@ -91,6 +97,39 @@ export default function BrokerProfilePage() {
         <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 28, marginTop: 20 }}>
           <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, color: '#c9a84c', fontWeight: 700, marginBottom: 10 }}>About</div>
           <p style={{ fontSize: 14.5, color: '#555', lineHeight: 1.7, whiteSpace: 'pre-wrap', margin: 0 }}>{broker.bio}</p>
+        </div>
+      )}
+
+      {/* Team — agents working with the same broker */}
+      {team.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', marginBottom: 16 }}>
+            🤝 Agents at {broker.agency?.name || 'this brokerage'}
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+            {team.map((t) => (
+              <Link
+                key={t.id}
+                href={`/marketplace/brokers/${t.id}`}
+                style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 14, padding: 16, background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, transition: 'box-shadow .15s' }}
+              >
+                {t.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.avatar_url} alt={t.public_name} style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid #c9a84c' }} />
+                ) : (
+                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#1a1a2e', color: '#c9a84c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800 }}>
+                    {(t.public_name || 'A').charAt(0)}
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>{t.public_name}</div>
+                  <div style={{ fontSize: 12.5, color: '#888' }}>{t.title || 'Business Broker'}</div>
+                  {t.email_public && <div style={{ fontSize: 12, color: '#c9a84c' }}>✉️ {t.email_public}</div>}
+                </div>
+                <span style={{ color: '#1a1a2e', fontWeight: 700 }}>→</span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 
