@@ -1,13 +1,16 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createListing } from '@/lib/listings'
+import { createListing, updateListing, fetchListing } from '@/lib/listings'
 import { startWorkflow } from '@/lib/workflow'
 import { matchBuyerLeads, UnifiedLead } from '@/lib/leads2'
 import MatchedBuyersModal from '@/components/leads/MatchedBuyersModal'
 import { useToast } from '@/components/ui/Toast'
 import MoneyInput from '@/components/ui/MoneyInput'
+import { getStoredAccessToken, authHeaders } from '@/lib/authToken'
+import GrammarCheckButton from './GrammarCheckButton'
+import SuggestionInput from './SuggestionInput'
 import {
   buildListingInsert,
   calculateListingReadiness,
@@ -25,15 +28,109 @@ const SECTIONS: Array<{ id: SectionId; label: string; description: string }> = [
   { id: 'public', label: 'Public Preview', description: 'Anonymous seller-approved marketplace content' },
 ]
 
-export default function IntelligentListingForm() {
+export default function IntelligentListingForm({ listingId: editListingId }: { listingId?: string }) {
   const router = useRouter()
   const toast = useToast()
   const [section, setSection] = useState<SectionId>('identity')
   const [form, setForm] = useState<IntelligentListingInput>(EMPTY_INTELLIGENT_LISTING)
   const [busy, setBusy] = useState(false)
   const [matched, setMatched] = useState<UnifiedLead[] | null>(null)
-  const [createdListingId, setCreatedListingId] = useState<string | null>(null)
+  const [createdListingId, setCreatedListingId] = useState<string | null>(editListingId || null)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastSaved = useRef<string>('')
   const readiness = useMemo(() => calculateListingReadiness(form), [form])
+
+  // Edit mode: load the existing listing into the form.
+  useEffect(() => {
+    if (!editListingId) return
+    fetchListing(editListingId).then((l) => {
+      if (!l) return
+      const meta = (l as any).ai_metadata || {}
+      setForm((cur) => ({
+        ...cur,
+        business_name: l.business_name || '',
+        headline: l.headline || '',
+        industry: l.industry || '',
+        sub_industry: l.sub_industry || '',
+        location_general: l.location_general || '',
+        description: l.description || '',
+        asking_price: l.asking_price != null ? String(l.asking_price) : '',
+        annual_revenue: l.annual_revenue != null ? String(l.annual_revenue) : '',
+        sde: l.sde != null ? String(l.sde) : '',
+        ebitda: l.ebitda != null ? String(l.ebitda) : '',
+        inventory_value: l.inventory_value != null ? String(l.inventory_value) : '',
+        ffe_value: l.ffe_value != null ? String(l.ffe_value) : '',
+        established_year: l.established_year != null ? String(l.established_year) : '',
+        employees_full_time: l.employees_full_time != null ? String(l.employees_full_time) : '',
+        employees_part_time: l.employees_part_time != null ? String(l.employees_part_time) : '',
+        owner_hours_weekly: l.owner_hours_weekly != null ? String(l.owner_hours_weekly) : '',
+        reason_for_sale: l.reason_for_sale || '',
+        growth_opportunities: l.growth_opportunities || '',
+        competitive_advantages: l.competitive_advantages || '',
+        customer_concentration: l.customer_concentration || '',
+        facilities_summary: l.facilities_summary || '',
+        lease_monthly: l.lease_monthly != null ? String(l.lease_monthly) : '',
+        lease_expires_on: l.lease_expires_on || '',
+        lease_square_feet: (l as any).lease_square_feet != null ? String((l as any).lease_square_feet) : '',
+        real_estate_included: !!l.real_estate_included,
+        ffe_included: !!(l as any).ffe_included,
+        inventory_included: !!(l as any).inventory_included,
+        goodwill_included: !!(l as any).goodwill_included,
+        asset_sale: (l as any).asset_sale !== false,
+        property_address: (l as any).property_address || '',
+        property_city: (l as any).property_city || '',
+        square_footage: (l as any).square_footage != null ? String((l as any).square_footage) : '',
+        land_acres: (l as any).land_acres != null ? String((l as any).land_acres) : '',
+        year_built: (l as any).year_built != null ? String((l as any).year_built) : '',
+        property_value: (l as any).property_value != null ? String((l as any).property_value) : '',
+        property_description: (l as any).property_description || '',
+        seller_financing_available: !!l.seller_financing_available,
+        financing_notes: (l as any).financing_notes || '',
+        transition_support: l.transition_support || '',
+        training_period_weeks: l.training_period_weeks != null ? String(l.training_period_weeks) : '',
+        public_title: meta.public_title || '',
+        public_summary: meta.public_summary || '',
+        public_highlights: Array.isArray(meta.public_highlights) ? meta.public_highlights.join('\n') : '',
+        video_url: meta.video_url || '',
+        confidentiality_level: (l.confidentiality_level as IntelligentListingInput['confidentiality_level']) || 'anonymous',
+        show_financials: !!meta.show_financials,
+        seller_approval_reference: meta.seller_approval_reference || '',
+        source: (l.intake_source as IntelligentListingInput['source']) || 'broker_manual',
+      }))
+      setSaveState('saved')
+    }).catch(() => {})
+  }, [editListingId])
+
+  // Auto-save: debounce 1.2s after any change; create draft on first change.
+  const persist = useCallback(async (next: IntelligentListingInput) => {
+    const snapshot = JSON.stringify(next)
+    if (snapshot === lastSaved.current) return
+    setSaveState('saving')
+    try {
+      const insert = { ...buildListingInsert(next), ai_readiness_score: calculateListingReadiness(next).score }
+      if (createdListingId) {
+        await updateListing(createdListingId, insert)
+      } else {
+        const created = await createListing(insert)
+        setCreatedListingId(created.id)
+      }
+      lastSaved.current = snapshot
+      setSaveState('saved')
+    } catch (e: any) {
+      setSaveState('error')
+      console.error('autosave failed', e)
+    }
+  }, [createdListingId])
+
+  useEffect(() => {
+    if (editListingId && !createdListingId) return // still loading
+    if (form === EMPTY_INTELLIGENT_LISTING) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => persist(form), 1200)
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form])
 
   const setValue = <Key extends keyof IntelligentListingInput>(key: Key, value: IntelligentListingInput[Key]) => {
     setForm((current) => ({ ...current, [key]: value }))
@@ -49,18 +146,27 @@ export default function IntelligentListingForm() {
 
     setBusy(true)
     try {
-      const listing = await createListing({ ...buildListingInsert(form), ai_readiness_score: readiness.score })
-      setCreatedListingId(listing.id)
+      const insert = { ...buildListingInsert(form), ai_readiness_score: readiness.score }
+      let listingId = createdListingId
+      if (listingId) {
+        await updateListing(listingId, insert)
+      } else {
+        const listing = await createListing(insert)
+        listingId = listing.id
+        setCreatedListingId(listing.id)
+      }
+      if (!listingId) throw new Error('No listing id')
       const matches = await matchBuyerLeads(form.industry || null)
       if (matches.length) {
         setMatched(matches)
+        setBusy(false)
         return
       }
-      await startWorkflow(listing.id)
-      toast('AI-ready listing created — broker workflow started', 'success')
-      router.push(`/dashboard/listings/${listing.id}/workflow`)
+      await startWorkflow(listingId)
+      toast(editListingId ? 'Listing updated — continuing workflow' : 'AI-ready listing created — broker workflow started', 'success')
+      router.push(`/dashboard/listings/${listingId}/workflow`)
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Failed to create listing', 'error')
+      toast(error instanceof Error ? error.message : 'Failed to save listing', 'error')
       setBusy(false)
     }
   }
@@ -86,7 +192,12 @@ export default function IntelligentListingForm() {
             Enter once, then reuse the trusted data for buyer matching, the phone agent, BOV/CIM/BLI, marketing, seller reports, the public marketplace, and approved external distribution.
           </p>
         </div>
-        <ReadinessCard score={readiness.score} label={readiness.label} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <ReadinessCard score={readiness.score} label={readiness.label} />
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: saveState === 'saved' ? '#16a34a' : saveState === 'error' ? '#b91c1c' : '#9a6700', minHeight: 16 }}>
+            {saveState === 'saving' ? '⏳ Saving…' : saveState === 'saved' ? (editListingId ? '✓ Changes saved' : '✓ Draft auto-saved') : saveState === 'error' ? '⚠ Save failed — check connection' : ''}
+          </div>
+        </div>
       </div>
 
       <div className="listing-studio-grid" style={{ display: 'grid', gridTemplateColumns: '230px minmax(0, 1fr) 280px', gap: 20, alignItems: 'start' }}>
@@ -145,10 +256,10 @@ function BusinessSection({ form, setValue }: SectionProps) {
     <Field label="Legal or operating business name *" span><input className="input" value={form.business_name} onChange={(event) => setValue('business_name', event.target.value)} placeholder="Private CRM identity" /></Field>
     <Field label="Internal marketing headline"><input className="input" value={form.headline} onChange={(event) => setValue('headline', event.target.value)} placeholder="Established recurring-revenue service company" /></Field>
     <Field label="Year established"><input className="input" inputMode="numeric" value={form.established_year} onChange={(event) => setValue('established_year', event.target.value)} placeholder="2012" /></Field>
-    <Field label="Primary industry"><input className="input" value={form.industry} onChange={(event) => setValue('industry', event.target.value)} placeholder="Business Services" /></Field>
-    <Field label="Sub-industry"><input className="input" value={form.sub_industry} onChange={(event) => setValue('sub_industry', event.target.value)} placeholder="Commercial cleaning" /></Field>
-    <Field label="General market area" span><input className="input" value={form.location_general} onChange={(event) => setValue('location_general', event.target.value)} placeholder="Greater Philadelphia, PA — never enter the exact public address here" /></Field>
-    <Field label="Complete confidential description" span><textarea className="textarea" rows={8} value={form.description} onChange={(event) => setValue('description', event.target.value)} placeholder="Explain the business model, customers, services, history, operations, recurring revenue, differentiators, and why the opportunity matters." /></Field>
+    <Field label="Primary industry"><SuggestionInput type="category" value={form.industry} onChange={(v) => setValue('industry', v)} placeholder="Business Services" /></Field>
+    <Field label="Sub-industry"><SuggestionInput type="category" value={form.sub_industry} onChange={(v) => setValue('sub_industry', v)} placeholder="Commercial cleaning" /></Field>
+    <Field label="General market area" span><SuggestionInput type="location" value={form.location_general} onChange={(v) => setValue('location_general', v)} placeholder="Greater Philadelphia, PA — never enter the exact public address here" /></Field>
+    <Field label="Complete confidential description" span><textarea className="textarea" rows={8} value={form.description} onChange={(event) => setValue('description', event.target.value)} placeholder="Explain the business model, customers, services, history, operations, recurring revenue, differentiators, and why the opportunity matters." /><GrammarCheckButton kind="description" text={form.description} onApply={(corrected) => setValue('description', corrected)} /></Field>
   </Grid></Section>
 }
 
@@ -163,8 +274,26 @@ function FinancialSection({ form, setValue }: SectionProps) {
     <MoneyField label="Monthly lease" value={form.lease_monthly} onChange={(value) => setValue('lease_monthly', value)} />
     <Field label="Lease expiration"><input className="input" type="date" value={form.lease_expires_on} onChange={(event) => setValue('lease_expires_on', event.target.value)} /></Field>
     <Checkbox label="Seller financing may be available" checked={form.seller_financing_available} onChange={(checked) => setValue('seller_financing_available', checked)} />
+    <Checkbox label="FF&E (furniture, fixtures & equipment) is included in the sale" checked={form.ffe_included} onChange={(checked) => setValue('ffe_included', checked)} />
+    <Checkbox label="Inventory is included in the sale" checked={form.inventory_included} onChange={(checked) => setValue('inventory_included', checked)} />
     <Checkbox label="Real estate may be included" checked={form.real_estate_included} onChange={(checked) => setValue('real_estate_included', checked)} />
+    <Checkbox label="Sale includes goodwill (ongoing customer value)" checked={form.goodwill_included} onChange={(checked) => setValue('goodwill_included', checked)} />
+    <Checkbox label="Structured as an asset sale" checked={form.asset_sale} onChange={(checked) => setValue('asset_sale', checked)} />
     <Field label="Financing structure and qualification notes" span><textarea className="textarea" rows={5} value={form.financing_notes} onChange={(event) => setValue('financing_notes', event.target.value)} placeholder="SBA suitability, down payment assumptions, seller note, working capital, collateral, or lender concerns." /></Field>
+    {form.real_estate_included && (
+      <div style={{ gridColumn: '1 / -1', padding: 16, borderRadius: 10, background: '#f8fbff', border: '1px solid #dbe7f3' }}>
+        <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: 14 }}>🏢 Property details (real estate included)</div>
+        <Grid>
+          <Field label="Property address"><input className="input" value={form.property_address} onChange={(event) => setValue('property_address', event.target.value)} placeholder="Street address (kept private)" /></Field>
+          <Field label="Property city / state"><input className="input" value={form.property_city} onChange={(event) => setValue('property_city', event.target.value)} placeholder="City, ST" /></Field>
+          <Field label="Building square footage"><input className="input" inputMode="numeric" value={form.square_footage} onChange={(event) => setValue('square_footage', event.target.value)} placeholder="e.g. 4800" /></Field>
+          <Field label="Land (acres)"><input className="input" inputMode="decimal" value={form.land_acres} onChange={(event) => setValue('land_acres', event.target.value)} placeholder="e.g. 1.25" /></Field>
+          <Field label="Year built"><input className="input" inputMode="numeric" value={form.year_built} onChange={(event) => setValue('year_built', event.target.value)} placeholder="e.g. 1998" /></Field>
+          <MoneyField label="Property value" value={form.property_value} onChange={(value) => setValue('property_value', value)} />
+          <Field label="Property description / notes" span><textarea className="textarea" rows={3} value={form.property_description} onChange={(event) => setValue('property_description', event.target.value)} placeholder="Condition, parking, expansion potential, leaseback options…" /></Field>
+        </Grid>
+      </div>
+    )}
   </Grid></Section>
 }
 
@@ -194,8 +323,8 @@ function TransitionSection({ form, setValue }: SectionProps) {
 function PublicSection({ form, setValue }: SectionProps) {
   return <Section title="Seller-approved public preview" subtitle="Write a useful anonymous opportunity—not a copy of the private record. Never include the legal name, exact address, customer names, or identifying details."><Grid>
     <Field label="Anonymous public title" span><input className="input" value={form.public_title} onChange={(event) => setValue('public_title', event.target.value)} placeholder="Recurring-Revenue Commercial Services Company" /></Field>
-    <Field label="Public summary" span><textarea className="textarea" rows={7} value={form.public_summary} onChange={(event) => setValue('public_summary', event.target.value)} /></Field>
-    <Field label="Public highlights — one per line" span><textarea className="textarea" rows={7} value={form.public_highlights} onChange={(event) => setValue('public_highlights', event.target.value)} placeholder={'High percentage of recurring revenue\nExperienced management team\nSeller transition support available'} /></Field>
+    <Field label="Public summary" span><textarea className="textarea" rows={7} value={form.public_summary} onChange={(event) => setValue('public_summary', event.target.value)} /><GrammarCheckButton kind="public_summary" text={form.public_summary} onApply={(corrected) => setValue('public_summary', corrected)} /></Field>
+    <Field label="Public highlights — one per line" span><textarea className="textarea" rows={7} value={form.public_highlights} onChange={(event) => setValue('public_highlights', event.target.value)} placeholder={'High percentage of recurring revenue\nExperienced management team\nSeller transition support available'} /><GrammarCheckButton kind="highlights" text={form.public_highlights} onApply={(corrected) => setValue('public_highlights', corrected)} /></Field>
     <Field label="Walkthrough / promo video URL (YouTube, Vimeo, or .mp4)" span><input className="input" value={form.video_url} onChange={(event) => setValue('video_url', event.target.value)} placeholder="https://youtube.com/watch?v=… or https://…/walkthrough.mp4" /></Field>
     <Checkbox label="Seller approved public financial figures" checked={form.show_financials} onChange={(checked) => setValue('show_financials', checked)} />
   </Grid><div style={{ marginTop: 22, padding: 20, border: '1px solid #dbe7f3', background: '#f8fbff', borderRadius: 12 }}><div className="section-title">Marketplace preview</div><h3 style={{ fontSize: 22, margin: '9px 0 8px' }}>{form.public_title || 'Your anonymous public title appears here'}</h3><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>{[form.industry, form.sub_industry, form.location_general].filter(Boolean).map((item) => <span key={item} style={{ padding: '5px 9px', borderRadius: 999, background: '#e8f0f8', color: '#31536f', fontSize: 12 }}>{item}</span>)}</div><p style={{ margin: 0, color: '#52606d', lineHeight: 1.65 }}>{form.public_summary || 'The seller-approved summary will help buyers understand the opportunity before requesting confidential access.'}</p></div></Section>

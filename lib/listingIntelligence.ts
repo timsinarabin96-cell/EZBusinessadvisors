@@ -25,7 +25,19 @@ export interface IntelligentListingInput {
   facilities_summary: string
   lease_monthly: string
   lease_expires_on: string
+  lease_square_feet: string
   real_estate_included: boolean
+  ffe_included: boolean
+  inventory_included: boolean
+  goodwill_included: boolean
+  asset_sale: boolean
+  property_address: string
+  property_city: string
+  square_footage: string
+  land_acres: string
+  year_built: string
+  property_value: string
+  property_description: string
   seller_financing_available: boolean
   financing_notes: string
   transition_support: string
@@ -45,7 +57,10 @@ export const EMPTY_INTELLIGENT_LISTING: IntelligentListingInput = {
   asking_price: '', annual_revenue: '', sde: '', ebitda: '', inventory_value: '', ffe_value: '', established_year: '',
   employees_full_time: '', employees_part_time: '', owner_hours_weekly: '', reason_for_sale: '', growth_opportunities: '',
   competitive_advantages: '', customer_concentration: '', facilities_summary: '', lease_monthly: '', lease_expires_on: '',
-  real_estate_included: false, seller_financing_available: false, financing_notes: '', transition_support: '',
+  lease_square_feet: '',
+  real_estate_included: false, ffe_included: false, inventory_included: false, goodwill_included: false, asset_sale: true,
+  property_address: '', property_city: '', square_footage: '', land_acres: '', year_built: '', property_value: '', property_description: '',
+  seller_financing_available: false, financing_notes: '', transition_support: '',
   training_period_weeks: '', public_title: '', public_summary: '', public_highlights: '', video_url: '', confidentiality_level: 'anonymous',
   show_financials: false, seller_approval_reference: '', source: 'broker_manual',
 }
@@ -94,7 +109,19 @@ export function buildListingInsert(input: IntelligentListingInput) {
     facilities_summary: input.facilities_summary.trim() || null,
     lease_monthly: numberOrNull(input.lease_monthly),
     lease_expires_on: input.lease_expires_on || null,
+    lease_square_feet: integerOrNull(input.lease_square_feet),
     real_estate_included: input.real_estate_included,
+    ffe_included: input.ffe_included,
+    inventory_included: input.inventory_included,
+    goodwill_included: input.goodwill_included,
+    asset_sale: input.asset_sale,
+    property_address: input.property_address.trim() || null,
+    property_city: input.property_city.trim() || null,
+    square_footage: integerOrNull(input.square_footage),
+    land_acres: numberOrNull(input.land_acres),
+    year_built: integerOrNull(input.year_built),
+    property_value: numberOrNull(input.property_value),
+    property_description: input.property_description.trim() || null,
     seller_financing_available: input.seller_financing_available,
     financing_notes: input.financing_notes.trim() || null,
     transition_support: input.transition_support.trim() || null,
