@@ -1,6 +1,14 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
 // Careers — recruiting engine page: why join, open roles, and how to apply.
+
+export const metadata: Metadata = {
+  title: 'Careers — Join Our Brokerage Team | Concord Deal Platform',
+  description: 'Build a career in business brokerage: open roles for business brokers, intermediaries, and support — with training, certification, and commission-based growth.',
+  alternates: { canonical: '/marketplace/careers' },
+  openGraph: { title: 'Careers — Concord Deal Platform', description: 'Join a brokerage that trains, certifies, and rewards its brokers.', url: '/marketplace/careers', type: 'website' },
+}
 
 const roles = [
   {

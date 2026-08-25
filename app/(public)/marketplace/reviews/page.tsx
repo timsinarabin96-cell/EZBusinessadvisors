@@ -1,6 +1,14 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 
 // Reviews & Testimonials — social proof page for buyers and sellers.
+
+export const metadata: Metadata = {
+  title: 'Reviews & Testimonials — What Buyers and Sellers Say | Concord Deal Platform',
+  description: 'Real feedback from business buyers and sellers: confidential sales, accurate valuations, and deals that close. See why owners trust Concord.',
+  alternates: { canonical: '/marketplace/reviews' },
+  openGraph: { title: 'Reviews & Testimonials — Concord Deal Platform', description: 'Real feedback from buyers and sellers who closed deals with us.', url: '/marketplace/reviews', type: 'website' },
+}
 
 const reviews = [
   {

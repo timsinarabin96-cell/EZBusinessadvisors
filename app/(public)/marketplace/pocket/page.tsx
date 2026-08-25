@@ -1,8 +1,16 @@
+import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import PocketListingsClient from '@/components/public/PocketListingsClient'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = {
+  title: 'Pocket Listings — Off-Market Businesses for Sale | Concord Deal Platform',
+  description: 'Confidential, off-market business opportunities not listed publicly. Request access through a licensed broker — identity and financials stay private.',
+  alternates: { canonical: '/marketplace/pocket' },
+  openGraph: { title: 'Pocket Listings — Concord Deal Platform', description: 'Off-market businesses for sale, available by request only.', url: '/marketplace/pocket', type: 'website' },
+}
 
 /**
  * /marketplace/pocket — off-market / pocket listings.
