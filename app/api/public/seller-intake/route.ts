@@ -11,12 +11,14 @@ const AGENCY_ID = process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-
 /**
  * POST /api/public/seller-intake
  * body: { name, email, phone?, business_name?, industry?, revenue_range?,
- *         location_general?, asking_price?, message?, agencySlug? }
+ *         location_general?, asking_price?, timeframe?, employees?, message?,
+ *         agencySlug? }
  *
- * Sell-page free path. Records the seller lead WITH the receiving agency
- * (the old client-side capturePublicLead left agency_id null, so brokers
- * never saw the lead), then alerts brokers: in-app notification + email.
- * Never throws — a lead write failure returns a clean error, never a 500 HTML.
+ * Seller-facing intake portal path. Records the seller lead WITH the receiving
+ * agency (the old client-side capturePublicLead left agency_id null, so brokers
+ * never saw the lead), tags it as seller self-service, then alerts brokers:
+ * in-app notification + email. Never throws — a lead write failure returns a
+ * clean error, never a 500 HTML.
  */
 export async function POST(req: NextRequest) {
   const svc = createServerClient()
@@ -37,6 +39,8 @@ export async function POST(req: NextRequest) {
   const revenueRange = String(body?.revenue_range || '').trim()
   const location = String(body?.location_general || '').trim()
   const asking = String(body?.asking_price || '').trim()
+  const timeframe = String(body?.timeframe || '').trim()
+  const employees = String(body?.employees || '').trim()
   const message = String(body?.message || '').trim()
   const agencySlug = String(body?.agencySlug || '').trim()
 
@@ -59,7 +63,9 @@ export async function POST(req: NextRequest) {
     industry: industry || null,
     revenue_range: revenueRange || null,
     location_general: location || null,
-    message: [asking ? `Thinking of asking: ${asking}` : '', message].filter(Boolean).join(' | ') || 'Sell-page intake.',
+    timeframe: timeframe || null,
+    message: [asking ? `Thinking of asking: ${asking}` : '', employees ? `Employees: ${employees}` : '', message].filter(Boolean).join(' | ') || 'Seller intake portal submission.',
+    source: 'seller_self_service',
     status: 'new',
   })
   if (leadErr) {
@@ -70,7 +76,7 @@ export async function POST(req: NextRequest) {
   await createNotification({
     agency_id: agencyId,
     title: `New seller inquiry: ${businessName || name}`,
-    body: `${name} (${email})${phone ? ` · ${phone}` : ''}${industry ? ` · ${industry}` : ''} — wants to sell${asking ? `, thinking ${asking}` : ''}.`,
+    body: `${name} (${email})${phone ? ` · ${phone}` : ''}${industry ? ` · ${industry}` : ''}${location ? ` · ${location}` : ''} — wants to sell${asking ? `, thinking ${asking}` : ''}${timeframe ? ` · timeline: ${timeframe}` : ''}.`,
     kind: 'review',
     link: '/leads',
   }).catch(() => {})
@@ -88,6 +94,9 @@ export async function POST(req: NextRequest) {
       revenueRange ? `Revenue: ${esc(revenueRange)}` : '',
       location ? `Location: ${esc(location)}` : '',
       asking ? `Thinking of asking: ${esc(asking)}` : '',
+      timeframe ? `Timeline: ${esc(timeframe)}` : '',
+      employees ? `Employees: ${esc(employees)}` : '',
+      'Source: Seller intake portal (self-service)',
     ].filter(Boolean).join('<br/>'),
   })
 

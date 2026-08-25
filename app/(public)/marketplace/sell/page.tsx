@@ -18,7 +18,7 @@ export default function SellPage() {
 
 function SellContent() {
   const toast = useToast()
-  const [form, setForm] = useState({ name: '', email: '', phone: '', businessName: '', annualRevenue: '', askingPrice: '', message: '' })
+  const [form, setForm] = useState({ name: '', email: '', phone: '', businessName: '', industry: '', location: '', timeframe: '', employees: '', annualRevenue: '', askingPrice: '', message: '' })
   const [planId, setPlanId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
@@ -54,7 +54,10 @@ function SellContent() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: form.name, email: form.email, phone: form.phone || undefined,
-        business_name: form.businessName, revenue_range: form.annualRevenue,
+        business_name: form.businessName, industry: form.industry || undefined,
+        location_general: form.location || undefined, timeframe: form.timeframe || undefined,
+        employees: form.employees || undefined,
+        revenue_range: form.annualRevenue,
         asking_price: form.askingPrice,
         message: form.message || undefined,
       }),
@@ -130,9 +133,17 @@ function SellContent() {
           <Field label="Phone"><input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Business Name"><input className="input" value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} /></Field>
-            <Field label="Annual Revenue"><input className="input" inputMode="decimal" value={form.annualRevenue} onChange={(e) => setForm({ ...form, annualRevenue: formatWithCommas(e.target.value) })} placeholder="e.g. 500,000" /></Field>
+            <Field label="Industry"><select className="select" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}><option value="">Select industry…</option>{['Home Care', 'Restaurant', 'Retail', 'Auto Repair', 'Cleaning', 'Landscaping', 'Construction', 'Manufacturing', 'Distribution', 'Healthcare', 'Salon / Barbershop', 'Laundromat', 'Car Wash', 'Self Storage', 'Trucking / Logistics', 'Pet Services', 'Childcare', 'Gas Station / C-Store', 'Fitness / Gym', 'E-commerce', 'Software / IT', 'Staffing', 'Insurance', 'Other'].map((i) => <option key={i} value={i}>{i}</option>)}</select></Field>
           </div>
-          <Field label="Thinking of Asking"><input className="input" inputMode="decimal" value={form.askingPrice} onChange={(e) => setForm({ ...form, askingPrice: formatWithCommas(e.target.value) })} placeholder="e.g. 1,200,000" /></Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Location (city / region)"><input className="input" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. Harrisburg, PA" /></Field>
+            <Field label="Timeline to sell"><select className="select" value={form.timeframe} onChange={(e) => setForm({ ...form, timeframe: e.target.value })}><option value="">Select…</option><option value="ASAP">ASAP</option><option value="3-6 months">3–6 months</option><option value="6-12 months">6–12 months</option><option value="1-2 years">1–2 years</option><option value="Not sure yet">Not sure yet</option></select></Field>
+          </div>
+          <Field label="Employees"><input className="input" inputMode="numeric" value={form.employees} onChange={(e) => setForm({ ...form, employees: e.target.value })} placeholder="Full-time count, e.g. 12" /></Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Annual Revenue"><input className="input" inputMode="decimal" value={form.annualRevenue} onChange={(e) => setForm({ ...form, annualRevenue: formatWithCommas(e.target.value) })} placeholder="e.g. 500,000" /></Field>
+            <Field label="Thinking of Asking"><input className="input" inputMode="decimal" value={form.askingPrice} onChange={(e) => setForm({ ...form, askingPrice: formatWithCommas(e.target.value) })} placeholder="e.g. 1,200,000" /></Field>
+          </div>
           <Field label="Anything else?"><textarea className="textarea" rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} /></Field>
           <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: 6 }}>
             {submitting ? 'Sending...' : 'Request Confidential Valuation'}

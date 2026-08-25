@@ -12,6 +12,9 @@ import { getStoredAccessToken, authHeaders } from '@/lib/authToken'
 import GrammarCheckButton from './GrammarCheckButton'
 import SuggestionInput from './SuggestionInput'
 import ListingIntakeModal from './ListingIntakeModal'
+import DuplicateListingModal from './DuplicateListingModal'
+import { checkListingDuplicates } from '@/lib/listingDedup'
+import type { ListingMatch } from '@/lib/listingDedup'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import { pricePosition } from '@/lib/listingMarketContextCore.ts'
 import {
@@ -39,6 +42,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
   const [busy, setBusy] = useState(false)
   const [matched, setMatched] = useState<UnifiedLead[] | null>(null)
   const [showIntake, setShowIntake] = useState(false)
+  const [dupes, setDupes] = useState<ListingMatch[] | null>(null)
   const [createdListingId, setCreatedListingId] = useState<string | null>(editListingId || null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -161,6 +165,30 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
       return
     }
 
+    // Duplicate-listing guard: for a NEW listing, check for a likely twin
+    // before creating — the broker can open it or continue anyway.
+    if (!createdListingId) {
+      try {
+        const found = await checkListingDuplicates({
+          business_name: form.business_name.trim(),
+          industry: form.industry || null,
+          location_general: form.location_general || null,
+          asking_price: form.asking_price ? Number(form.asking_price.replace(/[$,]/g, '')) : null,
+        })
+        const strong = found.filter((m) => m.level === 'high' || (m.level === 'medium' && m.score >= 45))
+        if (strong.length) {
+          setDupes(strong)
+          return // wait for the modal decision
+        }
+      } catch {
+        // dedup is best-effort — never block creation on it
+      }
+    }
+
+    await doCreate()
+  }
+
+  const doCreate = async () => {
     setBusy(true)
     try {
       const insert = { ...buildListingInsert(form), ai_readiness_score: readiness.score }
@@ -269,6 +297,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
 
       {matched && <MatchedBuyersModal matches={matched} listingIndustry={form.industry} onDone={finishMatching} />}
       {showIntake && <ListingIntakeModal onApply={applyIntakeDraft} onClose={() => setShowIntake(false)} />}
+      {dupes && <DuplicateListingModal matches={dupes} onContinue={() => { setDupes(null); doCreate() }} onClose={() => setDupes(null)} />}
     </form>
   )
 }
