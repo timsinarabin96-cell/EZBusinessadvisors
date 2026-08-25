@@ -14,6 +14,7 @@ import { createClient } from '@supabase/supabase-js'
 import { calculateListingReadiness, type IntelligentListingInput } from '@/lib/listingIntelligence'
 import { runWatchlistMatching } from '@/lib/watchlist'
 import { createNotification, notifyMatch } from '@/lib/notifications'
+import { fireDealRadar } from '@/lib/dealRadar'
 import { sendEmail } from '@/lib/email'
 import { recordSuccessFee } from '@/lib/successFee'
 import { matchPublicSubscriptions } from '@/lib/notifySubscriptions'
@@ -94,6 +95,8 @@ export async function getListingReadiness(listingId: string): Promise<{ ok: bool
 
 /** Internal: fire the full publish blast (no gate — call publishListing instead). */
 async function firePublishBlast(listingId: string, agencyId: string): Promise<void> {
+  // Deal Radar: match active buyer profiles and alert the top fits by email.
+  try { await fireDealRadar(listingId) } catch { /* best-effort */ }
   try { await runWatchlistMatching(listingId) } catch { /* best-effort */ }
   try {
     const { data: listing } = await svc!.from('listings').select('*').eq('id', listingId).maybeSingle()
