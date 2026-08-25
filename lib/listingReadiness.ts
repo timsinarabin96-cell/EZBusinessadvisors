@@ -23,7 +23,7 @@ export async function fetchListingReadiness(listingId: string): Promise<Readines
 
   try {
     const [listingRes, wfRes, docsRes, finRes, recastRes, bovRes, cimRes, bliRes, sbaRes] = await Promise.all([
-      supabase.from('listings').select('business_name, headline, description, industry, location_general, asking_price, sde, ebitda, annual_revenue, status, cover_image_url').eq('id', listingId).maybeSingle(),
+      supabase.from('listings').select('business_name, headline, description, industry, location_general, asking_price, sde, ebitda, annual_revenue, status, featured_image_url, primary_image_url, image_urls').eq('id', listingId).maybeSingle(),
       supabase.from('listing_workflows').select('current_step, completed_steps').eq('listing_id', listingId).maybeSingle(),
       supabase.from('listing_documents').select('document_type, category, body_text').eq('listing_id', listingId),
       supabase.from('listing_financials').select('sde, annual_revenue').eq('listing_id', listingId).maybeSingle(),
@@ -57,7 +57,7 @@ export async function fetchListingReadiness(listingId: string): Promise<Readines
         ebitda: (l?.ebitda as number | null) ?? null,
         annual_revenue: (l?.annual_revenue as number | null) ?? null,
         status: (l?.status as string) || null,
-        has_cover_image: Boolean(l?.cover_image_url),
+        has_cover_image: Boolean(l?.featured_image_url || l?.primary_image_url || (Array.isArray(l?.image_urls) && (l?.image_urls as string[]).length > 0)),
       },
       workflow: wf
         ? {
@@ -67,9 +67,9 @@ export async function fetchListingReadiness(listingId: string): Promise<Readines
         : null,
       documents: { has_listing_agreement: hasAgreement },
       financials: {
-        exists: Boolean(fin),
-        has_sde: Boolean(fin?.sde),
-        has_revenue: Boolean(fin?.annual_revenue),
+        exists: Boolean(fin) || Boolean(l?.sde || l?.ebitda || l?.annual_revenue || l?.asking_price),
+        has_sde: Boolean(fin?.sde) || Boolean(l?.sde),
+        has_revenue: Boolean(fin?.annual_revenue) || Boolean(l?.annual_revenue),
       },
       recast: { exists: Boolean(recastRes.data) },
       bov: {
