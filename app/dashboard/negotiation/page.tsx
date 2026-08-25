@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface OfferOpt {
   id: string
@@ -60,7 +61,7 @@ function NegotiationAssistant() {
   const [preview, setPreview] = useState<DraftRow | null>(null)
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [offerRes, draftRes] = await Promise.all([
       fetch(`/api/offers?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/intelligence/negotiation?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) =>
@@ -93,7 +94,7 @@ function NegotiationAssistant() {
   const generate = async () => {
     if (!selected) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/intelligence/negotiation', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

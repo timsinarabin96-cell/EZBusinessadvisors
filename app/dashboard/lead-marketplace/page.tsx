@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface MarketLead {
   id: string
@@ -68,7 +69,7 @@ function LeadMarketplaceApp() {
   const [funds, setFunds] = useState('')
   const [priceDollars, setPriceDollars] = useState('')
 
-  const token = () => localStorage.getItem('sb-access-token') || ''
+  const token = () => getStoredAccessToken()
 
   const load = useCallback(async (agency: string) => {
     const [b, m, p] = await Promise.all([

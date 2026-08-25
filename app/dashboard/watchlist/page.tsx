@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Search {
   id: string
@@ -48,7 +49,7 @@ export default function WatchlistPage() {
   const [error, setError] = useState('')
 
   const load = async () => {
-    const res = await fetch('/api/marketplace/watchlist', { headers: { authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}` } })
+    const res = await fetch('/api/marketplace/watchlist', { headers: { authorization: `Bearer ${getStoredAccessToken()}` } })
     if (!res.ok) {
       setError('Could not load watchlist')
       setLoading(false)
@@ -66,7 +67,7 @@ export default function WatchlistPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const authHeaders = () => ({ authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}`, 'content-type': 'application/json' })
+  const authHeaders = () => ({ authorization: `Bearer ${getStoredAccessToken()}`, 'content-type': 'application/json' })
 
   const createSearch = async () => {
     setSaving(true)

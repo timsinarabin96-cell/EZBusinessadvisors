@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface ListingOpt {
   id: string
@@ -60,7 +61,7 @@ function ValuationEngine() {
   }, [])
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [listingRes, estRes] = await Promise.all([
       fetch(`/api/listings/options?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/intelligence/valuation?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) =>
@@ -88,7 +89,7 @@ function ValuationEngine() {
   const estimate = async () => {
     if (!selected) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/intelligence/valuation', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

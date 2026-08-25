@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Referral {
   id: string
@@ -57,7 +58,7 @@ function ReferralsApp() {
   const [commissionPct, setCommissionPct] = useState('')
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/referrals?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setReferrals(data.referrals || [])
@@ -75,7 +76,7 @@ function ReferralsApp() {
   }, [])
 
   const authHeaders = () => ({
-    authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}`,
+    authorization: `Bearer ${getStoredAccessToken()}`,
     'content-type': 'application/json',
   })
 

@@ -12,6 +12,7 @@ import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
 import LeadFormModal from './LeadFormModal'
 import BuyerProfilePopup from './BuyerProfilePopup'
 import UnifiedLeadTimeline from './UnifiedLeadTimeline'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 type KindFilter = 'all' | 'buyer' | 'seller'
 type StatusFilter = LeadStatus | 'all'
@@ -63,7 +64,7 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
     setActivities(await fetchLeadActivities(lead.id))
     // Pull the conversation log (calls/emails/SMS) for this lead.
     try {
-      const token = localStorage.getItem('sb-access-token') || ''
+      const token = getStoredAccessToken()
       const param = lead.kind === 'buyer' ? 'buyerLeadId' : 'sellerLeadId'
       const res = await fetch(`/api/communications?${param}=${lead.id}`, { headers: { authorization: `Bearer ${token}` } })
       const j = await res.json().catch(() => ({}))

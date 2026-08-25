@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface ReportOrder {
   id: string
@@ -57,7 +58,7 @@ function ValuationReportsApp() {
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [listingRes, reportRes] = await Promise.all([
       fetch(`/api/listings/options?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/valuation-reports?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
@@ -80,7 +81,7 @@ function ValuationReportsApp() {
   const order = async () => {
     if (!listingId) { toast('Pick a listing first', 'error'); return }
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/valuation-reports', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

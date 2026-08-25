@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface ExpiryRecord {
   id: string
@@ -40,7 +41,7 @@ function ExpiryTracker() {
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [recRes, optRes] = await Promise.all([
       fetch(`/api/listings/expiry?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/listings/options?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
@@ -62,7 +63,7 @@ function ExpiryTracker() {
 
   const act = async (action: string, extra: Record<string, unknown> = {}) => {
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/listings/expiry', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -84,7 +85,7 @@ function ExpiryTracker() {
 
   const proposeRenewals = async () => {
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/renewals', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

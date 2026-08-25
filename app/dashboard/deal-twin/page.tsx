@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Snapshot {
   id: string
@@ -52,14 +53,14 @@ function DealTwin() {
   const [busy, setBusy] = useState(false)
 
   const loadListings = useCallback(async (agencyId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/listings/options?agencyId=${agencyId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setListings(data.listings || [])
   }, [])
 
   const loadSnapshot = useCallback(async (listingId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/intelligence/deal-twin?listingId=${listingId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setSnapshot(data.snapshot || null)
@@ -125,7 +126,7 @@ function DealTwin() {
   const recompute = async () => {
     if (!selected) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/intelligence/deal-twin', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

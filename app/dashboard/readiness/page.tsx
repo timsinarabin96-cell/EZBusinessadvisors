@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Snapshot {
   id: string
@@ -72,14 +73,14 @@ function SellerReadiness() {
   const [busy, setBusy] = useState(false)
 
   const loadListings = useCallback(async (agencyId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/listings/options?agencyId=${agencyId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setListings(data.listings || [])
   }, [])
 
   const loadSnapshot = useCallback(async (listingId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/intelligence/readiness?listingId=${listingId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setSnapshot(data.snapshot || null)
@@ -87,14 +88,14 @@ function SellerReadiness() {
   }, [])
 
   const loadFunnel = useCallback(async (agencyId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/intelligence/readiness?agencyId=${agencyId}&action=funnel`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setFunnel(data.funnel || null)
   }, [])
 
   const loadSummary = useCallback(async (listingId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/intelligence/readiness?listingId=${listingId}&action=blocking`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     if (data.ok && data.summary) setSummary(data.summary)
@@ -122,7 +123,7 @@ function SellerReadiness() {
   const compute = async () => {
     if (!selected) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/intelligence/readiness', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

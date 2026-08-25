@@ -6,6 +6,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { renderLoiHtml } from '@/lib/loiRender'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface OfferOpt { id: string; label: string }
 interface LoiRow {
@@ -45,7 +46,7 @@ function LoiLab() {
   const [preview, setPreview] = useState<string | null>(null)
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [loiRes, offerRes] = await Promise.all([
       fetch(`/api/loi?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/offers?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
@@ -74,7 +75,7 @@ function LoiLab() {
   const generate = async () => {
     if (!selected) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/loi', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -101,7 +102,7 @@ function LoiLab() {
 
   const setStatus = async (loi: LoiRow, status: string) => {
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/loi', {
       method: 'PATCH',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

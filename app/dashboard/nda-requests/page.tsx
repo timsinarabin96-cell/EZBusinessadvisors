@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface NdaRequest {
   id: string
@@ -47,7 +48,7 @@ function NdaRequests() {
 
   const load = useCallback(async (agency: string, status: string) => {
     setLoading(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/data-rooms/access-request?agencyId=${agency}&status=${status}`, {
       headers: { authorization: `Bearer ${token}` },
     })
@@ -73,7 +74,7 @@ function NdaRequests() {
 
   const review = async (requestId: string, action: 'approve' | 'reject') => {
     setBusy(requestId)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/data-rooms/access-request/review', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

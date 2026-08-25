@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Reminder {
   id: string
@@ -91,7 +92,7 @@ function Reminders() {
 
   const load = useCallback(async (agency: string, status: string) => {
     setLoading(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [listRes, countRes, optRes] = await Promise.all([
       fetch(`/api/reminders?agencyId=${agency}&status=${status}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/reminders?agencyId=${agency}&counts=1`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
@@ -127,7 +128,7 @@ function Reminders() {
   const addReminder = async () => {
     if (!title.trim()) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const quick: Record<string, string> = {}
     if (entityType === 'listing' && entityId) quick.listingId = entityId
     if (entityType === 'buyer' && entityId) quick.buyerLeadId = entityId
@@ -151,7 +152,7 @@ function Reminders() {
   }
 
   const setStatus = async (id: string, status: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     await fetch('/api/reminders', {
       method: 'PATCH',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -161,7 +162,7 @@ function Reminders() {
   }
 
   const snooze = async (id: string, minutes: number) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/reminders', {
       method: 'PATCH',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -174,7 +175,7 @@ function Reminders() {
   }
 
   const remove = async (id: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     await fetch('/api/reminders', {
       method: 'DELETE',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

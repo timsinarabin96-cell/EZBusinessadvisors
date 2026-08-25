@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Comm {
   id: string
@@ -74,7 +75,7 @@ function Communications() {
 
   const load = useCallback(async (agency: string) => {
     setLoading(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [commRes, staleRes, optRes] = await Promise.all([
       fetch(`/api/communications?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/stale?agencyId=${agency}&days=14`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
@@ -107,7 +108,7 @@ function Communications() {
       return
     }
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const body: Record<string, unknown> = {
       channel, direction, outcome, summary: summary.trim() || null,
       auto_reschedule: autoReschedule,
@@ -134,7 +135,7 @@ function Communications() {
   }
 
   const remindStale = async (item: StaleItem) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const quick: Record<string, string> = { [item.entity_type === 'listing' ? 'listingId' : item.entity_type === 'buyer' ? 'buyerLeadId' : item.entity_type === 'seller' ? 'sellerLeadId' : 'dealId']: item.id }
     const res = await fetch('/api/reminders', {
       method: 'POST',

@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface BlogPost {
   slug: string
@@ -23,7 +24,7 @@ interface BlogPost {
   updated_at: string
 }
 
-const token = () => localStorage.getItem('sb-access-token') || ''
+const token = () => getStoredAccessToken()
 const authHeaders = () => ({ authorization: `Bearer ${token()}`, 'content-type': 'application/json' })
 
 const fmtDate = (iso: string | null | undefined) =>

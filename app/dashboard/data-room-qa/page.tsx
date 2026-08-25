@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface DataRoomOpt {
   id: string
@@ -76,7 +77,7 @@ function DataRoomQa() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
 
-  const token = () => localStorage.getItem('sb-access-token') || ''
+  const token = () => getStoredAccessToken()
   const authHeaders = () => ({ authorization: `Bearer ${token()}`, 'content-type': 'application/json' })
 
   const loadRooms = useCallback(async (agency: string) => {

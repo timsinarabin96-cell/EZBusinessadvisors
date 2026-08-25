@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { diagnosePipeline, BAND_LABELS, BAND_COLORS, type DealDiagnosis, type DealBand } from '@/lib/dealDoctor'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 const BAND_ORDER: DealBand[] = ['hot', 'healthy', 'at_risk', 'stale']
 
@@ -38,7 +39,7 @@ function DoctorBody() {
   const avg = diagnoses.length ? Math.round(diagnoses.reduce((s, d) => s + d.score, 0) / diagnoses.length) : 0
 
   const createFollowUp = async (d: (typeof diagnoses)[number]) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/reminders', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

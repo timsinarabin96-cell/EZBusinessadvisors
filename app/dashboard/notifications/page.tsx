@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface NotificationItem {
   id: string
@@ -51,7 +52,7 @@ function Notifications() {
   const load = useCallback(async () => {
     const ctx = await getAgencyContext()
     if (!ctx) { setLoading(false); return }
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/notifications?agencyId=${ctx.agencyId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setItems(data.items || [])
@@ -66,7 +67,7 @@ function Notifications() {
   const markAllRead = async () => {
     const ctx = await getAgencyContext()
     if (!ctx) return
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     await fetch('/api/notifications', { method: 'PATCH', headers: { authorization: `Bearer ${token}` } })
     await load()
   }
@@ -76,7 +77,7 @@ function Notifications() {
     const ctx = await getAgencyContext()
     if (!ctx) return
     setBriefBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     try {
       const res = await fetch('/api/captains-brief', {
         method: 'POST',
@@ -98,7 +99,7 @@ function Notifications() {
     const ctx = await getAgencyContext()
     if (!ctx) return
     setBriefBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     try {
       const res = await fetch('/api/daily-brief', {
         method: 'POST',

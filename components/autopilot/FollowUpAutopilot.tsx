@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface FollowUpItem {
   kind: 'buyer' | 'seller'
@@ -38,7 +39,7 @@ export default function FollowUpAutopilot() {
     const ctx = await getAgencyContext()
     if (!ctx) { setLoading(false); return }
     try {
-      const token = localStorage.getItem('sb-access-token') || ''
+      const token = getStoredAccessToken()
       const res = await fetch(`/api/autopilot/followups?agencyId=${ctx.agencyId}&days=3`, { headers: { authorization: `Bearer ${token}` } })
       const j = await res.json().catch(() => ({}))
       setItems(j.items || [])
@@ -53,7 +54,7 @@ export default function FollowUpAutopilot() {
     if (!item.phone) { toast('No phone number on file', 'error'); return }
     setSending(item.lead_id)
     try {
-      const token = localStorage.getItem('sb-access-token') || ''
+      const token = getStoredAccessToken()
       const res = await fetch('/api/autopilot/followups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },

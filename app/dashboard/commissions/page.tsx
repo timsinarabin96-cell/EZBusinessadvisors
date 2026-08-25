@@ -6,6 +6,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import MoneyInput from '@/components/ui/MoneyInput'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Commission {
   id: string
@@ -58,7 +59,7 @@ function CommissionsApp() {
   const [notes, setNotes] = useState('')
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/commissions?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setCommissions(data.commissions || [])
@@ -76,7 +77,7 @@ function CommissionsApp() {
   }, [])
 
   const authHeaders = () => ({
-    authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}`,
+    authorization: `Bearer ${getStoredAccessToken()}`,
     'content-type': 'application/json',
   })
 
@@ -128,7 +129,7 @@ function CommissionsApp() {
   }
 
   const exportCsv = async () => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/commissions?agencyId=${agencyId}&format=csv`, { headers: { authorization: `Bearer ${token}` } })
     if (!res.ok) {
       toast('Could not export CSV', 'error')

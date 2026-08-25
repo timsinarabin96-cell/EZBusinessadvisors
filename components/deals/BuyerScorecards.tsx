@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 // =============================================================================
 // BuyerScorecards — who to call first, right in the deal drawer.
@@ -41,7 +42,7 @@ export default function BuyerScorecards({ listingId }: { listingId: string | nul
     let mounted = true
     setLoading(true)
     setError('')
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     fetch(`/api/deals/buyer-scorecards?listingId=${encodeURIComponent(listingId)}`, {
       headers: { authorization: `Bearer ${token}` },
     })

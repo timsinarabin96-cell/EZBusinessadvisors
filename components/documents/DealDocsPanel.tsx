@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { fetchTemplates, fetchDocuments, fetchSignatures, createDocument, type DocumentTemplate, type FilledDocument, type FilledParty, type DocumentSignature } from '@/lib/documentBuilder'
 import { fetchListing, type Listing } from '@/lib/listings'
 import SignaturePad from './SignaturePad'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 // =============================================================================
 // Deal Docs & eSign — per-listing legal pack hub (like DocuSign).
@@ -150,7 +151,7 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
     try {
       const { supabase } = await import('@/lib/supabase/client')
       const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token || localStorage.getItem('sb-access-token') || ''
+      const token = session?.access_token || getStoredAccessToken()
       const res = await fetch(`/api/documents/bundle?listingId=${encodeURIComponent(listingId)}&download=1`, {
         headers: { authorization: `Bearer ${token}` },
       })

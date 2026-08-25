@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 // =============================================================================
 // ListingBuyerMatch — the Part D #3 linkage: Visitor Intent → buyer leads.
@@ -29,7 +30,7 @@ export default function ListingBuyerMatch({ listingId, businessName }: { listing
     setOpen(true)
     setLoading(true)
     setError('')
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     try {
       const res = await fetch(`/api/deals/buyer-scorecards?listingId=${encodeURIComponent(listingId)}`, {
         headers: { authorization: `Bearer ${token}` },

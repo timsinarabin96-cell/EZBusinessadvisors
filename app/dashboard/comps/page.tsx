@@ -6,6 +6,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import MoneyInput from '@/components/ui/MoneyInput'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Comp {
   id: string
@@ -55,7 +56,7 @@ function CompsDb() {
   })
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [compRes, multRes] = await Promise.all([
       fetch(`/api/comps?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/comps?agencyId=${agency}&summary=multiples`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
@@ -78,7 +79,7 @@ function CompsDb() {
   const submit = async () => {
     if (!form.business_name.trim()) return toast('Business name is required', 'error')
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/comps', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

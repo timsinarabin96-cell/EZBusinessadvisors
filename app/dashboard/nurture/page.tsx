@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface NurtureStep {
   id: string
@@ -61,7 +62,7 @@ function NurtureApp() {
   const [leadType, setLeadType] = useState('buyer')
 
   const load = useCallback(async (agency: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/nurture?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setSequences(data.sequences || [])
@@ -81,7 +82,7 @@ function NurtureApp() {
   }, [])
 
   const authHeaders = () => ({
-    authorization: `Bearer ${localStorage.getItem('sb-access-token') || ''}`,
+    authorization: `Bearer ${getStoredAccessToken()}`,
     'content-type': 'application/json',
   })
 

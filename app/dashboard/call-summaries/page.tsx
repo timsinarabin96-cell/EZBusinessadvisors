@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Summary {
   id: string
@@ -46,7 +47,7 @@ function CallSummaries() {
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async (agencyId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/intelligence/call-summaries?agencyId=${agencyId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setSummaries(data.summaries || [])
@@ -63,7 +64,7 @@ function CallSummaries() {
   }, [])
 
   const makeReminder = async (item: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/reminders', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -81,7 +82,7 @@ function CallSummaries() {
   const generate = async () => {
     if (!callId.trim()) return toast('Enter a call session ID', 'error')
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/intelligence/call-summaries', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

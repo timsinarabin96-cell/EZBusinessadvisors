@@ -10,6 +10,7 @@ import {
   type DealProfessional, type ProfessionalType,
 } from '@/lib/professionals'
 import { createInviteToken } from '@/lib/invites'
+import { getStoredAccessToken } from '@/lib/authToken'
 import ReferralPanel from '@/components/listing/ReferralPanel'
 
 const TYPE_EMOJI: Record<ProfessionalType, string> = {
@@ -55,7 +56,7 @@ export default function ProfessionalsManagerPage() {
       video_url: '',
     })
     // Load the intro video (DDL-free, stored in platform_settings).
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     fetch(`/api/professionals/video?id=${encodeURIComponent(p.id)}`, { headers: { authorization: `Bearer ${token}` } })
       .then((r) => r.json().catch(() => ({})))
       .then((d) => { if (d.ok && d.url) setForm((f) => ({ ...f, video_url: d.url })) })
@@ -93,7 +94,7 @@ export default function ProfessionalsManagerPage() {
     // Save the intro video after the record exists (best-effort).
     const savedId = editing ? editing.id : (res as any).id
     if (res.ok && savedId) {
-      const token = localStorage.getItem('sb-access-token') || ''
+      const token = getStoredAccessToken()
       await fetch('/api/professionals/video', {
         method: 'POST',
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

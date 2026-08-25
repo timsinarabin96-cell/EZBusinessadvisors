@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Template {
   id: string
@@ -42,7 +43,7 @@ function EmailTemplates() {
 
   const load = useCallback(async (agency: string) => {
     setLoading(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/email-templates?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setTemplates(data.templates || [])
@@ -60,7 +61,7 @@ function EmailTemplates() {
   }, [])
 
   const seed = async () => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     await fetch('/api/email-templates', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -84,7 +85,7 @@ function EmailTemplates() {
       return
     }
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/email-templates', {
       method: selected ? 'PATCH' : 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -100,7 +101,7 @@ function EmailTemplates() {
 
   const remove = async (t: Template) => {
     if (t.is_system) return toast('System templates cannot be deleted', 'error')
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/email-templates', {
       method: 'DELETE',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

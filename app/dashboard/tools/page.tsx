@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 export default function ToolsPage() {
   return (
@@ -37,7 +38,7 @@ function CsvTools() {
   }, [])
 
   const exportCsv = async (type: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/tools/csv?agencyId=${agencyId}&type=${type}`, { headers: { authorization: `Bearer ${token}` } })
     if (!res.ok) return toast('Export failed', 'error')
     const text = await res.text()
@@ -55,7 +56,7 @@ function CsvTools() {
     if (!csvText.trim()) return toast('Paste CSV content first', 'error')
     setBusy(true)
     setResult(null)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/tools/csv', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

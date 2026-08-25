@@ -6,6 +6,7 @@ import { LoadingState } from '@/components/ui'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Milestone {
   id: string
@@ -66,7 +67,7 @@ function ClosingTracker() {
   const [escrowForm, setEscrowForm] = useState({ company: '', ref: '', amount: '' })
 
   const loadListings = useCallback(async (agencyId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const [optRes, trackedRes] = await Promise.all([
       fetch(`/api/listings/options?agencyId=${agencyId}`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
       fetch(`/api/closing?agencyId=${agencyId}&tracked=1`, { headers: { authorization: `Bearer ${token}` } }).then((r) => r.json().catch(() => ({}))),
@@ -81,7 +82,7 @@ function ClosingTracker() {
   }, [])
 
   const loadTracker = useCallback(async (listingId: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/closing?listingId=${listingId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setMilestones(data.milestones || [])
@@ -102,7 +103,7 @@ function ClosingTracker() {
   const selectListing = async (id: string) => {
     setSelected(id)
     setLoading(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     // Seed the standard checklist if this listing has none yet.
     await fetch('/api/closing', {
       method: 'POST',
@@ -116,7 +117,7 @@ function ClosingTracker() {
   const addMilestone = async () => {
     if (!selected || !newTitle.trim()) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/closing', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -132,7 +133,7 @@ function ClosingTracker() {
   }
 
   const toggleMilestone = async (m: Milestone) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     await fetch('/api/closing', {
       method: 'PATCH',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -142,7 +143,7 @@ function ClosingTracker() {
   }
 
   const deleteMilestone = async (id: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     await fetch('/api/closing', {
       method: 'DELETE',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -154,7 +155,7 @@ function ClosingTracker() {
   const loadTemplate = async (stage: string) => {
     if (!selected) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/closing', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -170,7 +171,7 @@ function ClosingTracker() {
   const addEscrow = async () => {
     if (!selected || !escrowForm.company.trim()) return
     setBusy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/closing', {
       method: 'POST',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -192,7 +193,7 @@ function ClosingTracker() {
   }
 
   const setEscrowStatus = async (e: Escrow, status: string) => {
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     await fetch('/api/closing', {
       method: 'PATCH',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

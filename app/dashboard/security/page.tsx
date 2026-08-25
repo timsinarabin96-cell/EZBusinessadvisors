@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { supabase } from '@/lib/supabase/client'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface Factor {
   id: string
@@ -45,7 +46,7 @@ function Security() {
     }
     // Agency 2FA policy
     try {
-      const token = localStorage.getItem('sb-access-token') || ''
+      const token = getStoredAccessToken()
       const res = await fetch('/api/agency/security', { headers: { authorization: `Bearer ${token}` } })
       const sec = await res.json().catch(() => ({}))
       if (sec.ok) {
@@ -59,7 +60,7 @@ function Security() {
 
   const togglePolicy = async () => {
     setSavingPolicy(true)
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch('/api/agency/security', {
       method: 'PATCH',
       headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { getStoredAccessToken } from '@/lib/authToken'
 
 interface ActivityItem {
   id: string
@@ -44,7 +45,7 @@ function ActivityFeed() {
   const load = useCallback(async () => {
     const ctx = await getAgencyContext()
     if (!ctx) { setLoading(false); return }
-    const token = localStorage.getItem('sb-access-token') || ''
+    const token = getStoredAccessToken()
     const res = await fetch(`/api/activity?agencyId=${ctx.agencyId}`, { headers: { authorization: `Bearer ${token}` } })
     const data = await res.json().catch(() => ({}))
     setItems(data.items || [])
