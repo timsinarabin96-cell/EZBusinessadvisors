@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
 import LeadFormModal from './LeadFormModal'
 import BuyerProfilePopup from './BuyerProfilePopup'
+import UnifiedLeadTimeline from './UnifiedLeadTimeline'
 
 type KindFilter = 'all' | 'buyer' | 'seller'
 type StatusFilter = LeadStatus | 'all'
@@ -319,45 +320,11 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
                 <button className="btn btn-danger" onClick={() => handleDelete(selected)}>Delete</button>
               </div>
 
-              {/* Activities */}
-              <div className="section-title" style={{ marginBottom: 10 }}>Activity Notes</div>
+              {/* Unified timeline — calls / emails / SMS / notes / status in one feed */}
+              <div className="section-title" style={{ marginBottom: 10 }}>Timeline</div>
               <ActivityNoteForm leadId={selected.id} onAdded={(a) => setActivities((p) => [a, ...p])} />
               <div style={{ marginTop: 12 }}>
-                {activities.length === 0 && comms.length === 0 ? (
-                  <div style={{ color: 'var(--muted)', fontSize: 13, textAlign: 'center', padding: 16, border: '2px dashed var(--line)', borderRadius: 8 }}>
-                    No activity yet — add a note or log a call, email, or meeting to start the timeline.
-                  </div>
-                ) : (
-                  <div>
-                    {/* Conversation log (calls / emails / SMS) */}
-                    {comms.length > 0 && (
-                      <div style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Conversation log</div>
-                        {comms.map((c) => (
-                          <div key={c.id} style={{ padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 8, marginBottom: 8, background: '#fff' }}>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: c.direction === 'inbound' ? '#166534' : '#1d4ed8', background: c.direction === 'inbound' ? 'rgba(34,197,94,0.12)' : 'rgba(59,130,246,0.12)', padding: '2px 8px', borderRadius: 999, textTransform: 'capitalize' }}>
-                                {COMM_ICONS[c.channel] || '📌'} {c.channel} · {c.direction}
-                              </span>
-                              {c.created_at && <span style={{ fontSize: 11, color: 'var(--muted)' }}>{timeAgo(c.created_at)}</span>}
-                            </div>
-                            <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{c.summary || c.outcome?.replace(/_/g, ' ')}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {/* Activity notes */}
-                    {activities.map((a) => (
-                      <div key={a.id} style={{ padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 8, marginBottom: 8, background: 'var(--cream)' }}>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-dark)', background: 'rgba(201,168,76,0.15)', padding: '2px 8px', borderRadius: 999, textTransform: 'capitalize' }}>{a.type}</span>
-                          {a.created_at && <span style={{ fontSize: 11, color: 'var(--muted)' }}>{timeAgo(a.created_at)}</span>}
-                        </div>
-                        <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{a.description}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <UnifiedLeadTimeline comms={comms} activities={activities} />
               </div>
             </div>
           </div>
@@ -419,10 +386,6 @@ function ActivityNoteForm({ leadId, onAdded }: { leadId: string; onAdded: (a: Le
       <button className="btn btn-navy" onClick={add} disabled={adding || !text.trim()}>Add</button>
     </div>
   )
-}
-
-const COMM_ICONS: Record<string, string> = {
-  call: '📞', email: '✉️', sms: '💬', meeting: '🤝', other: '📌',
 }
 
 const timeAgo = (iso: string) => {
