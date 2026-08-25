@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Listing } from '@/lib/listings'
+import { bandForIndustry, matchIndustry } from '@/lib/marketMultiplesCore.ts'
 
 // ---------------------------------------------------------------------------
 // BOV (Broker Opinion of Value) generator
@@ -154,9 +155,14 @@ export function generateBovContent(listing: Listing): BovContent {
   // Use comparables matched to industry, else defaults
   const comparables = INDUSTRY_GUIDES[listing.industry || ''] || DEFAULT_GUIDES
 
-  // Valuation range: reflect reasonable SDE/EBITDA multiple bands
-  const lowMultiplier = 2.5
-  const highMultiplier = 4.0
+  // Valuation range: market multiples when the industry matches (e.g. home
+  // care trades 4-5x EBITDA); otherwise a reasonable SDE/EBITDA band.
+  const marketBand = bandForIndustry(listing.industry, ebitda ? 'EBITDA' : 'SDE')
+  const lowMultiplier = marketBand ? marketBand.min : 2.5
+  const highMultiplier = marketBand ? marketBand.max : 4.0
+  const marketLabel = marketBand
+    ? `${marketBand.industry} typically trades ${marketBand.min.toFixed(1)}-${marketBand.max.toFixed(1)}x ${marketBand.basis} in the current market`
+    : null
   const base = sde || ebitda || 0
   const low = base * lowMultiplier
   const high = base * highMultiplier
@@ -338,6 +344,15 @@ export function generateBovContent(listing: Listing): BovContent {
           ],
         },
         {
+          heading: 'Market Sale Multiples',
+          body: [
+            marketLabel
+              ? `According to current market data, ${marketLabel}. This benchmark provides context for the earnings multiple applied in the valuation analysis in Section 6.`
+              : `Businesses in this sector typically transact at 2.0-3.5x SDE, with larger, well-documented operations commanding 3.5-5.0x EBITDA. The earnings multiple applied in Section 6 reflects this market context.`,
+            'Multiples vary with size, growth, customer concentration, and the quality of financial documentation. Comparable transactions are summarized in the valuation section.',
+          ],
+        },
+        {
           heading: 'Competitive Landscape',
           body: [
             'The competitive environment is fragmented, with a mix of independent operators and regional consolidators. The Company differentiates through service quality, customer retention, and a diversified account base, allowing it to compete effectively on value rather than price alone. Its established reputation and tenured client relationships constitute a meaningful competitive moat.',
@@ -366,7 +381,9 @@ export function generateBovContent(listing: Listing): BovContent {
         {
           heading: 'Method 1 — Multiple of Normalized Earnings',
           body: [
-            `Applying SDE multiples of ${lowMultiplier.toFixed(1)}x to ${highMultiplier.toFixed(1)}x to normalized SDE of ${fmt(sde)} yields an indicative range of ${fmt(low)} to ${fmt(high)}. The midpoint reflects the Company\u2019s size, diversification, and margin profile.`,
+            marketLabel
+              ? `Applying ${marketLabel} — ${lowMultiplier.toFixed(1)}x to ${highMultiplier.toFixed(1)}x — to normalized earnings of ${fmt(base)} yields an indicative range of ${fmt(low)} to ${fmt(high)}. The midpoint reflects the Company\u2019s size, diversification, and margin profile.`
+              : `Applying SDE multiples of ${lowMultiplier.toFixed(1)}x to ${highMultiplier.toFixed(1)}x to normalized SDE of ${fmt(sde)} yields an indicative range of ${fmt(low)} to ${fmt(high)}. The midpoint reflects the Company\u2019s size, diversification, and margin profile.`,
           ],
         },
         {

@@ -20,8 +20,8 @@ interface EstimateRow {
   midpoint: number | null
   method: string | null
   created_at: string
-  multiples?: { industry?: string; sde?: { min?: number; max?: number }; revenue?: { min?: number; max?: number }; margin_adjustment?: number }
-  inputs?: { business_name?: string | null; annual_revenue?: number | null; sde?: number | null; asking_price?: number | null }
+  multiples?: { industry?: string; sde?: { min?: number; max?: number }; revenue?: { min?: number; max?: number }; margin_adjustment?: number; market?: { industry?: string; basis?: string; min?: number; max?: number; source?: string | null } | null }
+  inputs?: { business_name?: string | null; annual_revenue?: number | null; sde?: number | null; ebitda?: number | null; asking_price?: number | null }
   listings?: { business_name: string | null; industry: string | null; asking_price: number | null } | null
 }
 
@@ -263,6 +263,13 @@ function ValuationEngine() {
                       <p className="text-gray-400">Revenue cross-check</p>
                       <p className="text-gray-700 mt-0.5">
                         {m.revenue?.min != null ? `${m.revenue.min}–${m.revenue.max}×` : '—'} (revenue {money(est.inputs?.annual_revenue)})
+                      </p>
+                    </div>
+                    <div className="border border-gray-100 rounded-lg p-2 bg-gray-50">
+                      <p className="text-gray-400">Market band</p>
+                      <p className="text-gray-700 mt-0.5">
+                        {m.market?.min != null ? `${m.market.min}–${m.market.max}× ${m.market.basis || ''}`.trim() : '—'}
+                        {m.market?.industry ? ` (${m.market.industry})` : ''}
                       </p>
                     </div>
                     <div className="border border-gray-100 rounded-lg p-2 bg-gray-50">

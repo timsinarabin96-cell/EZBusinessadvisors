@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { buildSoldCompsReport } from '@/lib/soldComps'
+import { MARKET_MULTIPLES } from '@/lib/marketMultiplesCore.ts'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,6 +95,41 @@ export default async function SoldCompsPage() {
               </tbody>
             </table>
           </div>
+
+      {/* Typical market multiples reference — what these industries usually sell for */}
+      <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: '#1a1a2e', margin: '40px 0 6px' }}>Typical Sale Multiples by Industry</h2>
+      <p style={{ color: '#888', fontSize: 13.5, margin: '0 0 18px' }}>
+        Reference bands for common small-business industries — what buyers typically pay relative to earnings. SDE = seller&apos;s discretionary earnings; EBITDA = earnings before interest, taxes, depreciation &amp; amortization.
+      </p>
+      <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, overflow: 'hidden', marginBottom: 40 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: '#1a1a2e', color: '#fff', textAlign: 'left' }}>
+              <Th>Industry</Th>
+              <Th>SDE multiple</Th>
+              <Th>EBITDA multiple</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...new Set(MARKET_MULTIPLES.map((b) => b.industry))]
+              .sort()
+              .map((ind, idx) => {
+                const sde = MARKET_MULTIPLES.find((b) => b.industry === ind && b.basis === 'SDE')
+                const ebitda = MARKET_MULTIPLES.find((b) => b.industry === ind && b.basis === 'EBITDA')
+                const slug = ind.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')
+                return (
+                  <tr key={ind} style={{ background: idx % 2 ? '#faf9f5' : '#fff', borderBottom: '1px solid #f0ecdf' }}>
+                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#1a1a2e' }}>
+                      <Link href={`/marketplace/industry/${slug}`} style={{ color: '#1a1a2e', textDecoration: 'none' }}>{ind}</Link>
+                    </td>
+                    <Td>{sde ? `${sde.min.toFixed(1)}–${sde.max.toFixed(1)}×` : '—'}</Td>
+                    <Td>{ebitda ? `${ebitda.min.toFixed(1)}–${ebitda.max.toFixed(1)}×` : '—'}</Td>
+                  </tr>
+                )
+              })}
+          </tbody>
+        </table>
+      </div>
 
           {states.length > 0 && (
             <>

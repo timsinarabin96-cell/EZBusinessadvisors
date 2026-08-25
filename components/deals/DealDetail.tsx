@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { DealStage, PipelineItem, PIPELINE_STAGES, formatMoney } from '@/lib/pipeline'
+import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import BuyerScorecards from './BuyerScorecards'
 import DealLenderPanel from './DealLenderPanel'
 
@@ -60,6 +61,15 @@ export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelet
             <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: '30px', height: '30px', borderRadius: '50%', cursor: 'pointer', fontSize: '14px' }}>✕</button>
           </div>
           {deal.industry && <div style={{ fontSize: '13px', color: '#cbd5e1', marginTop: '4px' }}>{deal.industry}</div>}
+          {deal.industry && (() => {
+            const band = bandForIndustry(deal.industry, 'EBITDA')
+            if (!band) return null
+            return (
+              <div style={{ fontSize: '12px', color: '#c9a84c', marginTop: '3px', fontWeight: 600 }}>
+                Market: {band.industry} typically {band.min.toFixed(1)}–{band.max.toFixed(1)}× {band.basis}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Body */}

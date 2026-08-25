@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchPublicFeed, fetchAllIndustries, type PublicMarketplaceListing } from '@/lib/marketplace'
 import { buildSoldCompsReport } from '@/lib/soldComps'
+import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 
@@ -120,6 +121,16 @@ export default async function IndustryPage({ params }: { params: { slug: string 
       </div>
 
       {/* Live sold-comps market band — real multiples + time-to-sell */}
+      {(() => {
+        const band = bandForIndustry(industry, 'EBITDA')
+        return band ? (
+          <div style={{ background: 'linear-gradient(135deg, #1a1a2e, #2b2b4a)', borderRadius: 12, padding: '18px 20px', color: '#fff' }}>
+            <div style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', fontWeight: 700 }}>Typical sale multiple</div>
+            <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Georgia, serif', marginTop: 6 }}>{band.min.toFixed(1)}–{band.max.toFixed(1)}× {band.basis}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{band.industry} businesses usually sell</div>
+          </div>
+        ) : null
+      })()}
       {compStat && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 28 }}>
           <div style={{ background: 'linear-gradient(135deg, #1a1a2e, #2b2b4a)', borderRadius: 12, padding: '18px 20px', color: '#fff' }}>

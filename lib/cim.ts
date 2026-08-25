@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Listing } from '@/lib/listings'
+import { bandForIndustry, matchIndustry } from '@/lib/marketMultiplesCore.ts'
 
 // ---------------------------------------------------------------------------
 // CIM (Confidential Information Memorandum) generator — 25+ section,
@@ -179,7 +180,12 @@ export function generateCimContent(listing: Listing): CimContent {
     { id: 'industry-analysis', title: '10. Industry Analysis', subsections: [
       { heading: 'Market Overview', body: [
         `The ${industry} industry continues to demonstrate resilience with steady demand. Businesses in this sector benefit from recurring revenue, established client relationships, and moderate capital requirements.`,
-        'Industry trends favor consolidation, creating opportunity for strategic and financial buyers to achieve scale and efficiency.',
+        (() => {
+          const band = bandForIndustry(industry, ebitda ? 'EBITDA' : 'SDE')
+          return band
+            ? `Current market data indicates that ${band.industry} businesses typically transact at ${band.min.toFixed(1)}-${band.max.toFixed(1)}x ${band.basis}, providing a benchmark for the valuation metrics presented in Section 9.`
+            : 'Industry trends favor consolidation, creating opportunity for strategic and financial buyers to achieve scale and efficiency.'
+        })(),
       ] },
       { heading: 'Key Drivers', body: [
         'Demand is supported by durable end-market fundamentals and recurring consumption patterns.',
@@ -192,7 +198,12 @@ export function generateCimContent(listing: Listing): CimContent {
         'This fragmentation presents an opportunity to differentiate through service quality, technology adoption, and targeted marketing.',
       ] },
       { heading: 'Comparable Transactions', body: [
-        `Transactions in this sector typically transact at multiples with a strong correlation to profitability and growth.`,
+        (() => {
+          const band = bandForIndustry(industry, ebitda ? 'EBITDA' : 'SDE')
+          return band
+            ? `Transactions in this sector typically transact at ${band.min.toFixed(1)}-${band.max.toFixed(1)}x ${band.basis} (${band.industry} market data).`
+            : 'Transactions in this sector typically transact at multiples with a strong correlation to profitability and growth.'
+        })(),
         'Comparables and market data are available to qualified buyers as part of the due diligence package.',
       ] },
     ] },
