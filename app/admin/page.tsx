@@ -178,6 +178,7 @@ export default function PlatformAdminPage() {
       <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <Link href="/admin/agencies/trials" style={{ background: '#1a1a2e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Manage Trials</Link>
         <Link href="/admin/trial-settings" style={{ border: '2px solid #1a1a2e', color: '#1a1a2e', padding: '9px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Trial Settings</Link>
+        <Link href="/admin/expenses" style={{ background: '#15803d', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>💸 Expenses</Link>
       </div>
     </div>
   )
