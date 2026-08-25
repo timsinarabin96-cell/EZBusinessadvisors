@@ -176,16 +176,31 @@ export async function uploadListingDocument(listingId: string, doc: { document_t
 }
 export async function fetchListingDocuments(listingId: string): Promise<any[]> {
   try {
-    const { data } = await supabase.from('listing_documents').select('*').eq('listing_id', listingId).order('created_at', { ascending: false })
+    const [uploadsRes, generatedRes] = await Promise.all([
+      supabase.from('listing_documents').select('*').eq('listing_id', listingId).order('created_at', { ascending: false }),
+      supabase.from('documents').select('id, title, status, created_at').eq('listing_id', listingId).order('created_at', { ascending: false }),
+    ])
     // Normalise back to the legacy `document_type` key the UI reads; recover
     // the true type from `body_text` when it was stored by the fallback above;
     // derive a display name when there is no `file_name` column.
-    return ((data || []) as any[]).map((d) => {
+    const uploads = ((uploadsRes.data || []) as any[]).map((d) => {
       const storedType = /^doc_type=(.+)$/.exec(d.body_text || '')?.[1]
       const document_type = storedType || d.category || d.document_type || 'document'
       const name = d.file_name || ((d.file_url || '').split('/').pop()) || document_type
       return { ...d, document_type, file_name: name }
     })
+    // Generated docs (seller/buyer packs) also satisfy the workflow steps —
+    // map their titles back to workflow document_type keys.
+    const generated = ((generatedRes.data || []) as any[]).map((d) => {
+      const title = String(d.title || '')
+      let document_type = 'document'
+      if (/listing agreement/i.test(title)) document_type = 'listing_agreement'
+      else if (/marketing agreement/i.test(title)) document_type = 'marketing_agreement'
+      else if (/\bNDA\b|confidentiality/i.test(title)) document_type = 'nda'
+      else if (/purchase agreement/i.test(title)) document_type = 'purchase_agreement'
+      return { ...d, source: 'generated', document_type, file_name: title, file_url: null }
+    })
+    return [...generated, ...uploads]
   } catch { return [] }
 }
 
