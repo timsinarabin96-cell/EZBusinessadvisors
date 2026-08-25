@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { DealStage, PipelineItem, PIPELINE_STAGES, formatMoney } from '@/lib/pipeline'
 import BuyerScorecards from './BuyerScorecards'
+import DealLenderPanel from './DealLenderPanel'
 
 interface DealDetailProps {
   deal: PipelineItem
@@ -128,6 +129,9 @@ export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelet
               <div style={{ fontSize: '14px', color: '#334155' }}>{deal.headline}</div>
             </div>
           )}
+
+          {/* SBA lender qualification — send the deal to a lender partner */}
+          <DealLenderPanel dealId={deal.id} />
 
           {/* Buyer scorecards — who to call first */}
           <BuyerScorecards listingId={deal.listing_id} />

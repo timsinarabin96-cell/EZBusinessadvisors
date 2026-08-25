@@ -18,13 +18,16 @@ export default function ProfessionalsDirectoryPage() {
   const [type, setType] = useState<ProfessionalType | 'all'>('all')
   const [query, setQuery] = useState('')
   const [state, setState] = useState('')
+  const [specialty, setSpecialty] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchPublicProfessionals({ type, query: query || undefined, state: state || undefined })
-      .then(setPros)
+      .then((rows) => {
+        setPros(specialty ? rows.filter((p) => (p.specialty || '').toLowerCase().includes(specialty.toLowerCase())) : rows)
+      })
       .finally(() => setLoading(false))
-  }, [type, query, state])
+  }, [type, query, state, specialty])
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: pros.length }
@@ -63,6 +66,16 @@ export default function ProfessionalsDirectoryPage() {
           placeholder="Search by name, firm, specialty…"
           style={{ flex: 1, padding: '11px 14px', borderRadius: 8, border: '1px solid #dce6ef', fontSize: 14, fontFamily: 'Georgia, serif', outline: 'none' }}
         />
+        <select
+          value={specialty}
+          onChange={(e) => setSpecialty(e.target.value)}
+          style={{ padding: '11px 14px', borderRadius: 8, border: '1px solid #dce6ef', fontSize: 14, fontFamily: 'Georgia, serif', outline: 'none', background: '#fff' }}
+        >
+          <option value="">All specialties</option>
+          {['M&A', 'Tax', 'Franchise', 'SBA lending', 'Commercial real estate', 'Estate planning', 'Underwriting', 'Due diligence', 'Business valuation', 'Financing'].map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
         <select
           value={state}
           onChange={(e) => setState(e.target.value)}
@@ -108,6 +121,12 @@ export default function ProfessionalsDirectoryPage() {
                   <MiniMetric label="Experience" value={p.years_experience ? `${p.years_experience}+ years` : 'N/A'} />
                   <MiniMetric label="Deals closed" value={p.deals_closed ? `${p.deals_closed}+` : 'Confidential'} />
                 </div>
+                {(p.rates || p.license_verified) && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                    {p.license_verified && <span style={{ padding: '4px 9px', background: '#e8f7ee', color: '#15803d', borderRadius: 999, fontSize: 11, fontWeight: 800 }}>✔ License verified</span>}
+                    {p.rates && <span style={{ padding: '4px 9px', background: '#f5f3ec', color: '#7a6a3a', borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{p.rates}</span>}
+                  </div>
+                )}
                 <div style={{ marginTop: 14, color: '#0e7490', fontSize: 13, fontWeight: 800 }}>View profile →</div>
               </Link>
             ))}
