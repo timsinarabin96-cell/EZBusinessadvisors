@@ -8,7 +8,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { createNotification } from './notifications'
+import { createNotification, type NotificationInput } from './notifications'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -16,6 +16,49 @@ const db =
   SUPABASE_URL && SERVICE_KEY
     ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
     : null
+
+/**
+ * Create an in-app notification AND fire a PWA web push for the same event.
+ * Server-only — web-push is a Node module and must never be imported from
+ * client-reachable code (lib/notifications.ts), or `tls` leaks into the
+ * browser bundle and the production build breaks.
+ * Best-effort: in-app is always recorded; push silently skipped when VAPID
+ * isn't configured or no device is registered.
+ */
+export async function createNotificationWithPush(input: NotificationInput): Promise<{ ok: boolean; error?: string }> {
+  const base = await createNotification(input)
+  if (!base.ok) return base
+
+  try {
+    const { sendPushToProfile } = await import('@/lib/webPush')
+    if (input.profile_id) {
+      await sendPushToProfile(input.profile_id, {
+        title: input.title,
+        body: input.body || undefined,
+        link: input.link || '/dashboard/notifications',
+      })
+    } else if (db && input.agency_id) {
+      // Agency-wide: ping owners + admins.
+      const { data: members } = await db
+        .from('agency_members')
+        .select('profile_id')
+        .eq('agency_id', input.agency_id)
+        .or('is_owner.eq.true,role.eq.admin')
+      const ids = [...new Set((members || []).map((m) => m.profile_id).filter(Boolean))] as string[]
+      for (const pid of ids) {
+        await sendPushToProfile(pid, {
+          title: input.title,
+          body: input.body || undefined,
+          link: input.link || '/dashboard/notifications',
+        })
+      }
+    }
+  } catch {
+    // best-effort — in-app notification already recorded
+  }
+
+  return { ok: true }
+}
 
 /**
  * Notify the broker (agency owner + admins) that an agent completed the full
