@@ -10,6 +10,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { passwordIssue, PASSWORD_POLICY } from '@/lib/emailVerification'
 
 type Persona = 'owner'
 
@@ -21,17 +22,22 @@ export default function SignupPage() {
   const [agencyName, setAgencyName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [sentVerification, setSentVerification] = useState(false)
   const router = useRouter()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
+
+    // Strong password policy — enforced before we ever call Supabase.
+    const pwIssue = passwordIssue(password)
+    if (pwIssue) {
+      setError(pwIssue)
       setLoading(false)
       return
     }
+
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({ email, password })
       if (signUpError) throw signUpError
@@ -49,10 +55,33 @@ export default function SignupPage() {
       }, { onConflict: 'id' })
       if (profileError) throw new Error(profileError.message || 'Failed to create profile')
 
+      // Email verification is REQUIRED — the portal stays locked until the
+      // user confirms. We show the check-your-inbox screen instead of
+      // auto-redirecting into the app.
+      if (!user.email_confirmed_at) {
+        setSentVerification(true)
+        setLoading(false)
+        return
+      }
+
       // Owner → go straight to their listing portal.
       router.push('/auth?next=/dashboard/owner')
     } catch (err: any) {
       setError(err.message || 'Sign up failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resendVerification = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const { error } = await supabase.auth.resend({ type: 'signup', email })
+      if (error) throw error
+      setSentVerification(true)
+    } catch (err: any) {
+      setError(err.message || 'Could not resend — try again in a moment.')
     } finally {
       setLoading(false)
     }
@@ -67,7 +96,23 @@ export default function SignupPage() {
         </div>
 
         <div style={{ background: '#fff', borderRadius: 16, padding: '30px 28px', boxShadow: '0 24px 80px rgba(0,0,0,0.4)' }}>
-          <h1 style={{ margin: '0 0 4px', fontFamily: 'Georgia, serif', fontSize: 23, color: '#1a1a2e' }}>Create your account</h1>
+          {sentVerification ? (
+            <>
+              <h1 style={{ margin: '0 0 8px', fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e' }}>Check your inbox 📬</h1>
+              <p style={{ fontSize: 13.5, color: '#666', lineHeight: 1.6 }}>
+                We sent a verification link to <strong>{email}</strong>. Click it to confirm your email — your account stays locked until you do (it&apos;s how we keep accounts from being hijacked).
+              </p>
+              <p style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>Didn&apos;t get it? Check spam, or resend below.</p>
+              <button onClick={resendVerification} disabled={loading} style={{ width: '100%', padding: '13px', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#aaa' : '#1a1a2e', color: '#c9a84c', border: 'none', fontSize: 14, fontWeight: 800, fontFamily: 'Georgia, serif', marginTop: 12 }}>
+                {loading ? 'Sending…' : 'Resend verification email'}
+              </button>
+              <div style={{ textAlign: 'center', marginTop: 16 }}>
+                <Link href="/auth" style={{ color: '#1a1a2e', fontWeight: 700, fontSize: 13 }}>← Back to sign in</Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 style={{ margin: '0 0 4px', fontFamily: 'Georgia, serif', fontSize: 23, color: '#1a1a2e' }}>Create your account</h1>
           <p style={{ margin: '0 0 20px', fontSize: 13.5, color: '#888' }}>Choose how you'll use the platform.</p>
 
           {/* Persona picker — buyers never sign up; they browse free. */}
@@ -99,7 +144,8 @@ export default function SignupPage() {
             </div>
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#555', marginBottom: 5 }}>Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" style={inputStyle} required minLength={6} />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters, letter + number" style={inputStyle} required minLength={8} />
+              <div style={{ fontSize: 11.5, color: '#888', marginTop: 5 }}>Strong password required: 8+ characters with a letter and a number. Email verification is mandatory for every account.</div>
             </div>
             <button type="submit" disabled={loading} style={{ width: '100%', padding: '13px', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#aaa' : '#1a1a2e', color: '#c9a84c', border: 'none', fontSize: 15, fontWeight: 800, fontFamily: 'Georgia, serif' }}>
               {loading ? 'Creating account…' : 'Create Free Owner Account'}
@@ -110,6 +156,8 @@ export default function SignupPage() {
             Already have an account?{' '}
             <Link href="/auth" style={{ color: '#1a1a2e', fontWeight: 700 }}>Sign in</Link>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>

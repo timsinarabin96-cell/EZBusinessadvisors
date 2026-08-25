@@ -38,6 +38,10 @@ export async function authenticateProfileRequest(req: NextRequest): Promise<Auth
   const authenticated = await authenticateRequest(req)
   if (!authenticated) return null
 
+  // STRONG VERIFICATION GATE: unconfirmed emails are rejected everywhere.
+  // No portal, no API access, no data — until the user confirms their email.
+  if (!authenticated.user.email_confirmed_at) return null
+
   const supabase = createServerClient()
   if (!supabase) return null
   const [{ data: profile }, { data: memberships }] = await Promise.all([

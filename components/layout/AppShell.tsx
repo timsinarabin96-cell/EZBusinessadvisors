@@ -9,6 +9,7 @@ import AuthGuard from '@/components/auth/AuthGuard'
 import GuideBot from '@/components/public/GuideBot'
 import { supabase } from '@/lib/supabase/client'
 import { fetchBrokerBrandContext, fontCss } from '@/lib/branding'
+import { resolvePortalRole } from '@/lib/authRouting'
 
 // minRole: 'agent' (daily tools) → 'broker' (deal tools) → 'admin' (everything)
 type NavRole = 'agent' | 'broker' | 'admin'
@@ -131,11 +132,16 @@ export default function AppShell({
           supabase.from('agency_members').select('role, is_owner').eq('profile_id', user.id).order('is_owner', { ascending: false }).limit(1).maybeSingle(),
         ])
         if (profile?.role === 'super_admin') setIsPlatformAdmin(true)
-        // Resolve nav level: owner/admin → admin, broker → broker, else agent.
+        // Shared resolver with the login page — nav level can never disagree
+        // with where the login redirect sent the user.
         const m = member as { role?: string; is_owner?: boolean | null } | null
-        if (profile?.role === 'admin' || m?.is_owner || m?.role === 'admin') setRole('admin')
-        else if (profile?.role === 'broker' || m?.role === 'broker') setRole('broker')
-        else setRole('agent')
+        const portalRole = resolvePortalRole(
+          profile as { role: string } | null,
+          m as { role: string; is_owner: boolean | null } | null,
+        )
+        if (portalRole === 'super_admin') setIsPlatformAdmin(true)
+        const navRole: NavRole = portalRole === 'admin' ? 'admin' : portalRole === 'broker' ? 'broker' : 'agent'
+        setRole(navRole)
       } catch { /* degrade */ }
     })()
   }, [])
