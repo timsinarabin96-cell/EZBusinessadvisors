@@ -7,7 +7,6 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { notify } from './email'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -176,7 +175,11 @@ export async function notifyLoiGenerated(agencyId: string, businessName: string)
   if (!ids.length) return
   const { data: profiles } = await svc.from('profiles').select('id, email').in('id', ids)
   for (const p of profiles || []) {
-    if (p.email) await notify('loi_generated', p.email, { businessName })
+    if (p.email) {
+      // Lazy import keeps nodemailer (Node-only) out of the client bundle.
+      const { notify } = await import('./email').catch(() => ({ notify: null as null | typeof import('./email').notify }))
+      if (notify) await notify('loi_generated', p.email, { businessName })
+    }
   }
 }
 
