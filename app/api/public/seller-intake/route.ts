@@ -111,5 +111,45 @@ export async function POST(req: NextRequest) {
     ].filter(Boolean).join('<br/>'),
   })
 
+  // 4) Lead magnet: when the seller gave financials, auto-generate a branded
+  //    valuation PDF and email it to them with the portal link. Best-effort —
+  //    never breaks intake if PDF generation or storage fails.
+  try {
+    const revenueNum = parseFloat(String(revenueRange || '').replace(/[^0-9.]/g, ''))
+    const askingNum = parseFloat(String(asking || '').replace(/[^0-9.]/g, ''))
+    if (email && (revenueNum > 0 || askingNum > 0)) {
+      const { generateValuationPdf } = await import('@/lib/valuationReports')
+      const pdf = await generateValuationPdf({
+        business_name: businessName || 'Your Business',
+        industry: industry || null,
+        annual_revenue: revenueNum > 0 ? revenueNum : null,
+        sde: null,
+        asking_price: askingNum > 0 ? askingNum : null,
+        tier: 'standard',
+      })
+      const pdfPath = `valuation-reports/lead-${portalToken}.pdf`
+      const { error: upErr } = await svc.storage.from('financial_docs').upload(pdfPath, new Uint8Array(pdf), {
+        cacheControl: '3600', upsert: true, contentType: 'application/pdf',
+      })
+      if (!upErr) {
+        const { data: urlData } = svc.storage.from('financial_docs').getPublicUrl(pdfPath)
+        const pdfUrl = urlData?.publicUrl || ''
+        await notify('generic', email, {
+          title: `Your confidential valuation — ${businessName || 'Your Business'}`,
+          message: [
+            `Hi ${esc(name)},`,
+            'Thank you for your submission. Here is your complimentary, confidential business valuation preview:',
+            pdfUrl ? `<a href="${esc(pdfUrl)}">📊 Download your valuation report (PDF)</a>` : '',
+            `🔐 Track progress anytime in your private portal: <a href="${esc(portalUrl)}">${esc(portalUrl)}</a>`,
+            'A broker will follow up within one business day to walk you through it.',
+            '— Your Concord broker',
+          ].filter(Boolean).join('<br/>'),
+        })
+      }
+    }
+  } catch {
+    // best-effort — the lead + portal are already recorded
+  }
+
   return NextResponse.json({ ok: true, portalUrl })
 }
