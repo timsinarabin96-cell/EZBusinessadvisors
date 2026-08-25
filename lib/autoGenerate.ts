@@ -226,6 +226,18 @@ export async function runAutoGeneration(input: {
   const artifacts: GeneratedArtifact[] = []
   const notes: string[] = []
 
+  // Agency branding for the document footer (Open Claw theme).
+  let agency: { name: string; phone?: string | null; email?: string | null } | null = null
+  try {
+    const agencyId = (listing as { agency_id?: string | null } | null)?.agency_id
+    if (agencyId) {
+      const { data: ag } = await supabase.from('agencies').select('name, phone, email').eq('id', agencyId).maybeSingle()
+      if (ag) agency = { name: ag.name, phone: ag.phone, email: ag.email }
+    }
+  } catch {
+    /* footer falls back to generic */
+  }
+
   // 2) Load existing source financial docs for this listing
   const { data: sourceDocs } = await supabase
     .from('financial_documents')
@@ -252,7 +264,7 @@ export async function runAutoGeneration(input: {
       addBacks: [], // auto recast uses the built-in add-back modeling in SDE/EBITDA
     }
     const recast = recastFinancials(recastInput)
-    const bytes = exportRecastToPdf(recast, { returnBytes: true })
+    const bytes = await exportRecastToPdf(recast, { returnBytes: true, agency })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,
@@ -271,7 +283,7 @@ export async function runAutoGeneration(input: {
   // 6) BOV
   try {
     const bov = generateBovContent(L)
-    const bytes = exportBovToPdf(bov, { returnBytes: true })
+    const bytes = await exportBovToPdf(bov, { returnBytes: true, agency })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,
@@ -290,7 +302,7 @@ export async function runAutoGeneration(input: {
   // 7) CIM
   try {
     const cim = generateCimContent(L)
-    const bytes = exportCimToPdf(cim, { returnBytes: true })
+    const bytes = await exportCimToPdf(cim, { returnBytes: true, agency })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,
@@ -309,7 +321,7 @@ export async function runAutoGeneration(input: {
   // 8) BLI
   try {
     const bli = generateBliContent(L)
-    const bytes = exportBliToPdf(bli, { returnBytes: true })
+    const bytes = await exportBliToPdf(bli, { returnBytes: true, agency })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,

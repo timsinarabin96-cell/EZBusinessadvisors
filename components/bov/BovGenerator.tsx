@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { fetchListings, Listing } from '@/lib/listings'
 import { BovContent, generateBovContent, fetchBovVersions, saveBovVersion, BovVersion } from '@/lib/bov'
 import { exportBovToPdf } from '@/lib/pdfExport'
+import { fetchUserAgencyContext } from '@/lib/agencies'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState } from '@/components/ui'
 
@@ -16,6 +17,11 @@ export default function BovGenerator() {
   const [content, setContent] = useState<BovContent | null>(null)
   const [versions, setVersions] = useState<BovVersion[]>([])
   const [loading, setLoading] = useState(true)
+  const [agency, setAgency] = useState<{ name: string; phone?: string | null; email?: string | null } | null>(null)
+
+  useEffect(() => {
+    fetchUserAgencyContext().then((ctx) => setAgency(ctx.agency ? { name: ctx.agency.name, phone: ctx.agency.phone, email: ctx.agency.email } : null)).catch(() => setAgency(null))
+  }, [])
   const [generating, setGenerating] = useState(false)
 
   useEffect(() => {
@@ -106,7 +112,7 @@ export default function BovGenerator() {
         <>
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn btn-primary" onClick={handleSave}>💾 Save Version</button>
-            <button className="btn btn-navy" onClick={() => exportBovToPdf(content)}>⬇️ Export PDF</button>
+            <button className="btn btn-navy" onClick={() => exportBovToPdf(content, { agency })}>⬇️ Export PDF</button>
             {versions.length > 0 && <span className="section-title">Version {versions[0].version}</span>}
           </div>
 

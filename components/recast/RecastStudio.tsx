@@ -12,6 +12,7 @@ import MoneyInput from '@/components/ui/MoneyInput'
 import { fetchListings, Listing } from '@/lib/listings'
 import { saveRecastProject } from '@/lib/recast'
 import { exportRecastToPdf } from '@/lib/pdfExport'
+import { fetchUserAgencyContext } from '@/lib/agencies'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, Card, CardHeader, EmptyState, Badge } from '@/components/ui'
 import RecastReport from './RecastReport'
@@ -180,9 +181,11 @@ export default function RecastStudio() {
     }
   }
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     if (!result) return
-    exportRecastToPdf(result)
+    const ctx = await fetchUserAgencyContext().catch(() => null)
+    const agency = ctx?.agency ? { name: ctx.agency.name, phone: ctx.agency.phone, email: ctx.agency.email } : null
+    await exportRecastToPdf(result, { agency })
     toast('PDF report downloaded', 'success')
   }
 

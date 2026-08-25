@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { fetchListings, Listing } from '@/lib/listings'
 import { CimContent, generateCimContent, fetchCimVersions, saveCimVersion, CimVersion } from '@/lib/cim'
 import { exportCimToPdf } from '@/lib/pdfExport'
+import { fetchUserAgencyContext } from '@/lib/agencies'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState } from '@/components/ui'
 
@@ -17,6 +18,11 @@ export default function CimGenerator() {
   const [versions, setVersions] = useState<CimVersion[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [agency, setAgency] = useState<{ name: string; phone?: string | null; email?: string | null } | null>(null)
+
+  useEffect(() => {
+    fetchUserAgencyContext().then((ctx) => setAgency(ctx.agency ? { name: ctx.agency.name, phone: ctx.agency.phone, email: ctx.agency.email } : null)).catch(() => setAgency(null))
+  }, [])
 
   useEffect(() => {
     fetchListings()
@@ -110,7 +116,7 @@ export default function CimGenerator() {
           {/* Toolbar */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn btn-primary" onClick={handleSaveVersion}>💾 Save Version</button>
-            <button className="btn btn-navy" onClick={() => exportCimToPdf(content)}>⬇️ Export PDF</button>
+            <button className="btn btn-navy" onClick={() => exportCimToPdf(content, { agency })}>⬇️ Export PDF</button>
             <button className="btn btn-ghost" onClick={async () => {
               try {
                 const link = `${window.location.origin}/share/cim/${selectedId}`

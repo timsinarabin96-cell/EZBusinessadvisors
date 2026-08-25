@@ -2,6 +2,7 @@
 
 import { RecastResult, ADD_BACK_CATEGORIES, fmt$, fmt$K, ENTITY_TYPES } from '@/lib/recast'
 import { exportRecastToPdf } from '@/lib/pdfExport'
+import { fetchUserAgencyContext } from '@/lib/agencies'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 interface Props {
@@ -21,8 +22,10 @@ export default function RecastReport({ result, onClose }: Props) {
     'Recast SDE': Math.round(y.recast.sde),
   }))
 
-  const handleExport = () => {
-    exportRecastToPdf(result)
+  const handleExport = async () => {
+    const ctx = await fetchUserAgencyContext().catch(() => null)
+    const agency = ctx?.agency ? { name: ctx.agency.name, phone: ctx.agency.phone, email: ctx.agency.email } : null
+    await exportRecastToPdf(result, { agency })
   }
 
   return (

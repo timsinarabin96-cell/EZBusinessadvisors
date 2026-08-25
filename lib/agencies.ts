@@ -15,6 +15,8 @@ export interface Agency {
   accent_color: string | null
   logo_url: string | null
   about: string | null
+  phone?: string | null
+  email?: string | null
   is_active: boolean | null
   created_at?: string | null
   // Trial / plan lifecycle (added by multi_tenant_schema.sql)
