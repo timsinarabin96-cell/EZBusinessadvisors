@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const { data: listing } = await db
     .from('listings')
-    .select('business_name, industry, sub_industry, description, annual_revenue, sde, ebitda, asking_price, employees_full_time, owner_hours_per_week, year_established')
+    .select('business_name, industry, sub_industry, description, annual_revenue, sde, ebitda, asking_price, employees_full_time, year_established')
     .eq('id', listingId)
     .maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
@@ -38,7 +38,6 @@ export async function GET(req: NextRequest) {
     ebitda: listing.ebitda,
     asking_price: listing.asking_price,
     employees_full_time: listing.employees_full_time,
-    owner_hours_per_week: listing.owner_hours_per_week,
     year_established: listing.year_established,
   }
 
