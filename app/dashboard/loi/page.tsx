@@ -5,7 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
-import { renderLoiHtml } from '@/lib/loi'
+import { renderLoiHtml } from '@/lib/loiRender'
 
 interface OfferOpt { id: string; label: string }
 interface LoiRow {
