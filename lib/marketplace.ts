@@ -229,7 +229,7 @@ export async function searchPublicListings(filters: SearchFilters = {}): Promise
     .filter((listing) => !filters.status || listing.status === filters.status)
     .filter((listing) => {
       if (!query) return true
-      return [listing.public_title, listing.public_summary, listing.industry, listing.sub_industry]
+      return [listing.public_title, listing.public_summary, listing.industry, listing.sub_industry, listing.listing_ref]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(query))
     })
@@ -416,7 +416,24 @@ export interface PublicLeadInput {
   location_general?: string
 }
 
-export async function capturePublicLead(input: PublicLeadInput): Promise<{ ok: boolean; error?: string }> {
+export async function capturePublicLead(input: PublicLeadInput): Promise<{ ok: boolean; error?: string; duplicate?: boolean }> {
+  // Dedupe check: same email already in the CRM? Surface it instead of
+  // creating a second row (buyers/sellers may revisit after a while).
+  try {
+    const email = (input.email || '').trim().toLowerCase()
+    if (email) {
+      const table = input.kind === 'seller' ? 'seller_leads' : 'buyer_leads'
+      const { data: existing } = await supabase
+        .from(table)
+        .select('id, full_name, status')
+        .ilike('email', email)
+        .limit(1)
+      if (existing && existing.length > 0) {
+        return { ok: true, duplicate: true }
+      }
+    }
+  } catch { /* dedupe is best-effort — fall through to insert */ }
+
   // Verified-buyer stamp: when the inquirer holds an active Match Pass,
   // flag the lead so brokers see serious buyers first.
   let verifiedBuyer = false

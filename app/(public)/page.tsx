@@ -6,6 +6,7 @@ import { buildSoldCompsReport } from '@/lib/soldComps'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import AuthRedirect from '@/components/public/AuthRedirect'
 import ValuationLeadForm from '@/components/public/ValuationLeadForm'
+import HomeSearchLocation from '@/components/public/HomeSearchLocation'
 import { CRM_LICENSE } from '@/lib/billing'
 
 // ---------------------------------------------------------------------------
@@ -99,7 +100,7 @@ export default async function HomePage() {
                 <option key={i} value={i}>{i}</option>
               ))}
             </select>
-            <input name="location" placeholder="Location" style={searchInput} />
+            <HomeSearchLocation style={searchInput} />
             <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 8, padding: '0 22px', fontWeight: 700, fontFamily: 'Georgia, serif', fontSize: 14, cursor: 'pointer' }}>
               Search
             </button>

@@ -77,7 +77,11 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
     setSubmitting(false)
 
     if (result.ok) {
-      toast(`Request sent — a broker will contact you about ${listing.public_title}.`, 'success')
+      if (result.duplicate) {
+        toast(`You\'re already in our system — a broker will contact you about ${listing.public_title}.`, 'success')
+      } else {
+        toast(`Request sent — a broker will contact you about ${listing.public_title}.`, 'success')
+      }
       setShowContact(false)
       setForm({ name: '', email: '', phone: '', message: '' })
     } else {

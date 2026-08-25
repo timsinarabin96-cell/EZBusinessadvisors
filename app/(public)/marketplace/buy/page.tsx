@@ -37,6 +37,11 @@ function BuyContent() {
     })
     setSubmitting(false)
     if (!result.ok) return toast(result.error || 'Submission failed', 'error')
+    if (result.duplicate) {
+      setDone(true)
+      toast('You\'re already in our system — a broker will be in touch.', 'success')
+      return
+    }
     setDone(true)
     toast('Buyer profile saved — matching can begin.', 'success')
   }
