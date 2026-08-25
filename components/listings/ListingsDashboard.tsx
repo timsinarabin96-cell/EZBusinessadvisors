@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
 import { queueAutoPosts } from '@/lib/services/social'
 import { supabase } from '@/lib/supabase/client'
+import StaleListingPanel from '@/components/listings/StaleListingPanel'
 
 export default function ListingsDashboard() {
   const router = useRouter()
@@ -68,6 +69,9 @@ export default function ListingsDashboard() {
           <Link href="/dashboard/listings/new" className="btn btn-primary" style={{ textDecoration: 'none' }}>+ New Listing (AI Studio)</Link>
         </div>
       </header>
+
+      {/* Stale-listing intelligence — views, inquiries, price vs market band */}
+      <StaleListingPanel />
 
       {/* Status filter */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
