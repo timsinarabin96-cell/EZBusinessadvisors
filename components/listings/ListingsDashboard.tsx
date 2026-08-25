@@ -2,19 +2,18 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Listing, fetchListings, createListing, updateListing, deleteListing, fmtMoney, LISTING_STATUSES } from '@/lib/listings'
+import { useRouter } from 'next/navigation'
+import { Listing, fetchListings, updateListing, deleteListing, fmtMoney, LISTING_STATUSES } from '@/lib/listings'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
-import ListingFormModal from './ListingFormModal'
 import { queueAutoPosts } from '@/lib/services/social'
 import { supabase } from '@/lib/supabase/client'
 
 export default function ListingsDashboard() {
+  const router = useRouter()
   const toast = useToast()
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Listing | null>(null)
   const [statusFilter, setStatusFilter] = useState('all')
 
   const load = useCallback(async () => {
@@ -29,42 +28,6 @@ export default function ListingsDashboard() {
   }, [toast])
 
   useEffect(() => { load() }, [load])
-
-  const handleSubmit = async (input: Partial<Listing>) => {
-    if (editing) {
-      await updateListing(editing.id, input)
-      toast('Listing updated', 'success')
-    } else {
-      const created = await createListing(input)
-      toast('Listing created', 'success')
-      // Auto-post to connected social platforms on new listing upload (fire-and-forget).
-      try {
-        const { data } = await supabase.auth.getUser()
-        if (data.user?.id) {
-          const queued = await queueAutoPosts(data.user.id, {
-            id: created.id,
-            business_name: created.business_name,
-            headline: created.headline,
-            industry: created.industry,
-            location_general: created.location_general,
-            asking_price: created.asking_price,
-            annual_revenue: created.annual_revenue,
-            sde: created.sde,
-            image_urls: created.image_urls,
-            primary_image_url: created.primary_image_url,
-          })
-          if (queued.length > 0) {
-            toast(`Social: queued ${queued.length} post(s)`, 'success')
-          }
-        }
-      } catch {
-        // Auto-post failure should never block listing creation.
-      }
-    }
-    setShowForm(false)
-    setEditing(null)
-    await load()
-  }
 
   const handleDelete = async (listing: Listing) => {
     if (!confirm(`Delete listing "${listing.business_name}"?`)) return
@@ -102,7 +65,7 @@ export default function ListingsDashboard() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-ghost" onClick={load}>↻ Refresh</button>
-          <button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true) }}>+ New Listing</button>
+          <Link href="/dashboard/listings/new" className="btn btn-primary" style={{ textDecoration: 'none' }}>+ New Listing (AI Studio)</Link>
         </div>
       </header>
 
@@ -189,7 +152,7 @@ export default function ListingsDashboard() {
                 <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                   <Link href={`/cim?listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>📑 CIM</Link>
                   <Link href={`/bov?listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>⚖️ BOV</Link>
-                  <button className="btn btn-ghost" onClick={() => { setEditing(listing); setShowForm(true) }}>✎</button>
+                  <Link href={`/dashboard/listings/${listing.id}/edit`} className="btn btn-ghost" title="Open in AI Listing Studio" style={{ padding: '8px 12px' }}>✎ AI Studio</Link>
                   <button className="btn btn-danger" onClick={() => handleDelete(listing)}>🗑</button>
                 </div>
 
@@ -206,14 +169,6 @@ export default function ListingsDashboard() {
             </Card>
           ))}
         </div>
-      )}
-
-      {showForm && (
-        <ListingFormModal
-          listing={editing}
-          onClose={() => { setShowForm(false); setEditing(null) }}
-          onSubmit={handleSubmit}
-        />
       )}
     </div>
   )
