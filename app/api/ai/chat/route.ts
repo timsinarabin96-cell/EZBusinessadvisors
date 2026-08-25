@@ -35,7 +35,7 @@ const MAX_BODY_BYTES = 32 * 1024 // 32 KB cap
 const MAX_HISTORY = 12 // max prior turns we honor
 const MAX_MESSAGE_LEN = 4000
 
-const agentKindSchema = z.enum(['lead', 'training', 'document', 'support', 'booking'])
+const agentKindSchema = z.enum(['lead', 'training', 'document', 'support', 'booking', 'listing'])
 
 const chatRequestSchema = z.object({
   agent: agentKindSchema,

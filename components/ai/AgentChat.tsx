@@ -28,6 +28,7 @@ const AGENT_LABEL: Record<AgentKind, string> = {
   document: 'Document Agent',
   support: 'Support Agent',
   booking: 'Booking Agent',
+  listing: 'Listing Copilot',
 }
 
 let counter = 0

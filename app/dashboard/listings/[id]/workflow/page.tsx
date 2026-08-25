@@ -25,6 +25,7 @@ import Step10DealClosing from '@/components/listings/Step10DealClosing'
 import StatusBadge from '@/components/listings/StatusBadge'
 import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
 import ListingReadinessPanel from '@/components/listings/ListingReadinessPanel'
+import ListingCopilot from '@/components/listings/ListingCopilot'
 import { autoAdvance } from '@/lib/listingPipeline'
 import { getWorkflow, startWorkflow, WORKFLOW_STEPS } from '@/lib/workflow'
 import { fetchListing, fmtMoney } from '@/lib/listings'
@@ -124,13 +125,16 @@ function WorkflowBody() {
           {activeStep === 10 && <Step10DealClosing listingId={listingId} onNext={goNext} />}
         </div>
 
-        <WorkflowGuidance
-          step={activeStep}
-          stepLabel={stepMeta?.label || ''}
-          listing={listing}
-          workflow={workflow}
-          doneSteps={doneSteps}
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <WorkflowGuidance
+            step={activeStep}
+            stepLabel={stepMeta?.label || ''}
+            listing={listing}
+            workflow={workflow}
+            doneSteps={doneSteps}
+          />
+          <ListingCopilot listingId={listingId} businessName={listing?.business_name} />
+        </div>
       </div>
     </div>
   )

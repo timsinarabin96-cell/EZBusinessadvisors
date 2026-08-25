@@ -100,6 +100,82 @@ async function getTrainingLibrary(): Promise<{ modules: TrainingModuleRow[]; les
   return { modules, lessons }
 }
 
+/** Listing agent — the AI Listing Copilot: full listing + readiness + market context. */
+async function buildListingContext(listingId?: string): Promise<AgentContextPayload> {
+  if (!listingId) {
+    return { kind: 'listing', entityId: undefined, text: 'No listing selected — ask the broker which listing they want help with.' }
+  }
+  const parts: string[] = []
+
+  const listing = await getListing(listingId)
+  if (listing) {
+    parts.push(
+      `LISTING: ${listing.business_name || 'Unnamed'}\n` +
+        (listing.headline ? `Headline: ${listing.headline}\n` : '') +
+        (listing.industry ? `Industry: ${listing.industry}\n` : '') +
+        (listing.location_general ? `Location: ${listing.location_general}\n` : '') +
+        `Status: ${listing.status || 'unknown'}\n` +
+        `Asking price: ${money(listing.asking_price)}\n` +
+        `Revenue: ${money(listing.annual_revenue)}\n` +
+        `SDE: ${money(listing.sde)} · EBITDA: ${money(listing.ebitda)}\n` +
+        `Real estate included: ${listing.real_estate_included ? 'yes' : 'no/unknown'}\n` +
+        (listing.reason_for_sale ? `Reason for sale: ${listing.reason_for_sale}\n` : '') +
+        (listing.description ? `Description: ${trunc(listing.description, 600)}\n` : ''),
+    )
+  } else {
+    parts.push('Listing not found.')
+  }
+
+  // Workflow progress
+  try {
+    const { data: wf } = await supabase
+      .from('listing_workflows')
+      .select('current_step, completed_steps')
+      .eq('listing_id', listingId)
+      .maybeSingle()
+    if (wf) {
+      const done = Array.isArray(wf.completed_steps) ? (wf.completed_steps as unknown[]).map(Number) : []
+      parts.push(`\nWORKFLOW: current step ${wf.current_step ?? 1} of 10 · completed: [${done.join(', ') || 'none'}]`)
+    } else {
+      parts.push('\nWORKFLOW: not started — the 10-step guided flow has not been begun.')
+    }
+  } catch {
+    /* workflow is best-effort */
+  }
+
+  // Readiness snapshot — the copilot's diagnosis memory
+  try {
+    const { fetchListingReadiness } = await import('@/lib/listingReadiness')
+    const r = await fetchListingReadiness(listingId)
+    parts.push(
+      `\nREADINESS: score ${r.score}/100 (grade ${r.grade}) · publishable: ${r.canPublish ? 'yes' : 'no'}` +
+        (r.blockers.length ? `\nBLOCKERS: ${r.blockers.join('; ')}` : '') +
+        `\nNEXT ACTION: ${r.nextAction}`,
+    )
+  } catch {
+    /* readiness is best-effort */
+  }
+
+  // Market multiples for the industry
+  try {
+    const { bandForIndustry } = await import('@/lib/marketMultiplesCore.ts')
+    const band = bandForIndustry(listing?.industry, listing?.ebitda ? 'EBITDA' : 'SDE')
+    parts.push(`\nMARKET BAND: ${band.industry} — ${band.min.toFixed(1)}-${band.max.toFixed(1)}x ${band.basis}${band.sourceNote ? ` (${band.sourceNote})` : ''}`)
+  } catch {
+    /* market band is best-effort */
+  }
+
+  // Documents on file
+  const docs = await getListingDocs(listingId)
+  parts.push(docs.length ? `\nDOCUMENTS (${docs.length}):\n- ${docs.join('\n- ')}` : '\nDOCUMENTS: none on file.')
+
+  return {
+    kind: 'listing',
+    entityId: listingId,
+    text: parts.join('\n'),
+  }
+}
+
 /**
  * Compiles a context payload for a given agent. `entityId` scopes deal/document
  * agents to a listing; the training agent loads the whole curriculum (bounded).
@@ -122,6 +198,8 @@ export async function buildAgentContext({
       return { kind, entityId, text: '' }
     case 'booking':
       return { kind, entityId, text: '' }
+    case 'listing':
+      return buildListingContext(entityId)
   }
 }
 
