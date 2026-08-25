@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import type { SoldListing } from '@/lib/marketplace'
 import { fetchFeaturedListings, fetchMarketplaceStats, fetchAllIndustries, fetchSoldListings } from '@/lib/marketplace'
 import { buildSoldCompsReport } from '@/lib/soldComps'
@@ -7,16 +8,16 @@ import PublicListingCard from '@/components/public/PublicListingCard'
 import AuthRedirect from '@/components/public/AuthRedirect'
 import ValuationLeadForm from '@/components/public/ValuationLeadForm'
 import HomeSearchLocation from '@/components/public/HomeSearchLocation'
+import InstantValuation from '@/components/public/InstantValuation'
+import HomeCountUp from '@/components/public/HomeCountUp'
 import { CRM_LICENSE } from '@/lib/billing'
 
-// ---------------------------------------------------------------------------
-// / — public homepage (Server Component). Hero, search, featured listings,
-// and buyer/seller CTAs, all server-rendered from public_listing_feed (the
-// safe projection — see sql/public_website_schema.sql). The search form is
-// a plain GET form so it works with zero client JS; only the "already
-// signed in? go to /dashboard" nudge (AuthRedirect) runs client-side, and it
-// never blocks or replaces this SEO content.
-// ---------------------------------------------------------------------------
+// ===========================================================================
+// / — advanced public homepage (Server Component). Hero with animated market
+// band, live sold-deals ticker, count-up stats, smart search, instant
+// valuation, featured listings, trust + sold proof, and the platform offer.
+// All data is server-rendered from public_listing_feed (safe projection).
+// ===========================================================================
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
 const APP_NAME = 'Concord'
@@ -57,54 +58,49 @@ export default async function HomePage() {
       <AuthRedirect />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* HERO */}
-      <section
-        style={{
-          background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%)',
-          color: '#fff',
-          padding: '80px 24px 64px',
-        }}
-      >
-        <div style={{ maxWidth: 1100, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>
+      {/* ══ HERO — premium animated band ══ */}
+      <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 45%,#0f3460 100%)', color: '#fff', padding: '84px 24px 72px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 70% 20%, rgba(201,168,76,0.14), transparent 60%), radial-gradient(ellipse 50% 40% at 15% 80%, rgba(15,52,96,0.55), transparent 65%)' }} />
+        <div style={{ position: 'relative', maxWidth: 1100, margin: '0 auto', textAlign: 'center' }}>
+          <div className="home-fade-up" style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>
             Confidential Business Brokerage
           </div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 5vw, 48px)', margin: '16px 0 14px', lineHeight: 1.15, color: '#fff' }}>
-            Buy or Sell a Business<br />With Confidence
+          <h1 className="home-fade-up d1" style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 5.4vw, 54px)', margin: '16px 0 14px', lineHeight: 1.12, color: '#fff' }}>
+            Buy or Sell a Business<br />With <span style={{ color: '#c9a84c' }}>Confidence</span>
           </h1>
-          <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.78)', maxWidth: 640, margin: '0 auto 36px', lineHeight: 1.6 }}>
-            Concord connects qualified buyers with vetted, profitable businesses —
-            and helps owners sell confidentially, for the right price.
+          <p className="home-fade-up d2" style={{ fontSize: 17, color: 'rgba(255,255,255,0.78)', maxWidth: 640, margin: '0 auto 34px', lineHeight: 1.6 }}>
+            Concord connects qualified buyers with vetted, profitable businesses — and helps owners sell confidentially, for the right price.
           </p>
 
-          {/* Search — plain GET form, no client JS required */}
+          {/* Smart search — plain GET form, zero client JS */}
           <form
             action="/marketplace/listings"
             method="GET"
-            className="grid-responsive collapse-md"
+            className="grid-responsive collapse-md home-fade-up d3"
             style={{
-              background: '#fff',
-              borderRadius: 12,
-              padding: 14,
-              '--grid-cols': '2fr 1.3fr 1fr auto',
-              '--grid-gap': '10px',
-              maxWidth: 820,
-              margin: '0 auto',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+              background: '#fff', borderRadius: 14, padding: 14,
+              '--grid-cols': '2fr 1.3fr 1fr auto', '--grid-gap': '10px',
+              maxWidth: 840, margin: '0 auto', boxShadow: '0 24px 70px rgba(0,0,0,0.45)',
             } as React.CSSProperties}
           >
             <input name="q" placeholder="Keyword (e.g. restaurant, HVAC, e-commerce)" style={searchInput} />
             <select name="industry" defaultValue="" style={searchInput}>
               <option value="">All Industries</option>
-              {industries.map((i) => (
-                <option key={i} value={i}>{i}</option>
-              ))}
+              {industries.map((i) => <option key={i} value={i}>{i}</option>)}
             </select>
             <HomeSearchLocation style={searchInput} />
-            <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 8, padding: '0 22px', fontWeight: 700, fontFamily: 'Georgia, serif', fontSize: 14, cursor: 'pointer' }}>
-              Search
+            <button type="submit" className="home-glow" style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', borderRadius: 8, padding: '0 26px', fontWeight: 800, fontFamily: 'Georgia, serif', fontSize: 14.5, cursor: 'pointer' }}>
+              Search →
             </button>
           </form>
+
+          {/* Trust chips */}
+          <div className="home-fade-up d3" style={{ marginTop: 26, display: 'flex', gap: 22, justifyContent: 'center', flexWrap: 'wrap', fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
+            <span>🔒 NDA-protected</span>
+            <span>📊 Recast financials</span>
+            <span>⚖️ Broker-valued</span>
+            <span>🤝 Verified buyers</span>
+          </div>
 
           <div style={{ marginTop: 28, display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/marketplace/listings" style={ctaGold}>Browse All Listings →</Link>
@@ -113,16 +109,37 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* STATS BAR */}
+      {/* ══ LIVE SOLD-DEALS TICKER — social proof marquee ══ */}
+      {sold.length > 0 && (
+        <section style={{ background: 'linear-gradient(90deg,#0f3460,#1a1a2e)', padding: '18px 0', overflow: 'hidden', borderTop: '1px solid rgba(201,168,76,0.25)' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 18, padding: '0 24px' }}>
+            <div style={{ color: '#c9a84c', fontSize: 12.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', whiteSpace: 'nowrap' }}>
+              ● Recently Sold
+            </div>
+            <div style={{ overflow: 'hidden', flex: 1 }}>
+              <div className="home-ticker-track">
+                {[...sold.slice(0, 10), ...sold.slice(0, 10)].map((s, i) => (
+                  <span key={s.listing_id + i} style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13.5, whiteSpace: 'nowrap' }}>
+                    ✅ {s.industry || 'Business'} · {s.location_general || 'US'}{s.multiple ? ` · ${s.multiple.toFixed(1)}× SDE` : ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ══ LIVE STATS — count-up ══ */}
       <section style={{ background: '#fff', borderBottom: '1px solid #ece8dc' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 20, textAlign: 'center' }}>
-          <Stat label="Businesses for Sale" value={String(stats.totalListings)} />
-          {stats.totalBusinessesSold > 0 && <Stat label="Businesses Sold" value={String(stats.totalBusinessesSold)} />}
-          <Stat label="Industries" value={String(stats.industries)} />
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 22 }}>
+          <HomeCountUp value={stats.totalListings} label="Businesses for Sale" />
+          <HomeCountUp value={stats.totalBusinessesSold} label="Businesses Sold" />
+          <HomeCountUp value={stats.industries} label="Industries" />
+          <HomeCountUp value={compsReport.totals.deals} label="Closed Deals Tracked" />
         </div>
       </section>
 
-      {/* LIVE MARKET BAND — real sold-comps averages */}
+      {/* ══ MARKET INTELLIGENCE BAND — real sold-comps averages ══ */}
       {compsReport.totals.deals > 0 && (
         <section style={{ background: '#f5f3ec', borderBottom: '1px solid #e5dfcc' }}>
           <div style={{ maxWidth: 1100, margin: '0 auto', padding: '22px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 18, textAlign: 'center' }}>
@@ -134,31 +151,12 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* RECENTLY SOLD TICKER — social proof */}
-      {sold.length > 0 && (
-        <section style={{ background: 'linear-gradient(135deg,#0f3460,#1a1a2e)', padding: '22px 0', overflow: 'hidden' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 18 }}>
-            <div style={{ color: '#c9a84c', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', whiteSpace: 'nowrap' }}>
-              ✅ Recently Sold
-            </div>
-            <div style={{ display: 'flex', gap: 28, overflowX: 'auto', scrollbarWidth: 'none', whiteSpace: 'nowrap' }}>
-              {sold.slice(0, 10).map((s, i) => (
-                <span key={s.listing_id + i} style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13.5 }}>
-                  {s.industry || 'Business'} · {s.location_general || 'US'}
-                  {s.multiple ? ` · ${s.multiple.toFixed(1)}× SDE` : ''}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* FEATURED LISTINGS */}
+      {/* ══ FEATURED LISTINGS ══ */}
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '56px 24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 26, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Featured Opportunities</div>
-            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#1a1a2e', margin: '6px 0 0' }}>Recently Listed Businesses</h2>
+            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 30, color: '#1a1a2e', margin: '6px 0 0' }}>Recently Listed Businesses</h2>
           </div>
           <Link href="/marketplace/listings" style={{ color: '#1a1a2e', fontWeight: 700, fontFamily: 'Georgia, serif', textDecoration: 'none' }}>
             View all listings →
@@ -170,11 +168,7 @@ export default async function HomePage() {
           <div style={{ fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Browse by industry</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {industries.slice(0, 20).map((ind) => (
-              <Link
-                key={ind}
-                href={`/marketplace/industry/${slugify(ind)}`}
-                style={{ padding: '7px 16px', borderRadius: 99, fontSize: 13, fontWeight: 700, textDecoration: 'none', background: '#faf9f4', color: '#1a1a2e', border: '1px solid #ece8dc' }}
-              >
+              <Link key={ind} href={`/marketplace/industry/${slugify(ind)}`} style={{ padding: '7px 16px', borderRadius: 99, fontSize: 13, fontWeight: 700, textDecoration: 'none', background: '#faf9f4', color: '#1a1a2e', border: '1px solid #ece8dc', transition: 'all 0.15s' }}>
                 {ind}
               </Link>
             ))}
@@ -188,37 +182,26 @@ export default async function HomePage() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
-            {featured.map((l) => (
-              <PublicListingCard key={l.id} listing={l} />
-            ))}
+            {featured.map((l) => <PublicListingCard key={l.id} listing={l} />)}
           </div>
         )}
       </section>
 
-      {/* BUYER / SELLER CTAs */}
+      {/* ══ INSTANT VALUATION + BUYER/SELLER ══ */}
       <section style={{ background: '#faf9f4', padding: '56px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
           <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
-            <CtaCard
-              eyebrow="For Buyers"
-              title="Find Your Next Acquisition"
-              body="Browse a curated selection of vetted, cash-flowing businesses. Sign an NDA to unlock full financials on any listing that interests you."
-              href="/marketplace/listings"
-              label="Browse Businesses"
-            />
-            <CtaCard
-              eyebrow="For Sellers"
-              title="Sell Your Business Confidentially"
-              body="Get a free, no-obligation valuation from a licensed business broker. We market your business discreetly to qualified buyers only."
-              href="/marketplace/sell"
-              label="Learn More"
-            />
+            <CtaCard eyebrow="For Buyers" title="Find Your Next Acquisition" body="Browse a curated selection of vetted, cash-flowing businesses. Sign an NDA to unlock full financials on any listing that interests you." href="/marketplace/listings" label="Browse Businesses" />
+            <CtaCard eyebrow="For Sellers" title="Sell Your Business Confidentially" body="Get a free, no-obligation valuation from a licensed business broker. We market your business discreetly to qualified buyers only." href="/marketplace/sell" label="Learn More" />
           </div>
-          <ValuationLeadForm />
+          <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
+            <InstantValuation />
+            <ValuationLeadForm />
+          </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
+      {/* ══ HOW IT WORKS ══ */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>How It Works</div>
@@ -231,7 +214,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* WHY CONCORD */}
+      {/* ══ WHY CONCORD ══ */}
       <section style={{ background: '#faf9f4', padding: '56px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
@@ -247,7 +230,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* TRUST BAR — verification + testimonials */}
+      {/* ══ TRUST + SOLD PROOF ══ */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 36 }}>
           <TrustBadge icon="🏅" title="Vetted Listings" body="Every listing passes a quality + compliance review before it goes live." />
@@ -257,13 +240,11 @@ export default async function HomePage() {
         </div>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>{sold.length > 0 ? 'Real closings' : 'What people say'}</div>
-          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#1a1a2e', margin: '8px 0 0' }}>{sold.length > 0 ? 'Deals That Actually Close' : 'Deals That Actually Close'}</h2>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#1a1a2e', margin: '8px 0 0' }}>Deals That Actually Close</h2>
         </div>
         {sold.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
-            {sold.slice(0, 3).map((s) => (
-              <SoldProofCard key={s.listing_id} s={s} />
-            ))}
+            {sold.slice(0, 3).map((s) => <SoldProofCard key={s.listing_id} s={s} />)}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
@@ -274,9 +255,9 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* CTA BAND */}
+      {/* ══ CTA BAND ══ */}
       <section style={{ background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%)', color: '#fff', padding: '56px 24px', textAlign: 'center' }}>
-        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 30, margin: '0 0 10px' }}>Ready to Make Your Move?</h2>
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 30, margin: '0 0 10px', color: '#fff' }}>Ready to Make Your Move?</h2>
         <p style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 560, margin: '0 auto 28px', fontSize: 15.5, lineHeight: 1.6 }}>
           Whether you're buying your next business or selling the one you've built — start with a free, confidential conversation.
         </p>
@@ -286,7 +267,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* OWN THE CRM — platform product offer */}
+      {/* ══ OWN THE CRM — platform product offer ══ */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 24px' }}>
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>For Brokerages</div>
@@ -307,17 +288,12 @@ export default async function HomePage() {
                 </li>
               ))}
             </ul>
-            <Link
-              href="/contact"
-              style={{ display: 'block', textAlign: 'center', marginTop: 22, background: '#1a1a2e', color: '#c9a84c', padding: '13px 0', borderRadius: 8, textDecoration: 'none', fontWeight: 800, fontFamily: 'Georgia, serif' }}
-            >
+            <Link href="/contact" style={{ display: 'block', textAlign: 'center', marginTop: 22, background: '#1a1a2e', color: '#c9a84c', padding: '13px 0', borderRadius: 8, textDecoration: 'none', fontWeight: 800, fontFamily: 'Georgia, serif' }}>
               Request a Demo
             </Link>
           </div>
           <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 14, padding: 30, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
-            <div style={{ fontSize: 15, color: '#1a1a2e', lineHeight: 1.7 }}>
-              <strong>Your brand. Your domain. Your keys.</strong>
-            </div>
+            <div style={{ fontSize: 15, color: '#1a1a2e', lineHeight: 1.7 }}><strong>Your brand. Your domain. Your keys.</strong></div>
             <div style={{ fontSize: 13.5, color: '#666', lineHeight: 1.7 }}>
               Each licensed CRM runs on its own domain with its own DeepSeek/Claude, Supabase, and Stripe credentials — you pay only your own API usage. No shared infrastructure, no cross-tenant data.
             </div>
@@ -332,6 +308,7 @@ export default async function HomePage() {
   )
 }
 
+/* ── helpers ── */
 function TrustBadge({ icon, title, body }: { icon: string; title: string; body: string }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 24, textAlign: 'center' }}>
@@ -390,15 +367,6 @@ function Feature({ icon, title, body }: { icon: string; title: string; body: str
 
 function slugify(industry: string): string {
   return industry.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 700, color: '#1a1a2e' }}>{value}</div>
-      <div style={{ fontSize: 12, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 4 }}>{label}</div>
-    </div>
-  )
 }
 
 function MarketStat({ label, value }: { label: string; value: string }) {

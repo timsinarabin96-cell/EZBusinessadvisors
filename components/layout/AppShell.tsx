@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { ToastProvider } from '@/components/ui/Toast'
 import SearchBar from '@/components/search/SearchBar'
 import AuthGuard from '@/components/auth/AuthGuard'
@@ -82,6 +82,7 @@ const NAV: NavItem[] = [
   { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️', minRole: 'admin', group: 'Admin' },
   { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰', minRole: 'broker', group: 'Admin' },
   { href: '/dashboard/security', label: 'Security', icon: '🛂', minRole: 'admin', group: 'Admin' },
+  { href: '/dashboard/passwords', label: 'Password Vault', icon: '🔑', minRole: 'agent', group: 'Admin' },
   { href: '/agencies', label: 'Agency Admin', icon: '🏛️', minRole: 'admin', group: 'Admin' },
   { href: '/billing', label: 'Billing', icon: '💳', minRole: 'admin', group: 'Admin' },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙️', minRole: 'admin', group: 'Admin' },
@@ -95,7 +96,9 @@ export default function AppShell({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
@@ -150,6 +153,14 @@ export default function AppShell({
   const visibleNav = NAV.filter((item) => roleRank[item.minRole] <= roleRank[role])
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
+
+  const handleLogout = async () => {
+    setSigningOut(true)
+    try {
+      await supabase.auth.signOut()
+    } catch { /* session may already be gone */ }
+    router.push('/auth')
+  }
 
   return (
     <AuthGuard>
@@ -286,9 +297,36 @@ export default function AppShell({
             })()}
           </nav>
 
-          {/* Footer */}
-          <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(201,168,76,0.3)', fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-            EZ Business Advisors · v1.0
+          {/* Footer — logout + back to website on every page */}
+          <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(201,168,76,0.3)', display: 'grid', gap: 8 }}>
+            <Link
+              href="/marketplace"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)',
+                border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8,
+                padding: '9px 0', fontSize: 13, fontWeight: 700, textDecoration: 'none',
+                fontFamily: 'Georgia, serif',
+              }}
+            >
+              🌐 Back to Website
+            </Link>
+            <button
+              onClick={handleLogout}
+              disabled={signingOut}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                background: signingOut ? '#666' : 'rgba(201,168,76,0.16)', color: '#fff',
+                border: '1px solid rgba(201,168,76,0.45)', borderRadius: 8,
+                padding: '9px 0', fontSize: 13, fontWeight: 700, cursor: signingOut ? 'wait' : 'pointer',
+                fontFamily: 'Georgia, serif',
+              }}
+            >
+              {signingOut ? 'Signing out…' : '🚪 Logout'}
+            </button>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', textAlign: 'center' }}>
+              EZ Business Advisors · v1.0
+            </div>
           </div>
         </aside>
 

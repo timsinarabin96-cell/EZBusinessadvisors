@@ -525,3 +525,34 @@ h1, h2, h3, h4 {
     font-size: 16px !important; /* prevents iOS zoom-on-focus */
   }
 }
+
+/* ---- Advanced public-site animations ---- */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.35); }
+  50% { box-shadow: 0 0 0 12px rgba(201,168,76,0); }
+}
+.home-ticker-track {
+  display: flex;
+  gap: 40px;
+  width: max-content;
+  animation: ticker-scroll 40s linear infinite;
+}
+.home-ticker-track:hover { animation-play-state: paused; }
+.home-fade-up { animation: fade-up 0.7s ease both; }
+.home-fade-up.d1 { animation-delay: 0.08s; }
+.home-fade-up.d2 { animation-delay: 0.16s; }
+.home-fade-up.d3 { animation-delay: 0.24s; }
+.home-float { animation: float-slow 6s ease-in-out infinite; }
+.home-glow { animation: glow-pulse 2.4s ease-in-out infinite; }
