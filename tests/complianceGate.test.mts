@@ -10,7 +10,7 @@ test('compliance gate: publishListing evaluates compliance and returns it', () =
   assert.match(publish, /evaluateListingCompliance/)
   assert.match(publish, /let compliance = null/)
   assert.match(publish, /compliance\?: import\('@\/lib\/compliance'\)\.ComplianceEvaluation/)
-  assert.match(publish, /flagged, compliance \}/)
+  assert.match(publish, /flagged, compliance, risk/)
   assert.match(publish, /best-effort/)
 })
 

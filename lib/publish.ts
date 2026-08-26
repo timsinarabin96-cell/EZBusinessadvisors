@@ -19,6 +19,7 @@ import { evaluateListingCompliance } from '@/lib/compliance'
 import { sendEmail } from '@/lib/email'
 import { recordSuccessFee } from '@/lib/successFee'
 import { matchPublicSubscriptions } from '@/lib/notifySubscriptions'
+import { assessListingRisk, type RiskReport } from '@/lib/scamDetectionCore'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -142,7 +143,7 @@ async function firePublishBlast(listingId: string, agencyId: string): Promise<vo
  * Returns blocked with missing items when the gate fails.
  */
 export async function publishListing(listingId: string, actorProfileId?: string, opts?: { force?: boolean }): Promise<{
-  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }
+  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }; risk?: { score: number; level: string; reasons: string[] } | null
 }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   const { data: listing } = await svc.from('listings').select('*').eq('id', listingId).maybeSingle()
@@ -226,8 +227,38 @@ export async function publishListing(listingId: string, actorProfileId?: string,
   // Without this, a published listing never appears on the website.
   await syncPublicListingRow(listing)
 
+  // Preventative AI risk gate: newly published listings get scored immediately;
+  // critical risk (>= 75) auto-flags them for admin review — before they can
+  // sit in the marketplace unflagged.
+  let risk: RiskReport | null = null
+  try {
+    const { data: owner } = await svc.from('profiles').select('created_at').eq('id', listing.agent_id).maybeSingle()
+    risk = assessListingRisk({
+      businessName: listing.business_name,
+      headline: listing.headline,
+      description: listing.description,
+      industry: listing.industry,
+      askingPrice: listing.asking_price,
+      annualRevenue: listing.annual_revenue,
+      sde: listing.sde,
+      city: listing.city,
+      state: listing.state,
+      imageCount: Array.isArray(listing.image_urls) ? listing.image_urls.length : 0,
+      listingCreatedAt: listing.created_at,
+      publishedAt: new Date().toISOString(),
+      ownerCreatedAt: owner?.created_at || null,
+      alreadyFlagged: Boolean(flagged),
+      flagReasons: flagged ? ['low_readiness'] : null,
+    })
+    if (risk.score >= 75 && !flagged) {
+      await svc.from('listings').update({ flagged: true, flag_reasons: [`AI: ${risk.score}/100 — ${risk.reasons.slice(0, 3).join('; ')}`] }).eq('id', listingId)
+    }
+  } catch {
+    risk = null // risk gate is best-effort — never hard-fail a publish
+  }
+
   await firePublishBlast(listingId, listing.agency_id)
-  return { ok: true, published: true, score: readiness.score, flagged, compliance }
+  return { ok: true, published: true, score: readiness.score, flagged, compliance, risk: risk ? { score: risk.score, level: risk.level, reasons: risk.reasons } : null }
 }
 
 /** Ensure the public feed row exists for a published listing. */

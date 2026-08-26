@@ -23,3 +23,27 @@ export async function signIn(page: Page, email = E2E_USER.email, password = E2E_
   // Wait for navigation into the app.
   await page.waitForLoadState('networkidle').catch(() => {})
 }
+
+/**
+ * Supabase stores the session in localStorage (not cookies), so API routes
+ * (which read the Bearer token from the Authorization header) need the token
+ * passed explicitly when calling from a Playwright APIRequestContext.
+ */
+export async function getAuthToken(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const key = Object.keys(localStorage).find((k) => k.includes('auth-token'))
+    if (!key) return null
+    try {
+      const raw = localStorage.getItem(key)
+      const parsed = raw ? JSON.parse(raw) : null
+      return parsed?.access_token || null
+    } catch {
+      return null
+    }
+  })
+}
+
+export async function authHeaders(page: Page): Promise<Record<string, string>> {
+  const token = await getAuthToken(page)
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
