@@ -22,8 +22,8 @@ import { getStoredAccessToken } from '@/lib/authToken'
 // buyer. Every doc is saved under the listing and audit-logged.
 // =============================================================================
 
-const SELLER_TEMPLATES = ['Marketing Agreement', 'Listing Agreement', 'Resolution', 'Property Addendum']
-const BUYER_TEMPLATES = ['NDA', 'Buyer Profile', 'Due Diligence', 'Purchase Agreement']
+const SELLER_TEMPLATES = ['Marketing Agreement', 'Listing Agreement', 'Financial Authorization', 'Resolution', 'Property Addendum']
+const BUYER_TEMPLATES = ['NDA', 'Buyer Profile', 'Proof of Funds', 'Due Diligence', 'Purchase Agreement']
 
 // Match by fuzzy substring so agencies' own templates (e.g. "EZ Marketing Agreement 2026")
 // land in the right pack automatically.
@@ -45,6 +45,10 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
     setLoading(true)
     setError('')
     try {
+      // Self-heal: make sure the pack templates exist (Financial Authorization,
+      // Proof of Funds, …) even if the SQL seed hasn't been run yet. Fire and
+      // forget — then reload so the new templates appear immediately.
+      await fetch('/api/documents/templates/ensure', { method: 'POST' }).catch(() => {})
       const [l, tpls, d, user] = await Promise.all([
         fetchListing(listingId),
         fetchTemplates(true),
