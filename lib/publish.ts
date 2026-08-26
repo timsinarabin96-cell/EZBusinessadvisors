@@ -72,6 +72,8 @@ export function listingToReadinessInput(row: any): IntelligentListingInput {
     property_description: row.property_description || '',
     seller_financing_available: Boolean(row.seller_financing_available),
     financing_notes: '',
+    commission_split_agent: typeof row.commission_split_agent === 'number' ? row.commission_split_agent : 50,
+    commission_split_brokerage: typeof row.commission_split_brokerage === 'number' ? row.commission_split_brokerage : 50,
     transition_support: '',
     training_period_weeks: '',
     public_title: row.public_title || '',

@@ -97,6 +97,8 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
         property_description: (l as any).property_description || '',
         seller_financing_available: !!l.seller_financing_available,
         financing_notes: (l as any).financing_notes || '',
+        commission_split_agent: typeof (l as any).commission_split_agent === 'number' ? (l as any).commission_split_agent : 50,
+        commission_split_brokerage: typeof (l as any).commission_split_brokerage === 'number' ? (l as any).commission_split_brokerage : 50,
         transition_support: l.transition_support || '',
         training_period_weeks: l.training_period_weeks != null ? String(l.training_period_weeks) : '',
         public_title: meta.public_title || '',
@@ -404,6 +406,30 @@ function FinancialSection({ form, setValue, listingId }: SectionProps & { listin
     <Checkbox label="Sale includes goodwill (ongoing customer value)" checked={form.goodwill_included} onChange={(checked) => setValue('goodwill_included', checked)} />
     <Checkbox label="Structured as an asset sale" checked={form.asset_sale} onChange={(checked) => setValue('asset_sale', checked)} />
     <Field label="Financing structure and qualification notes" span><textarea className="textarea" rows={5} value={form.financing_notes} onChange={(event) => setValue('financing_notes', event.target.value)} placeholder="SBA suitability, down payment assumptions, seller note, working capital, collateral, or lender concerns." /></Field>
+    <Field label="Commission split — agent vs brokerage" span>
+      <div style={{ padding: 14, borderRadius: 10, background: '#f8fbff', border: '1px solid #dbe7f3' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <input
+            type="range"
+            min="0" max="100" step="5"
+            value={form.commission_split_agent}
+            onChange={(event) => {
+              const agent = Number(event.target.value)
+              setValue('commission_split_agent', agent)
+              setValue('commission_split_brokerage', 100 - agent)
+            }}
+            style={{ flex: 1, minWidth: 180, accentColor: '#2563eb' }}
+          />
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#2563eb', background: '#eff6ff', padding: '6px 12px', borderRadius: 8 }}>Agent {form.commission_split_agent}%</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', background: '#f0ecdf', padding: '6px 12px', borderRadius: 8 }}>Brokerage {form.commission_split_brokerage}%</span>
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+          Who closes the deal earns their split of the {10}% brokerage fee. Default 50/50 — adjust per deal.
+        </div>
+      </div>
+    </Field>
     {form.real_estate_included && (
       <div style={{ gridColumn: '1 / -1', padding: 16, borderRadius: 10, background: '#f8fbff', border: '1px solid #dbe7f3' }}>
         <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: 14 }}>🏢 Property details (real estate included)</div>

@@ -300,8 +300,8 @@ function CommissionsApp() {
                       {commission.listings?.business_name || 'Listing'} · {money(commission.amount)}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Agent: {commission.profiles?.full_name || '—'}
-                      {commission.commission_pct != null ? ` · ${commission.commission_pct}%` : ''}
+                      {commission.agent_profile_id ? `Agent: ${commission.profiles?.full_name || '—'}` : '🏛️ Brokerage side'}
+                      {commission.commission_pct != null ? ` · ${commission.commission_pct}% fee` : ''}
                       {' · '}
                       {fmtDate(commission.created_at)}
                       {commission.paid_at ? ` · paid ${fmtDate(commission.paid_at)}` : ''}

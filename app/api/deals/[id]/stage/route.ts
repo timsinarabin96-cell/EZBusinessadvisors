@@ -32,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // Load the deal + its listing (agency + split + price) server-side.
   const { data: deal } = await db
     .from('deals')
-    .select('id, listing_id, purchase_price, agency_id, listings(agency_id, commission_split_agent, commission_split_brokerage, asking_price)')
+    .select('id, listing_id, purchase_price, agency_id, listings(agency_id, agent_id, commission_split_agent, commission_split_brokerage, asking_price)')
     .eq('id', dealId)
     .maybeSingle()
   if (!deal) return NextResponse.json({ ok: false, error: 'Deal not found' }, { status: 404 })
@@ -47,14 +47,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { error: updateErr } = await db.from('deals').update({ status: stage, updated_at: new Date().toISOString() }).eq('id', dealId)
   if (updateErr) return NextResponse.json({ ok: false, error: updateErr.message }, { status: 500 })
 
-  // Auto-record commission on close (idempotent per deal).
+  // Auto-record commission on close (idempotent per deal). Both sides of the
+  // split are recorded: the agent who closed the deal, and the brokerage
+  // (overseeing broker). Split defaults to 50/50 and comes from the listing.
   let commission: { ok: boolean; error?: string; data?: unknown; skipped?: boolean } = { ok: true, skipped: true }
   if (stage === 'closed') {
     const price = Number((deal as any).purchase_price ?? listing?.asking_price ?? 0)
     const feeRate = 10 // standard brokerage fee % — matches DealDetail economics
-    const agentSplit = Number(listing?.commission_split_agent ?? 70) // default 70/30
+    const agentSplit = Number(listing?.commission_split_agent ?? 50) // default 50/50
     const fee = (price * feeRate) / 100
     const agentTake = (fee * agentSplit) / 100
+    const brokerTake = fee - agentTake
 
     if (Number.isFinite(agentTake) && agentTake > 0) {
       // Dedupe: skip if this deal already has a commission record.
@@ -64,14 +67,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .eq('deal_id', dealId)
         .limit(1)
       if (!existing || existing.length === 0) {
+        const splitNote = `Auto-recorded on deal close — ${agentSplit}% agent split on ${feeRate}% fee (price ${Math.round(price).toLocaleString()}). Total fee $${Math.round(fee).toLocaleString()} → agent $${Math.round(agentTake).toLocaleString()} / brokerage $${Math.round(brokerTake).toLocaleString()}.`
         const result = await recordCommission({
           agencyId,
           listingId: (deal as any).listing_id || null,
           dealId,
+          agentProfileId: (listing as any)?.agent_id || null, // the closing agent (listing owner)
           amount: Math.round(agentTake),
           commissionPct: feeRate,
-          notes: `Auto-recorded on deal close — ${agentSplit}% agent split on ${feeRate}% fee (price ${Math.round(price).toLocaleString()})`,
+          notes: splitNote,
         })
+        // Record the brokerage side too (agent_profile_id null = brokerage).
+        if (result.ok && Number.isFinite(brokerTake) && brokerTake > 0) {
+          await recordCommission({
+            agencyId,
+            listingId: (deal as any).listing_id || null,
+            dealId,
+            agentProfileId: null, // brokerage side
+            amount: Math.round(brokerTake),
+            commissionPct: feeRate,
+            notes: `Brokerage side — ${100 - agentSplit}% of ${feeRate}% fee (deal closed by agent at ${agentSplit}% split).`,
+          })
+        }
         commission = result
       }
     }

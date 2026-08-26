@@ -40,6 +40,8 @@ export interface IntelligentListingInput {
   property_description: string
   seller_financing_available: boolean
   financing_notes: string
+  commission_split_agent: number
+  commission_split_brokerage: number
   transition_support: string
   training_period_weeks: string
   public_title: string
@@ -61,7 +63,7 @@ export const EMPTY_INTELLIGENT_LISTING: IntelligentListingInput = {
   lease_square_feet: '',
   real_estate_included: false, ffe_included: false, inventory_included: false, goodwill_included: false, asset_sale: true,
   property_address: '', property_city: '', square_footage: '', land_acres: '', year_built: '', property_value: '', property_description: '',
-  seller_financing_available: false, financing_notes: '', transition_support: '',
+  seller_financing_available: false, financing_notes: '', transition_support: '', commission_split_agent: 50, commission_split_brokerage: 50,
   training_period_weeks: '', public_title: '', public_summary: '', public_highlights: '', video_url: '', gallery_images: [], confidentiality_level: 'anonymous',
   show_financials: false, seller_approval_reference: '', source: 'broker_manual',
 }
@@ -125,6 +127,8 @@ export function buildListingInsert(input: IntelligentListingInput) {
     property_description: input.property_description.trim() || null,
     seller_financing_available: input.seller_financing_available,
     financing_notes: input.financing_notes.trim() || null,
+    commission_split_agent: input.commission_split_agent,
+    commission_split_brokerage: input.commission_split_brokerage,
     transition_support: input.transition_support.trim() || null,
     training_period_weeks: integerOrNull(input.training_period_weeks),
     confidentiality_level: input.confidentiality_level,
