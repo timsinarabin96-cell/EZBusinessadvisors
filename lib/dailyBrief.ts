@@ -124,7 +124,7 @@ export async function generateDailyBrief(agencyId: string): Promise<DailyBriefSu
       ndaSigners,
       expiring,
       dealMoves,
-      briefUrl: 'https://ezbusinessadvisors.vercel.app/dashboard',
+      briefUrl: 'https://concord-deal-platform.vercel.app/dashboard',
     })
   }
 

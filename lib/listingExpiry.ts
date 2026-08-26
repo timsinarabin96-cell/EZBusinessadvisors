@@ -12,7 +12,7 @@ import { notify } from './email'
 import { computeValuation } from './valuation'
 import { createHmac } from 'node:crypto'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''

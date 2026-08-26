@@ -195,17 +195,29 @@ export async function checkAgentLicense(userId?: string): Promise<LicenseCheck> 
   const profile = userId ? await getLicenseFor(userId) : await getMyLicense()
   if (!profile) {
     return {
-      ok: false, licensed: false, verified: false,
-      licenseNumber: null, licenseState: null, status: 'unverified',
-      reason: 'No license information on file. Add your real-estate license to proceed with real-estate listings.',
+      ok: true, licensed: false, verified: false,
+      licenseNumber: null, licenseState: null, status: 'not_required',
+      reason: 'Most states do not require a license to broker business assets. A real-estate license is only needed when the sale transfers real property (and for business opportunities in CA).',
     }
   }
+
+  // Explicitly marked not-required → nothing to verify.
+  if (profile.license_status === 'not_required') {
+    return {
+      ok: true, licensed: false, verified: false,
+      licenseNumber: profile.real_estate_license_number,
+      licenseState: profile.real_estate_license_state,
+      status: 'not_required',
+      reason: 'No license required — most states do not license business brokerage. A real-estate license is only needed when the sale transfers real property.',
+    }
+  }
+
   const licensed = !!profile.real_estate_license_number && !!profile.real_estate_license_state
   const verified = profile.is_license_verified === true && profile.license_status === 'verified'
   const expired = profile.license_status === 'expired'
   let reason = ''
   if (expired) reason = 'Your real-estate license is expired.'
-  else if (!licensed) reason = 'No real-estate license on file for this broker.'
+  else if (!licensed) reason = 'No real-estate license on file. Only needed when the sale transfers real property — most business-asset sales do not require one.'
   else if (!verified) reason = 'License on file but not yet verified.'
   return {
     ok: !!licensed && !!verified && !expired,
@@ -237,6 +249,8 @@ export async function canListWithRealEstate(userId?: string, targetState?: strin
 
 // States where brokering a business that transfers real property commonly
 // requires an active real-estate license. Conservative advisory default.
+// NOTE: business-asset-only sales (no real property) are unlicensed in most
+// states; only CA treats business opportunities as always-licensed.
 export const LICENSED_STATES = new Set([
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
   'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',

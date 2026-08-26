@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { extractBooking, createBooking } from '@/lib/booking'
 import { getAgencyContext } from '@/lib/agencyContext'
+import { rateLimit, clientIp } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -30,6 +31,11 @@ function fail(message: string, status = 400, extra: object = {}) {
  *   3. Otherwise the appointment is created in the CRM calendar (service role).
  */
 export async function POST(req: NextRequest) {
+  // Spam guard — shared by chat + voice agents, no auth on the public path.
+  if (!rateLimit(clientIp(req), { limit: 30, windowMs: 60_000 })) {
+    return fail('Too many requests — try again shortly.', 429)
+  }
+
   const raw = await req.text().catch(() => '')
   if (!raw) return fail('Empty request body.', 400)
   if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {

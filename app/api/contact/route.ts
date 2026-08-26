@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email'
+import { rateLimit, clientIp } from '@/lib/rateLimit'
 
 // ---------------------------------------------------------------------------
 // POST /api/contact — public "Contact Us" form submission handler.
@@ -14,6 +15,11 @@ const esc = (s: string): string =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 
 export async function POST(req: NextRequest) {
+  // Spam guard — public endpoint, no auth: max 10 submissions/IP/minute.
+  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 60_000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests — try again shortly' }, { status: 429 })
+  }
+
   let body: any
   try {
     body = await req.json()

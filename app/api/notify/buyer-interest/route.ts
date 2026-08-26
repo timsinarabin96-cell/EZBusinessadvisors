@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email'
+import { rateLimit, clientIp } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -15,6 +16,11 @@ const esc = (s: string): string =>
  * So sellers/brokers hear about interest the moment it happens.
  */
 export async function POST(req: NextRequest) {
+  // Spam guard — public endpoint, no auth.
+  if (!rateLimit(clientIp(req), { limit: 15, windowMs: 60_000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests — try again shortly' }, { status: 429 })
+  }
+
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 

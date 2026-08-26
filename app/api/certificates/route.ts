@@ -16,7 +16,7 @@ const SVC = process.env.NEXT_PUBLIC_SUPABASE_URL
     })
   : null
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
 
 function makeCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'

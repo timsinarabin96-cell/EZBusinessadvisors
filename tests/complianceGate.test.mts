@@ -25,3 +25,18 @@ test('compliance gate: Step 8 shows license-required warning + checklist', () =>
   assert.match(step8, /checklist\.filter/)
   assert.match(step8, /c\.required/)
 })
+
+test('compliance gate: no-license brokers are not flagged in most states', () => {
+  // checkAgentLicense with no license on file must be advisory, not blocking —
+  // most states do not license business-asset brokerage.
+  const complianceLib = readFileSync('lib/compliance.ts', 'utf8')
+  assert.match(complianceLib, /most states do not require a license/i)
+  assert.match(complianceLib, /status: 'not_required'/)
+})
+
+test('compliance gate: DB matrix defaults to real-estate-only licensing', () => {
+  const schema = readFileSync('sql/global_compliance_schema.sql', 'utf8')
+  assert.match(schema, /re_license_when_real_estate/)
+  // Only California is always-licensed for business opportunities.
+  assert.match(schema, /'US', 'CA', 're_license_always'/)
+})
