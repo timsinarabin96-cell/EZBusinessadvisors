@@ -113,6 +113,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
         public_highlights: Array.isArray(meta.public_highlights) ? meta.public_highlights.join('\n') : '',
         video_url: meta.video_url || '',
         gallery_images: Array.isArray((l as any).image_urls) ? (l as any).image_urls : [],
+        contact_phone: (l as any).contact_phone || '',
         confidentiality_level: (l.confidentiality_level as IntelligentListingInput['confidentiality_level']) || 'anonymous',
         show_financials: !!meta.show_financials,
         seller_approval_reference: meta.seller_approval_reference || '',
@@ -508,6 +509,9 @@ function MediaSection({ form, setValue, listingId }: SectionProps & { listingId?
     toast('Image removed', 'success')
   }
 
+  const photoCount = form.gallery_images.length
+  const photoPct = Math.min(100, Math.round((photoCount / 10) * 100))
+
   return <Section title="Photos & Video" subtitle="Gallery images and a walkthrough video make the public listing stand out and build buyer trust.">
     <div style={{ marginBottom: 16, padding: '12px 14px', background: '#f4f8fc', border: '1px solid #dbe7f3', borderRadius: 10, fontSize: 12.5, color: '#1e3a5f' }}>
       <strong>📷 Gallery:</strong> upload up to 10 photos (JPG/PNG/WebP, 5MB each) — the first image is the listing cover. Photos appear on the public page after publishing.
@@ -515,6 +519,37 @@ function MediaSection({ form, setValue, listingId }: SectionProps & { listingId?
         {uploading ? 'Uploading…' : 'Choose photos'}
       </button>
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={(e) => upload(e.target.files)} />
+    </div>
+
+    {/* Photo count progress — listings with 5+ photos get significantly more buyer interest. */}
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 5 }}>
+        <span>{photoCount} / 10 photos</span>
+        {photoCount >= 5 ? <span style={{ color: '#1e7e34' }}>✅ Great coverage — buyers love this</span> : photoCount > 0 ? <span style={{ color: '#b45309' }}>Add {5 - photoCount} more for best results</span> : <span>Add at least 5 for best results</span>}
+      </div>
+      <div style={{ height: 7, borderRadius: 99, background: '#e2e8f0', overflow: 'hidden' }}>
+        <div style={{ height: '100%', borderRadius: 99, background: photoCount >= 5 ? '#1e7e34' : '#2563eb', width: `${photoPct}%`, transition: 'width .25s ease' }} />
+      </div>
+    </div>
+
+    {/* Auto-generated placeholder hint (no photos needed to look professional). */}
+    {photoCount === 0 && (
+      <div style={{ marginBottom: 16, padding: '10px 14px', background: '#faf9f6', border: '1px dashed #c9b98a', borderRadius: 10, fontSize: 12.5, color: '#6b5b2a' }}>
+        ✨ <strong>No photos?</strong> We auto-generate a branded listing image (industry icon + title + price) so your listing still looks professional. Upload real photos anytime to replace it.
+      </div>
+    )}
+
+    {/* Listing contact line — the click-to-call option. */}
+    <div style={{ marginBottom: 18 }}>
+      <Field label="Listing call line (optional — shows a 📞 Call button on the public page)" span>
+        <input
+          className="input"
+          value={String((form as any).contact_phone || '')}
+          onChange={(event) => setValue('contact_phone', event.target.value)}
+          placeholder="(555) 123-4567 — the number buyers will call for THIS listing"
+        />
+      </Field>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: -10 }}>We log call clicks so you can see buyer interest. Leave blank to route all inquiries through the contact form instead.</div>
     </div>
 
     {form.gallery_images.length > 0 ? (

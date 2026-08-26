@@ -12,6 +12,7 @@ import { capturePublicLead, type PublicMarketplaceListing } from '@/lib/marketpl
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fmt$ } from '@/lib/recast'
 import { priceTeaser, PRICING_CTA, PRICING_HINT } from '@/lib/pricingPolicy'
+import { placeholderImageFor } from '@/lib/stockImages'
 import { trackListingView } from '@/lib/visitorIntent'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 import NdaFinancialsGate from '@/components/public/NdaFinancialsGate'
@@ -149,6 +150,20 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
     }
   }
 
+  // Click-to-call tracking (rate-limited server-side) + tel: link.
+  const trackCall = async () => {
+    try {
+      await fetch('/api/listings/call-click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: listing.id }),
+      })
+    } catch { /* tracking is best-effort */ }
+  }
+
+  const contactPhone = (listing as { contact_phone?: string | null }).contact_phone || null
+  const placeholderSrc = placeholderImageFor({ title: listing.public_title, industry: listing.industry, price: listing.asking_price ?? undefined })
+
   return (
     <ToastProvider>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -169,8 +184,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
             <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden' }}>
               <div style={{ height: 420, background: '#1a1a2e', position: 'relative' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={listing.gallery_urls[activeImage]} alt={listing.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                {listing.gallery_urls.length > 1 && (
+                <img src={listing.gallery_urls[activeImage]} alt={listing.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />                {listing.gallery_urls.length > 1 && (
                   <>
                     <button
                       onClick={() => setActiveImage((activeImage - 1 + listing.gallery_urls.length) % listing.gallery_urls.length)}
@@ -212,7 +226,11 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
               )}
             </div>
           ) : (
-            <div style={{ height: 420, background: 'linear-gradient(135deg,#1a1a2e,#26264a)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(201,168,76,0.5)', fontSize: 60 }}>🏢</div>
+            // Auto-generated branded placeholder when the listing has no photos.
+            <div style={{ height: 420, borderRadius: 12, overflow: 'hidden', position: 'relative', background: '#1a1a2e' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={placeholderSrc} alt={listing.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
           )}
 
           <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 28, marginTop: 20 }}>
@@ -292,6 +310,15 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
             <button onClick={() => setShowContact((current) => !current)} style={{ width: '100%', marginTop: 16, background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 7, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
               Request Confidential Details
             </button>
+            {contactPhone && (
+              <a
+                href={`tel:${contactPhone.replace(/[^+\d]/g, '')}`}
+                onClick={trackCall}
+                style={{ display: 'block', textAlign: 'center', marginTop: 10, background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 7, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'none', fontSize: 14 }}
+              >
+                📞 Call the listing line — {contactPhone}
+              </a>
+            )}
 
             {/* Make an Offer */}
             {listing.status === 'active' && (

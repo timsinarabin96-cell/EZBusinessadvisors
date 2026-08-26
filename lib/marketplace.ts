@@ -32,6 +32,7 @@ export interface PublicMarketplaceListing {
   is_confidential: boolean
   published_at: string | null
   show_financials: boolean
+  contact_phone?: string | null
   broker_id?: string | null
   listing_ref?: string | null
   agent_name?: string | null
@@ -73,6 +74,7 @@ interface PublicListingFeedRow {
   is_confidential: boolean | null
   published_at: string | null
   show_financials: boolean | null
+  contact_phone?: string | null
   vetted?: boolean | null
   status?: string | null
   broker_id?: string | null
@@ -162,6 +164,7 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     is_confidential: row.is_confidential !== false,
     published_at: row.published_at,
     show_financials: Boolean(row.show_financials),
+    contact_phone: row.contact_phone || null,
     broker_id: row.broker_id || null,
     listing_ref: row.listing_ref || null,
     agent_name: row.agent_name || null,
@@ -288,6 +291,7 @@ export interface PublicBroker {
   licensed_states: string[]
   license_attested_at: string | null
   booking_url: string
+  is_featured?: boolean
   agency?: { name: string } | null
   /** CBI certification proof (public trust signal). */
   certified?: boolean
@@ -347,6 +351,7 @@ export async function fetchPublicBrokers(): Promise<PublicBroker[]> {
     years_experience: numberOrNull(broker.years_experience),
     closed_deals_count: Number(broker.closed_deals_count || 0),
     booking_url: broker.booking_url || '',
+    is_featured: Boolean(broker.is_featured),
     agency: broker.agency,
   })) as PublicBroker[]
   try {

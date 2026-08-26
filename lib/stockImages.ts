@@ -70,6 +70,36 @@ export function stockImageFor(industry: string | null | undefined, index = 0): s
   return candidates[index % candidates.length] || null
 }
 
+/**
+ * Auto-generated branded placeholder URL (ImageResponse route) — the final
+ * fallback when a listing has no gallery photos. Deterministic per query,
+ * CDN-cacheable, zero storage cost.
+ */
+export function placeholderImageFor(opts: {
+  title?: string | null
+  industry?: string | null
+  price?: number | string | null
+  agency?: string | null
+}): string {
+  const p = new URLSearchParams()
+  if (opts.title) p.set('title', String(opts.title).slice(0, 90))
+  if (opts.industry) p.set('industry', String(opts.industry).slice(0, 40))
+  if (opts.price) p.set('price', String(opts.price))
+  if (opts.agency) p.set('agency', String(opts.agency).slice(0, 40))
+  const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
+  return `${base}/api/listing-images/placeholder?${p.toString()}`
+}
+
+/** Full fallback chain: gallery → stock → auto-generated placeholder. */
+export function listingImageFor(
+  gallery: string[] | null | undefined,
+  industry: string | null | undefined,
+  opts: { title?: string | null; price?: number | string | null; agency?: string | null } = {},
+): string | null {
+  if (gallery && gallery.length > 0 && gallery[0]) return gallery[0]
+  return placeholderImageFor({ industry, title: opts.title, price: opts.price, agency: opts.agency })
+}
+
 /** All suggested images for an industry (for the broker photo picker). */
 export function stockImagesFor(industry: string | null | undefined): string[] {
   const key = (industry || '').trim()

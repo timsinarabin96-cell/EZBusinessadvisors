@@ -67,6 +67,9 @@ export default function AdminWhiteLabelPage() {
   const [selected, setSelected] = useState<AgencyRow | null>(null)
   const [form, setForm] = useState({ ...DEFAULT_THEME })
   const [saving, setSaving] = useState(false)
+  const [brokers, setBrokers] = useState<any[]>([])
+  const [brokersAgencyId, setBrokersAgencyId] = useState('')
+  const [brokersLoading, setBrokersLoading] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -144,6 +147,33 @@ export default function AdminWhiteLabelPage() {
     load()
   }
 
+  const loadBrokers = async (agencyId: string) => {
+    setBrokersAgencyId(agencyId)
+    setBrokersLoading(true)
+    try {
+      const res = await authenticatedFetch(`/api/admin/brokers?agencyId=${agencyId}`)
+      const j = await res.json()
+      if (j.ok) setBrokers(j.brokers || [])
+      else setBrokers([])
+    } catch {
+      setBrokers([])
+    } finally {
+      setBrokersLoading(false)
+    }
+  }
+
+  const toggleFeatured = async (broker: any) => {
+    const res = await authenticatedFetch('/api/admin/brokers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: broker.id, is_featured: !broker.is_featured }),
+    })
+    const j = await res.json()
+    if (!j.ok) { toast(j.error || 'Update failed', 'error'); return }
+    toast(broker.is_featured ? 'Removed from featured' : '⭐ Featured on marketplace', 'success')
+    loadBrokers(brokersAgencyId)
+  }
+
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #d8d2c2',
     fontSize: 13.5, background: '#fff', color: '#1a1a2e', boxSizing: 'border-box',
@@ -196,6 +226,9 @@ export default function AdminWhiteLabelPage() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => open(a)} style={{ padding: '8px 16px', borderRadius: 8, background: '#1a1a2e', color: '#fff', border: 'none', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
                     {themed ? 'Edit' : 'Brand it'}
+                  </button>
+                  <button onClick={() => loadBrokers(a.agency_id)} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+                    👥 Brokers
                   </button>
                   {themed && (
                     <button onClick={() => reset(a)} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #fecaca', background: '#fff', color: '#b91c1c', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
@@ -279,6 +312,44 @@ export default function AdminWhiteLabelPage() {
           </div>
         )}
       </div>
+
+      {/* Broker management — featured slots for the marketplace carousel */}
+      {brokersAgencyId && (
+        <div style={{ marginTop: 24, border: '1px solid #e2e8f0', borderRadius: 14, padding: 18, background: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ fontWeight: 800, color: '#1a1a2e', fontSize: 15 }}>👥 Brokers & Featured slots</div>
+            <button onClick={() => setBrokersAgencyId('')} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#64748b', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Close</button>
+          </div>
+          <div style={{ fontSize: 12.5, color: '#888', marginBottom: 14 }}>
+            ⭐ Featured brokers appear in the carousel at the top of the public marketplace — the trust layer that sells the brokerage.
+          </div>
+          {brokersLoading ? (
+            <div style={{ color: '#94a3b8', padding: 20, textAlign: 'center' }}>Loading brokers…</div>
+          ) : brokers.length === 0 ? (
+            <div style={{ color: '#94a3b8', padding: 20, textAlign: 'center', border: '1px dashed #e2e8f0', borderRadius: 10 }}>
+              No public broker profiles for this agency yet — brokers create their own profile + photo from their dashboard.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {brokers.map((b) => (
+                <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid #f1f5f9', borderRadius: 10, background: '#fafbfc' }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#1a1a2e', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {b.avatar_url ? <img src={b.avatar_url} alt={b.public_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: '#c9a84c', fontWeight: 800, fontSize: 13 }}>{(b.public_name || 'B').charAt(0)}</span>}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: '#1a1a2e', fontSize: 13.5 }}>{b.public_name || 'Unnamed broker'}</div>
+                    <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{b.title || 'Business Broker'}{b.years_experience ? ` · ${b.years_experience}+ yrs` : ''}{b.closed_deals_count ? ` · ${b.closed_deals_count} closed` : ''}</div>
+                  </div>
+                  {!b.is_public && <span style={{ fontSize: 11, color: '#b45309', fontWeight: 700 }}>not public</span>}
+                  <button onClick={() => toggleFeatured(b)} style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: b.is_featured ? '#1e7e34' : '#e2e8f0', color: b.is_featured ? '#fff' : '#475569', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+                    {b.is_featured ? '⭐ Featured' : 'Feature'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

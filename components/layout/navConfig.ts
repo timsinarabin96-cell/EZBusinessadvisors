@@ -59,6 +59,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings', keywords: 'value worth pricing' },
   { href: '/dashboard/valuation-reports', label: 'Sellable Reports', icon: '💎', minRole: 'broker', group: 'Deals & Listings', keywords: 'valuation reports client' },
   { href: '/dashboard/lead-marketplace', label: 'Lead Marketplace', icon: '🤝', minRole: 'broker', group: 'Deals & Listings', keywords: 'buy leads network' },
+  { href: '/dashboard/off-market', label: 'Off-Market Room', icon: '🔐', minRole: 'agent', group: 'Deals & Listings', keywords: 'private deals verified buyers exclusive' },
   { href: '/dashboard/readiness', label: 'Seller Readiness', icon: '🌱', minRole: 'broker', group: 'Deals & Listings', keywords: 'prepare seller checklist' },
   { href: '/dashboard/expiry', label: 'Listing Expiry', icon: '⏳', minRole: 'broker', group: 'Deals & Listings', keywords: 'expiring renewals' },
   // ── CLIENTS & DOCS ────────────────────────────────────────

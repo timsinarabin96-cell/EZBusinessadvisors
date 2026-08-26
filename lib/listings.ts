@@ -73,6 +73,9 @@ export interface Listing {
   featured_image_url: string | null
   // Walkthrough / promo video (YouTube, Vimeo, or direct MP4)
   video_url: string | null
+  // Listing contact line (shown publicly for in-market listings) + off-market tier
+  contact_phone: string | null
+  off_market: boolean | null
   // Real-estate option (see sql/document_compliance_realestate_schema.sql)
   property_value: number | null
   property_description: string | null

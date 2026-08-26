@@ -19,6 +19,7 @@ import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { ProfileAvatar } from '@/components/profile/ProfileAvatar'
 import { supabase } from '@/lib/supabase/client'
 import { LoadingState } from '@/components/ui'
+import { brokerProfileStrength, strengthColor, strengthLabel } from '@/lib/brokerProfileStrength'
 
 export default function ProfilePage() {
   return (
@@ -40,6 +41,7 @@ function ProfileForm() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [brokerInviteUrl, setBrokerInviteUrl] = useState('')
   const [invitingBroker, setInvitingBroker] = useState(false)
+  const [brokerRow, setBrokerRow] = useState<Record<string, unknown> | null>(null)
   const [form, setForm] = useState({
     full_name: '', phone: '', title: '', bio: '', public_name: '', linkedin: '',
     license_type: '', license_state: '', license_number: '', license_expiry: '',
@@ -56,6 +58,7 @@ function ProfileForm() {
       if (j.ok) {
         const p = j.profile || {}
         const b = j.broker || {}
+        setBrokerRow(b)
         setAvatarUrl(p.avatar_url || null)
         setForm({
           full_name: p.full_name || '',
@@ -92,6 +95,26 @@ function ProfileForm() {
 
   if (loading) return <LoadingState label="Loading profile..." />
 
+  // Live strength score — recomputes as the form changes (photo + fields).
+  const strength = brokerProfileStrength({
+    avatar_url: avatarUrl,
+    public_name: form.public_name || null,
+    title: form.title || null,
+    bio: form.bio || null,
+    phone: form.phone || null,
+    email_public: (brokerRow as any)?.email_public || null,
+    linkedin: form.linkedin || null,
+    years_experience: (brokerRow as any)?.years_experience ?? null,
+    credentials: (brokerRow as any)?.credentials ?? null,
+    licensed_states: form.licensed_states,
+    service_areas: (brokerRow as any)?.service_areas ?? null,
+    expertise: (brokerRow as any)?.expertise ?? null,
+    industries: (brokerRow as any)?.industries ?? null,
+    languages: (brokerRow as any)?.languages ?? null,
+    booking_url: (brokerRow as any)?.booking_url ?? null,
+    closed_deals_count: (brokerRow as any)?.closed_deals_count ?? null,
+  })
+
   const makeBrokerInvite = async () => {
     setInvitingBroker(true)
     try {
@@ -124,6 +147,23 @@ function ProfileForm() {
             <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Click the photo to upload. JPG/PNG/WebP, max 2MB.</div>
           </div>
         </div>
+      </div>
+
+      {/* Profile strength meter — trust currency for buyers (Sunbelt/IBBA-style). */}
+      <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 24, marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: 0 }}>⚡ Profile strength</h2>
+          <span style={{ fontWeight: 800, fontSize: 20, color: strengthColor(strength.score) }}>{strength.score}/100</span>
+        </div>
+        <div style={{ height: 10, borderRadius: 99, background: '#e8e4d8', overflow: 'hidden', marginBottom: 10 }}>
+          <div style={{ height: '100%', borderRadius: 99, background: strengthColor(strength.score), width: `${strength.score}%`, transition: 'width .3s ease' }} />
+        </div>
+        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>{strengthLabel(strength.score)}</div>
+        {strength.missing.length > 0 && (
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: '#b45309', lineHeight: 1.8 }}>
+            {strength.missing.map((m) => <li key={m}>{m}</li>)}
+          </ul>
+        )}
       </div>
 
       {/* Details */}

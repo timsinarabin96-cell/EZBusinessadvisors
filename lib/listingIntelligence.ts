@@ -56,6 +56,7 @@ export interface IntelligentListingInput {
   public_highlights: string
   video_url: string
   gallery_images: string[]
+  contact_phone: string
   confidentiality_level: 'anonymous' | 'qualified_buyers' | 'broker_only'
   show_financials: boolean
   seller_approval_reference: string
@@ -71,7 +72,7 @@ export const EMPTY_INTELLIGENT_LISTING: IntelligentListingInput = {
   real_estate_included: false, ffe_included: false, inventory_included: false, goodwill_included: false, asset_sale: true,
   property_address: '', property_city: '', square_footage: '', land_acres: '', year_built: '', property_value: '', property_description: '',
   seller_financing_available: false, financing_notes: '', transition_support: '', commission_split_agent: 50, commission_split_brokerage: 50,
-  training_period_weeks: '', public_title: '', public_summary: '', public_highlights: '', video_url: '', gallery_images: [], confidentiality_level: 'anonymous',
+  training_period_weeks: '', public_title: '', public_summary: '', public_highlights: '', video_url: '', gallery_images: [], contact_phone: '', confidentiality_level: 'anonymous',
   show_financials: false, seller_approval_reference: '', source: 'broker_manual',
 }
 
@@ -143,6 +144,8 @@ export function buildListingInsert(input: IntelligentListingInput) {
     review_stage: 'draft' as ListingReviewStage,
     status: 'draft',
     image_urls: input.gallery_images.length ? input.gallery_images : null,
+    contact_phone: input.contact_phone.trim() || null,
+    off_market: input.confidentiality_level === 'broker_only',
     ai_metadata: {
       public_title: input.public_title.trim() || input.headline.trim() || null,
       public_summary: input.public_summary.trim() || null,

@@ -13,13 +13,13 @@ import Image from 'next/image'
 import type { PublicMarketplaceListing } from '@/lib/marketplace'
 import { fmt$ } from '@/lib/recast'
 import { priceTeaser, PRICING_CTA } from '@/lib/pricingPolicy'
-import { stockImageFor } from '@/lib/stockImages'
+import { listingImageFor } from '@/lib/stockImages'
 import { isFavorite, toggleFavorite, isComparing, toggleCompare, getBuyerProfile } from '@/lib/publicFavorites'
 import { scoreListingMatch, matchBand, type MatchScoreResult } from '@/lib/matchScore'
 import RequestPricingForm from '@/components/public/RequestPricingForm'
 
 export default function PublicListingCard({ listing }: { listing: PublicMarketplaceListing }) {
-  const image = listing.gallery_urls[0] || stockImageFor(listing.industry)
+  const image = listingImageFor(listing.gallery_urls, listing.industry, { title: listing.public_title, price: listing.asking_price ?? undefined })
   const href = `/marketplace/listings/${listing.slug || listing.id}`
   const isNew = listing.published_at ? Date.now() - new Date(listing.published_at).getTime() < 7 * 86400000 : false
 

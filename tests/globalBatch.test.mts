@@ -41,6 +41,8 @@ test('global: free stock photo library covers industries with fallback', () => {
   assert.match(stock, /'Car Wash'/)
   assert.match(stock, /export function stockImageFor/)
   assert.match(stock, /export function stockImagesFor/)
+  assert.match(stock, /export function placeholderImageFor/)
+  assert.match(stock, /export function listingImageFor/)
   assert.match(stock, /GENERIC/)
   assert.match(stock, /images\.unsplash\.com/)
 })
@@ -91,8 +93,8 @@ test('global: currency symbols + multi-currency formatting', () => {
   assert.match(recast, /export const fmtMoney/)
 })
 
-test('global: public card uses free stock images + currency display', () => {
-  assert.match(card, /stockImageFor/)
+test('global: public card uses free stock images + auto placeholder + currency display', () => {
+  assert.match(card, /listingImageFor/)
   assert.match(card, /fmt\$/)
   assert.match(card, /priceTeaser/)
 })
