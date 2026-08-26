@@ -7,8 +7,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { logRoomFileIntent } from '@/lib/dataRoomIntent'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
+
+const clientIp = (req: NextRequest) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
 
 /**
  * POST /api/data-rooms/view-log
@@ -19,6 +25,10 @@ export const runtime = 'nodejs'
  * email+file are deduped. Never returns buyer data.
  */
 export async function POST(req: NextRequest) {
+  // Anti-abuse: public write endpoint — rate limited per IP.
+  if (!rateLimit(clientIp(req), { limit: 20, windowMs: 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
   const body = await req.json().catch(() => ({}))
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
   const userAgent = req.headers.get('user-agent') || null
