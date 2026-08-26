@@ -7,86 +7,13 @@ import { ToastProvider } from '@/components/ui/Toast'
 import SearchBar from '@/components/search/SearchBar'
 import AuthGuard from '@/components/auth/AuthGuard'
 import GuideBot from '@/components/public/GuideBot'
+import CommandPalette from '@/components/layout/CommandPalette'
 import { supabase } from '@/lib/supabase/client'
 import { fetchBrokerBrandContext, fontCss } from '@/lib/branding'
 import { resolvePortalRole } from '@/lib/authRouting'
+import { NAV, navForRole, roleRank, type NavRole, type NavItem } from '@/components/layout/navConfig'
 
-// minRole: 'agent' (daily tools) → 'broker' (deal tools) → 'admin' (everything)
-type NavRole = 'agent' | 'broker' | 'admin'
-interface NavItem { href: string; label: string; icon: string; minRole: NavRole; group?: string }
-
-const NAV: NavItem[] = [
-  // ── OVERVIEW ──────────────────────────────────────────────
-  { href: '/dashboard', label: 'Dashboard', icon: '📊', minRole: 'agent', group: 'Overview' },
-  { href: '/dashboard/command-center', label: 'Command Center', icon: '🎛️', minRole: 'broker', group: 'Overview' },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: '📈', minRole: 'broker', group: 'Overview' },
-  { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋', minRole: 'agent', group: 'Overview' },
-  { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️', minRole: 'agent', group: 'Overview' },
-  { href: '/dashboard/performance', label: 'Performance', icon: '🏆', minRole: 'broker', group: 'Overview' },
-  // ── AI AUTOPILOT ──────────────────────────────────────────
-  { href: '/dashboard/autopilot', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot' },
-  { href: '/dashboard/intelligence', label: 'Intelligence Network', icon: '◇', minRole: 'broker', group: 'AI Autopilot' },
-  { href: '/dashboard/deal-twin', label: 'Deal Twin', icon: '💠', minRole: 'broker', group: 'AI Autopilot' },
-  { href: '/dashboard/deal-doctor', label: 'Deal Doctor', icon: '🩺', minRole: 'broker', group: 'AI Autopilot' },
-  { href: '/dashboard/call-summaries', label: 'Call Summaries', icon: '🎧', minRole: 'broker', group: 'AI Autopilot' },
-  { href: '/dashboard/data-room-qa', label: 'Data Room Q&A', icon: '💬', minRole: 'broker', group: 'AI Autopilot' },
-  { href: '/dashboard/visitor-intent', label: 'Visitor Intent', icon: '👀', minRole: 'broker', group: 'AI Autopilot' },
-  { href: '/dashboard/red-flags', label: 'Red Flags', icon: '🔎', minRole: 'broker', group: 'AI Autopilot' },
-  // ── DEALS & LISTINGS ──────────────────────────────────────
-  { href: '/pipeline', label: 'Deal Pipeline', icon: '🔄', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/listings', label: 'Listings', icon: '🏢', minRole: 'agent', group: 'Deals & Listings' },
-  { href: '/dashboard/listings/new', label: 'New Listing', icon: '➕', minRole: 'agent', group: 'Deals & Listings' },
-  { href: '/leads', label: 'Lead Management', icon: '🎯', minRole: 'agent', group: 'Deals & Listings' },
-  { href: '/dashboard/seller-leads', label: 'Seller Leads', icon: '🏷️', minRole: 'agent', group: 'Deals & Listings' },
-  { href: '/dashboard/loi', label: 'LOI Lab', icon: '📝', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/offer-lab', label: 'Offer Lab', icon: '🧪', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/negotiation', label: 'Negotiation', icon: '🧭', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/nda-requests', label: 'NDA Requests', icon: '🛡️', minRole: 'agent', group: 'Deals & Listings' },
-  { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/comps', label: 'Comps', icon: '📊', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/valuation-reports', label: 'Sellable Reports', icon: '💎', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/lead-marketplace', label: 'Lead Marketplace', icon: '🤝', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/readiness', label: 'Seller Readiness', icon: '🌱', minRole: 'broker', group: 'Deals & Listings' },
-  { href: '/dashboard/expiry', label: 'Listing Expiry', icon: '⏳', minRole: 'broker', group: 'Deals & Listings' },
-  // ── CLIENTS & DOCS ────────────────────────────────────────
-  { href: '/dashboard/portal', label: 'Client Portal', icon: '👥', minRole: 'broker', group: 'Clients & Docs' },
-  { href: '/dashboard/watchlist', label: 'Deal Alerts', icon: '🔔', minRole: 'agent', group: 'Clients & Docs' },
-  { href: '/dashboard/professionals', label: 'Professional Network', icon: '🤝', minRole: 'broker', group: 'Clients & Docs' },
-  { href: '/dashboard/referrals', label: 'Referrals', icon: '🎁', minRole: 'broker', group: 'Clients & Docs' },
-  { href: '/dashboard/search', label: 'Search', icon: '🔍', minRole: 'agent', group: 'Clients & Docs' },
-  { href: '/documents', label: 'Documents', icon: '📁', minRole: 'agent', group: 'Clients & Docs' },
-  { href: '/due-diligence', label: 'Due Diligence', icon: '🔍', minRole: 'broker', group: 'Clients & Docs' },
-  { href: '/dashboard/financial-files', label: 'Financial Files', icon: '🗂️', minRole: 'broker', group: 'Clients & Docs' },
-  { href: '/recast', label: 'Financial Recast', icon: '📊', minRole: 'broker', group: 'Clients & Docs' },
-  { href: '/cim', label: 'CIM Generator', icon: '📑', minRole: 'broker', group: 'Clients & Docs' },
-  { href: '/bov', label: 'BOV Generator', icon: '⚖️', minRole: 'broker', group: 'Clients & Docs' },
-  // ── MARKETING & GROWTH ────────────────────────────────────
-  { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️', minRole: 'broker', group: 'Marketing & Growth' },
-  { href: '/dashboard/social', label: 'Social Media', icon: '📣', minRole: 'broker', group: 'Marketing & Growth' },
-  { href: '/dashboard/newspaper', label: 'Weekly Newspaper', icon: '📰', minRole: 'broker', group: 'Marketing & Growth' },
-  { href: '/dashboard/blog', label: 'Blog & Insights', icon: '📝', minRole: 'broker', group: 'Marketing & Growth' },
-  { href: '/dashboard/nurture', label: 'Nurture Drips', icon: '💌', minRole: 'broker', group: 'Marketing & Growth' },
-  { href: '/dashboard/syndication', label: 'Syndication', icon: '🔗', minRole: 'broker', group: 'Marketing & Growth' },
-  { href: '/dashboard/email-templates', label: 'Email Templates', icon: '✉️', minRole: 'broker', group: 'Marketing & Growth' },
-  // ── TEAM & OFFICE ─────────────────────────────────────────
-  { href: '/dashboard/calendar', label: 'Calendar', icon: '📅', minRole: 'agent', group: 'Team & Office' },
-  { href: '/dashboard/communications', label: 'Communications', icon: '🗒️', minRole: 'agent', group: 'Team & Office' },
-  { href: '/dashboard/reminders', label: 'Call-Backs & Reminders', icon: '📞', minRole: 'agent', group: 'Team & Office' },
-  { href: '/dashboard/training', label: 'Training', icon: '🎓', minRole: 'agent', group: 'Team & Office' },
-  { href: '/dashboard/agents', label: 'Agents', icon: '🤖', minRole: 'admin', group: 'Team & Office' },
-  { href: '/dashboard/hiring', label: 'Hiring', icon: '🤝', minRole: 'admin', group: 'Team & Office' },
-  { href: '/dashboard/onboarding', label: 'Onboarding', icon: '🚀', minRole: 'admin', group: 'Team & Office' },
-  // ── ADMIN ─────────────────────────────────────────────────
-  { href: '/dashboard/commissions', label: 'Commissions', icon: '💰', minRole: 'admin', group: 'Admin' },
-  { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️', minRole: 'admin', group: 'Admin' },
-  { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰', minRole: 'broker', group: 'Admin' },
-  { href: '/dashboard/security', label: 'Security', icon: '🛂', minRole: 'admin', group: 'Admin' },
-  { href: '/dashboard/passwords', label: 'Password Vault', icon: '🔑', minRole: 'agent', group: 'Admin' },
-  { href: '/agencies', label: 'Agency Admin', icon: '🏛️', minRole: 'admin', group: 'Admin' },
-  { href: '/billing', label: 'Billing', icon: '💳', minRole: 'admin', group: 'Admin' },
-  { href: '/dashboard/settings', label: 'Settings', icon: '⚙️', minRole: 'admin', group: 'Admin' },
-]
+const RECENT_KEY = 'concord-recent-nav'
 
 export default function AppShell({
   active,
@@ -100,10 +27,11 @@ export default function AppShell({
   const [open, setOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
+  const [showAllTools, setShowAllTools] = useState(false)
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false)
   const [role, setRole] = useState<NavRole>('agent')
   const [brand, setBrand] = useState<{ name: string | null; logo: string | null; primary: string; accent: string; font: string } | null>(null)
+  const [recent, setRecent] = useState<NavItem[]>([])
 
   // Apply the agency's white-label brand to the CRM chrome (CSS vars).
   useEffect(() => {
@@ -135,8 +63,6 @@ export default function AppShell({
           supabase.from('agency_members').select('role, is_owner').eq('profile_id', user.id).order('is_owner', { ascending: false }).limit(1).maybeSingle(),
         ])
         if (profile?.role === 'super_admin') setIsPlatformAdmin(true)
-        // Shared resolver with the login page — nav level can never disagree
-        // with where the login redirect sent the user.
         const m = member as { role?: string; is_owner?: boolean | null } | null
         const portalRole = resolvePortalRole(
           profile as { role: string } | null,
@@ -149,8 +75,30 @@ export default function AppShell({
     })()
   }, [])
 
-  const roleRank: Record<NavRole, number> = { agent: 0, broker: 1, admin: 2 }
-  const visibleNav = NAV.filter((item) => roleRank[item.minRole] <= roleRank[role])
+  // Load + keep the recently-visited nav items (from localStorage).
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(RECENT_KEY)
+      if (raw) {
+        const hrefs: string[] = JSON.parse(raw)
+        const byHref = new Map(NAV.map((n) => [n.href, n]))
+        setRecent(hrefs.map((h) => byHref.get(h)).filter(Boolean) as NavItem[])
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  const recordRecent = (href: string) => {
+    setRecent((prev) => {
+      const next = [NAV.find((n) => n.href === href), ...prev.filter((n) => n.href !== href)]
+        .filter(Boolean).slice(0, 5) as NavItem[]
+      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next.map((n) => n.href))) } catch { /* ignore */ }
+      return next
+    })
+  }
+
+  const visibleNav = navForRole(role)
+  const coreNav = visibleNav.filter((item) => item.core)
+  const toolNav = visibleNav.filter((item) => !item.core)
 
   const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'))
 
@@ -162,9 +110,74 @@ export default function AppShell({
     router.push('/auth')
   }
 
+  const renderLink = (item: NavItem, showIcon = true) => {
+    const activeItem = isActive(item.href)
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => { setOpen(false); recordRecent(item.href) }}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '9px 14px', marginBottom: 2, borderRadius: 8,
+          textDecoration: 'none', fontSize: 14,
+          fontFamily: 'Georgia, serif',
+          color: activeItem ? '#fff' : 'rgba(255,255,255,0.65)',
+          background: activeItem ? 'rgba(201,168,76,0.18)' : 'transparent',
+          borderLeft: activeItem ? `3px solid var(--gold)` : '3px solid transparent',
+          transition: 'all 0.15s',
+        }}
+      >
+        {showIcon && <span style={{ fontSize: 16, width: 22, textAlign: 'center' }}>{item.icon}</span>}
+        {item.label}
+      </Link>
+    )
+  }
+
+  const renderGroup = (name: string, items: NavItem[]) => {
+    const isCollapsed = !!collapsed[name]
+    return (
+      <div key={name} style={{ marginBottom: 12 }}>
+        <button
+          onClick={() => setCollapsed((c) => ({ ...c, [name]: !isCollapsed }))}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '6px 14px 6px', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}
+        >
+          <span>{name}</span>
+          <span style={{ fontSize: 10, opacity: 0.7 }}>{isCollapsed ? '▸' : '▾'}</span>
+        </button>
+        {!isCollapsed && items.map((item) => renderLink(item))}
+      </div>
+    )
+  }
+
+  // Group core nav by group name (preserving NAV order).
+  const coreGroups: { name: string; items: NavItem[] }[] = []
+  for (const item of coreNav) {
+    const g = coreGroups.find((x) => x.name === item.group)
+    if (g) g.items.push(item)
+    else coreGroups.push({ name: item.group, items: [item] })
+  }
+
+  // All tools, grouped the same way.
+  const toolGroups: { name: string; items: NavItem[] }[] = []
+  for (const item of toolNav) {
+    const g = toolGroups.find((x) => x.name === item.group)
+    if (g) g.items.push(item)
+    else toolGroups.push({ name: item.group, items: [item] })
+  }
+
+  const linkStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+    background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)',
+    border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8,
+    padding: '9px 0', fontSize: 13, fontWeight: 700, textDecoration: 'none',
+    fontFamily: 'Georgia, serif',
+  }
+
   return (
     <AuthGuard>
       <ToastProvider>
+        <CommandPalette items={visibleNav} role={role} onNavigate={recordRecent} />
         <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--paper)' }}>
         {/* Mobile toggle */}
         <button
@@ -216,6 +229,22 @@ export default function AppShell({
 
           {/* Nav */}
           <nav style={{ flex: 1, padding: '14px 12px', overflowY: 'auto' }}>
+            {/* Command palette trigger */}
+            <button
+              onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }))}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px', marginBottom: 10, borderRadius: 8,
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.16)',
+                cursor: 'pointer', color: 'rgba(255,255,255,0.75)', fontSize: 13.5,
+                fontFamily: 'Georgia, serif',
+              }}
+            >
+              <span style={{ fontSize: 15 }}>🔍</span>
+              <span style={{ flex: 1, textAlign: 'left' }}>Search tools…</span>
+              <kbd style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.55)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 5, padding: '1px 6px' }}>⌘K</kbd>
+            </button>
+
             {isPlatformAdmin && (
               <Link
                 href="/admin"
@@ -234,92 +263,58 @@ export default function AppShell({
                 Platform Admin
               </Link>
             )}
-            {(() => {
-              const groups: { name: string; items: NavItem[] }[] = []
-              for (const item of visibleNav) {
-                const name = item.group || 'Other'
-                const g = groups.find((x) => x.name === name)
-                if (g) g.items.push(item)
-                else groups.push({ name, items: [item] })
-              }
-              return groups.map((g) => {
-                const isCollapsed = !!collapsed[g.name]
-                const showAll = !!expandedGroups[g.name]
-                const items = showAll ? g.items : g.items.slice(0, 8)
-                const hasMore = g.items.length > 8
-                return (
-                <div key={g.name} style={{ marginBottom: 14 }}>
-                  <button
-                    onClick={() => setCollapsed((c) => ({ ...c, [g.name]: !isCollapsed }))}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '6px 14px 6px', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: 2 }}
-                  >
-                    <span>{g.name}</span>
-                    <span style={{ fontSize: 10, opacity: 0.7 }}>{isCollapsed ? '▸' : '▾'}</span>
-                  </button>
-                  {!isCollapsed && (
-                    <>
-                  {items.map((item) => {
-                    const activeItem = isActive(item.href)
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setOpen(false)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '10px 14px', marginBottom: 3, borderRadius: 8,
-                          textDecoration: 'none', fontSize: 14,
-                          fontFamily: 'Georgia, serif',
-                          color: activeItem ? '#fff' : 'rgba(255,255,255,0.65)',
-                          background: activeItem ? 'rgba(201,168,76,0.18)' : 'transparent',
-                          borderLeft: activeItem ? `3px solid var(--gold)` : '3px solid transparent',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        <span style={{ fontSize: 16 }}>{item.icon}</span>
-                        {item.label}
-                      </Link>
-                    )
-                  })}
-                  {hasMore && (
-                    <button
-                      onClick={() => setExpandedGroups((e) => ({ ...e, [g.name]: !showAll }))}
-                      style={{ width: '100%', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '6px 14px 6px 44px', fontSize: 11.5, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.04em' }}
-                    >
-                      {showAll ? '▴ Show fewer' : `▾ Show all (${g.items.length})`}
-                    </button>
-                  )}
-                    </>
-                  )}
+
+            {/* Recent */}
+            {recent.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ padding: '6px 14px 6px', fontSize: 10.5, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
+                  Recent
                 </div>
-                )
-              })
-            })()}
+                {recent.map((item) => renderLink(item, false))}
+              </div>
+            )}
+
+            {/* Core nav (the ~8 daily tools per role) */}
+            {coreGroups.map((g) => renderGroup(g.name, g.items))}
+
+            {/* All Tools — progressive disclosure for the long tail */}
+            {toolNav.length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                <button
+                  onClick={() => setShowAllTools((s) => !s)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+                    cursor: 'pointer', textAlign: 'left', padding: '9px 14px', borderRadius: 8,
+                    fontSize: 12.5, fontWeight: 700, color: 'rgba(255,255,255,0.7)',
+                    fontFamily: 'Georgia, serif',
+                  }}
+                >
+                  <span>🗂️ All Tools ({toolNav.length})</span>
+                  <span style={{ fontSize: 11, opacity: 0.7 }}>{showAllTools ? '▾' : '▸'}</span>
+                </button>
+                {showAllTools && (
+                  <div style={{ marginTop: 8 }}>
+                    {toolGroups.map((g) => renderGroup(g.name, g.items))}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* Footer — logout + back to website on every page */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid rgba(201,168,76,0.3)', display: 'grid', gap: 8 }}>
-            <Link
-              href="/marketplace"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.85)',
-                border: '1px solid rgba(255,255,255,0.18)', borderRadius: 8,
-                padding: '9px 0', fontSize: 13, fontWeight: 700, textDecoration: 'none',
-                fontFamily: 'Georgia, serif',
-              }}
-            >
+            <Link href="/marketplace" style={linkStyle}>
               🌐 Back to Website
             </Link>
             <button
               onClick={handleLogout}
               disabled={signingOut}
               style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                background: signingOut ? '#666' : 'rgba(201,168,76,0.16)', color: '#fff',
-                border: '1px solid rgba(201,168,76,0.45)', borderRadius: 8,
-                padding: '9px 0', fontSize: 13, fontWeight: 700, cursor: signingOut ? 'wait' : 'pointer',
-                fontFamily: 'Georgia, serif',
+                ...linkStyle,
+                background: signingOut ? '#666' : 'rgba(201,168,76,0.16)',
+                border: '1px solid rgba(201,168,76,0.45)',
+                cursor: signingOut ? 'wait' : 'pointer',
               }}
             >
               {signingOut ? 'Signing out…' : '🚪 Logout'}
