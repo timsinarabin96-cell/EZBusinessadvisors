@@ -15,6 +15,40 @@ import { getFavorites } from '@/lib/publicFavorites'
 import { fetchSavedSearches } from '@/lib/search'
 import { LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
+
+interface BuyerMatch {
+  id: string
+  match_score: number
+  status: string
+  matched_on: Record<string, unknown>
+  created_at: string
+  listings: {
+    id: string
+    business_name: string | null
+    industry: string | null
+    sub_industry: string | null
+    location_general: string | null
+    asking_price: number | null
+    annual_revenue: number | null
+    sde: number | null
+    status: string | null
+    cover_image_url: string | null
+  } | null
+}
+
+interface BuyerProfile {
+  id: string
+  industries: string[]
+  locations: string[]
+  min_price: number | null
+  max_price: number | null
+  min_revenue: number | null
+  min_sde: number | null
+  notification_email: boolean
+  notification_sms: boolean
+  ai_match_enabled: boolean
+}
 
 export default function BuyerPortalPage() {
   const toast = useToast()
@@ -25,6 +59,16 @@ export default function BuyerPortalPage() {
   const [verified, setVerified] = useState(false)
   const [favorites, setFavorites] = useState<string[]>([])
   const [savedSearches, setSavedSearches] = useState<{ id: string; name: string | null; query: string }[]>([])
+  const [matches, setMatches] = useState<BuyerMatch[]>([])
+  const [profile, setProfile] = useState<BuyerProfile | null>(null)
+  const [industries, setIndustries] = useState('')
+  const [locations, setLocations] = useState('')
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
+  const [minSde, setMinSde] = useState('')
+  const [notifyEmail, setNotifyEmail] = useState(true)
+  const [aiMatch, setAiMatch] = useState(true)
+  const [savingProfile, setSavingProfile] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -40,6 +84,26 @@ export default function BuyerPortalPage() {
         setFavorites(getFavorites())
         const saved = await fetchSavedSearches()
         setSavedSearches(saved || [])
+      } catch { /* degrade */ }
+      // Buyer profile + AI matches (auto-provisions the profile on first visit).
+      try {
+        const [profRes, matchRes] = await Promise.all([
+          authenticatedFetch('/api/buyer/profile'),
+          authenticatedFetch('/api/buyer/matches'),
+        ])
+        const prof = await profRes.json()
+        if (prof.ok && prof.profile) {
+          setProfile(prof.profile)
+          setIndustries((prof.profile.industries || []).join(', '))
+          setLocations((prof.profile.locations || []).join(', '))
+          setMinPrice(prof.profile.min_price != null ? String(prof.profile.min_price) : '')
+          setMaxPrice(prof.profile.max_price != null ? String(prof.profile.max_price) : '')
+          setMinSde(prof.profile.min_sde != null ? String(prof.profile.min_sde) : '')
+          setNotifyEmail(prof.profile.notification_email !== false)
+          setAiMatch(prof.profile.ai_match_enabled !== false)
+        }
+        const mat = await matchRes.json()
+        if (mat.ok) setMatches(mat.matches || [])
       } catch { /* degrade */ }
     } catch { /* degrade */ } finally {
       setLoading(false)
@@ -63,6 +127,33 @@ export default function BuyerPortalPage() {
       toast(e.message || 'Failed to start', 'error')
     } finally {
       setBusy(null)
+    }
+  }
+
+  const saveProfile = async () => {
+    setSavingProfile(true)
+    try {
+      const res = await authenticatedFetch('/api/buyer/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          industries: industries.split(',').map((s) => s.trim()).filter(Boolean),
+          locations: locations.split(',').map((s) => s.trim()).filter(Boolean),
+          min_price: minPrice ? Number(minPrice) : null,
+          max_price: maxPrice ? Number(maxPrice) : null,
+          min_sde: minSde ? Number(minSde) : null,
+          notification_email: notifyEmail,
+          ai_match_enabled: aiMatch,
+        }),
+      })
+      const json = await res.json()
+      if (!json.ok) throw new Error(json.error || 'Failed to save')
+      if (json.profile) setProfile(json.profile)
+      toast('Match profile saved — we’ll alert you when a business fits. 🎯', 'success')
+    } catch (e: any) {
+      toast(e.message || 'Failed to save profile', 'error')
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -153,6 +244,87 @@ export default function BuyerPortalPage() {
           </div>
         </div>
 
+        {/* Match profile — what to hunt for (feeds the AI match engine) */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+            <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a6d1a', fontWeight: 800 }}>Your Match Profile</div>
+            {profile && <span style={{ fontSize: 11, color: '#1e7e34', background: '#e6f4ea', padding: '3px 10px', borderRadius: 99, fontWeight: 700 }}>● AI matching {profile.ai_match_enabled ? 'ON' : 'OFF'}</span>}
+          </div>
+          <p style={{ fontSize: 12.5, color: '#888', margin: '4px 0 16px' }}>
+            Tell us what you're buying — we'll score every new listing against this and alert you on strong matches.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 14 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#555' }}>
+              Industries (comma-separated)
+              <input value={industries} onChange={(e) => setIndustries(e.target.value)} placeholder="Restaurants, Home Care, Auto Repair…" style={fieldStyle} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#555' }}>
+              Locations (comma-separated)
+              <input value={locations} onChange={(e) => setLocations(e.target.value)} placeholder="New York, FL, Texas…" style={fieldStyle} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#555' }}>
+              Min price ($)
+              <input value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="100000" style={fieldStyle} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#555' }}>
+              Max price ($)
+              <input value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="2000000" style={fieldStyle} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#555' }}>
+              Min SDE/EBITDA ($)
+              <input value={minSde} onChange={(e) => setMinSde(e.target.value)} placeholder="75000" style={fieldStyle} />
+            </label>
+          </div>
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#1a1a2e', cursor: 'pointer' }}>
+              <input type="checkbox" checked={notifyEmail} onChange={(e) => setNotifyEmail(e.target.checked)} /> Email me match alerts
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#1a1a2e', cursor: 'pointer' }}>
+              <input type="checkbox" checked={aiMatch} onChange={(e) => setAiMatch(e.target.checked)} /> AI matching on
+            </label>
+          </div>
+          <button onClick={saveProfile} disabled={savingProfile} style={{ padding: '11px 24px', borderRadius: 8, background: '#1a1a2e', color: '#c9a84c', border: 'none', fontWeight: 800, fontSize: 13.5, cursor: savingProfile ? 'wait' : 'pointer' }}>
+            {savingProfile ? 'Saving…' : 'Save match profile'}
+          </button>
+        </div>
+
+        {/* Matches — businesses the engine scored for this buyer */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+          <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a6d1a', fontWeight: 800, marginBottom: 12 }}>Your Matches ({matches.length})</div>
+          {matches.length === 0 ? (
+            <p style={{ fontSize: 13, color: '#888', margin: 0, lineHeight: 1.6 }}>
+              No matches yet — the AI engine scores every new listing against your profile above and surfaces strong fits here.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {matches.map((m) => {
+                const l = m.listings
+                const scoreColor = m.match_score >= 70 ? '#15803d' : m.match_score >= 40 ? '#b45309' : '#64748b'
+                return (
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '12px 14px' }}>
+                    <div style={{ minWidth: 52, textAlign: 'center' }}>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: scoreColor }}>{m.match_score}</div>
+                      <div style={{ fontSize: 10, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>fit</div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Link href={`/marketplace/listings/${l?.id || ''}`} style={{ fontSize: 14.5, fontWeight: 800, color: '#1a1a2e', textDecoration: 'none' }}>
+                        {l?.business_name || 'Business'}
+                      </Link>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                        {[l?.industry, l?.sub_industry, l?.location_general].filter(Boolean).join(' · ')}
+                        {l?.asking_price ? ` · $${Number(l.asking_price).toLocaleString()}` : ''}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'capitalize', color: m.status === 'notified' ? '#15803d' : '#64748b', background: '#fff', border: '1px solid #ece8dc', padding: '4px 10px', borderRadius: 99 }}>
+                      {m.status}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
         {/* Plans */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           {BUYER_PASS_PLANS.map((plan) => {
@@ -200,4 +372,14 @@ function Perk({ icon, label, sub }: { icon: string; label: string; sub: string }
       <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{sub}</div>
     </div>
   )
+}
+
+const fieldStyle: React.CSSProperties = {
+  padding: '9px 11px',
+  borderRadius: 8,
+  border: '1px solid #e2dccb',
+  background: '#fff',
+  fontSize: 13,
+  color: '#1a1a2e',
+  outline: 'none',
 }

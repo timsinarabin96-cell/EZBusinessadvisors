@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { passwordIssue, PASSWORD_POLICY } from '@/lib/emailVerification'
 
-type Persona = 'owner'
+type Persona = 'owner' | 'buyer'
 
 export default function SignupPage() {
   const [persona, setPersona] = useState<Persona>('owner')
@@ -45,7 +45,7 @@ export default function SignupPage() {
       if (!user) throw new Error('Account creation failed — please try again.')
 
       // Create/upsert the profile row.
-      const roleForPersona = 'owner'
+      const roleForPersona = persona === 'buyer' ? 'buyer' : 'owner'
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: user.id,
         email,
@@ -64,8 +64,8 @@ export default function SignupPage() {
         return
       }
 
-      // Owner → go straight to their listing portal.
-      router.push('/auth?next=/dashboard/owner')
+      // Owner → straight to their listing portal; buyer → their match dashboard.
+      router.push(persona === 'buyer' ? '/dashboard/buyer' : '/auth?next=/dashboard/owner')
     } catch (err: any) {
       setError(err.message || 'Sign up failed')
     } finally {
@@ -115,7 +115,7 @@ export default function SignupPage() {
               <h1 style={{ margin: '0 0 4px', fontFamily: 'Georgia, serif', fontSize: 23, color: '#1a1a2e' }}>Create your account</h1>
           <p style={{ margin: '0 0 20px', fontSize: 13.5, color: '#888' }}>Choose how you'll use the platform.</p>
 
-          {/* Persona picker — buyers never sign up; they browse free. */}
+          {/* Persona picker — owner lists a business, buyer hunts deals. */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
             <button
               type="button"
@@ -126,9 +126,20 @@ export default function SignupPage() {
               <div style={{ fontSize: 12.5, fontWeight: 800, color: '#1a1a2e', marginTop: 4 }}>Business Owner</div>
               <div style={{ fontSize: 10.5, color: '#999', marginTop: 3 }}>List your business — one-time free listing</div>
             </button>
+            <button
+              type="button"
+              onClick={() => setPersona('buyer')}
+              style={{ padding: '14px 10px', borderRadius: 10, cursor: 'pointer', textAlign: 'center', border: persona === 'buyer' ? '2px solid #c9a84c' : '1px solid #ece8dc', background: persona === 'buyer' ? 'rgba(201,168,76,0.1)' : '#fff' }}
+            >
+              <div style={{ fontSize: 22 }}>🔍</div>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: '#1a1a2e', marginTop: 4 }}>Buyer</div>
+              <div style={{ fontSize: 10.5, color: '#999', marginTop: 3 }}>Search & get matched to businesses free</div>
+            </button>
           </div>
           <p style={{ margin: '-8px 0 18px', fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
-            🔍 <strong>Buying a business?</strong> No account needed — browse the marketplace freely and request pricing on any listing.
+            {persona === 'buyer'
+              ? '📈 <strong>Buyer accounts are free.</strong> Save searches, bookmark listings, and get AI match alerts when a business you qualify for goes live.'
+              : '🔍 <strong>Buying a business?</strong> Create a free buyer account to get matched to new listings the moment they go live.'}
           </p>
 
           {error && <div style={{ background: '#fee', padding: '10px 12px', borderRadius: 8, color: '#c0392b', fontSize: 13, marginBottom: 14 }}>{error}</div>}
@@ -148,7 +159,7 @@ export default function SignupPage() {
               <div style={{ fontSize: 11.5, color: '#888', marginTop: 5 }}>Strong password required: 8+ characters with a letter and a number. Email verification is mandatory for every account.</div>
             </div>
             <button type="submit" disabled={loading} style={{ width: '100%', padding: '13px', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#aaa' : '#1a1a2e', color: '#c9a84c', border: 'none', fontSize: 15, fontWeight: 800, fontFamily: 'Georgia, serif' }}>
-              {loading ? 'Creating account…' : 'Create Free Owner Account'}
+              {loading ? 'Creating account…' : persona === 'buyer' ? 'Create Free Buyer Account' : 'Create Free Owner Account'}
             </button>
           </form>
 
