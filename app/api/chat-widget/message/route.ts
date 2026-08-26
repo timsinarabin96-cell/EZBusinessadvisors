@@ -8,8 +8,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createServerClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
+
+const clientIp = (req: Request) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
 
 // =============================================================================
 // POST /api/chat-widget/message — website chat widget → agent pipeline
@@ -21,6 +27,10 @@ export const runtime = 'nodejs'
 // =============================================================================
 
 export async function POST(req: NextRequest) {
+  // Anti-abuse: public-ish endpoint — rate limited per IP.
+  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'Service unavailable' }, { status: 503 })
 
