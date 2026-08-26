@@ -12,12 +12,13 @@ import { sendEmail } from '@/lib/email'
 export const runtime = 'nodejs'
 
 /**
- * GET /api/cron/price-alerts?secret=CRON_SECRET
+ * POST /api/cron/price-alerts (x-cron-secret protected, like all crons)
  * Checks watched listings for price drops and emails watchers.
  */
-export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret')
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+export async function POST(req: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  const auth = req.headers.get('x-cron-secret')
+  if (secret && auth !== secret) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
   const db = createServerClient()
