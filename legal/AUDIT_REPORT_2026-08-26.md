@@ -40,7 +40,11 @@
 13. **AI credit burn (`67d3683`)** — ai/chat, ai/marketing-copy, ai/marketing-designs called Claude/DeepSeek with NO session check → now require auth
 14. **Rate-limit sweep (`ec5be34`, `e32ee27`, `ae95b91`)** — chat-widget/message, directory/join, newsletter, marketplace/seller-order, data-rooms/view-log all rate-limited
 
-Total today: **~16 security fixes, 42 commits, 605/605 tests green throughout**
+
+17. **JSON-LD XSS (`a5c668a`)** — 11 public pages injected seller-supplied data into `<script type="application/ld+json">` with no `</script>` breakout protection → new `lib/safeJsonLd.ts` (OWASP escaping) applied everywhere
+18. **Stripe redirect guard (`f47f613`)** — `successUrl`/`cancelUrl` were client-supplied with no same-origin check (phishing bounce after payment) → now validated against APP_ORIGIN
+
+Total now: **18 security fixes, ~46 commits, 605/605 tests green throughout**
 
 ---
 
