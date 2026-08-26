@@ -25,6 +25,46 @@ const svc =
 const LISTINGS_KEY = 'lead_marketplace_listings'
 const LEDGER_KEY = 'lead_marketplace_ledger'
 
+// ---------------------------------------------------------------------------
+// Per-lead pricing tiers (monetization roadmap item).
+// Every lead listing carries a tier; each tier has a suggested price band so
+// the marketplace looks curated, plus a platform fee % that's recorded in the
+// ledger on purchase (Concord takes a cut of every cross-agency lead sale).
+// ---------------------------------------------------------------------------
+export interface LeadTier {
+  id: 'standard' | 'premium' | 'elite'
+  label: string
+  icon: string
+  suggestedMin: number
+  suggestedMax: number
+  defaultPrice: number
+  platformFeePct: number // Concord's cut of the sale
+  description: string
+}
+
+export const LEAD_TIERS: LeadTier[] = [
+  {
+    id: 'standard', label: 'Standard', icon: '📇',
+    suggestedMin: 25, suggestedMax: 100, defaultPrice: 49,
+    platformFeePct: 15,
+    description: 'Qualified buyer with contact info. Best for warm leads you can\'t serve.',
+  },
+  {
+    id: 'premium', label: 'Premium', icon: '⭐',
+    suggestedMin: 100, suggestedMax: 350, defaultPrice: 199,
+    platformFeePct: 20,
+    description: 'Verified funds + active timeline. Higher intent, faster close.',
+  },
+  {
+    id: 'elite', label: 'Elite', icon: '💎',
+    suggestedMin: 350, suggestedMax: 1000, defaultPrice: 499,
+    platformFeePct: 25,
+    description: 'Screened, funded, location-flexible. Rare — prices itself.',
+  },
+]
+
+export const leadTierOf = (id: string | null | undefined): LeadTier => LEAD_TIERS.find((t) => t.id === id) || LEAD_TIERS[0]
+
 export interface MarketLead {
   id: string
   seller_agency_id: string
@@ -35,7 +75,9 @@ export interface MarketLead {
   budget: string | null
   funds: string | null
   headline: string
+  tier: 'standard' | 'premium' | 'elite'
   price_cents: number
+  platform_fee_cents: number // recorded at publish (fee % × price)
   status: 'listed' | 'sold'
   created_at: string
   buyer_agency_id?: string | null
@@ -50,6 +92,7 @@ export interface MarketPurchase {
   seller_agency_id: string
   buyer_agency_id: string
   price_cents: number
+  platform_fee_cents?: number
   status: 'pending' | 'paid'
   created_at: string
 }
@@ -110,11 +153,20 @@ export async function publishLead(input: {
   budget?: string | null
   funds?: string | null
   headline?: string
+  tier?: 'standard' | 'premium' | 'elite'
   priceCents: number
 }): Promise<{ ok: boolean; error?: string; listing?: MarketLead }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   if (input.priceCents <= 0) return { ok: false, error: 'Set a price above $0' }
   if (!input.leadId) return { ok: false, error: 'leadId is required' }
+
+  const tier = leadTierOf(input.tier)
+  // Price sanity vs tier band: warn on wildly off-band pricing, never block.
+  const priceDollars = input.priceCents / 100
+  if (priceDollars < tier.suggestedMin * 0.5 || priceDollars > tier.suggestedMax * 2) {
+    return { ok: false, error: `Price is far outside the ${tier.label} tier band ($${tier.suggestedMin}–$${tier.suggestedMax}). Pick a closer tier or price.` }
+  }
+  const platformFeeCents = Math.round(input.priceCents * (tier.platformFeePct / 100))
 
   const { data: agency } = await svc.from('agencies').select('name').eq('id', input.agencyId).maybeSingle()
   const listings = await readListings()
@@ -132,7 +184,9 @@ export async function publishLead(input: {
     budget: input.budget || null,
     funds: input.funds || null,
     headline: input.headline || 'Qualified buyer lead',
+    tier: tier.id,
     price_cents: input.priceCents,
+    platform_fee_cents: platformFeeCents,
     status: 'listed',
     created_at: new Date().toISOString(),
   }
@@ -176,7 +230,7 @@ export async function purchaseLead(listingId: string, buyerAgencyId: string, buy
   const listOk = await writeListings(listings)
   if (!listOk) return { ok: false, error: 'Failed to finalize purchase' }
 
-  // Ledger entry.
+  // Ledger entry (records the platform fee — Concord's cut of the sale).
   const ledger = await readLedger()
   ledger.push({
     id: uid(),
@@ -185,6 +239,7 @@ export async function purchaseLead(listingId: string, buyerAgencyId: string, buy
     seller_agency_id: listing.seller_agency_id,
     buyer_agency_id: buyerAgencyId,
     price_cents: listing.price_cents,
+    platform_fee_cents: listing.platform_fee_cents || 0,
     status: 'paid',
     created_at: new Date().toISOString(),
   })

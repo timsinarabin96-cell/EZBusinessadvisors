@@ -98,3 +98,17 @@ test('global: public card uses free stock images + auto placeholder + currency d
   assert.match(card, /fmt\$/)
   assert.match(card, /priceTeaser/)
 })
+
+test('global: lead marketplace has per-lead pricing tiers + platform fee', () => {
+  const lib = readFileSync('lib/leadMarketplace.ts', 'utf8')
+  assert.match(lib, /LEAD_TIERS/)
+  assert.match(lib, /platformFeePct/)
+  assert.match(lib, /leadTierOf/)
+  assert.match(lib, /platform_fee_cents/)
+  assert.match(lib, /tier: 'standard' \| 'premium' \| 'elite'/)
+  const route = readFileSync('app/api/lead-marketplace/route.ts', 'utf8')
+  assert.match(route, /tier: body\?\.tier/)
+  const page = readFileSync('app/dashboard/lead-marketplace/page.tsx', 'utf8')
+  assert.match(page, /LEAD_TIERS\.map/)
+  assert.match(page, /selectedTier/)
+})

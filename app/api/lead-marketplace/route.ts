@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
       budget: body?.budget ? String(body.budget) : null,
       funds: body?.funds ? String(body.funds) : null,
       headline: body?.headline ? String(body.headline) : undefined,
+      tier: body?.tier as 'standard' | 'premium' | 'elite' | undefined,
       priceCents: Number(body?.priceCents) || 0,
     })
     if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 400 })

@@ -13,6 +13,7 @@ import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { LEAD_TIERS, type LeadTier } from '@/lib/leadMarketplace'
 
 interface MarketLead {
   id: string
@@ -75,6 +76,7 @@ function LeadMarketplaceApp() {
   const [budget, setBudget] = useState('')
   const [funds, setFunds] = useState('')
   const [priceDollars, setPriceDollars] = useState('')
+  const [selectedTier, setSelectedTier] = useState<'standard' | 'premium' | 'elite'>('standard')
 
   const token = () => getStoredAccessToken()
 
@@ -110,6 +112,7 @@ function LeadMarketplaceApp() {
         action: 'publish', agencyId, leadId,
         headline: headline || undefined, industry: industry || undefined,
         location: location || undefined, budget: budget || undefined, funds: funds || undefined,
+        tier: selectedTier,
         priceCents: Math.round(Number(String(priceDollars).replace(/[$,]/g, '')) * 100),
       }),
     })
@@ -233,6 +236,11 @@ function LeadMarketplaceApp() {
               <input style={inputStyle} placeholder="Budget range" value={budget} onChange={(e) => setBudget(e.target.value)} />
               <input style={inputStyle} placeholder="Funds available" value={funds} onChange={(e) => setFunds(e.target.value)} />
               <input style={inputStyle} placeholder="Price ($)" inputMode="decimal" value={priceDollars} onChange={(e) => setPriceDollars(formatWithCommas(e.target.value))} />
+              <select style={{ ...inputStyle, marginTop: 8 }} value={selectedTier} onChange={(e) => setSelectedTier(e.target.value as 'standard' | 'premium' | 'elite')}>
+                {LEAD_TIERS.map((t) => (
+                  <option key={t.id} value={t.id}>{t.icon} {t.label} — ${t.suggestedMin}–${t.suggestedMax} ({(100 - t.platformFeePct)}% yours)</option>
+                ))}
+              </select>
             </div>
             <button onClick={publish} disabled={busy} className="btn btn-primary" style={{ marginTop: 12 }}>{busy ? 'Publishing…' : '📤 List lead for sale'}</button>
             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>Buyers see the teaser only — contact details are released at purchase. Never include the buyer's name or contact info in the headline.</p>
