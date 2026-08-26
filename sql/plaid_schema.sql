@@ -60,8 +60,9 @@ alter table public.public_listings add column if not exists revenue_verified boo
 --    CREATE OR REPLACE, so we drop the old signature and recreate it.
 -- ---------------------------------------------------------------------------
 drop function if exists public.get_public_listing_feed(text);
+drop function if exists public.get_public_listing_feed(text, text);
 
-create function public.get_public_listing_feed(p_slug text default null)
+create function public.get_public_listing_feed(p_slug text default null, p_agency text default null)
 returns table (
   listing_id uuid,
   slug text,
@@ -118,6 +119,7 @@ as $$
 $$;
 
 revoke all on function public.get_public_listing_feed(text) from public;
-grant execute on function public.get_public_listing_feed(text) to anon, authenticated;
+revoke all on function public.get_public_listing_feed(text, text) from public;
+grant execute on function public.get_public_listing_feed(text, text) to anon, authenticated;
 
 commit;

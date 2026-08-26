@@ -64,7 +64,7 @@ alter table public.public_listings add column if not exists approval_expires_at 
 
 -- Public consumers call this allowlisted function instead of selecting from
 -- listings. Financial values are null unless the seller approved disclosure.
-create or replace function public.get_public_listing_feed(p_slug text default null)
+create or replace function public.get_public_listing_feed(p_slug text default null, p_agency text default null)
 returns table (
   listing_id uuid,
   slug text,
@@ -119,6 +119,7 @@ as $$
 $$;
 
 revoke all on function public.get_public_listing_feed(text) from public;
-grant execute on function public.get_public_listing_feed(text) to anon, authenticated;
+revoke all on function public.get_public_listing_feed(text, text) from public;
+grant execute on function public.get_public_listing_feed(text, text) to anon, authenticated;
 
 commit;
