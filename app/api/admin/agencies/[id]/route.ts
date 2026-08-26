@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { isPlatformAdmin } from '@/lib/platform'
+import { recordAdminAudit, resolveAdminActor } from '@/lib/adminAudit'
 
 export const runtime = 'nodejs'
 
@@ -48,6 +49,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   // Everything else (members, usage, settings, docs, etc.) cascades.
   const { error } = await db.from('agencies').delete().eq('id', agencyId)
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+
+  const actor = await resolveAdminActor(req)
+  await recordAdminAudit({
+    actorId: actor.id, actorEmail: actor.email,
+    action: 'delete_agency', targetType: 'agency', targetId: agencyId, targetLabel: agency.name,
+    details: { listings_deleted: true, deals_deleted: true, leads_deleted: true },
+  })
 
   return NextResponse.json({ ok: true, deleted: { id: agencyId, name: agency.name } })
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { isPlatformAdmin } from '@/lib/platform'
+import { recordAdminAudit, resolveAdminActor } from '@/lib/adminAudit'
 
 export const runtime = 'nodejs'
 
@@ -61,5 +62,13 @@ export async function POST(req: NextRequest) {
     .select()
     .single()
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+
+  const actor = await resolveAdminActor(req)
+  await recordAdminAudit({
+    actorId: actor.id, actorEmail: actor.email,
+    action: 'expense_create', targetType: 'expense', targetId: String(row.id), targetLabel: `${vendor} — $${(amountCents / 100).toFixed(2)}`,
+    details: { category, amountCents, expense_date: row.expense_date },
+  })
+
   return NextResponse.json({ ok: true, expense: row }, { status: 201 })
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { isPlatformAdmin } from '@/lib/platform'
+import { recordAdminAudit, resolveAdminActor } from '@/lib/adminAudit'
 
 export const runtime = 'nodejs'
 
@@ -47,7 +48,16 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params
   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 })
 
+  const { data: expense } = await db.from('expenses').select('id, vendor, amount_cents').eq('id', id).maybeSingle()
   const { error } = await db.from('expenses').delete().eq('id', id)
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+
+  const actor = await resolveAdminActor(req)
+  await recordAdminAudit({
+    actorId: actor.id, actorEmail: actor.email,
+    action: 'expense_delete', targetType: 'expense', targetId: id,
+    targetLabel: expense ? `${expense.vendor} — $${((expense.amount_cents || 0) / 100).toFixed(2)}` : id,
+    details: {},
+  })
   return NextResponse.json({ ok: true })
 }

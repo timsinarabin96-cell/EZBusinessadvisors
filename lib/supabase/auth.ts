@@ -48,7 +48,7 @@ export async function authenticateProfileRequest(req: NextRequest): Promise<Auth
     supabase.from('profiles').select('id, role, status').eq('id', authenticated.user.id).maybeSingle(),
     supabase.from('agency_members').select('agency_id, role, is_owner').eq('profile_id', authenticated.user.id),
   ])
-  if (!profile || profile.status === 'inactive') return null
+  if (!profile || profile.status === 'inactive' || profile.status === 'locked' || profile.status === 'banned') return null
 
   return {
     ...authenticated,

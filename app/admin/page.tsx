@@ -176,6 +176,9 @@ export default function PlatformAdminPage() {
       </Section>
 
       <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <Link href="/admin/users" style={{ background: '#1a1a2e', color: '#c9a84c', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>👥 Users</Link>
+        <Link href="/admin/listings" style={{ background: '#7c3aed', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🗂️ Moderation</Link>
+        <Link href="/admin/audit" style={{ background: '#0f766e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>📜 Audit Log</Link>
         <Link href="/admin/agencies/trials" style={{ background: '#1a1a2e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Manage Trials</Link>
         <Link href="/admin/trial-settings" style={{ border: '2px solid #1a1a2e', color: '#1a1a2e', padding: '9px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Trial Settings</Link>
         <Link href="/admin/expenses" style={{ background: '#15803d', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>💸 Expenses</Link>

@@ -2,8 +2,10 @@
 
 // =============================================================================
 // /admin/users — Platform owner (boss) user management.
-// Create users, set roles, link agencies, activate/deactivate, manage
-// subscriptions. Full control over every login on the platform.
+// Create users, set roles, link agencies, and control account status with a
+// REAL kill-switch: Ban revokes the auth user + all sessions and pulls their
+// listings off the market (not just a flag). Lock = payment hold.
+// Every action is written to the admin audit log.
 // =============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
@@ -20,8 +22,17 @@ interface UserRow {
   status: string
   avatar_url: string | null
   created_at: string | null
+  last_login: string | null
+  auth_banned: boolean
   memberships: { agency_id: string; role: string; is_owner: boolean }[]
   subscription: { tier: string; status: string } | null
+}
+
+const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  active: { bg: '#22c55e1a', color: '#15803d' },
+  inactive: { bg: '#94a3b81a', color: '#64748b' },
+  locked: { bg: '#f59e0b1a', color: '#b45309' },
+  banned: { bg: '#ef44441a', color: '#b91c1c' },
 }
 
 export default function AdminUsersPage() {
@@ -33,6 +44,9 @@ export default function AdminUsersPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ email: '', password: '', full_name: '', role: 'broker', agencyId: '' })
   const [busy, setBusy] = useState(false)
+  const [banTarget, setBanTarget] = useState<UserRow | null>(null)
+  const [banConfirm, setBanConfirm] = useState('')
+  const [banReason, setBanReason] = useState('')
 
   const load = useCallback(async () => {
     try {
@@ -73,7 +87,20 @@ export default function AdminUsersPage() {
       body: JSON.stringify({ userId, ...patch }),
     })
     const j = await res.json()
-    if (j.ok) { toast('Updated', 'success'); load() } else toast(j.error || 'Update failed', 'error')
+    if (j.ok) { toast('Updated ✅', 'success'); load() } else toast(j.error || 'Update failed', 'error')
+  }
+
+  const confirmBan = async () => {
+    if (!banTarget || banConfirm.trim().toLowerCase() !== banTarget.email.toLowerCase()) {
+      toast('Email does not match — ban cancelled', 'error')
+      return
+    }
+    setBusy(true)
+    await patchUser(banTarget.id, { status: 'banned', reason: banReason.trim() || null })
+    setBusy(false)
+    setBanTarget(null)
+    setBanConfirm('')
+    setBanReason('')
   }
 
   if (loading) return <LoadingState label="Loading users..." />
@@ -89,19 +116,18 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+    <div style={{ maxWidth: 1280, margin: '0 auto', padding: '40px 24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Platform Control</div>
           <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 30, color: '#1a1a2e', margin: '6px 0 0' }}>User Management</h1>
-          <p style={{ color: '#888', fontSize: 14, margin: '6px 0 0' }}>Create users, assign roles, link agencies. {users.length} users total.</p>
+          <p style={{ color: '#888', fontSize: 14, margin: '6px 0 0' }}>Create users, assign roles, link agencies. Ban = full kill-switch (auth revoked, sessions killed, listings unpublished). {users.length} users.</p>
         </div>
         <button onClick={() => setShowCreate(!showCreate)} style={{ background: '#1a1a2e', color: '#c9a84c', padding: '11px 22px', borderRadius: 8, border: 'none', fontWeight: 800, cursor: 'pointer' }}>
           {showCreate ? 'Cancel' : '+ Create User'}
         </button>
       </div>
 
-      {/* Create user form */}
       {showCreate && (
         <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 24, marginBottom: 24 }}>
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1a1a2e', margin: '0 0 16px' }}>Create a new user</h2>
@@ -140,65 +166,122 @@ export default function AdminUsersPage() {
               <th style={{ padding: '10px 12px' }}>User</th>
               <th style={{ padding: '10px 12px' }}>Role</th>
               <th style={{ padding: '10px 12px' }}>Status</th>
+              <th style={{ padding: '10px 12px' }}>Actions</th>
+              <th style={{ padding: '10px 12px' }}>Last Login</th>
               <th style={{ padding: '10px 12px' }}>Agency</th>
               <th style={{ padding: '10px 12px' }}>Plan</th>
               <th style={{ padding: '10px 12px' }}>Created</th>
-              <th style={{ padding: '10px 12px' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id} style={{ borderBottom: '1px solid #ece8dc' }}>
-                <td style={{ padding: '10px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {u.avatar_url ? <img src={u.avatar_url} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} /> : <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#1a1a2e', color: '#c9a84c', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>{(u.full_name || u.email)[0]?.toUpperCase()}</div>}
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{u.full_name || '—'}</div>
-                      <div style={{ fontSize: 12, color: '#888' }}>{u.email}</div>
+            {users.map((u) => {
+              const st = STATUS_STYLE[u.status] || STATUS_STYLE.inactive
+              return (
+                <tr key={u.id} style={{ borderBottom: '1px solid #ece8dc', background: u.status === 'banned' ? '#fef2f2' : undefined }}>
+                  <td style={{ padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {u.avatar_url ? <img src={u.avatar_url} style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} /> : <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#1a1a2e', color: '#c9a84c', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 800 }}>{(u.full_name || u.email)[0]?.toUpperCase()}</div>}
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{u.full_name || '—'} {u.auth_banned && <span style={{ fontSize: 10, background: '#ef44441a', color: '#b91c1c', padding: '2px 6px', borderRadius: 99, fontWeight: 800 }}>AUTH BANNED</span>}</div>
+                        <div style={{ fontSize: 12, color: '#888' }}>{u.email}</div>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td style={{ padding: '10px 12px' }}>
-                  <select value={u.role} onChange={(e) => patchUser(u.id, { role: e.target.value })} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #d8d2c2', fontSize: 12.5 }}>
-                    <option value="super_admin">super_admin</option>
-                    <option value="admin">admin</option>
-                    <option value="broker">broker</option>
-                    <option value="agent">agent</option>
-                    <option value="owner">owner</option>
-                    <option value="buyer">buyer</option>
-                  </select>
-                </td>
-                <td style={{ padding: '10px 12px' }}>
-                  <button onClick={() => patchUser(u.id, { status: u.status === 'active' ? 'inactive' : 'active' })} style={{ background: u.status === 'active' ? '#22c55e1a' : '#94a3b81a', color: u.status === 'active' ? '#15803d' : '#64748b', padding: '4px 12px', borderRadius: 99, fontSize: 11.5, fontWeight: 800, border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}>
-                    {u.status}
-                  </button>
-                </td>
-                <td style={{ padding: '10px 12px', color: '#555' }}>{u.memberships?.map((m) => m.agency_id?.slice(0, 8)).join(', ') || '—'}</td>
-                <td style={{ padding: '10px 12px', color: '#555' }}>{u.subscription ? `${u.subscription.tier} · ${u.subscription.status}` : '—'}</td>
-                <td style={{ padding: '10px 12px', color: '#888' }}>{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
-                <td style={{ padding: '10px 12px' }}>
-                  <select
-                    value={u.memberships?.[0]?.agency_id || ''}
-                    onChange={(e) => patchUser(u.id, { agencyId: e.target.value || null })}
-                    style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #d8d2c2', fontSize: 12.5, maxWidth: 160 }}
-                  >
-                    <option value="">— none —</option>
-                    {agencies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                  </select>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <select value={u.role} onChange={(e) => patchUser(u.id, { role: e.target.value })} style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #d8d2c2', fontSize: 12.5 }}>
+                      <option value="super_admin">super_admin</option>
+                      <option value="admin">admin</option>
+                      <option value="broker">broker</option>
+                      <option value="agent">agent</option>
+                      <option value="owner">owner</option>
+                      <option value="buyer">buyer</option>
+                    </select>
+                  </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <span style={{ background: st.bg, color: st.color, padding: '4px 12px', borderRadius: 99, fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase' }}>{u.status}</span>
+                  </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {u.status === 'banned' ? (
+                        <SmallBtn color="#15803d" bg="#22c55e1a" onClick={() => patchUser(u.id, { status: 'active' })}>♻️ Reactivate</SmallBtn>
+                      ) : u.status === 'active' ? (
+                        <>
+                          <SmallBtn color="#b45309" bg="#f59e0b1a" onClick={() => patchUser(u.id, { status: 'locked', reason: 'Manual lock' })}>🔒 Lock</SmallBtn>
+                          <SmallBtn color="#64748b" bg="#94a3b81a" onClick={() => patchUser(u.id, { status: 'inactive' })}>⏸ Suspend</SmallBtn>
+                          <SmallBtn color="#b91c1c" bg="#ef44441a" onClick={() => setBanTarget(u)}>🚫 Ban</SmallBtn>
+                        </>
+                      ) : (
+                        <>
+                          <SmallBtn color="#15803d" bg="#22c55e1a" onClick={() => patchUser(u.id, { status: 'active' })}>▶️ Activate</SmallBtn>
+                          {u.status !== 'banned' && <SmallBtn color="#b91c1c" bg="#ef44441a" onClick={() => setBanTarget(u)}>🚫 Ban</SmallBtn>}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#555', fontSize: 12.5 }}>{u.last_login ? new Date(u.last_login).toLocaleString() : 'never'}</td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <select
+                      value={u.memberships?.[0]?.agency_id || ''}
+                      onChange={(e) => patchUser(u.id, { agencyId: e.target.value || null })}
+                      style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #d8d2c2', fontSize: 12.5, maxWidth: 160 }}
+                    >
+                      <option value="">— none —</option>
+                      {agencies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                    </select>
+                  </td>
+                  <td style={{ padding: '10px 12px', color: '#555' }}>{u.subscription ? `${u.subscription.tier} · ${u.subscription.status}` : '—'}</td>
+                  <td style={{ padding: '10px 12px', color: '#888' }}>{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
+
+      {/* Ban confirmation modal — type the email to confirm */}
+      {banTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'grid', placeItems: 'center', zIndex: 50, padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, maxWidth: 440, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ fontSize: 34, marginBottom: 8 }}>🚫</div>
+            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '0 0 6px' }}>Ban {banTarget.full_name || banTarget.email}?</h2>
+            <p style={{ color: '#64748b', fontSize: 13.5, lineHeight: 1.6, margin: '0 0 16px' }}>
+              This is a <b>full kill-switch</b>: their login is disabled, all sessions are revoked immediately, and every listing they own is unpublished from the marketplace. This can be reversed later.
+            </p>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>Reason (optional, saved to audit log)</div>
+              <input className="input" value={banReason} onChange={(e) => setBanReason(e.target.value)} placeholder="e.g. Fraudulent listing, chargeback abuse" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #d8d2c2', fontSize: 14 }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>Type <b style={{ color: '#b91c1c' }}>{banTarget.email}</b> to confirm</div>
+              <input className="input" value={banConfirm} onChange={(e) => setBanConfirm(e.target.value)} placeholder="user@email.com" style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #d8d2c2', fontSize: 14 }} />
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setBanTarget(null); setBanConfirm(''); setBanReason('') }} style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              <button
+                onClick={confirmBan}
+                disabled={busy || banConfirm.trim().toLowerCase() !== banTarget.email.toLowerCase()}
+                style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: banConfirm.trim().toLowerCase() === banTarget.email.toLowerCase() ? '#b91c1c' : '#e2e8f0', color: banConfirm.trim().toLowerCase() === banTarget.email.toLowerCase() ? '#fff' : '#94a3b8', fontWeight: 800, cursor: banConfirm.trim().toLowerCase() === banTarget.email.toLowerCase() ? 'pointer' : 'not-allowed' }}
+              >
+                {busy ? 'Banning…' : '🚫 Ban User'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+function SmallBtn({ children, onClick, color, bg }: { children: React.ReactNode; onClick: () => void; color: string; bg: string }) {
+  return (
+    <button onClick={onClick} style={{ background: bg, color, padding: '5px 10px', borderRadius: 6, fontSize: 11.5, fontWeight: 800, border: 'none', cursor: 'pointer' }}>{children}</button>
   )
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#555', marginBottom: 5 }}>{label}</label>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>{label}</div>
       {children}
     </div>
   )
