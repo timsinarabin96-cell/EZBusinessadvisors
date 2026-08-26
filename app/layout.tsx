@@ -9,6 +9,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import LegalFooter from '@/components/public/LegalFooter'
 import ServiceWorkerRegister from '@/components/pwa/ServiceWorkerRegister'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const APP_NAME = 'Concord Deal Platform'
 const APP_DESCRIPTION =
@@ -76,6 +78,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main style={{ flex: '1 1 auto' }}>{children}</main>
         <LegalFooter />
         <ServiceWorkerRegister />
+        {/* Vercel Analytics + Speed Insights — traffic, Web Vitals, and UX metrics. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )

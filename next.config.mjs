@@ -29,4 +29,16 @@ const nextConfig = {
   poweredByHeader: false,
 }
 
-export default nextConfig
+// Sentry error tracking — activates when SENTRY_DSN is set (no-op otherwise).
+// Instrumentation lives in instrumentation.ts + sentry.{client,server,edge}.config.ts.
+import { withSentryConfig } from '@sentry/nextjs'
+
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.SENTRY_DSN,
+  hideSourceMaps: true,
+  disableLogger: true,
+  telemetry: false,
+})
