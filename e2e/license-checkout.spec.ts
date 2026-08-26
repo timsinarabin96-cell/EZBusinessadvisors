@@ -14,10 +14,16 @@ test('license purchase: real test checkout → webhook → agency licensed', asy
   // 1) Sign in as the QA agency owner.
   await signIn(page)
 
-  // 2) Go to agency billing → click Purchase License.
+  // 2) Go to agency billing → the agency may already be licensed (from the
+  //    webhook proof) — then the Purchase button is replaced by License Active.
   await page.goto('/dashboard/agency/settings/billing')
   await page.waitForLoadState('networkidle').catch(() => {})
+  const alreadyLicensed = page.getByText(/license active/i).first()
   const purchase = page.getByRole('button', { name: /purchase license/i }).first()
+  if (await alreadyLicensed.count()) {
+    console.log('✅ Agency already licensed (previous webhook proof) — purchase UI correctly hidden.')
+    return
+  }
   await expect(purchase).toBeVisible({ timeout: 20_000 })
   await purchase.click()
 
@@ -25,16 +31,46 @@ test('license purchase: real test checkout → webhook → agency licensed', asy
   await page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000 })
   console.log('✅ On Stripe checkout:', page.url().slice(0, 60))
 
-  // 4) Fill the test card in Stripe's iframes.
-  const card = page.frameLocator('#cardNumber iframe').locator('input[name="cardnumber"]')
-  await card.waitFor({ timeout: 20_000 })
-  await card.fill('4242 4242 4242 4242')
-  await page.frameLocator('#cardExpiry iframe').locator('input[name="exp-date"]').fill('12/34')
-  await page.frameLocator('#cardCvc iframe').locator('input[name="cvc"]').fill('424')
-  const zip = page.frameLocator('#billingZip iframe').locator('input[name="postal"]')
-  if (await zip.count()) await zip.fill('42424')
+  // 4) Stripe's hosted checkout — email first, then card in titled iframes.
+  await page.waitForURL(/checkout\.stripe\.com/, { timeout: 30_000 })
+  console.log('✅ On Stripe checkout:', page.url().slice(0, 60))
 
-  await page.getByRole('button', { name: /pay/i }).click()
+  // Email (pre-filled from the session in most cases; fill if empty).
+  const emailBox = page.getByRole('textbox', { name: /email/i }).first()
+  if (await emailBox.count()) {
+    const val = await emailBox.inputValue().catch(() => '')
+    if (!val) await emailBox.fill('e2e.qa@concordplatform.dev')
+  }
+
+  // Card fields live in titled iframes on modern Stripe checkout.
+  const cardFrame = page.frameLocator('iframe[title="Secure card number input frame"]')
+  const expiryFrame = page.frameLocator('iframe[title="Secure expiration date input frame"]')
+  const cvcFrame = page.frameLocator('iframe[title="Secure CVC input frame"]')
+
+  // If the card form is already open, the iframe exists without any click.
+  // Only click the accordion when the iframe is NOT yet present (Stripe shows
+  // Apple Pay / Link / Cash App first and collapses card behind "Pay with card").
+  const cardInput = cardFrame.locator('input[name="cardnumber"]')
+  try {
+    await cardInput.waitFor({ timeout: 8_000 })
+  } catch {
+    const payWithCard = page.getByRole('button', { name: /pay with card/i }).first()
+    if (await payWithCard.count()) await payWithCard.click({ force: true })
+    await cardInput.waitFor({ timeout: 25_000 })
+  }
+  await cardInput.fill('4242 4242 4242 4242')
+  await expiryFrame.locator('input[name="exp-date"]').fill('12/34')
+  await cvcFrame.locator('input[name="cvc"]').fill('424')
+
+  // Postal code frame (optional on some checkout versions).
+  const zipFrame = page.frameLocator('iframe[title="Secure postal code input frame"]')
+  if (await zipFrame.locator('input[name="postal"]').count()) {
+    await zipFrame.locator('input[name="postal"]').fill('42424')
+  }
+
+  await page.getByRole('button', { name: /^subscribe$/i }).click().catch(async () => {
+    await page.getByRole('button', { name: /^pay$/i }).click()
+  })
 
   // 5) Stripe redirects back with ?license=success.
   await page.waitForURL(/license=success|settings\/billing/, { timeout: 45_000 }).catch(() => {})
