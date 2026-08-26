@@ -58,6 +58,9 @@ export type EmailKind =
   | 'captains_brief'
   | 'daily_brief'
   | 'password_reset'
+  | 'password_changed'
+  | 'email_changed'
+  | 'new_sign_in'
   | 'generic'
 
 export interface EmailOptions {
@@ -233,6 +236,46 @@ export const emailTemplates = {
       <p>If this was you, click the button below to choose a new password. This link is valid for a limited time.</p>
       <p style="font-size:13px;color:#8a8678;">If you didn't request this, you can safely ignore this email — your password will not change.</p>`
     return { subject, html: shell(subject, body) }
+  },
+
+  // Security alerts — sent AFTER account changes so owners spot hijacks fast.
+  passwordChanged(opts: { ip?: string; location?: string; at?: string }) {
+    const subject = '🔐 Your CONCORD password was changed'
+    const body = `
+      <p>Your <strong>CONCORD Deal Platform</strong> password was changed.</p>
+      <table style="font-size:14px;border-collapse:collapse;width:100%;">
+        ${opts.at ? row('When', esc(opts.at)) : ''}
+        ${opts.ip ? row('IP address', esc(opts.ip)) : ''}
+        ${opts.location ? row('Location', esc(opts.location)) : ''}
+      </table>
+      <p style="font-size:13px;color:#8a8678;">If this was you, no action needed. If you didn't change it, <strong>reset your password immediately</strong> and contact support.</p>`
+    return { subject, html: shell(subject, body, { label: 'Secure my account', href: `${APP_URL}/auth` }) }
+  },
+
+  emailChanged(opts: { newEmail?: string; ip?: string; at?: string }) {
+    const subject = '✉️ Your CONCORD email address changed'
+    const body = `
+      <p>Your <strong>CONCORD Deal Platform</strong> sign-in email was changed to <strong>${esc(opts.newEmail || 'a new address')}</strong>.</p>
+      <table style="font-size:14px;border-collapse:collapse;width:100%;">
+        ${opts.at ? row('When', esc(opts.at)) : ''}
+        ${opts.ip ? row('IP address', esc(opts.ip)) : ''}
+      </table>
+      <p style="font-size:13px;color:#8a8678;">If this was you, no action needed. If you didn't make this change, contact support immediately — an attacker may have taken over your account.</p>`
+    return { subject, html: shell(subject, body, { label: 'Secure my account', href: `${APP_URL}/auth` }) }
+  },
+
+  newSignIn(opts: { ip?: string; location?: string; device?: string; at?: string }) {
+    const subject = '🔓 New sign-in to your CONCORD account'
+    const body = `
+      <p>A new sign-in to your <strong>CONCORD Deal Platform</strong> account was detected.</p>
+      <table style="font-size:14px;border-collapse:collapse;width:100%;">
+        ${opts.at ? row('When', esc(opts.at)) : ''}
+        ${opts.ip ? row('IP address', esc(opts.ip)) : ''}
+        ${opts.location ? row('Approximate location', esc(opts.location)) : ''}
+        ${opts.device ? row('Device', esc(opts.device)) : ''}
+      </table>
+      <p style="font-size:13px;color:#8a8678;">If this was you, no action needed. If it wasn't, reset your password right away.</p>`
+    return { subject, html: shell(subject, body, { label: 'Secure my account', href: `${APP_URL}/auth` }) }
   },
 
   renewalProposal(opts: { businessName?: string; expiresAt?: string; daysLeft?: number; price?: number | null; valuationLow?: number | null; valuationHigh?: number | null; renewUrl?: string }) {
@@ -435,6 +478,9 @@ export async function notify(
     case 'captains_brief': built = emailTemplates.captainsBrief(payload); break
     case 'daily_brief': built = emailTemplates.dailyBrief(payload); break
     case 'password_reset': built = emailTemplates.passwordReset(); break
+    case 'password_changed': built = emailTemplates.passwordChanged(payload); break
+    case 'email_changed': built = emailTemplates.emailChanged(payload); break
+    case 'new_sign_in': built = emailTemplates.newSignIn(payload); break
     case 'generic': built = emailTemplates.generic({ title: payload.title || 'Notification', message: payload.message || '' }); break
   }
   return sendEmail({ to, subject: built.subject, html: built.html, kind, meta: payload })

@@ -107,6 +107,12 @@ export default function AuthPage() {
 
       const dest = await redirectAfterLogin()
       setSuccess('✅ Signed in! Taking you to your workspace…')
+      // Security alert (fire-and-forget): new sign-in notification.
+      fetch('/api/auth/security-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'new_sign_in' }),
+      }).catch(() => {})
       setTimeout(() => router.push(dest), 600)
     } catch (err: any) {
       setError(err.message || 'Sign in failed')

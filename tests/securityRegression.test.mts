@@ -193,3 +193,22 @@ test('checkout: demo grants are disabled in production (fail-closed)', () => {
   const valuation = readFileSync('app/api/valuation-reports/route.ts', 'utf8')
   assert.match(valuation, /demoModeAllowed/)
 })
+
+// --- 15. Account-change security emails --------------------------------------
+test('security: account-change alerts exist (password/email/sign-in)', () => {
+  const email = readFileSync('lib/email.ts', 'utf8')
+  assert.match(email, /'password_changed'/)
+  assert.match(email, /'email_changed'/)
+  assert.match(email, /'new_sign_in'/)
+  assert.match(email, /passwordChanged\(/)
+  assert.match(email, /emailChanged\(/)
+  assert.match(email, /newSignIn\(/)
+  const reset = readFileSync('app/api/auth/reset-password/route.ts', 'utf8')
+  assert.match(reset, /notify\('password_changed'/)
+  const alertRoute = readFileSync('app/api/auth/security-alert/route.ts', 'utf8')
+  assert.match(alertRoute, /type === 'email_changed'/)
+  assert.match(alertRoute, /type === 'new_sign_in'/)
+  assert.match(alertRoute, /rateLimitAsync/)
+  const authPage = readFileSync('app/auth/page.tsx', 'utf8')
+  assert.match(authPage, /security-alert/)
+})

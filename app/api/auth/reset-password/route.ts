@@ -20,7 +20,8 @@
 
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import {rateLimitAsync } from '@/lib/rateLimit'
+import { rateLimitAsync } from '@/lib/rateLimit'
+import { notify } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -83,6 +84,15 @@ export async function POST(req: Request) {
         { ok: false, error: 'Could not update your password. Please try again.' },
         { status: 500 },
       )
+    }
+
+    // Security alert: tell the owner their password changed (spot hijacks fast).
+    if (data.user.email) {
+      const ip = clientIp(req)
+      await notify('password_changed', data.user.email, {
+        ip: ip === 'unknown' ? undefined : ip,
+        at: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }),
+      }).catch(() => {})
     }
 
     return NextResponse.json({ ok: true, email: data.user.email }, { status: 200 })
