@@ -212,3 +212,16 @@ test('security: account-change alerts exist (password/email/sign-in)', () => {
   const authPage = readFileSync('app/auth/page.tsx', 'utf8')
   assert.match(authPage, /security-alert/)
 })
+
+// --- 16. Financial Intelligence add-on gate ($100/mo enforcement) ------------
+test('fic: add-on gate is enforced on all FIC broker routes', () => {
+  const addon = readFileSync('lib/financialAddon.ts', 'utf8')
+  assert.match(addon, /isFinancialIntelligenceEnabled/)
+  assert.match(addon, /financialAddonError/)
+  assert.match(addon, /financial_intelligence_enabled/)
+  for (const route of ['app/api/financial/intelligence/route.ts', 'app/api/financial/ledger/route.ts', 'app/api/financial/extractions/route.ts', 'app/api/financial/verify/route.ts']) {
+    const src = readFileSync(route, 'utf8')
+    assert.match(src, /isFinancialIntelligenceEnabled/, `${route} missing add-on gate`)
+    assert.match(src, /financialAddonError/, `${route} missing add-on 403`)
+  }
+})

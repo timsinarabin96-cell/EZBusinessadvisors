@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import { runBankBooksVerification } from '@/lib/bankBooksVerification'
+import { isFinancialIntelligenceEnabled, financialAddonError } from '@/lib/financialAddon'
 
 export const runtime = 'nodejs'
 
@@ -47,6 +48,12 @@ export async function POST(req: NextRequest) {
     if (prof?.role !== 'admin' && prof?.role !== 'super_admin') {
       return NextResponse.json({ ok: false, error: 'Not a member of this listing\'s agency' }, { status: 403 })
     }
+  }
+
+  // Financial Intelligence add-on gate.
+  const { data: prof2 } = await db.from('profiles').select('role').eq('id', auth.user.id).maybeSingle()
+  if (!(await isFinancialIntelligenceEnabled(agencyId, (prof2 as { role?: string | null } | null)?.role))) {
+    return NextResponse.json(financialAddonError(), { status: 403 })
   }
 
   const result = await runBankBooksVerification(listingId, agencyId)

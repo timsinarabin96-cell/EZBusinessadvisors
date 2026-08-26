@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
+import { isFinancialIntelligenceEnabled, financialAddonError } from '@/lib/financialAddon'
 
 export const runtime = 'nodejs'
 
@@ -32,6 +33,11 @@ const overrideSchema = z.object({
   notes: z.string().max(1000).optional(),
 })
 
+async function listingAgencyId(db: ReturnType<typeof createServerClient>, listingId: string): Promise<string | null> {
+  const { data: listing } = await db.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+  return (listing as { agency_id?: string | null } | null)?.agency_id || null
+}
+
 async function agencyGate(db: ReturnType<typeof createServerClient>, userId: string, listingId: string): Promise<boolean> {
   if (!db) return false
   const { data: listing } = await db.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
@@ -54,6 +60,9 @@ export async function GET(req: NextRequest) {
   if (!listingId) return NextResponse.json({ ok: false, error: 'listingId required' }, { status: 400 })
   if (!(await agencyGate(db, auth.user.id, listingId))) {
     return NextResponse.json({ ok: false, error: 'Not a member of this listing\'s agency' }, { status: 403 })
+  }
+  if (!(await isFinancialIntelligenceEnabled(await listingAgencyId(db, listingId), null))) {
+    return NextResponse.json(financialAddonError(), { status: 403 })
   }
 
   const { data, error } = await db

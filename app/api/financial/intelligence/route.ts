@@ -14,6 +14,7 @@ import { extractDocumentText, isPlainTextType } from '@/lib/ai/textExtract'
 import { mergeAnalyses, type AiExtractionOutput } from '@/lib/ai/financialExtractor'
 import { generateFinancialSummary, type FinancialSummaryReport } from '@/lib/ai/summaryGenerator'
 import type { FinancialIntelligence, DocumentAnalysis } from '@/lib/ai/types'
+import { isFinancialIntelligenceEnabled, financialAddonError } from '@/lib/financialAddon'
 
 export const runtime = 'nodejs'
 
@@ -51,6 +52,13 @@ export async function POST(req: NextRequest) {
     const mine = new Set((memberships || []).map((m) => m.agency_id))
     if (!mine.has(agencyId)) {
       return NextResponse.json({ ok: false, error: 'Not a member of this listing\'s agency.' }, { status: 403 })
+    }
+
+    // Financial Intelligence add-on gate ($100/mo upsell — enforce server-side).
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', auth.user.id).maybeSingle()
+    const enabled = await isFinancialIntelligenceEnabled(agencyId, (profile as { role?: string | null } | null)?.role)
+    if (!enabled) {
+      return NextResponse.json(financialAddonError(), { status: 403 })
     }
   } catch {
     return NextResponse.json({ ok: false, error: 'Agency check failed.' }, { status: 500 })
