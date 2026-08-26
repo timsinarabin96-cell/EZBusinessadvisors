@@ -46,6 +46,7 @@
 
 Total now: **18 security fixes, 50 commits, 618/618 tests green throughout**
 19. **Regression test suite (`0926bd9`)** — `tests/securityRegression.test.mts`: 13 tests lock in every fix (open redirect, auth rate limits, Twilio HMAC, upload caps, AI auth, CSPRNG, safeJsonLd, Stripe redirects, convert-trial gate, webhook lifecycle, cron headers, public rate limits, live RLS check vs production)
+20. **Certificate-verify rate limit (`54f2544`)** — public cert-code lookup route now rate-limited (defense-in-depth; codes already CSPRNG 8-char)
 
 ---
 
