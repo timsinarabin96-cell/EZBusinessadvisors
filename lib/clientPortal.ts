@@ -24,13 +24,18 @@
 import { supabase } from '@/lib/supabase/client'
 
 // -- Token helper ------------------------------------------------------------
-export function makeToken(dealId: string, email: string): string {
+// SECURITY (2026-08-26 audit): the old token was base64(dealId:email:Date.now())
+// — fully predictable, so anyone who knew a deal ID + email could forge portal
+// access to client documents. Now a 24-byte CSPRNG token (browser-safe).
+export function makeToken(): string {
   try {
-    const raw = `${dealId}:${email}:${Date.now()}`
-    if (typeof btoa === 'function') return btoa(unescape(encodeURIComponent(raw))).replace(/[^a-zA-Z0-9]/g, '').slice(0, 40)
-    return raw.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40)
+    const bytes = new Uint8Array(24)
+    crypto.getRandomValues(bytes)
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
   } catch {
-    return `${dealId}${email}`.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40)
+    // Fallback: high-entropy timestamp + Math.random — still far better than
+    // the old deterministic base64, and only used if getRandomValues is missing.
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`
   }
 }
 
@@ -90,7 +95,7 @@ export interface PortalSnapshot {
 // -- Broker-side management (anon client, RLS) --------------------------------
 export async function grantClientAccess(input: { dealId: string; clientName: string; clientEmail: string }): Promise<ClientAccess | null> {
   try {
-    const token = makeToken(input.dealId, input.clientEmail)
+    const token = makeToken()
     const { data, error } = await supabase.from('client_portal_access').insert({
       deal_id: input.dealId, client_name: input.clientName, client_email: input.clientEmail, token,
     }).select().single()

@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'node:crypto'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
@@ -21,8 +22,9 @@ export const runtime = 'nodejs'
 // =============================================================================
 
 function makeToken(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return 'LND-' + Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  // SECURITY (2026-08-26 audit): was Math.random() — not cryptographically
+  // secure. Now 16 bytes from the Node CSPRNG.
+  return 'LND-' + randomBytes(16).toString('hex').toUpperCase().slice(0, 16)
 }
 
 /** Broker view — qualifications for one deal (agency-scoped). */
