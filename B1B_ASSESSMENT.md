@@ -72,7 +72,7 @@ Comps, market multiples, buyer-demand — the long-term defensibility — fills 
 
 ## 4. CODE-SIDE MODIFICATIONS FOUND (for the polish pass, not now)
 
-1. **`/test` route is publicly reachable** — a dev upload page should never ship. Remove it before launch.
+1. **`/test` route — REMOVED 2026-08-26** (`ccd245a`): the dev upload page was publicly reachable with no auth; deleted with no inbound references. TSC + 648/648 tests re-verified.
 2. **Thin public pages to beef up** (priority order): contact, about, insights (list + detail), favorites, marketplace hub, valuation, pnl-builder.
 3. Dashboard "shell" pages flagged during the walk are **fine** — thin wrappers around real components. Good architecture, not a defect.
 4. Existing strengths to preserve: RLS coverage, rate limiting, unified pricing, regression suite, license headers, security posture.
