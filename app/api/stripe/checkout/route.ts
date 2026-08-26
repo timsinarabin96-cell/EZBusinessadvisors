@@ -27,13 +27,17 @@ export async function POST(req: NextRequest) {
   }
 
   const tier = String(body?.tier || '').trim()
-  const plan = PLANS.find((p) => p.id === tier)
-  if (!plan) {
+  const product = String(body?.product || 'subscription')
+
+  // License purchases don't map to a subscription plan — skip the plan check
+  // for that product (the license branch handles its own pricing).
+  const plan = product === 'license' ? null : PLANS.find((p) => p.id === tier)
+  if (!plan && product !== 'license') {
     return NextResponse.json({ ok: false, error: 'Unknown plan' }, { status: 400 })
   }
 
   const origin = req.headers.get('origin') || req.headers.get('referer') || 'http://localhost:3000'
-  const product = String(body?.product || 'subscription')
+  const product2 = String(body?.product || 'subscription')
 
   // --- Buyer Pass product (separate from brokerage SaaS) ---------------------
   if (product === 'buyer_pass') {
