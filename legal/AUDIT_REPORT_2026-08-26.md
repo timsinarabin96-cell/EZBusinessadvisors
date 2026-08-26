@@ -39,19 +39,19 @@
 ## ⚠️ FINDINGS TO ACT ON (ranked)
 
 ### 🔴 HIGH
-1. **`convert-trial` trusts client `paymentConfirmed: true`** — an agency admin can mark paid without Stripe verifying. **Fix:** build a Stripe webhook endpoint (verify `checkout.session.completed` signature server-side) and only then flip `paid_plan_active`. Until then, keep this route admin-only (it already is — super_admin can convert any agency; the risk is a *tenant admin* self-converting their own agency).
-2. **No Stripe webhook at all** — subscription lifecycle (renewals, failures, cancel) is unverified. Polling/checkout-redirect only. **Fix:** `POST /api/billing/webhook` with `constructEvent` + secret; handle `checkout.session.completed`, `invoice.payment_failed`, `customer.subscription.deleted`.
+1. **~~`convert-trial` trusts client `paymentConfirmed: true`~~ — FIXED 2026-08-26** (`5d49d51`): paid-plan conversion is now **platform-admin-only**; tenant admins must pay via Stripe Checkout, verified server-side by the webhook. No one can self-activate for free.
+2. **~~No Stripe webhook lifecycle~~ — FIXED 2026-08-26** (`5d49d51`): added `invoice.payment_failed` (7-day grace → existing cron locks), `customer.subscription.deleted` (deactivate + grace), `invoice.paid` (renewal: extend period, clear grace, unlock). **Still to do on your side:** register the webhook URL in the Stripe dashboard (`https://concord-deal-platform.vercel.app/api/stripe/webhook`) + confirm `STRIPE_WEBHOOK_SECRET` is set in Vercel env.
 
 ### 🟡 MEDIUM
 3. **HIBP leaked-password check OFF** — needs Pro plan (~$25/mo). Enable in Supabase dashboard → Auth → Security when you upgrade.
-4. **Sessions never expire** (`sessions_timebox: 0`, inactivity 0) — add 30-day absolute + 14-day inactivity timeout via Supabase auth settings.
-5. **`mailer_autoconfirm: true`** — Supabase auto-confirms emails; the app's own gate blocks unconfirmed users, but flipping to manual confirm adds defense-in-depth.
+4. **Sessions never expire** (`sessions_timebox: 0`, inactivity 0) — Management API rejected the change (403/1010, plan-scoped). **Do in Supabase dashboard:** Authentication → Sessions → absolute timeout 30 days, inactivity 14 days.
+5. **`mailer_autoconfirm: true`** — Supabase auto-confirms emails; the app's own gate blocks unconfirmed users. Flip to manual confirm in dashboard → Auth → Providers → Email → Confirm email for defense-in-depth.
 6. **in-memory rate limiter** — resets on deploy (Vercel serverless). Fine now; swap to Upstash/Redis when traffic grows.
 
 ### 🟢 LOW / NICE-TO-HAVE
-7. `price-alerts` cron uses `?secret=` in URL (works, but query strings can appear in logs) → switch to `x-cron-secret` header like the others.
+7. **~~`price-alerts` cron secret in URL~~ — FIXED 2026-08-26** (`69c2559`): now uses `x-cron-secret` header like all other crons.
 8. `X_CLIENT_ID/SECRET`, `TIKTOK_*`, `INSTAGRAM_*`, `FACEBOOK_*` keys in `.env.local` — verify each social integration is actually used or rotate/remove unused keys.
-9. `mailer_notifications_*` all disabled — enable password/email/MFA-change emails so owners get alerted on account changes.
+9. `mailer_notifications_*` all disabled — enable password/email/MFA-change emails in Supabase dashboard → Auth → Email templates → Notifications (API rejected the change: 403/1010).
 
 ---
 
