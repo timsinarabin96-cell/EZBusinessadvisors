@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // =============================================================================
 // listingPipeline — auto-advance: the listing flow pulls itself forward.
 // When a step completes, downstream documents generate automatically instead

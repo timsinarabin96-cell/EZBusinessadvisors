@@ -1,3 +1,8 @@
+-- Concord Deal Platform
+-- Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+-- Proprietary & confidential. No copying, distribution, or modification without
+-- prior written permission. See LICENSE for full terms.
+
 -- =============================================================================
 -- Marketing store catalog seed (priced, ready to print/ship)
 -- Idempotent: only inserts products that don't already exist.

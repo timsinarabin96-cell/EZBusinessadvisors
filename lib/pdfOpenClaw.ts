@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // =============================================================================
 // Open Claw document theme — shared engine for CIM / BOV / Recast PDFs.
 // Palette: #0B0C10 near-black · #C9A84C gold · #45A29E teal · #F5F5F5 body.

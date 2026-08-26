@@ -1,3 +1,8 @@
+-- Concord Deal Platform
+-- Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+-- Proprietary & confidential. No copying, distribution, or modification without
+-- prior written permission. See LICENSE for full terms.
+
 -- =============================================================================
 -- Concord Buyer Match Engine — schema (additive, idempotent)
 -- Records matches between buyer_search_profiles and listings, so buyers get

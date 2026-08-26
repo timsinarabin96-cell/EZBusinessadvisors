@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // =============================================================================
 // Provider cost sync — automatically pull real usage costs from the services
 // the platform depends on (Twilio, Anthropic, DeepSeek, Supabase, Vercel).

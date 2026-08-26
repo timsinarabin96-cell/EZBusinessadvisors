@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // =============================================================================
 // leadDedupCore — pure, dependency-free duplicate-lead detection.
 // Normalizes emails / phones / names, then groups leads that share a contact

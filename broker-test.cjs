@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // Broker CRM end-to-end test harness (service role). Mirrors the exact
 // Supabase calls the app's lib/ functions make, so we test real schema + data.
 // Run: node broker-test.cjs <subcommand>

@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // =============================================================================
 // lib/buyerFormSchemas.ts — field definitions for the buyer-side gate: the
 // remaining Confidentiality/NDA fields (doc 7, minus Business Listing ID No.

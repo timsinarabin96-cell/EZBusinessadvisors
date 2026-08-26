@@ -1,3 +1,8 @@
+-- Concord Deal Platform
+-- Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+-- Proprietary & confidential. No copying, distribution, or modification without
+-- prior written permission. See LICENSE for full terms.
+
 -- ============================================================
 -- CONCORD PLATFORM - SCHEMA STABILIZATION PATCH (verified build)
 -- Auto-generated from sql/ schema files. Safe: CREATE TABLE IF NOT EXISTS only.

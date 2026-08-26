@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 export type ListingSource = 'broker_manual' | 'seller_self_service' | 'ai_phone' | 'import'
 export type ListingReviewStage = 'draft' | 'agent_review' | 'broker_review' | 'changes_requested' | 'approved' | 'rejected'
 

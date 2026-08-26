@@ -1,3 +1,8 @@
+-- Concord Deal Platform
+-- Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+-- Proprietary & confidential. No copying, distribution, or modification without
+-- prior written permission. See LICENSE for full terms.
+
 -- =============================================================================
 -- Concord Deal Platform — Full Schema Migrations
 -- Run this ONCE in the Supabase SQL Editor. It is idempotent (safe to re-run).

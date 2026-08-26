@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // Generates Concord PWA icons (192 & 512) as PNGs using pure Node (zlib + CRC).
 // Navy rounded-square background with a gold bar chart motif (drawn manually).
 const zlib = require('zlib');

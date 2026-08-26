@@ -1,3 +1,8 @@
+-- Concord Deal Platform
+-- Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+-- Proprietary & confidential. No copying, distribution, or modification without
+-- prior written permission. See LICENSE for full terms.
+
 -- =============================================================================
 -- Document recycle bin (#12576 polish) — additive, idempotent.
 -- deal_documents + listing_documents get soft-delete columns so deleted docs

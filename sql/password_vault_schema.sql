@@ -1,3 +1,8 @@
+-- Concord Deal Platform
+-- Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+-- Proprietary & confidential. No copying, distribution, or modification without
+-- prior written permission. See LICENSE for full terms.
+
 -- =============================================================================
 -- password_vault — per-user saved passwords (CRM "Save Passwords" section).
 -- Owner-only RLS. Passwords are encrypted at rest by the app (AES-256-GCM via

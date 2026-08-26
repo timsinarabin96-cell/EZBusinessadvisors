@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 import { headers } from 'next/headers'
 import PublicNav from '@/components/public/PublicNav'
 import PublicFooter from '@/components/public/PublicFooter'

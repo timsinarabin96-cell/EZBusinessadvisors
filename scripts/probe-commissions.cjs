@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // Read-only live DB probe for commission waterfall audit (2026-08-24)
 // Loads env from .env.local manually (no dotenv dep).
 const fs = require('fs');

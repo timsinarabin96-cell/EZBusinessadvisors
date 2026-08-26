@@ -1,3 +1,8 @@
+-- Concord Deal Platform
+-- Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+-- Proprietary & confidential. No copying, distribution, or modification without
+-- prior written permission. See LICENSE for full terms.
+
 -- =============================================================================
 -- Concord Deal Platform — Hiring / Agent Onboarding Schema
 -- Run this in the Supabase SQL Editor (AFTER phase2_schema.sql).

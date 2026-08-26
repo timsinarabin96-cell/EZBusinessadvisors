@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 type ListingFacts = Record<string, unknown>
 
 const hasText = (value: unknown, minimum = 1) => typeof value === 'string' && value.trim().length >= minimum

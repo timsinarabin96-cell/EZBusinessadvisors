@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // Broker walk — executes each guided-workflow step for all listings, using the
 // EXACT live column names discovered via probe-schema.cjs. Simulates the app's
 // lib/workflow.ts calls (now schema-correct). Temp test driver (not committed to src).

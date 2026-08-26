@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // =============================================================================
 // E2E seed + smoke — one-shot: seed the QA account, then run Playwright.
 // Usage: node scripts/e2e-run.mjs   (or just run the two steps manually)

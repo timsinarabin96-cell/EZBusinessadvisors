@@ -1,3 +1,10 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
 // =============================================================================
 // PDF export for CIM, BOV, Recast and BLI reports — Open Claw theme.
 // Near-black pages (#0B0C10), institutional gold (#C9A84C), teal data accents
