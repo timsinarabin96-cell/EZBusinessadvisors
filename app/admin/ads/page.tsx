@@ -146,6 +146,9 @@ export default function AdminAdsPage() {
         <button onClick={() => { setShowForm(!showForm); setForm(EMPTY) }} style={{ background: '#1a1a2e', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           {showForm ? 'Cancel' : '+ New Slot'}
         </button>
+        <a href="/api/admin/ads/pitch" target="_blank" style={{ background: 'transparent', color: '#1a1a2e', border: '1.5px solid #1a1a2e', padding: '10px 18px', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', textDecoration: 'none' }}>
+          📄 Pitch PDF
+        </a>
       </div>
 
       {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', padding: '14px 18px', borderRadius: 10, marginBottom: 16 }}>{error}</div>}

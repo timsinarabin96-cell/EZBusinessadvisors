@@ -124,6 +124,22 @@ export default function PublishPanel({ listingId, businessName }: { listingId: s
           </div>
         </>
       )}
+
+      {/* Featured-listing upsell — shown after go-live: the money moment */}
+      {published && (
+        <div style={{ marginTop: 16, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.45)', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: '#f5d97a', fontFamily: 'Georgia, serif', marginBottom: 4 }}>⭐ Feature this listing</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.55, marginBottom: 10 }}>
+            Your listing is live. Featured placement puts it at the top of the marketplace feed and the homepage spotlight — where buyers look first. From $149 for 30 days.
+          </div>
+          <a
+            href={`/dashboard/listings/${listingId}/edit`}
+            style={{ display: 'block', textAlign: 'center', padding: '10px', borderRadius: 8, background: '#c9a84c', color: '#1a1a2e', fontWeight: 800, fontSize: 12.5, textDecoration: 'none' }}
+          >
+            Boost with Featured Placement →
+          </a>
+        </div>
+      )}
     </div>
   )
 }
