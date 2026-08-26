@@ -28,6 +28,7 @@ import UniversalDocumentUpload, { type AnalyzeResponse } from '@/components/fina
 import MultiYearFinancialUpload from '@/components/financial/MultiYearFinancialUpload'
 import ExtractionReview from '@/components/financial/ExtractionReview'
 import FinancialLedgerView from '@/components/financial/FinancialLedgerView'
+import VerificationPanel from '@/components/financial/VerificationPanel'
 import FinancialIntelligenceDashboard from '@/components/financial/FinancialIntelligenceDashboard'
 import FinancialSummaryView from '@/components/financial/FinancialSummaryView'
 import type { FinancialIntelligence } from '@/lib/ai/types'
@@ -211,6 +212,11 @@ function FinancialFilesDashboard() {
           ) : (
             <div style={{ padding: '20px 16px', border: '1px dashed var(--line)', borderRadius: 12, textAlign: 'center', color: '#94a3b8', fontSize: 13.5 }}>
               Select a listing / deal above to view its monthly P&L.
+            </div>
+          )}
+          {selectedParent && (
+            <div style={{ marginTop: 16 }}>
+              <VerificationPanel listingId={selectedParent} />
             </div>
           )}
         </div>

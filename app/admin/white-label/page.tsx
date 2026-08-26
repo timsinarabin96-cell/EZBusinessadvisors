@@ -44,6 +44,7 @@ interface AgencyRow {
   custom_domain: string | null
   logo_url: string | null
   is_active: boolean
+  financial_intelligence_enabled: boolean
   theme: ThemeRow | null
 }
 
@@ -174,6 +175,15 @@ export default function AdminWhiteLabelPage() {
     loadBrokers(brokersAgencyId)
   }
 
+  const toggleAddon = async (a: AgencyRow, addon: 'financial_intelligence') => {
+    const enabled = addon === 'financial_intelligence' ? !a.financial_intelligence_enabled : false
+    const res = await authenticatedFetch(`/api/admin/white-label?action=addon&agencyId=${a.agency_id}&addon=${addon}&enabled=${enabled ? '1' : '0'}`, { method: 'POST' })
+    const j = await res.json()
+    if (!j.ok) { toast(j.error || 'Update failed', 'error'); return }
+    toast(enabled ? 'Financial Intelligence add-on enabled 💰' : 'Add-on disabled', 'success')
+    load()
+  }
+
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #d8d2c2',
     fontSize: 13.5, background: '#fff', color: '#1a1a2e', boxSizing: 'border-box',
@@ -221,6 +231,11 @@ export default function AdminWhiteLabelPage() {
                   <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, overflowWrap: 'anywhere' }}>
                     {a.custom_domain || a.domain || (a.slug ? `${a.slug}.concordplatform.com` : 'no domain')}
                     {' · '}{themed ? '✅ themed' : '⬜ defaults'}{!a.is_active ? ' · 🔒 inactive' : ''}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+                    <button onClick={() => toggleAddon(a, 'financial_intelligence')} style={{ padding: '4px 10px', borderRadius: 999, border: 'none', background: a.financial_intelligence_enabled ? '#f0fdf4' : '#f1f5f9', color: a.financial_intelligence_enabled ? '#1e7e34' : '#64748b', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                      💰 Financial Intelligence {a.financial_intelligence_enabled ? 'ON' : 'OFF'}
+                    </button>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>

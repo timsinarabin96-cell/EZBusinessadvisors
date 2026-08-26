@@ -49,6 +49,10 @@ export async function GET(req: NextRequest) {
     .order('name', { ascending: true })
   if (error) return NextResponse.json({ ok: false, error: 'query failed' }, { status: 500 })
 
+  // Add-on flags (financial intelligence, etc.) for the sellable packaging.
+  const { data: settings } = await db.from('agency_settings').select('agency_id, financial_intelligence_enabled')
+  const settingsMap = new Map((settings || []).map((s: any) => [s.agency_id, s]))
+
   const { data: themes } = await db.from('agency_site_themes').select('*')
   const themeMap = new Map((themes || []).map((t: any) => [t.agency_id, t]))
 
@@ -60,6 +64,7 @@ export async function GET(req: NextRequest) {
     custom_domain: a.custom_domain,
     logo_url: a.logo_url,
     is_active: a.is_active,
+    financial_intelligence_enabled: Boolean(settingsMap.get(a.id)?.financial_intelligence_enabled ?? true),
     theme: themeMap.get(a.id) || null,
   }))
 
@@ -82,6 +87,23 @@ export async function POST(req: NextRequest) {
     const { error } = await db.from('agency_site_themes').delete().eq('agency_id', agencyId)
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
     return NextResponse.json({ ok: true, reset: true })
+  }
+
+  // Add-on toggle mode: { action: 'addon', agencyId, addon: 'financial_intelligence', enabled }
+  if (sp.get('action') === 'addon') {
+    const agencyId = sp.get('agencyId')
+    const addon = sp.get('addon')
+    const enabled = sp.get('enabled') === '1'
+    if (!agencyId || !addon) return NextResponse.json({ ok: false, error: 'agencyId and addon required' }, { status: 400 })
+    if (addon === 'financial_intelligence') {
+      const { error } = await db.from('agency_settings').upsert(
+        { agency_id: agencyId, financial_intelligence_enabled: enabled, updated_at: new Date().toISOString() },
+        { onConflict: 'agency_id' },
+      )
+      if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+      return NextResponse.json({ ok: true, addon, enabled })
+    }
+    return NextResponse.json({ ok: false, error: 'Unknown addon' }, { status: 400 })
   }
 
   const body = await req.json().catch(() => ({}))
