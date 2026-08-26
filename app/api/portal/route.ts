@@ -52,13 +52,13 @@ export async function GET(req: NextRequest) {
     if (roomIds.length > 0) {
       const { data: roomFiles } = await SVC
         .from('data_room_files')
-        .select('id, file_name, file_url, file_kind')
+        .select('id, file_name, file_url, file_kind, storage_path')
         .in('data_room_id', roomIds)
         .eq('is_deleted', false)
       const seen = new Set<string>()
       const merged: any[] = []
       for (const f of roomFiles || []) {
-        merged.push({ id: f.id, file_name: f.file_name || 'Document', file_url: f.file_url, category: f.file_kind || 'Data Room' })
+        merged.push({ id: f.id, file_name: f.file_name || 'Document', file_url: f.file_url, storage_path: f.storage_path, category: f.file_kind || 'Data Room' })
         if (f.file_url) seen.add(f.file_url)
       }
       for (const d of documents) {
@@ -94,6 +94,18 @@ export async function GET(req: NextRequest) {
       interestedBuyers: ndaList.filter((n) => n.status === 'signed' || n.status === 'approved').length,
     }
   }
+
+  // SECURITY: private-bucket files are served as short-lived signed URLs.
+  // Never hand a permanent public URL to client financial documents.
+  documents = await Promise.all((documents || []).map(async (d: any) => {
+    const path = d.file_path || d.storage_path || null
+    if (!path) return d
+    for (const bucket of ['financial_docs', 'documents']) {
+      const { data: su } = await SVC.storage.from(bucket).createSignedUrl(path, 3600)
+      if (su?.signedUrl) return { ...d, file_url: su.signedUrl }
+    }
+    return d
+  }))
 
   return NextResponse.json({
     ok: true,
@@ -136,12 +148,16 @@ export async function POST(req: NextRequest) {
     if (!file || !(file instanceof File)) return NextResponse.json({ ok: false, error: 'no file' }, { status: 400 })
     try {
       const clean = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      // SECURITY: upload to the PRIVATE financial_docs bucket — never the
+      // public 'documents' bucket. Files are served via short-lived signed
+      // URLs generated at read time (see GET below).
       const path = `portal/${dealId}/${Date.now()}-${clean}`
-      const { error: upErr } = await SVC.storage.from('documents').upload(path, file)
+      const { error: upErr } = await SVC.storage.from('financial_docs').upload(path, file, {
+        contentType: file.type || 'application/octet-stream',
+      })
       if (upErr) return NextResponse.json({ ok: false, error: 'upload failed' }, { status: 500 })
-      const url = SVC.storage.from('documents').getPublicUrl(path).data.publicUrl
       const { error: insErr } = await SVC.from('deal_documents').insert({
-        deal_id: dealId, file_name: file.name, file_path: path, file_url: url, category: kind,
+        deal_id: dealId, file_name: file.name, file_path: path, file_url: '', category: kind,
       })
       if (insErr) return NextResponse.json({ ok: false, error: 'record failed' }, { status: 500 })
       return NextResponse.json({ ok: true })

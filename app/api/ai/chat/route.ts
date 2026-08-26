@@ -197,9 +197,17 @@ export async function POST(req: NextRequest) {
   // Normalize history into the client's expected (user/assistant) shape,
   // appended after the message as the live instruction.
   const turns = (history || []).map((h) => ({ role: h.role, content: h.content }))
-  // DeepSeek is the primary provider (Claude budget is tight); all agents
-  // route through DeepSeek unless it's unconfigured.
-  const useClaude = false
+  // Provider routing — data-handling policy:
+  //   * Sensitive agents (document analysis, training, lead scoring) touch
+  //     real financial/legal data → ALWAYS route through Claude (Anthropic)
+  //     when configured; refuse rather than fall back to DeepSeek.
+  //   * Non-sensitive agents (support, booking) run on DeepSeek for cost,
+  //     falling back to Claude if DeepSeek is unconfigured.
+  const sensitiveAgent = agent === 'document' || agent === 'training' || agent === 'lead'
+  if (sensitiveAgent && !isClaudeConfigured()) {
+    return fail('Sensitive AI agents require the Anthropic provider (financial data policy).', 503, { code: 'AI_NOT_CONFIGURED' })
+  }
+  const useClaude = sensitiveAgent || !isDeepSeekConfigured()
 
   // Per-tenant AI credentials — a sold CRM uses its OWN API key (billed to buyer).
   let tenantCfg = null
@@ -213,7 +221,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = useClaude
       ? await complete({ context, history: turns, message, system, model, jsonMode: Boolean(json), maxTokens: 2048 })
-      : await completeWithDeepSeek({ context, history: turns, message, system, jsonMode: Boolean(json) || agent === 'lead', maxTokens: agent === 'training' ? 1536 : 1024, tenant })
+      : await completeWithDeepSeek({ context, history: turns, message, system, jsonMode: Boolean(json), maxTokens: 1024, tenant })
 
     return ok({
       ok: true,
