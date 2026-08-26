@@ -8,19 +8,26 @@ import {
   fetchDocumentGroups,
   fetchDocumentActivity,
   uploadDocument,
+  restoreDocument,
+  permanentDeleteDocument,
+  fileKind,
+  fileIcon,
 } from '@/lib/documents'
 import DocumentRow from './DocumentRow'
 import UploadModal, { UploadTargetOption } from './UploadModal'
 import TemplateManager from './TemplateManager'
+import { useToast } from '@/components/ui/Toast'
 
 export default function DocumentsDashboard() {
+  const toast = useToast()
   const [groups, setGroups] = useState<DocumentGroup[]>([])
   const [activity, setActivity] = useState<DocumentActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showUpload, setShowUpload] = useState(false)
   const [targets, setTargets] = useState<UploadTargetOption[]>([])
-  const [view, setView] = useState<'files' | 'templates'>('files')
+  const [view, setView] = useState<'files' | 'templates' | 'recycle'>('files')
+  const [recycleBusy, setRecycleBusy] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -70,6 +77,28 @@ export default function DocumentsDashboard() {
     )
   }
 
+  // Recycle bin: restore or permanently delete a document.
+  const handleRestore = async (doc: DocumentItem) => {
+    setRecycleBusy(doc.id)
+    const r = await restoreDocument(doc)
+    if (r.success) toast('Document restored ♻️')
+    else toast(r.error || 'Restore failed', 'error')
+    setRecycleBusy(null)
+    await load()
+  }
+
+  const handlePurge = async (doc: DocumentItem) => {
+    if (!confirm(`Permanently delete "${doc.fileName}"? This cannot be undone.`)) return
+    setRecycleBusy(doc.id)
+    const r = await permanentDeleteDocument(doc)
+    if (r.success) toast('Permanently deleted 🗑️')
+    else toast(r.error || 'Delete failed', 'error')
+    setRecycleBusy(null)
+    await load()
+  }
+
+  const recycled = groups.flatMap((g) => g.documents.filter((d) => d.isDeleted)).sort((a, b) => (b.deletedAt || '').localeCompare(a.deletedAt || ''))
+
   const totalDocuments = groups.reduce((sum, g) => sum + g.documents.length, 0)
 
   const formatWhen = (iso: string | null) => {
@@ -101,6 +130,12 @@ export default function DocumentsDashboard() {
             🗂️ Legal Templates
           </button>
           <button
+            onClick={() => setView(view === 'recycle' ? 'files' : 'recycle')}
+            style={{ padding: '8px 16px', background: view === 'recycle' ? '#b91c1c' : '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500, color: view === 'recycle' ? '#fff' : '#334155' }}
+          >
+            🗑️ Recycle Bin {recycled.length > 0 ? `(${recycled.length})` : ''}
+          </button>
+          <button
             onClick={load}
             disabled={loading}
             style={{ padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: loading ? 'not-allowed' : 'pointer', fontSize: '14px', fontWeight: 500, color: '#334155' }}
@@ -130,6 +165,59 @@ export default function DocumentsDashboard() {
       {/* Layout: documents (left, 2/3) + activity (right, 1/3) */}
       {view === 'templates' ? (
         <TemplateManager />
+      ) : view === 'recycle' ? (
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>🗑️ Recycle Bin</h2>
+              <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '13px' }}>
+                Deleted documents stay here until you restore them or delete them permanently.
+              </p>
+            </div>
+            <button onClick={load} style={{ padding: '8px 16px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>
+              ↻ Refresh
+            </button>
+          </div>
+          {recycled.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '48px 20px', border: '2px dashed #e2e8f0', borderRadius: '8px' }}>
+              <div style={{ fontSize: '34px', marginBottom: '10px' }}>🗑️</div>
+              <div style={{ fontWeight: 600, color: '#64748b' }}>Recycle bin is empty</div>
+              <div style={{ fontSize: '13px', marginTop: '4px' }}>Deleted documents will appear here.</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {recycled.map((doc) => (
+                <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px' }}>
+                  <span style={{ fontSize: '18px' }}>{fileIcon(fileKind(doc.fileUrl))}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {doc.fileName || 'Untitled'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                      {doc.parentName} · deleted {doc.deletedAt ? new Date(doc.deletedAt).toLocaleString() : ''}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleRestore(doc)}
+                      disabled={recycleBusy === doc.id}
+                      style={{ padding: '7px 14px', background: '#15803d', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: recycleBusy === doc.id ? 'not-allowed' : 'pointer', color: '#fff', fontWeight: 600 }}
+                    >
+                      ♻️ Restore
+                    </button>
+                    <button
+                      onClick={() => handlePurge(doc)}
+                      disabled={recycleBusy === doc.id}
+                      style={{ padding: '7px 14px', background: '#b91c1c', border: 'none', borderRadius: '6px', fontSize: '13px', cursor: recycleBusy === doc.id ? 'not-allowed' : 'pointer', color: '#fff', fontWeight: 600 }}
+                    >
+                      🗑️ Delete Forever
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', alignItems: 'start' }}>
         {/* Documents grouped by deal/listing */}

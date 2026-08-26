@@ -93,6 +93,9 @@ export interface DocumentItem {
   uploadedBy: string | null
   uploadedByName: string | null
   createdAt: string | null
+  /** Recycle-bin state. */
+  isDeleted?: boolean
+  deletedAt?: string | null
 }
 
 // A group of documents under one deal/listing parent
@@ -200,6 +203,8 @@ export async function fetchDocumentGroups(): Promise<DocumentGroup[]> {
       uploadedBy: d.uploaded_by,
       uploadedByName: uploaderNameById.get(d.uploaded_by || '') || 'Unknown',
       createdAt: d.created_at || null,
+      isDeleted: Boolean(d.is_deleted),
+      deletedAt: (d.deleted_at as string | null) || null,
     })
   }
 
@@ -216,6 +221,8 @@ export async function fetchDocumentGroups(): Promise<DocumentGroup[]> {
       uploadedBy: null,
       uploadedByName: '—',
       createdAt: l.created_at || null,
+      isDeleted: Boolean(l.is_deleted),
+      deletedAt: (l.deleted_at as string | null) || null,
     })
   }
 
@@ -342,15 +349,38 @@ export async function uploadDocument(
 }
 
 // ---------------------------------------------------------------------------
-// Delete
+// Delete → recycle bin (soft delete), restore, permanent delete
 // ---------------------------------------------------------------------------
+/** Soft-delete a document (moves to the recycle bin — restorable). */
 export async function deleteDocument(item: DocumentItem): Promise<{ success: boolean; error?: string }> {
-  // Remove storage object if we can derive its path from the URL
+  const table = item.source === 'deal' ? 'deal_documents' : 'listing_documents'
+  // Soft delete: keep the storage file so restore works instantly.
+  const { error } = await supabase
+    .from(table)
+    .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+    .eq('id', item.id)
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+/** Restore a document from the recycle bin. */
+export async function restoreDocument(item: DocumentItem): Promise<{ success: boolean; error?: string }> {
+  const table = item.source === 'deal' ? 'deal_documents' : 'listing_documents'
+  const { error } = await supabase
+    .from(table)
+    .update({ is_deleted: false, deleted_at: null })
+    .eq('id', item.id)
+  if (error) return { success: false, error: error.message }
+  return { success: true }
+}
+
+/** Permanently delete from the recycle bin (storage + row). */
+export async function permanentDeleteDocument(item: DocumentItem): Promise<{ success: boolean; error?: string }> {
+  // Remove storage object if we can derive its path from the URL.
   const urlPath = item.fileUrl?.split('/object/public/')[1]
   if (urlPath) {
     await supabase.storage.from(DOCUMENT_BUCKET).remove([urlPath]).catch(() => {})
   }
-
   const table = item.source === 'deal' ? 'deal_documents' : 'listing_documents'
   const { error } = await supabase.from(table).delete().eq('id', item.id)
   if (error) return { success: false, error: error.message }

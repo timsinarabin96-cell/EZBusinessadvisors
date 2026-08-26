@@ -140,10 +140,13 @@ export async function updateListing(id: string, input: ListingInput): Promise<Li
 }
 
 export async function deleteListing(id: string): Promise<void> {
-  const { error } = await supabase.from('listings').delete().eq('id', id)
-  if (error) {
-    console.error('deleteListing error:', error)
-    throw new Error(error.message || 'Failed to delete listing')
+  // Server-side delete (service role) — works for agency admins + owners and
+  // cleans up gallery storage. Client-side supabase delete was RLS-limited to
+  // the listing owner and orphaned storage files.
+  const res = await fetch(`/api/listings/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  const data = await res.json().catch(() => ({ ok: false, error: 'Delete failed' }))
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || 'Failed to delete listing')
   }
 }
 
