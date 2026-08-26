@@ -25,6 +25,7 @@ import AutoGenerationDashboard from '@/components/financial/AutoGenerationDashbo
 import AllDocumentsView from '@/components/financial/AllDocumentsView'
 import type { AutoGenerateResult } from '@/lib/autoGenerateTypes'
 import UniversalDocumentUpload, { type AnalyzeResponse } from '@/components/financial/UniversalDocumentUpload'
+import MultiYearFinancialUpload from '@/components/financial/MultiYearFinancialUpload'
 import FinancialIntelligenceDashboard from '@/components/financial/FinancialIntelligenceDashboard'
 import FinancialSummaryView from '@/components/financial/FinancialSummaryView'
 import type { FinancialIntelligence } from '@/lib/ai/types'
@@ -168,6 +169,22 @@ function FinancialFilesDashboard() {
           </div>
         ))}
       </div>
+
+      {/* MULTI-YEAR FINANCIAL READER (Phase 1 of the FIC) */}
+      <Card style={{ marginBottom: 22 }}>
+        <CardHeader title="📚 Multi-Year Financial Reader" subtitle="Adaptive operating history (1–5 years): upload each year's docs with preview + delete, then the reader extracts everything into the recast → BOV → CIM → BLI pipeline" />
+        <div style={{ padding: 18 }}>
+          <MultiYearFinancialUpload
+            onAnalyzed={(r) => {
+              const data = r as AnalyzeResponse
+              if (data?.intelligence) setIntel(data.intelligence)
+              if (data?.report) setSummary(data.report)
+              toast('Financial intelligence generated', 'success')
+              load()
+            }}
+          />
+        </div>
+      </Card>
 
       {/* FINANCIAL INTELLIGENCE */}
       <Card style={{ marginBottom: 22 }}>

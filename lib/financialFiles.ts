@@ -55,6 +55,11 @@ export interface FinancialDoc {
   notes: string | null
   uploaded_by: string | null
   uploaded_at: string | null
+  /** Adaptive multi-year: which operating year this doc covers (1..5). */
+  fiscal_year?: number | null
+  /** Total declared operating history — drives year slots + valuation band. */
+  operating_years?: number | null
+  doc_type?: string | null
 }
 
 export interface UploadProgress {
@@ -243,7 +248,8 @@ const MAX_SIZE = 25 * 1024 * 1024 // 25 MB
 export async function uploadFinancialFiles(
   target: { dealId: string | null; listingId: string | null; parentId: string },
   files: File[],
-  onProgress?: (p: UploadProgress[]) => void
+  onProgress?: (p: UploadProgress[]) => void,
+  meta: { fiscalYear?: number | null; operatingYears?: number | null } = {},
 ): Promise<{ ok: number; failed: number; errors: string[] }> {
   const userId = await getUserId()
   const result = { ok: 0, failed: 0, errors: [] as string[] }
@@ -292,6 +298,8 @@ export async function uploadFinancialFiles(
         mime_type: file.type || null,
         file_kind: kind,
         category,
+        fiscal_year: meta.fiscalYear ?? null,
+        operating_years: meta.operatingYears ?? null,
         status: 'pending' as FinancialStatus,
         uploaded_by: userId,
       }

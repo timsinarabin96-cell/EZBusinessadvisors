@@ -30,6 +30,68 @@ async function getPdfParser() {
   return pdfParse
 }
 
+// Lazy OCR: Tesseract.js (free, open-source, self-hosted). Used as the
+// fallback for scanned PDFs and images so bank statements, POS summaries, and
+// paper financials become machine-readable with ZERO per-page API cost.
+let ocrWorker: any = null
+async function getOcrWorker() {
+  if (!ocrWorker) {
+    const { createWorker } = await import('tesseract.js')
+    const worker = await createWorker('eng')
+    ocrWorker = worker
+  }
+  return ocrWorker
+}
+
+const IMAGE_MIME_RE = /^image\/(png|jpe?g|webp|bmp|gif|tiff?)$/i
+const IMAGE_EXT_RE = /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i
+
+/**
+ * OCR an image buffer (PNG/JPEG/WebP/BMP) into text. Pure server-side, free.
+ * Returns '' on failure (callers fall back to filename heuristics).
+ */
+export async function ocrImageBuffer(data: Buffer): Promise<string> {
+  try {
+    const worker = await getOcrWorker()
+    const { data: out } = await worker.recognize(data)
+    return String(out?.text || '').trim()
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * OCR a scanned PDF: rasterize each page via pdfjs and run Tesseract.
+ * Heavier path — used only when a PDF yields no text layer.
+ */
+async function ocrScannedPdf(data: Buffer): Promise<string> {
+  try {
+    const pdfjs: any = await import('pdfjs-dist/legacy/build/pdf.mjs')
+    const doc = await pdfjs.getDocument({ data: new Uint8Array(data) }).promise
+    const parts: string[] = []
+    const pages = Math.min(doc.numPages, 10) // bound: first 10 pages
+    for (let p = 1; p <= pages; p++) {
+      try {
+        const page = await doc.getPage(p)
+        const viewport = page.getViewport({ scale: 2 })
+        const canvas = new OffscreenCanvas(viewport.width, viewport.height)
+        const ctx = canvas.getContext('2d')
+        if (!ctx) continue
+        await page.render({ canvasContext: ctx as any, viewport }).promise
+        const blob = await canvas.convertToBlob({ type: 'image/png' })
+        const buf = Buffer.from(await blob.arrayBuffer())
+        const text = await ocrImageBuffer(buf)
+        if (text) parts.push(text)
+      } catch {
+        // skip page on failure
+      }
+    }
+    return parts.join('\n').trim()
+  } catch {
+    return ''
+  }
+}
+
 /**
  * Extract up-to-bounded plain text from a document buffer based on its MIME +
  * file extension. Returns truncated text + metadata.
@@ -60,9 +122,15 @@ export async function extractDocumentText({
       } catch (e) {
         raw = ''
       }
+      // Scanned PDF (no text layer) → free server-side OCR.
+      if (!raw.trim()) {
+        raw = await ocrScannedPdf(data)
+      }
+    } else if (IMAGE_MIME_RE.test(m) || IMAGE_EXT_RE.test(n)) {
+      // Scanned bank statements / POS summaries / paper financials → OCR.
+      raw = await ocrImageBuffer(data)
     }
-    // Word/Excel/images: not OCR'd server-side (no OCR dep installed).
-    // We return empty text; the analyzer will rely on filename heuristics.
+    // Word/Excel without extractable text: filename heuristics handle it.
   }
 
   const { text, truncated } = truncateForClaude(raw || '')

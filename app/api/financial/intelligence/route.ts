@@ -17,7 +17,7 @@ import type { FinancialIntelligence, DocumentAnalysis } from '@/lib/ai/types'
 
 export const runtime = 'nodejs'
 
-const schema = z.object({ listingId: z.string().uuid() })
+const schema = z.object({ listingId: z.string().uuid(), fiscalYear: z.number().int().min(1).max(5).nullable().optional() })
 
 function bearerToken(req: NextRequest): string | null {
   const auth = req.headers.get('authorization') || ''
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ ok: false, error: 'Validation failed: listingId (uuid) required.' }, { status: 422 })
   }
-  const { listingId } = parsed
+  const { listingId, fiscalYear } = parsed
 
   // Agency gate: caller must belong to the listing's agency (IDOR guard).
   try {
@@ -74,14 +74,18 @@ export async function POST(req: NextRequest) {
   if (dErr) return NextResponse.json({ ok: false, error: 'Failed to load documents.' }, { status: 500 })
   const sourceDocs = (docs || []) as any[]
 
-  // 3) Download + extract text for each
+  // 3) Download + extract text for each (OCR fallback for scans) + persist
   const analyses: DocumentAnalysis[] = []
+  const perDocExtractions: { documentId: string; docType: string; confidence: number; extracted: unknown }[] = []
   for (const doc of sourceDocs) {
     const storagePath = doc.storage_path || doc.file_url
     if (!storagePath || storagePath.startsWith('http')) {
       // Already public URL with no storage path — skip, or note.
       const fallback = await analyzeFileNameOnly(doc.file_name)
-      if (fallback) analyses.push(fallback)
+      if (fallback) {
+        analyses.push(fallback)
+        perDocExtractions.push({ documentId: doc.id, docType: fallback.type, confidence: fallback.confidence, extracted: fallback })
+      }
       continue
     }
     const { data: blob, error: dlErr } = await supabase.storage
@@ -104,13 +108,41 @@ export async function POST(req: NextRequest) {
           hints: { guessedType: detectUniversalDocType(doc.file_name) },
         })
         analyses.push(analysis)
+        perDocExtractions.push({ documentId: doc.id, docType: analysis.type, confidence: analysis.confidence, extracted: analysis })
         continue
       } catch {
         // Claude unavailable/failed → fall through to heuristic analysis
       }
     }
     const fallback = await analyzeFileNameOnly(doc.file_name)
-    if (fallback) analyses.push(fallback)
+    if (fallback) {
+      analyses.push(fallback)
+      perDocExtractions.push({ documentId: doc.id, docType: fallback.type, confidence: fallback.confidence, extracted: fallback })
+    }
+  }
+
+  // 3b) Persist per-document extractions (multi-year aware) — the universal
+  // reader's durable output. Later passes (valuation/BOV/CIM) read these rows.
+  for (const ex of perDocExtractions) {
+    try {
+      await supabase.from('financial_extractions').upsert(
+        {
+          document_id: ex.documentId,
+          listing_id: listingId,
+          fiscal_year: fiscalYear ?? null,
+          doc_type: ex.docType,
+          confidence: Math.round(ex.confidence * 100) / 100,
+          extracted: ex.extracted as Record<string, unknown>,
+          model: 'claude',
+          review_state: 'pending',
+        },
+        { onConflict: 'document_id' },
+      ).select().maybeSingle()
+    } catch { /* persistence is best-effort */ }
+    // Sync the detected type back onto the document row for the UI.
+    try {
+      await supabase.from('financial_documents').update({ doc_type: ex.docType }).eq('id', ex.documentId)
+    } catch { /* best-effort */ }
   }
 
   // 4) Merge into broker-grade extraction
