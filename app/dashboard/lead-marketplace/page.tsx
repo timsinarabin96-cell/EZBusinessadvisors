@@ -25,6 +25,7 @@ interface MarketLead {
   budget: string | null
   funds: string | null
   headline: string
+  tier?: 'standard' | 'premium' | 'elite' | null
   price_cents: number
   status: 'listed' | 'sold'
   created_at: string
@@ -45,6 +46,21 @@ interface MyListing extends MarketLead {}
 
 const money = (cents: number) => '$' + (cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })
 const fmtDate = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString() : '—')
+
+const TIER_STYLE: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  standard: { label: '📇 Standard', color: '#334155', bg: '#f8fafc', border: '#e2e8f0' },
+  premium: { label: '⭐ Premium', color: '#92400e', bg: '#fffbeb', border: '#fde68a' },
+  elite: { label: '💎 Elite', color: '#6b21a8', bg: '#faf5ff', border: '#e9d5ff' },
+}
+
+function TierBadge({ tier }: { tier?: string | null }) {
+  const s = TIER_STYLE[tier || 'standard'] || TIER_STYLE.standard
+  return (
+    <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 800, color: s.color, background: s.bg, border: `1px solid ${s.border}`, padding: '3px 10px', borderRadius: 999 }}>
+      {s.label}
+    </span>
+  )
+}
 
 export default function LeadMarketplacePage() {
   return (
@@ -205,6 +221,11 @@ function LeadMarketplaceApp() {
                     <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--navy)' }}>{l.headline}</div>
                     <span style={{ fontSize: 12, background: '#f1f5f9', padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap', color: '#334155' }}>{l.seller_agency_name || 'Another agency'}</span>
                   </div>
+                  {l.tier && (
+                    <div style={{ marginTop: 6 }}>
+                      <TierBadge tier={l.tier} />
+                    </div>
+                  )}
                   <div style={{ fontSize: 12.5, color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 3 }}>
                     {l.industry && <span>🏭 {l.industry}</span>}
                     {l.location && <span>📍 {l.location}</span>}
