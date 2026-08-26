@@ -232,6 +232,7 @@ export default function PlatformAdminPage() {
         <Link href="/admin/1099" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🧾 1099 Contractors</Link>
         <Link href="/admin/api-keys" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🔑 API Keys &amp; Accountant</Link>
         <Link href="/admin/ads" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>📣 Sponsored Slots</Link>
+        <Link href="/admin/marketplace-health" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🌐 Marketplace Health</Link>
         <Link href="/admin/ai" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🤖 AI</Link>
         <Link href="/admin/legal-vault" style={{ background: '#1e293b', color: '#fbbf24', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>⚖️ Legal Vault</Link>
       </div>
