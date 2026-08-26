@@ -68,6 +68,19 @@ export async function POST(req: NextRequest) {
   const isPlatformAdmin = authenticated.profile.role === 'super_admin' || authenticated.profile.role === 'admin'
   if (!isPlatformAdmin && !canManageAgency(authenticated, agencyId)) return forbiddenResponse()
 
+  // SECURITY (2026-08-26 audit): never trust a client-supplied payment flag.
+  // Paid-plan conversion is ONLY allowed for platform admins (manual/offline
+  // payment path from the admin trials page). Tenant admins must pay through
+  // Stripe Checkout — the webhook (checkout.session.completed) is the only
+  // thing that marks their agency paid, so no one can self-activate for free.
+  const isPaidPlan = planType === 'professional' || planType === 'enterprise'
+  if (isPaidPlan && !isPlatformAdmin) {
+    return NextResponse.json(
+      { ok: false, error: 'Paid plans require Stripe Checkout — payment is verified server-side via webhook.' },
+      { status: 403 },
+    )
+  }
+
   const { data: agency } = await db.from('agencies').select('*').eq('id', agencyId).maybeSingle()
   if (!agency) return NextResponse.json({ ok: false, error: 'agency not found' }, { status: 404 })
 

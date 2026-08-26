@@ -44,6 +44,81 @@ export async function POST(req: NextRequest) {
   }
 
   const type = payload?.type || payload?.data?.object?.metadata?.kind === 'subscription' ? 'checkout.session.completed' : payload?.type
+
+  // -------------------------------------------------------------------------
+  // PAYMENT LIFECYCLE (2026-08-26 audit): handle failures + cancellations so
+  // the books stay honest without trusting any client-side flag.
+  // -------------------------------------------------------------------------
+  if (type === 'invoice.payment_failed') {
+    // Find the agency by Stripe subscription/customer, move to grace period.
+    // The existing check-trials cron turns expired grace into a lock.
+    const sub = payload?.data?.object || {}
+    const stripeSub = String(sub?.subscription || '')
+    const customer = String(sub?.customer || '')
+    let agencyId: string | null = null
+    if (stripeSub || customer) {
+      let q = db.from('subscriptions').select('agency_id').limit(1)
+      if (stripeSub) q = q.eq('stripe_sub', stripeSub)
+      else q = q.eq('stripe_customer', customer)
+      const { data: subRow } = await q.maybeSingle()
+      agencyId = subRow?.agency_id || null
+    }
+    if (agencyId) {
+      // 7-day grace, then the expiry cron locks the agency.
+      const graceEnd = new Date(Date.now() + 7 * 86400000).toISOString()
+      await db.from('agencies').update({ grace_end_date: graceEnd, trial_active: false }).eq('id', agencyId)
+      if (stripeSub) {
+        await db.from('subscriptions').update({ status: 'past_due' }).eq('stripe_sub', stripeSub)
+      }
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  if (type === 'customer.subscription.deleted') {
+    const sub = payload?.data?.object || {}
+    const stripeSub = String(sub?.id || '')
+    const customer = String(sub?.customer || '')
+    let agencyId: string | null = null
+    if (stripeSub || customer) {
+      let q = db.from('subscriptions').select('agency_id').limit(1)
+      if (stripeSub) q = q.eq('stripe_sub', stripeSub)
+      else q = q.eq('stripe_customer', customer)
+      const { data: subRow } = await q.maybeSingle()
+      agencyId = subRow?.agency_id || null
+    }
+    if (agencyId) {
+      await db.from('agencies').update({
+        paid_plan_active: false,
+        grace_end_date: new Date(Date.now() + 7 * 86400000).toISOString(),
+        trial_active: false,
+      }).eq('id', agencyId)
+      if (stripeSub) {
+        await db.from('subscriptions').update({ status: 'canceled' }).eq('stripe_sub', stripeSub)
+      }
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  if (type === 'invoice.paid') {
+    // Successful renewal: extend the period and clear any grace state.
+    const inv = payload?.data?.object || {}
+    const stripeSub = String(inv?.subscription || '')
+    if (stripeSub) {
+      const periodEnd = new Date(Date.now() + 30 * 86400000).toISOString()
+      await db.from('subscriptions').update({ status: 'active', current_period_end: periodEnd }).eq('stripe_sub', stripeSub)
+      const { data: subRow } = await db.from('subscriptions').select('agency_id').eq('stripe_sub', stripeSub).maybeSingle()
+      if (subRow?.agency_id) {
+        await db.from('agencies').update({
+          paid_plan_active: true,
+          grace_end_date: null,
+          locked_at: null,
+          archive_at: null,
+        }).eq('id', subRow.agency_id)
+      }
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   if (type !== 'checkout.session.completed') {
     // Acknowledge everything else so Stripe stops retrying.
     return NextResponse.json({ ok: true })
