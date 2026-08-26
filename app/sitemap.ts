@@ -57,6 +57,46 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
       })
     }
+
+    // Industry + location landing pages (dynamic slugs) — the SEO workhorses.
+    const { data: industries } = await client
+      .from('listings')
+      .select('industry')
+      .not('industry', 'is', null)
+      .neq('industry', '')
+    const seenIndustries = new Set<string>()
+    for (const row of industries || []) {
+      const slug = String(row.industry || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      if (slug && !seenIndustries.has(slug)) {
+        seenIndustries.add(slug)
+        entries.push({ url: `${BASE}/marketplace/industry/${slug}`, changeFrequency: 'weekly', priority: 0.7 })
+      }
+    }
+
+    const { data: locations } = await client
+      .from('listings')
+      .select('location_general')
+      .not('location_general', 'is', null)
+      .neq('location_general', '')
+    const seenLocations = new Set<string>()
+    for (const row of locations || []) {
+      const slug = String(row.location_general || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      if (slug && !seenLocations.has(slug)) {
+        seenLocations.add(slug)
+        entries.push({ url: `${BASE}/marketplace/location/${slug}`, changeFrequency: 'weekly', priority: 0.6 })
+      }
+    }
+
+    // Insights articles (public content engine).
+    const { data: insights } = await client.from('newspaper_articles').select('slug, published_at').not('slug', 'is', null)
+    for (const a of insights || []) {
+      entries.push({
+        url: `${BASE}/marketplace/insights/${a.slug}`,
+        lastModified: a.published_at || new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      })
+    }
   } catch {
     // Keep static routes available if the marketplace feed is unavailable.
   }
