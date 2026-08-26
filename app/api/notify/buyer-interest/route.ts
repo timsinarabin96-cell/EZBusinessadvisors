@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email'
-import { rateLimit, clientIp } from '@/lib/rateLimit'
+import {rateLimitAsync, clientIp } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -24,7 +24,7 @@ const esc = (s: string): string =>
  */
 export async function POST(req: NextRequest) {
   // Spam guard — public endpoint, no auth.
-  if (!rateLimit(clientIp(req), { limit: 15, windowMs: 60_000 })) {
+  if (!(await rateLimitAsync(clientIp(req), { limit: 15, windowMs: 60_000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many requests — try again shortly' }, { status: 429 })
   }
 

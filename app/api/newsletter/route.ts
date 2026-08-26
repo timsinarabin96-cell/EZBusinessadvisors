@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { rateLimit } from '@/lib/rateLimit'
+import {rateLimitAsync } from '@/lib/rateLimit'
 
 // ---------------------------------------------------------------------------
 // POST /api/newsletter — public newsletter signup.
@@ -38,7 +38,7 @@ interface Subscriber {
 
 export async function POST(req: NextRequest) {
   // Anti-spam: 5 newsletter signups per IP per hour.
-  if (!rateLimit(clientIp(req), { limit: 5, windowMs: 60 * 60 * 1000 })) {
+  if (!(await rateLimitAsync(clientIp(req), { limit: 5, windowMs: 60 * 60 * 1000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many signups. Try again later.' }, { status: 429 })
   }
 

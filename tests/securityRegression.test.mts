@@ -23,9 +23,9 @@ test('auth: ?next= rejects protocol-relative and backslash redirects', () => {
 test('auth: forgot/reset password are rate-limited', () => {
   const forgot = readFileSync('app/api/auth/forgot-password/route.ts', 'utf8')
   const reset = readFileSync('app/api/auth/reset-password/route.ts', 'utf8')
-  assert.match(forgot, /rateLimit\(clientIp\(req\)/)
+  assert.match(forgot, /rateLimitAsync\(clientIp\(req\)/)
   assert.match(forgot, /status: 429/)
-  assert.match(reset, /rateLimit\(clientIp\(req\)/)
+  assert.match(reset, /rateLimitAsync\(clientIp\(req\)/)
   assert.match(reset, /status: 429/)
 })
 

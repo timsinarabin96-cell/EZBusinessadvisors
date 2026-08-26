@@ -6,12 +6,18 @@
  */
 
 // =============================================================================
-// Lightweight in-memory rate limiter for public (unauthenticated) endpoints.
+// Rate limiter for public (unauthenticated) endpoints.
 // -----------------------------------------------------------------------------
-// Sliding-window counter keyed by client IP. Keeps public POST routes
-// (contact forms, lead captures, notifications) from being spammed without
-// adding infra. Server-only. Memory-bounded: the map prunes stale keys on
-// every check.
+// Two backends, one API:
+//   1. Upstash Redis (distributed) — used automatically when
+//      UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN are set. Correct
+//      across multiple serverless instances (real traffic).
+//   2. In-memory sliding-window counter keyed by client IP — the fallback
+//      when Upstash isn't configured, so dev/staging keeps working with
+//      zero infra. Server-only. Memory-bounded: the map prunes stale keys
+//      on every check.
+// Call sites should use `await rateLimitAsync(...)` — it resolves to the
+// distributed limiter when configured and the in-memory one otherwise.
 // =============================================================================
 
 interface Bucket {
@@ -29,8 +35,46 @@ export interface RateLimitOptions {
   windowMs?: number
 }
 
+// ---------------------------------------------------------------------------
+// Upstash REST backend (zero extra deps — plain fetch)
+// ---------------------------------------------------------------------------
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL || ''
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || ''
+const UPSTASH_ENABLED = Boolean(UPSTASH_URL && UPSTASH_TOKEN)
+
+export function upstashRateLimitConfigured(): boolean {
+  return UPSTASH_ENABLED
+}
+
+async function upstashCommand(command: string): Promise<number> {
+  const res = await fetch(`${UPSTASH_URL}/${command}`, {
+    headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` },
+    cache: 'no-store',
+  })
+  if (!res.ok) throw new Error(`upstash ${res.status}`)
+  const body = (await res.json()) as unknown
+  const value = Array.isArray(body) ? body[0] : body
+  return Number(value) || 0
+}
+
+async function rateLimitUpstash(ip: string, { limit = 20, windowMs = 60_000 }: RateLimitOptions = {}): Promise<boolean> {
+  // Fixed window: key = rl:{ip}:{windowIndex} → INCR, then EXPIRE on first hit.
+  const windowIndex = Math.floor(Date.now() / windowMs)
+  const key = `rl:${ip}:${windowIndex}`
+  const count = await upstashCommand(`incr/${encodeURIComponent(key)}`)
+  if (count === 1) {
+    // Fire-and-forget TTL; a failure here doesn't fail the request.
+    await upstashCommand(`expire/${encodeURIComponent(key)}/${Math.ceil(windowMs / 1000)}`).catch(() => {})
+  }
+  return count <= limit
+}
+
+// ---------------------------------------------------------------------------
+// In-memory backend (fallback)
+// ---------------------------------------------------------------------------
+
 /**
- * Check + increment the rate bucket for an IP.
+ * Check + increment the rate bucket for an IP (in-memory, synchronous).
  * Returns true when the request is allowed; false when it exceeds the limit.
  */
 export function rateLimit(ip: string, { limit = 20, windowMs = 60_000 }: RateLimitOptions = {}): boolean {
@@ -57,6 +101,23 @@ export function rateLimit(ip: string, { limit = 20, windowMs = 60_000 }: RateLim
 
   existing.count += 1
   return existing.count <= limit
+}
+
+/**
+ * Preferred entry point: distributed when Upstash is configured,
+ * in-memory otherwise. Always resolves — never throws.
+ */
+export async function rateLimitAsync(ip: string, opts: RateLimitOptions = {}): Promise<boolean> {
+  if (!ip) return true
+  if (UPSTASH_ENABLED) {
+    try {
+      return await rateLimitUpstash(ip, opts)
+    } catch {
+      // Upstash hiccup → degrade to the in-memory limiter, don't block traffic.
+      return rateLimit(ip, opts)
+    }
+  }
+  return rateLimit(ip, opts)
 }
 
 /** Client IP from a NextRequest, honoring proxy headers. */

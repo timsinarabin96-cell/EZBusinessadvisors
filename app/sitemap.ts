@@ -44,46 +44,52 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
       })
     }
-    // Public broker profile pages — SEO lead generation for every broker.
-    const { data: brokers } = await client
-      .from('broker_profiles')
-      .select('id, updated_at')
-      .eq('is_public', true)
-    for (const broker of brokers || []) {
-      entries.push({
-        url: `${BASE}/marketplace/brokers/${broker.id}`,
-        lastModified: broker.updated_at || new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.7,
-      })
-    }
 
     // Industry + location landing pages (dynamic slugs) — the SEO workhorses.
-    const { data: industries } = await client
-      .from('listings')
-      .select('industry')
-      .not('industry', 'is', null)
-      .neq('industry', '')
+    // lastModified = most recent seller-approved listing in that group
+    // (sitemap freshness). Derived from the public RPC feed only — never the
+    // private listings table.
+    const feed = data || []
+    const industryLastmod = new Map<string, Date>()
+    const locationLastmod = new Map<string, Date>()
+    for (const row of feed) {
+      if (row.industry) {
+        const ts = row.published_at ? new Date(row.published_at) : new Date()
+        if (!industryLastmod.has(row.industry) || ts > industryLastmod.get(row.industry)!) {
+          industryLastmod.set(row.industry, ts)
+        }
+      }
+      if (row.location_general) {
+        const ts = row.published_at ? new Date(row.published_at) : new Date()
+        if (!locationLastmod.has(row.location_general) || ts > locationLastmod.get(row.location_general)!) {
+          locationLastmod.set(row.location_general, ts)
+        }
+      }
+    }
     const seenIndustries = new Set<string>()
-    for (const row of industries || []) {
+    for (const row of feed) {
       const slug = String(row.industry || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
       if (slug && !seenIndustries.has(slug)) {
         seenIndustries.add(slug)
-        entries.push({ url: `${BASE}/marketplace/industry/${slug}`, changeFrequency: 'weekly', priority: 0.7 })
+        entries.push({
+          url: `${BASE}/marketplace/industry/${slug}`,
+          lastModified: industryLastmod.get(String(row.industry || '')) || new Date(),
+          changeFrequency: 'weekly',
+          priority: 0.7,
+        })
       }
     }
-
-    const { data: locations } = await client
-      .from('listings')
-      .select('location_general')
-      .not('location_general', 'is', null)
-      .neq('location_general', '')
     const seenLocations = new Set<string>()
-    for (const row of locations || []) {
+    for (const row of feed) {
       const slug = String(row.location_general || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
       if (slug && !seenLocations.has(slug)) {
         seenLocations.add(slug)
-        entries.push({ url: `${BASE}/marketplace/location/${slug}`, changeFrequency: 'weekly', priority: 0.6 })
+        entries.push({
+          url: `${BASE}/marketplace/location/${slug}`,
+          lastModified: locationLastmod.get(String(row.location_general || '')) || new Date(),
+          changeFrequency: 'weekly',
+          priority: 0.6,
+        })
       }
     }
 

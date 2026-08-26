@@ -81,6 +81,26 @@ export default function AdminAuditPage() {
     a.click()
   }
 
+  // Full-trail export (server-side, retention-window aware) — SOC 2 evidence.
+  const exportFull = async () => {
+    if (!confirm('Export the FULL audit trail (default: last 365 days, all actions)? This may be large.')) return
+    try {
+      const params = new URLSearchParams()
+      if (action) params.set('action', action)
+      if (targetType) params.set('targetType', targetType)
+      if (q) params.set('q', q)
+      const res = await authenticatedFetch(`/api/admin/audit/export?${params.toString()}`)
+      if (!res.ok) throw new Error('export failed')
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `audit-trail-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+    } catch {
+      alert('Export failed — platform admin access required.')
+    }
+  }
+
   if (loading && entries.length === 0) return <LoadingState label="Loading audit trail..." />
   if (error) {
     return (
@@ -121,6 +141,7 @@ export default function AdminAuditPage() {
         />
         <button onClick={load} style={{ padding: '8px 18px', borderRadius: 8, background: '#1a1a2e', color: '#c9a84c', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>Apply</button>
         <button onClick={exportCSV} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>⬇️ CSV</button>
+        <button onClick={exportFull} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>⬇️ Full trail</button>
       </div>
 
       {/* Timeline */}

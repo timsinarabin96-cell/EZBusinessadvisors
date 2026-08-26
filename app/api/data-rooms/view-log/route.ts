@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { logRoomFileIntent } from '@/lib/dataRoomIntent'
-import { rateLimit } from '@/lib/rateLimit'
+import {rateLimitAsync } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -26,7 +26,7 @@ const clientIp = (req: NextRequest) =>
  */
 export async function POST(req: NextRequest) {
   // Anti-abuse: public write endpoint — rate limited per IP.
-  if (!rateLimit(clientIp(req), { limit: 20, windowMs: 60 * 1000 })) {
+  if (!(await rateLimitAsync(clientIp(req), { limit: 20, windowMs: 60 * 1000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
   }
   const body = await req.json().catch(() => ({}))

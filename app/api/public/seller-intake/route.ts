@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { rateLimit } from '@/lib/rateLimit'
+import {rateLimitAsync } from '@/lib/rateLimit'
 import { notify } from '@/lib/email'
 import { createNotification } from '@/lib/notifications'
 import { resolveListingAgency } from '@/lib/sellerListing'
@@ -42,7 +42,7 @@ const AGENCY_ID = process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-
  */
 export async function POST(req: NextRequest) {
   // Anti-spam: 5 seller-intake submissions per IP per hour.
-  if (!rateLimit(clientIp(req), { limit: 5, windowMs: 60 * 60 * 1000 })) {
+  if (!(await rateLimitAsync(clientIp(req), { limit: 5, windowMs: 60 * 60 * 1000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many submissions. Try again later.' }, { status: 429 })
   }
 

@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { isDeepSeekConfigured, completeWithDeepSeek } from '@/lib/deepseek/client'
-import { rateLimit } from '@/lib/rateLimit'
+import {rateLimitAsync } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -59,7 +59,7 @@ GUIDELINES:
  */
 export async function POST(req: NextRequest) {
   // Anti-abuse: public endpoint — rate limited per IP.
-  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 60 * 1000 })) {
+  if (!(await rateLimitAsync(clientIp(req), { limit: 10, windowMs: 60 * 1000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
   }
   if (!isDeepSeekConfigured()) {

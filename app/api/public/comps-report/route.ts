@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { buildSoldCompsReport } from '@/lib/soldComps'
-import { rateLimit } from '@/lib/rateLimit'
+import {rateLimitAsync } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -24,7 +24,7 @@ const clientIp = (req: Request) =>
  */
 export async function GET(req: Request) {
   // Anti-abuse: this endpoint renders a full PDF — rate limited per IP.
-  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 60 * 1000 })) {
+  if (!(await rateLimitAsync(clientIp(req), { limit: 10, windowMs: 60 * 1000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
   }
   const report = await buildSoldCompsReport()

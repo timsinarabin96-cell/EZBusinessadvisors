@@ -9,7 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { authenticateProfileRequest, canAccessProfile, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
-import { rateLimit } from '@/lib/rateLimit'
+import {rateLimitAsync } from '@/lib/rateLimit'
 
 // ---------------------------------------------------------------------------
 // Certificate API — generate/issue a certificate record + public verification.
@@ -46,7 +46,7 @@ function makeKey(payload: unknown): string {
 // GET /api/certificates/verify?code=XXXX — public verification of a cert code.
 export async function GET(req: NextRequest) {
   // Anti-abuse: public certificate verification — rate limited per IP.
-  if (!rateLimit(clientIp(req), { limit: 20, windowMs: 60 * 1000 })) {
+  if (!(await rateLimitAsync(clientIp(req), { limit: 20, windowMs: 60 * 1000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
   }
   const code = (req.nextUrl.searchParams.get('code') || '').trim().toUpperCase()
