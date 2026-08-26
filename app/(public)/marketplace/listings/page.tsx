@@ -33,7 +33,7 @@ interface PageProps {
 }
 
 export default async function ListingsPage({ searchParams = {} }: PageProps) {
-  const sp = searchParams || {}
+  const sp = (await searchParams) || {}
   const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || ''
   const bool = (v: string | string[] | undefined) => str(v) === '1'
   const agency = await getPublicAgencyContext()

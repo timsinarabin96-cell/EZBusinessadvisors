@@ -8,14 +8,14 @@ export const runtime = 'nodejs'
 // /api/admin/expenses/[id] — PATCH (edit) / DELETE (remove) a cost entry.
 // =============================================================================
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isPlatformAdmin(req))) {
     return NextResponse.json({ ok: false, error: 'Platform admin access only' }, { status: 403 })
   }
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
-  const id = params?.id
+  const { id } = await params
   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 })
 
   const body = await req.json().catch(() => ({}))
@@ -37,14 +37,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json({ ok: true })
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isPlatformAdmin(req))) {
     return NextResponse.json({ ok: false, error: 'Platform admin access only' }, { status: 403 })
   }
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
-  const id = params?.id
+  const { id } = await params
   if (!id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 })
 
   const { error } = await db.from('expenses').delete().eq('id', id)

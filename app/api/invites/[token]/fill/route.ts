@@ -9,12 +9,13 @@ export const runtime = 'nodejs'
  * Invitee self-onboarding: creates/updates the directory row (professional or
  * broker), marks the invite filled, and stores their photo URL if provided.
  */
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
-  const token = String(params.token || '')
-  const { data: invite } = await db.from('invite_tokens').select('*').eq('token', token).maybeSingle()
+  const { token } = await params
+  const tokenValue = String(token || '')
+  const { data: invite } = await db.from('invite_tokens').select('*').eq('token', tokenValue).maybeSingle()
   if (!invite) return NextResponse.json({ ok: false, error: 'Invite not found' }, { status: 404 })
   if (invite.status === 'revoked') return NextResponse.json({ ok: false, error: 'This invite was revoked' }, { status: 410 })
   if (invite.expires_at && new Date(invite.expires_at) < new Date()) {

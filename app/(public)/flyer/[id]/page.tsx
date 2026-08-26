@@ -11,8 +11,9 @@ export const dynamic = 'force-dynamic'
  * Brokers share these on social/WhatsApp; buyers print them for review.
  * Confidential info (exact name/address) stays hidden.
  */
-export default async function FlyerPage({ params }: { params: { id: string } }) {
-  const listing = await fetchPublicListing(params.id)
+export default async function FlyerPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const listing = await fetchPublicListing(id)
   if (!listing) {
     return (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f7f5ee' }}>

@@ -24,8 +24,9 @@ async function getListing(identifier: string): Promise<PublicMarketplaceListing 
   return normalizePublicListing(data[0])
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const listing = await getListing(params.id)
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params
+  const listing = await getListing(id)
   if (!listing) return { title: 'Listing Not Found', robots: { index: false } }
 
   const title = `${listing.public_title}${listing.location_general ? ` — ${listing.location_general}` : ''}`
@@ -42,8 +43,9 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default async function ListingDetailPage({ params }: { params: { id: string } }) {
-  const listing = await getListing(params.id)
+export default async function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const listing = await getListing(id)
   if (!listing) notFound()
 
   // Listing ID (listing_ref) + assigned agent contact — server-side enrichment.

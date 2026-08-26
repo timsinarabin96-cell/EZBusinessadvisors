@@ -9,12 +9,13 @@ export const runtime = 'nodejs'
  * Self-service subscribe/unsubscribe for the invitee's directory row.
  * No auth required — the token IS the proof of ownership.
  */
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
-  const token = String(params.token || '')
-  const { data: invite } = await db.from('invite_tokens').select('*').eq('token', token).maybeSingle()
+  const { token } = await params
+  const tokenValue = String(token || '')
+  const { data: invite } = await db.from('invite_tokens').select('*').eq('token', tokenValue).maybeSingle()
   if (!invite || !invite.target_id) return NextResponse.json({ ok: false, error: 'Invite not found' }, { status: 404 })
 
   let body: any = {}

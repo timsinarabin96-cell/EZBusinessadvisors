@@ -56,20 +56,22 @@ export async function generateStaticParams() {
   return industries.map((industry) => ({ slug: slugify(industry) }))
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const industry = SLUG_TO_INDUSTRY[params.slug] || params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const industry = SLUG_TO_INDUSTRY[slug] || slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   const title = `${industry} Businesses for Sale`
   const description = `Browse ${industry} businesses for sale. Vetted, profitable ${industry.toLowerCase()} opportunities with confidential financials available to qualified buyers.`
   return {
     title,
     description,
-    alternates: { canonical: `${BASE}/marketplace/industry/${params.slug}` },
-    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/industry/${params.slug}` },
+    alternates: { canonical: `${BASE}/marketplace/industry/${slug}` },
+    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/industry/${slug}` },
   }
 }
 
-export default async function IndustryPage({ params }: { params: { slug: string } }) {
-  const industry = SLUG_TO_INDUSTRY[params.slug] || params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+export default async function IndustryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const industry = SLUG_TO_INDUSTRY[slug] || slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   const agency = await getPublicAgencyContext()
   const [all, industries, compsReport] = await Promise.all([fetchPublicFeed(null, agency?.scope || null), fetchAllIndustries(agency?.scope || null), buildSoldCompsReport(agency?.scope || null)])
 
@@ -90,7 +92,7 @@ export default async function IndustryPage({ params }: { params: { slug: string 
     '@type': 'CollectionPage',
     name: `${industry} Businesses for Sale`,
     description: `Browse ${industry} businesses for sale${compStat && compStat.avgMultiple ? ` — typical sale multiples ${compStat.avgMultiple.toFixed(1)}x SDE, median price $${Math.round(compStat.medianSalePrice || 0).toLocaleString()}` : ''}.`,
-    url: `${BASE}/marketplace/industry/${params.slug}`,
+    url: `${BASE}/marketplace/industry/${slug}`,
   }
 
   return (

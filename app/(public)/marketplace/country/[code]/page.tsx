@@ -23,21 +23,23 @@ export async function generateStaticParams() {
   return Array.from(countries).map((code) => ({ code }))
 }
 
-export async function generateMetadata({ params }: { params: { code: string } }): Promise<Metadata> {
-  const code = params.code.toUpperCase()
+export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
+  const { code: codeParam } = await params
+  const code = codeParam.toUpperCase()
   const label = COUNTRY_NAMES[code] || code
   const title = `Businesses for Sale in ${label}`
   const description = `Browse businesses for sale in ${label}. Vetted, profitable opportunities with confidential financials available to qualified buyers — worldwide.`
   return {
     title,
     description,
-    alternates: { canonical: `${BASE}/marketplace/country/${params.code}` },
-    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/country/${params.code}` },
+    alternates: { canonical: `${BASE}/marketplace/country/${code}` },
+    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/country/${code}` },
   }
 }
 
-export default async function CountryPage({ params }: { params: { code: string } }) {
-  const code = params.code.toUpperCase()
+export default async function CountryPage({ params }: { params: Promise<{ code: string }> }) {
+  const { code: codeParam } = await params
+  const code = codeParam.toUpperCase()
   const label = COUNTRY_NAMES[code] || code
   const all = await fetchPublicFeed()
   const matches: PublicMarketplaceListing[] = all.filter((l) => (l.country_code || 'US').toUpperCase() === code)
@@ -47,7 +49,7 @@ export default async function CountryPage({ params }: { params: { code: string }
     '@type': 'CollectionPage',
     name: `Businesses for Sale in ${label}`,
     description: `Browse businesses for sale in ${label}.`,
-    url: `${BASE}/marketplace/country/${params.code}`,
+    url: `${BASE}/marketplace/country/${code}`,
   }
 
   return (

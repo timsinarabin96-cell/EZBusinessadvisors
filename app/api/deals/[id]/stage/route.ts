@@ -13,13 +13,13 @@ export const runtime = 'nodejs'
  * commission_split_agent, else 70%). Idempotent per deal — a closed deal
  * already carrying a commission record won't double-record.
  */
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
   const auth = await authenticateProfileRequest(req)
   if (!auth) return unauthorizedResponse()
 
-  const dealId = params.id
+  const { id: dealId } = await params
   if (!dealId) return NextResponse.json({ ok: false, error: 'deal id is required' }, { status: 400 })
 
   const body = await req.json().catch(() => ({}))

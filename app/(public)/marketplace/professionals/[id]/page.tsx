@@ -20,8 +20,9 @@ async function getProfessional(id: string) {
   return data
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const pro = await getProfessional(params.id)
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params
+  const pro = await getProfessional(id)
   if (!pro) return { title: 'Professional Not Found', robots: { index: false } }
   const label = PROFESSIONAL_LABELS[pro.professional_type as keyof typeof PROFESSIONAL_LABELS] || 'Deal Professional'
   return {
@@ -31,12 +32,13 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default async function ProfessionalProfilePage({ params }: { params: { id: string } }) {
-  const pro = await getProfessional(params.id)
+export default async function ProfessionalProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const pro = await getProfessional(id)
   if (!pro) notFound()
 
   // Broker intro video (Part D #6) — DDL-free, stored in platform_settings.
-  const videoUrl = await getBrokerVideo(params.id).catch(() => null)
+  const videoUrl = await getBrokerVideo(id).catch(() => null)
 
   const label = PROFESSIONAL_LABELS[pro.professional_type as keyof typeof PROFESSIONAL_LABELS] || 'Deal Professional'
   const jsonLd = {

@@ -11,14 +11,14 @@ export const runtime = 'nodejs'
 // Refuses to delete the caller's own agency or the last remaining agency.
 // =============================================================================
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
   if (!(await isPlatformAdmin(req))) {
     return NextResponse.json({ ok: false, error: 'Platform admin access only' }, { status: 403 })
   }
 
-  const agencyId = params?.id
+  const { id: agencyId } = await params
   if (!agencyId) return NextResponse.json({ ok: false, error: 'agency id required' }, { status: 400 })
 
   const { data: agency } = await db.from('agencies').select('id, name').eq('id', agencyId).maybeSingle()

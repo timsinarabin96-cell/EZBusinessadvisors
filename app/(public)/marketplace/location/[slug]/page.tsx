@@ -40,23 +40,25 @@ export async function generateStaticParams() {
   return Array.from(states).map((slug) => ({ slug }))
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const resolved = await resolveLocationSlug(params.slug)
-  const label = resolved?.label || titleCase(params.slug)
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const resolved = await resolveLocationSlug(slug)
+  const label = resolved?.label || titleCase(slug)
   const title = `Businesses for Sale in ${label}`
   const description = `Browse businesses for sale in ${label}. Vetted, profitable opportunities with confidential financials available to qualified buyers.`
   return {
     title,
     description,
-    alternates: { canonical: `${BASE}/marketplace/location/${params.slug}` },
-    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/location/${params.slug}` },
+    alternates: { canonical: `${BASE}/marketplace/location/${slug}` },
+    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/location/${slug}` },
   }
 }
 
-export default async function LocationPage({ params }: { params: { slug: string } }) {
+export default async function LocationPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   // Resolve ANY city/county/state against the US locations table (33k+ rows)
   // so every place gets a real SEO page — even with zero listings today.
-  const resolved = await resolveLocationSlug(params.slug)
+  const resolved = await resolveLocationSlug(slug)
   if (!resolved) {
     return (
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
@@ -85,7 +87,7 @@ export default async function LocationPage({ params }: { params: { slug: string 
     '@type': 'CollectionPage',
     name: `Businesses for Sale in ${label}`,
     description: `Browse businesses for sale in ${label}.`,
-    url: `${BASE}/marketplace/location/${params.slug}`,
+    url: `${BASE}/marketplace/location/${slug}`,
   }
 
   // Live market stats from the matching feed (never names, just aggregate signals).

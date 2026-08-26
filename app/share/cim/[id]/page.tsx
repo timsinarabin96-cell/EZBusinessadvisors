@@ -1,12 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { CimContent, CimVersion } from '@/lib/cim'
 import { LoadingState } from '@/components/ui'
 
 /** Public CIM share view — a broker can send this link to a prospective buyer. */
-export default function ShareCimPage({ params }: { params: { id: string } }) {
+export default function ShareCimPage() {
+  const params = useParams()
+  const cimId = String(params?.id || '')
   const [content, setContent] = useState<CimContent | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -17,7 +20,7 @@ export default function ShareCimPage({ params }: { params: { id: string } }) {
         const { data, error } = await supabase
           .from('cim_versions')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', cimId)
           .single()
         if (error) throw new Error(error.message)
         const v = data as CimVersion
@@ -28,7 +31,7 @@ export default function ShareCimPage({ params }: { params: { id: string } }) {
         setLoading(false)
       }
     })()
-  }, [params.id])
+  }, [cimId])
 
   if (loading) return <LoadingState label="Loading shared CIM..." />
   if (error || !content) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { Agency, fetchAgencies } from '@/lib/agencies'
 import { fetchFeaturedListings, type PublicMarketplaceListing } from '@/lib/marketplace'
 import { getAgencyTheme, type AgencyTheme } from '@/lib/agencyTheme'
@@ -9,7 +10,9 @@ import PublicListingCard from '@/components/public/PublicListingCard'
 import { LoadingState } from '@/components/ui'
 
 /** White-label public agency home, rendered on agency.concordplatform.com. */
-export default function AgencyHomePage({ params }: { params: { slug: string } }) {
+export default function AgencyHomePage() {
+  const params = useParams()
+  const slug = String(params?.slug || '')
   const [agency, setAgency] = useState<Agency | null>(null)
   const [theme, setTheme] = useState<AgencyTheme | null>(null)
   const [listings, setListings] = useState<PublicMarketplaceListing[]>([])
@@ -19,7 +22,7 @@ export default function AgencyHomePage({ params }: { params: { slug: string } })
     (async () => {
       try {
         const agencies = await fetchAgencies()
-        const found = agencies.find((a) => a.slug === params.slug)
+        const found = agencies.find((a) => a.slug === slug)
         setAgency(found || null)
         if (found?.id) {
           const res = await fetch(`/api/agency/theme?agencyId=${found.id}`).then((r) => r.json().catch(() => ({})))
@@ -28,7 +31,7 @@ export default function AgencyHomePage({ params }: { params: { slug: string } })
         setListings(await fetchFeaturedListings(6))
       } catch { setAgency(null) } finally { setLoading(false) }
     })()
-  }, [params.slug])
+  }, [slug])
 
   const brand = theme?.primary_color || agency?.brand_color || '#1a1a2e'
   const accent = theme?.accent_color || agency?.accent_color || '#c9a84c'
