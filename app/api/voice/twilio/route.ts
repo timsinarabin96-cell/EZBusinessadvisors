@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { createServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -57,6 +58,18 @@ function xml(body: string): NextResponse {
   return new NextResponse(body, { headers: { 'Content-Type': 'text/xml' } })
 }
 
+function validTwilioSignature(authToken: string, url: string, params: Record<string, string>, signature: string | null): boolean {
+  if (!authToken || !signature) return false
+  const body = Object.keys(params)
+    .sort()
+    .map((k) => `${k}${params[k]}`)
+    .join('')
+  const expected = createHmac('sha1', authToken).update(url + body).digest('base64')
+  const a = Buffer.from(expected)
+  const b = Buffer.from(signature)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
 function dayPart(): string {
   const h = new Date().getHours()
   if (h < 12) return 'morning'
@@ -92,7 +105,19 @@ export async function POST(req: NextRequest) {
     }
   } catch { /* bridge lookup failed — fall back to turn-based */ }
 
+  // SECURITY: validate the Twilio webhook signature BEFORE processing any
+  // speech. Without this, anyone could forge callbacks to this endpoint.
+  const proto = req.headers.get('x-forwarded-proto') || 'https'
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || ''
+  const url = `${proto}://${host}${req.nextUrl.pathname}${req.nextUrl.search || ''}`
   const form = await req.formData()
+  const params: Record<string, string> = {}
+  for (const [k, v] of form.entries()) params[k] = String(v)
+  const sig = req.headers.get('x-twilio-signature')
+  if (!validTwilioSignature(process.env.TWILIO_AUTH_TOKEN || '', url, params, sig)) {
+    return new NextResponse('Invalid signature', { status: 403 })
+  }
+
   const speechResult = String(form.get('SpeechResult') || '').trim()
   const callSid = String(form.get('CallSid') || '')
   const fromNumber = String(form.get('From') || '')
