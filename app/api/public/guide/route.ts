@@ -7,8 +7,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { isDeepSeekConfigured, completeWithDeepSeek } from '@/lib/deepseek/client'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
+
+const clientIp = (req: Request) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
 
 const GUIDE_SYSTEM = `You are Concord's friendly website guide. You help visitors understand what to do on the platform.
 
@@ -52,6 +58,10 @@ GUIDELINES:
  * No auth required. Rate-limit friendly; keeps the payload small.
  */
 export async function POST(req: NextRequest) {
+  // Anti-abuse: public endpoint — rate limited per IP.
+  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
   if (!isDeepSeekConfigured()) {
     return NextResponse.json({ ok: false, error: 'Guide bot is not configured yet.' }, { status: 503 })
   }

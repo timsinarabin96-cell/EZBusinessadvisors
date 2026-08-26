@@ -7,8 +7,14 @@
 
 import { NextResponse } from 'next/server'
 import { buildSoldCompsReport } from '@/lib/soldComps'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
+
+const clientIp = (req: Request) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
 
 /**
  * GET /api/public/comps-report — free branded market-report PDF.
@@ -16,7 +22,11 @@ export const runtime = 'nodejs'
  * sell) into a navy/gold PDF sellers can keep — the free teaser that funnels
  * into the paid Sellable Reports.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  // Anti-abuse: this endpoint renders a full PDF — rate limited per IP.
+  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
   const report = await buildSoldCompsReport()
 
   const { jsPDF } = await import('jspdf')

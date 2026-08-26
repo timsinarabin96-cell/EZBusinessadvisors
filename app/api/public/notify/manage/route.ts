@@ -7,8 +7,14 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
+
+const clientIp = (req: Request) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
 
 /**
  * /api/public/notify/manage — self-service alert management (public, no auth).
@@ -18,6 +24,10 @@ export const runtime = 'nodejs'
  * email equals the one they provide. Never exposes other subscribers.
  */
 export async function GET(req: NextRequest) {
+  // Anti-abuse: public endpoint — rate limited per IP.
+  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 

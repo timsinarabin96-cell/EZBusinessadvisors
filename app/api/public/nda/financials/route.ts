@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 // ---------------------------------------------------------------------------
 // GET /api/public/nda/financials?listingId=&token= — returns the full
@@ -19,7 +20,16 @@ import { createServerClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
+const clientIp = (req: Request) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
+
 export async function GET(req: NextRequest) {
+  // Anti-abuse: public endpoint — rate limited per IP.
+  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
   const svc = createServerClient()
   if (!svc) return NextResponse.json({ ok: false, error: 'Not configured.' }, { status: 503 })
 
