@@ -272,6 +272,17 @@ export default function BrokerProfilePage() {
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {broker.credentials.length ? broker.credentials.map((c) => <Chip key={c}>✓ {c}</Chip>) : <Chip>✓ Licensed Broker</Chip>}
               </div>
+              {broker.licensed_states.length > 0 && (
+                <>
+                  <SectionTitle>Licensed In</SectionTitle>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {broker.licensed_states.map((s) => <Chip key={s}>🔒 {s}</Chip>)}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#999', marginTop: 8, lineHeight: 1.5 }}>
+                    Self-attested {broker.license_attested_at ? `· ${new Date(broker.license_attested_at).toLocaleDateString()}` : ''}. Licensing rules vary by state — see the <a href="/legal/regulations" style={{ color: '#0e7490' }}>state regulations guide</a>.
+                  </div>
+                </>
+              )}
               {broker.languages.length > 0 && (
                 <>
                   <SectionTitle>Languages</SectionTitle>

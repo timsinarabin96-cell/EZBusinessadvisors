@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   const { data: broker } = await db
     .from('broker_profiles')
-    .select('id, public_name, title, bio, phone, email_public, linkedin, is_public')
+    .select('id, public_name, title, bio, phone, email_public, linkedin, is_public, licensed_states, license_attested_at')
     .eq('profile_id', auth.user.id)
     .maybeSingle()
 
@@ -68,12 +68,19 @@ export async function PATCH(req: NextRequest) {
   }
 
   // Broker profile fields (create if missing).
-  if (body.bio !== undefined || body.phone !== undefined || body.title !== undefined || body.linkedin !== undefined || body.public_name !== undefined) {
+  if (body.bio !== undefined || body.phone !== undefined || body.title !== undefined || body.linkedin !== undefined || body.public_name !== undefined || body.licensed_states !== undefined) {
     if (body.bio !== undefined) brokerPatch.bio = String(body.bio).trim().slice(0, 2000) || null
     if (body.phone !== undefined) brokerPatch.phone = String(body.phone).trim().slice(0, 40) || null
     if (body.title !== undefined) brokerPatch.title = String(body.title).trim().slice(0, 120) || null
     if (body.linkedin !== undefined) brokerPatch.linkedin = String(body.linkedin).trim().slice(0, 200) || null
     if (body.public_name !== undefined) brokerPatch.public_name = String(body.public_name).trim().slice(0, 120) || null
+    if (body.licensed_states !== undefined) {
+      const states = Array.isArray(body.licensed_states)
+        ? body.licensed_states.map((s: unknown) => String(s).trim().slice(0, 40)).filter(Boolean).slice(0, 60)
+        : []
+      brokerPatch.licensed_states = states
+      brokerPatch.license_attested_at = new Date().toISOString()
+    }
 
     const { data: existing } = await db.from('broker_profiles').select('id').eq('profile_id', auth.user.id).maybeSingle()
     if (existing) {

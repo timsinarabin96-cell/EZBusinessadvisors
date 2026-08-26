@@ -36,6 +36,7 @@ function ProfileForm() {
   const [form, setForm] = useState({
     full_name: '', phone: '', title: '', bio: '', public_name: '', linkedin: '',
     license_type: '', license_state: '', license_number: '', license_expiry: '',
+    licensed_states: [] as string[],
   })
 
   const load = useCallback(async () => {
@@ -60,6 +61,7 @@ function ProfileForm() {
           license_state: p.license_state || '',
           license_number: p.license_number || '',
           license_expiry: p.license_expiry ? String(p.license_expiry).slice(0, 10) : '',
+          licensed_states: Array.isArray(b.licensed_states) ? b.licensed_states : [],
         })
       }
     } catch { /* degrade */ } finally { setLoading(false) }
@@ -131,6 +133,44 @@ function ProfileForm() {
           <Field label="License number"><input className="input" value={form.license_number} onChange={(e) => setForm({ ...form, license_number: e.target.value })} /></Field>
           <Field label="License expiry"><input className="input" type="date" value={form.license_expiry} onChange={(e) => setForm({ ...form, license_expiry: e.target.value })} /></Field>
         </div>
+
+        {/* License attestation — multi-state declaration */}
+        <div style={{ marginTop: 18, padding: 16, borderRadius: 10, background: '#f8fbff', border: '1px solid #dbe7f3' }}>
+          <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 15, marginBottom: 4 }}>🗺️ Licensed states (attestation)</div>
+          <p style={{ fontSize: 12.5, color: '#888', margin: '0 0 12px', lineHeight: 1.6 }}>
+            Declare the states where you hold a valid license to broker business sales. This appears on your public profile so buyers and sellers know where you’re authorized to work. Requirements vary by state — see the <a href="/legal/regulations" style={{ color: '#0e7490' }}>state regulations guide</a>.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {US_STATES.map((s) => {
+              const active = form.licensed_states.includes(s)
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() =>
+                    setForm((cur) => ({
+                      ...cur,
+                      licensed_states: active ? cur.licensed_states.filter((x) => x !== s) : [...cur.licensed_states, s],
+                    }))
+                  }
+                  style={{
+                    padding: '5px 11px', borderRadius: 999, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+                    border: active ? '1px solid #2563eb' : '1px solid #dbe7f3',
+                    background: active ? '#eff6ff' : '#fff',
+                    color: active ? '#1d4ed8' : '#52606d',
+                  }}
+                >
+                  {s}
+                </button>
+              )
+            })}
+          </div>
+          {form.licensed_states.length > 0 && (
+            <div style={{ marginTop: 10, fontSize: 12.5, color: '#166534', fontWeight: 700 }}>
+              ✓ Licensed in: {form.licensed_states.join(', ')}
+            </div>
+          )}
+        </div>
         <div style={{ gridColumn: '1 / -1', marginTop: 4 }}>
           <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#555', marginBottom: 5 }}>Bio</label>
           <textarea className="input" rows={4} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Tell buyers and sellers about your experience…" style={{ resize: 'vertical' }} />
@@ -166,6 +206,10 @@ function ProfileForm() {
     </div>
   )
 }
+
+const US_STATES = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC',
+]
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

@@ -278,6 +278,8 @@ export interface PublicBroker {
   transaction_value_total: number | null
   languages: string[]
   service_areas: string[]
+  licensed_states: string[]
+  license_attested_at: string | null
   booking_url: string
   agency?: { name: string } | null
   /** CBI certification proof (public trust signal). */
@@ -388,6 +390,8 @@ export async function fetchPublicBrokerById(id: string): Promise<PublicBroker | 
     transaction_value_total: numberOrNull(b.transaction_value_total),
     languages: stringArray(b.languages),
     service_areas: stringArray(b.service_areas),
+    licensed_states: stringArray(b.licensed_states),
+    license_attested_at: b.license_attested_at || null,
     booking_url: b.booking_url || '',
     agency: b.agency,
   }
@@ -431,6 +435,8 @@ export async function fetchBrokerByProfileId(profileId: string): Promise<PublicB
     transaction_value_total: numberOrNull(b.transaction_value_total),
     languages: stringArray(b.languages),
     service_areas: stringArray(b.service_areas),
+    licensed_states: stringArray(b.licensed_states),
+    license_attested_at: b.license_attested_at || null,
     booking_url: b.booking_url || '',
     agency: b.agency,
   }
