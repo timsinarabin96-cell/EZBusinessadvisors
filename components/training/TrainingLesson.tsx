@@ -10,6 +10,7 @@ import { LoadingState, EmptyState, Badge } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 import TrainingQuiz from './TrainingQuiz'
 import TrainingTutor from './TrainingTutor'
+import TrainingSlides from './TrainingSlides'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: string; lessonId: string }) {
@@ -124,6 +125,9 @@ export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: s
             />
           </div>
         )}
+
+        {/* Presentation mode — narrated slides for every lesson */}
+        {lesson.content && <TrainingSlides content={lesson.content} title={lesson.title} />}
 
         {/* Content */}
         {lesson.content && (

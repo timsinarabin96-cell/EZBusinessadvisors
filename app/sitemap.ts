@@ -15,6 +15,7 @@ const STATIC: MetadataRoute.Sitemap = [
   { url: `${BASE}/marketplace/trust`, changeFrequency: 'monthly', priority: 0.6 },
   { url: `${BASE}/platform`, changeFrequency: 'monthly', priority: 0.6 },
   { url: `${BASE}/license`, changeFrequency: 'monthly', priority: 0.7 },
+  { url: `${BASE}/cbi`, changeFrequency: 'monthly', priority: 0.7 },
   { url: `${BASE}/pricing`, changeFrequency: 'monthly', priority: 0.5 },
   { url: `${BASE}/legal/terms`, changeFrequency: 'yearly', priority: 0.3 },
   { url: `${BASE}/legal/privacy`, changeFrequency: 'yearly', priority: 0.3 },

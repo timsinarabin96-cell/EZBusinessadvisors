@@ -10,6 +10,8 @@ import { Card, CardHeader, StatCard, LoadingState, EmptyState, Badge } from '@/c
 import TrainingCertificatesSection from './TrainingCertificatesSection'
 import TrainingGamificationCard from './TrainingGamificationCard'
 import TrainingSimulator from './TrainingSimulator'
+import TrainingRoleplay from './TrainingRoleplay'
+import TrainingTeamAnalytics from './TrainingTeamAnalytics'
 
 export default function TrainingDashboard() {
   const [modules, setModules] = useState<TrainingModule[]>([])
@@ -113,8 +115,14 @@ export default function TrainingDashboard() {
       {/* Gamification — XP, streak, and CBI title ladder */}
       <TrainingGamificationCard />
 
+      {/* Team analytics — leaderboard + who needs a nudge (agency owners) */}
+      <TrainingTeamAnalytics />
+
       {/* Deal Simulator — learn-by-doing */}
       <TrainingSimulator />
+
+      {/* Negotiation Roleplay — argue the deal with an AI counterpart */}
+      <TrainingRoleplay />
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14, marginBottom: 24 }}>

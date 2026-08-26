@@ -10,6 +10,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { fetchPublicBrokerById, fetchListingsByBroker, fetchPublicBrokers, PublicBroker, PublicMarketplaceListing } from '@/lib/marketplace'
 import PublicListingCard from '@/components/public/PublicListingCard'
+import CbiBadge from '@/components/public/CbiBadge'
 import { LoadingState } from '@/components/ui'
 
 export default function BrokerProfilePage() {
@@ -74,6 +75,9 @@ export default function BrokerProfilePage() {
         <div style={{ flex: 1, minWidth: 240 }}>
           <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 30, color: '#1a1a2e', margin: 0 }}>{broker.public_name}</h1>
           <div style={{ fontSize: 14, color: '#c9a84c', fontWeight: 700, marginTop: 4 }}>{broker.title || 'Business Broker'}</div>
+          {broker.certified && (
+            <div style={{ marginTop: 8 }}><CbiBadge /></div>
+          )}
           {broker.agency?.name && <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>{broker.agency.name}</div>}
           <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
             {broker.email_public && (

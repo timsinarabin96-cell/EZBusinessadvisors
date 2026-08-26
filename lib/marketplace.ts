@@ -277,6 +277,8 @@ export interface PublicBroker {
   closed_deals_count: number
   booking_url: string
   agency?: { name: string } | null
+  /** CBI certification proof (public trust signal). */
+  certified?: boolean
 }
 
 export interface SoldListing {
@@ -315,7 +317,7 @@ export async function fetchPublicBrokers(): Promise<PublicBroker[]> {
     .eq('is_public', true)
     .limit(100)
   if (error || !data) return []
-  return (data as any[]).map((broker) => ({
+  const brokers = (data as any[]).map((broker) => ({
     id: broker.id,
     profile_id: broker.profile_id || null,
     agency_id: broker.agency_id || null,
@@ -334,7 +336,23 @@ export async function fetchPublicBrokers(): Promise<PublicBroker[]> {
     closed_deals_count: Number(broker.closed_deals_count || 0),
     booking_url: broker.booking_url || '',
     agency: broker.agency,
-  }))
+  })) as PublicBroker[]
+  try {
+    const ids = await fetchCertifiedProfileIds()
+    for (const b of brokers) b.certified = !!b.profile_id && ids.has(b.profile_id)
+  } catch {
+    /* certification is best-effort */
+  }
+  return brokers
+}
+
+/** Fetch the set of certified profile ids (public proof). */
+export async function fetchCertifiedProfileIds(): Promise<Set<string>> {
+  const { data } = await supabase
+    .from('certified_brokers')
+    .select('profile_id')
+    .limit(500)
+  return new Set((data || []).map((r: any) => r.profile_id).filter(Boolean))
 }
 
 /** Fetch one public broker profile by its public id (broker_profiles.id). */
@@ -347,7 +365,7 @@ export async function fetchPublicBrokerById(id: string): Promise<PublicBroker | 
     .maybeSingle()
   if (error || !data) return null
   const b = data as any
-  return {
+  const broker: PublicBroker = {
     id: b.id,
     profile_id: b.profile_id || null,
     agency_id: b.agency_id || null,
@@ -367,6 +385,14 @@ export async function fetchPublicBrokerById(id: string): Promise<PublicBroker | 
     booking_url: b.booking_url || '',
     agency: b.agency,
   }
+  // Attach CBI certification proof.
+  try {
+    const ids = await fetchCertifiedProfileIds()
+    broker.certified = !!broker.profile_id && ids.has(broker.profile_id)
+  } catch {
+    broker.certified = false
+  }
+  return broker
 }
 
 /** Reverse lookup by auth profile id (listings.agent_id → broker profile). */
