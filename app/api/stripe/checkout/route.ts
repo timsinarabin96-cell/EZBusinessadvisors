@@ -46,13 +46,29 @@ export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin') || req.headers.get('referer') || 'http://localhost:3000'
   const product2 = String(body?.product || 'subscription')
 
+  // SECURITY (2026-08-26 audit): successUrl/cancelUrl are client-supplied.
+  // Only allow same-origin redirect targets so a crafted checkout can't
+  // bounce a user to a phishing site after payment.
+  const APP_ORIGIN = process.env.NEXT_PUBLIC_APP_URL || origin
+  const safeUrl = (u: unknown, fallback: string): string => {
+    const s = String(u || '')
+    if (!s) return fallback
+    try {
+      const parsed = new URL(s)
+      const allowed = new URL(APP_ORIGIN)
+      return parsed.origin === allowed.origin || s.startsWith('/') ? s : fallback
+    } catch {
+      return fallback
+    }
+  }
+
   // --- Buyer Pass product (separate from brokerage SaaS) ---------------------
   if (product === 'buyer_pass') {
     const tier = String(body?.tier || '').trim()
     const plan = BUYER_PASS_PLANS.find((p) => p.id === tier)
     if (!plan) return NextResponse.json({ ok: false, error: 'Unknown Match Pass plan' }, { status: 400 })
-    const successUrl = body?.successUrl || `${origin}/dashboard/buyer?checkout=success`
-    const cancelUrl = body?.cancelUrl || `${origin}/dashboard/buyer`
+    const successUrl = safeUrl(body?.successUrl, `${origin}/dashboard/buyer?checkout=success`)
+    const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/dashboard/buyer`)
 
     if (stripeConfigured()) {
       const { data: { user } } = await (await import('@/lib/supabase/client')).supabase.auth.getUser().catch(() => ({ data: { user: null } }))
@@ -81,8 +97,8 @@ export async function POST(req: NextRequest) {
     if (!option || !listingId || !agencyId) {
       return NextResponse.json({ ok: false, error: 'optionId, listingId, and agencyId are required' }, { status: 400 })
     }
-    const successUrl = body?.successUrl || `${origin}/dashboard/listings/${listingId}/edit?featured=success`
-    const cancelUrl = body?.cancelUrl || `${origin}/dashboard/listings/${listingId}/edit`
+    const successUrl = safeUrl(body?.successUrl, `${origin}/dashboard/listings/${listingId}/edit?featured=success`)
+    const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/dashboard/listings/${listingId}/edit`)
 
     if (stripeConfigured()) {
       const result = await createCheckoutSession({
@@ -107,8 +123,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
   }
 
-  const successUrl = body?.successUrl || `${origin}/billing?checkout=success&tier=${tier}`
-  const cancelUrl = body?.cancelUrl || `${origin}/billing`
+  const successUrl = safeUrl(body?.successUrl, `${origin}/billing?checkout=success&tier=${tier}`)
+  const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/billing`)
 
   // --- White-label CRM license: one-time setup + recurring platform fee ------
   if (product === 'license') {
