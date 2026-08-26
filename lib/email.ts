@@ -58,6 +58,8 @@ export type EmailKind =
   | 'renewal_renewed'
   | 'captains_brief'
   | 'daily_brief'
+  | 'portal_invite'
+  | 'data_room_change'
   | 'password_reset'
   | 'password_changed'
   | 'email_changed'
@@ -336,6 +338,23 @@ export const emailTemplates = {
     return { subject, html: shell(subject, body, opts.briefUrl ? { label: 'Open dashboard', href: opts.briefUrl } : undefined) }
   },
 
+  portalInvite(opts: { clientName?: string; portalUrl?: string; dealTitle?: string; expiresAt?: string | null }) {
+    const subject = `Your private deal portal is ready`
+    const body = `<p>Hi ${esc(opts.clientName || 'there')},</p>
+      <p>A secure workspace has been opened for you on <strong>CONCORD Deal Platform</strong>${opts.dealTitle ? ` for <strong>“${esc(opts.dealTitle)}”</strong>` : ''}.</p>
+      <p>Inside you can review and sign agreements, view and upload due-diligence documents, and message your broker — no account or login needed.</p>
+      ${opts.expiresAt ? `<p style="color:#8a8678;font-size:13px;">Access expires ${esc(opts.expiresAt)}.</p>` : ''}`
+    return { subject, html: shell(subject, body, opts.portalUrl ? { label: 'Open my portal', href: opts.portalUrl } : undefined) }
+  },
+
+  dataRoomChange(opts: { fileName?: string; action?: string; roomName?: string; portalUrl?: string }) {
+    const subject = `New activity in ${esc(opts.roomName || 'your deal room')}`
+    const body = `<p>${esc(opts.action || 'A document was updated')} in <strong>${esc(opts.roomName || 'your deal room')}</strong>:</p>
+      <p style="font-size:16px;"><strong>📄 ${esc(opts.fileName || 'A file')}</strong></p>
+      <p style="color:#8a8678;font-size:13px;">Open your portal to view the latest version.</p>`
+    return { subject, html: shell(subject, body, opts.portalUrl ? { label: 'Open deal room', href: opts.portalUrl } : undefined) }
+  },
+
   generic(opts: { title: string; message: string }) {
     const subject = opts.title
     return { subject, html: shell(opts.title, `<p>${esc(opts.message)}</p>`) }
@@ -478,6 +497,8 @@ export async function notify(
     case 'renewal_renewed': built = emailTemplates.renewalRenewed(payload); break
     case 'captains_brief': built = emailTemplates.captainsBrief(payload); break
     case 'daily_brief': built = emailTemplates.dailyBrief(payload); break
+    case 'portal_invite': built = emailTemplates.portalInvite(payload); break
+    case 'data_room_change': built = emailTemplates.dataRoomChange(payload); break
     case 'password_reset': built = emailTemplates.passwordReset(); break
     case 'password_changed': built = emailTemplates.passwordChanged(payload); break
     case 'email_changed': built = emailTemplates.emailChanged(payload); break

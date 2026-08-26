@@ -61,6 +61,7 @@ export default function DealDataRoom({
   const [error, setError] = useState('')
   const [activeFolder, setActiveFolder] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [zipBusy, setZipBusy] = useState(false)
   const [renaming, setRenaming] = useState<{ kind: 'file' | 'folder'; id: string; name: string } | null>(null)
   const [newFolderName, setNewFolderName] = useState('')
   const [showNewFolder, setShowNewFolder] = useState(false)
@@ -93,6 +94,34 @@ export default function DealDataRoom({
     if (fileRef.current) fileRef.current.value = ''
     flash('Files uploaded ✅')
     load()
+  }
+
+  const downloadZip = async () => {
+    setZipBusy(true)
+    try {
+      const qs = new URLSearchParams({ dealId })
+      if (token) qs.set('token', token)
+      const res = await fetch(`/api/data-rooms/export?${qs.toString()}`, { cache: 'no-store' })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        flash(j.error || 'Could not build ZIP')
+        return
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'data-room.zip'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      flash('ZIP downloaded 📦')
+    } catch {
+      flash('Could not build ZIP')
+    } finally {
+      setZipBusy(false)
+    }
   }
 
   const handleNewFolder = async () => {
@@ -138,6 +167,9 @@ export default function DealDataRoom({
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost" style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }} onClick={() => setShowNewFolder((v) => !v)}>+ Folder</button>
+          <button className="btn btn-ghost" style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }} onClick={downloadZip} disabled={zipBusy}>
+            {zipBusy ? 'Zipping…' : '📦 Download ZIP'}
+          </button>
           <button className="btn" style={{ background: 'var(--gold)', borderColor: 'var(--gold)', color: '#fff' }} onClick={() => fileRef.current?.click()} disabled={uploading}>
             {uploading ? 'Uploading…' : '⬆ Upload'}
           </button>

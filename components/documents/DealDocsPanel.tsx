@@ -8,7 +8,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { fetchTemplates, fetchDocuments, fetchSignatures, createDocument, type DocumentTemplate, type FilledDocument, type FilledParty, type DocumentSignature } from '@/lib/documentBuilder'
+import { fetchTemplates, fetchDocuments, fetchSignatures, createDocument, updateDocument, type DocumentTemplate, type FilledDocument, type FilledParty, type DocumentSignature } from '@/lib/documentBuilder'
 import { fetchListing, type Listing } from '@/lib/listings'
 import SignaturePad from './SignaturePad'
 import { getStoredAccessToken } from '@/lib/authToken'
@@ -217,6 +217,14 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         templates={templates}
         signatures={signatures}
         onSign={setSignTarget}
+        onSend={async (docId) => {
+          try {
+            await updateDocument(docId, { status: 'pending_signature' })
+            await load()
+          } catch (e) {
+            setError((e as Error).message || 'Could not send for signature')
+          }
+        }}
       />
 
       {/* Buyer pack */}
@@ -227,6 +235,14 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         templates={templates}
         signatures={signatures}
         onSign={setSignTarget}
+        onSend={async (docId) => {
+          try {
+            await updateDocument(docId, { status: 'pending_signature' })
+            await load()
+          } catch (e) {
+            setError((e as Error).message || 'Could not send for signature')
+          }
+        }}
       />
 
       {/* Uploaded financials reminder */}
@@ -247,7 +263,7 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
 }
 
 function PackSection({
-  title, subtitle, docs, templates, signatures, onSign,
+  title, subtitle, docs, templates, signatures, onSign, onSend,
 }: {
   title: string
   subtitle: string
@@ -255,6 +271,7 @@ function PackSection({
   templates: DocumentTemplate[]
   signatures: Record<string, DocumentSignature[]>
   onSign: (t: { sigId: string; partyName: string }) => void
+  onSend: (docId: string) => Promise<void>
 }) {
   const tplName = (id: string | null) => templates.find((t) => t.id === id)?.name || 'Document'
   return (
@@ -306,6 +323,15 @@ function PackSection({
                       }}
                     >
                       ✍️ Sign
+                    </button>
+                  )}
+                  {doc.status === 'draft' && (
+                    <button
+                      className="btn"
+                      style={{ padding: '4px 12px', fontSize: 12, color: '#0e7490', borderColor: '#a5e3f2', background: '#f0f9ff' }}
+                      onClick={() => onSend(doc.id)}
+                    >
+                      📨 Send for signature
                     </button>
                   )}
                 </div>

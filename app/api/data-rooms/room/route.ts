@@ -11,6 +11,7 @@ import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase
 import {
   ensureDataRoom, snapshotRoom, logActivity, kindFromMime,
 } from '@/lib/dataRoomServer'
+import { notify } from '@/lib/email'
 
 // =============================================================================
 // Deal Data Room API — Dropbox-style shared folder per deal.
@@ -158,6 +159,32 @@ export async function POST(req: NextRequest) {
       }).select().single()
       if (insErr) return NextResponse.json({ ok: false, error: 'record failed: ' + insErr.message }, { status: 500 })
       await logActivity(SVC, room.id, actor.userId, actor.email, 'uploaded', `Uploaded ${file.name}`)
+
+      // What-changed alerts — notify every invited party (buyers/sellers/
+      // agents) that a document was added or replaced in their deal room.
+      void (async () => {
+        try {
+          const [buyersRes, sharesRes] = await Promise.all([
+            SVC.from('data_room_buyers').select('buyer_email').eq('data_room_id', room.id).eq('status', 'active'),
+            SVC.from('data_room_shares').select('shared_with').eq('data_room_id', room.id).eq('status', 'pending'),
+          ])
+          const emails = new Set<string>()
+          for (const b of buyersRes.data || []) if (b.buyer_email) emails.add(b.buyer_email)
+          for (const s of sharesRes.data || []) if (s.shared_with) emails.add(s.shared_with)
+          const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'}/portal/${dealId}/${token || ''}`
+          for (const email of emails) {
+            await notify('data_room_change', email, {
+              fileName: file.name,
+              action: 'A document was added to the deal room',
+              roomName: room.name || 'your deal room',
+              portalUrl: token ? portalUrl : undefined,
+            })
+          }
+        } catch {
+          // alerts never break the upload
+        }
+      })()
+
       return NextResponse.json({ ok: true, file: row })
     } catch (e) {
       return NextResponse.json({ ok: false, error: 'upload error: ' + (e as Error).message }, { status: 500 })
