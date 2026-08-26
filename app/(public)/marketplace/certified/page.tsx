@@ -110,6 +110,9 @@ export default function CertifiedBrokersPage() {
           <Link href="/marketplace/sell" style={{ border: '1px solid rgba(255,255,255,0.5)', color: '#fff', padding: '12px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
             Get a free valuation
           </Link>
+          <Link href="/verify" style={{ border: '1px solid rgba(255,255,255,0.5)', color: '#fff', padding: '12px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+            Verify a certificate
+          </Link>
         </div>
       </div>
     </div>
