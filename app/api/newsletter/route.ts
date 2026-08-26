@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit } from '@/lib/rateLimit'
 
 // ---------------------------------------------------------------------------
 // POST /api/newsletter — public newsletter signup.
@@ -15,6 +16,11 @@ import { createClient } from '@supabase/supabase-js'
 // ---------------------------------------------------------------------------
 
 export const runtime = 'nodejs'
+
+const clientIp = (req: NextRequest) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
 
 const SVC = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || 'NO_KEY', {
@@ -31,6 +37,11 @@ interface Subscriber {
 }
 
 export async function POST(req: NextRequest) {
+  // Anti-spam: 5 newsletter signups per IP per hour.
+  if (!rateLimit(clientIp(req), { limit: 5, windowMs: 60 * 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many signups. Try again later.' }, { status: 429 })
+  }
+
   const svc = SVC
   if (!svc) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 

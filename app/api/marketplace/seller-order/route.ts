@@ -9,8 +9,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createSellerListingOrder, resolveListingAgency } from '@/lib/sellerListing'
 import { createNotification } from '@/lib/notifications'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
+
+const clientIp = (req: NextRequest) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
 
 const MAX_BODY_BYTES = 32 * 1024
 
@@ -46,6 +52,10 @@ function fail(message: string, status = 400, extra: object = {}) {
  * a broker must approve the listing before it appears publicly.
  */
 export async function POST(req: NextRequest) {
+  // Anti-abuse: public order form — rate limited per IP.
+  if (!rateLimit(clientIp(req), { limit: 5, windowMs: 60 * 1000 })) {
+    return fail('Too many requests. Try again later.', 429)
+  }
   const raw = await req.text().catch(() => '')
   if (!raw) return fail('Empty request body.', 400)
   if (Buffer.byteLength(raw, 'utf8') > MAX_BODY_BYTES) {
