@@ -10,6 +10,12 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Appointment, AppointmentType, createAppointment, fetchAppointments } from '@/lib/appointments'
 import { fetchTasks, fetchDeadlines, buildTimeline, type TaskItem, type DeadlineItem } from '@/lib/calendarFeed'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { getAgencyContext } from '@/lib/agencyContext'
+
+interface BriefingCard {
+  headline: string
+  counts: { overdue: number; dueToday: number; deadlines72h: number; appointmentsToday: number; coldDeals: number }
+}
 
 const TYPE_LABELS: Record<AppointmentType, string> = {
   listing: 'Listing appointment',
@@ -60,6 +66,7 @@ export default function CalendarDashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [tasks, setTasks] = useState<TaskItem[]>([])
   const [deadlines, setDeadlines] = useState<DeadlineItem[]>([])
+  const [briefing, setBriefing] = useState<BriefingCard | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -99,6 +106,22 @@ export default function CalendarDashboard() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // In-app "Today" briefing — same engine as the 6am email, served to the browser.
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const ctx = await getAgencyContext()
+        if (!ctx) return
+        const token = getStoredAccessToken()
+        const res = await fetch(`/api/calendar/briefing?agencyId=${ctx.agencyId}`, {
+          headers: { authorization: `Bearer ${token}` },
+        })
+        const data = await res.json().catch(() => ({}))
+        if (data.ok) setBriefing(data)
+      } catch { /* non-blocking */ }
+    })()
+  }, [])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -166,6 +189,31 @@ export default function CalendarDashboard() {
       )}
       {error && !schemaPending && (
         <div style={{ padding: 14, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b' }}>{error}</div>
+      )}
+
+      {/* In-app Today briefing — same engine as the 6am email */}
+      {briefing && (
+        <div style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%)', borderRadius: 14, padding: '18px 22px', color: '#fff', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 30 }}>🌅</div>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800, fontFamily: 'Georgia, serif', color: '#fff' }}>{briefing.headline}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 3 }}>AI Daily Briefing — refreshed just now</div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Overdue', value: briefing.counts.overdue, color: '#fca5a5' },
+              { label: 'Due today', value: briefing.counts.dueToday, color: '#fcd34d' },
+              { label: 'Deadlines 72h', value: briefing.counts.deadlines72h, color: '#7dd3fc' },
+              { label: 'Meetings', value: briefing.counts.appointmentsToday, color: '#6ee7b7' },
+              { label: 'Cold deals', value: briefing.counts.coldDeals, color: '#f9a8d4' },
+            ].map((c) => (
+              <div key={c.label} style={{ textAlign: 'center', background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '8px 14px', minWidth: 64 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: c.color, lineHeight: 1 }}>{c.value}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '.04em', marginTop: 3 }}>{c.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(300px, 0.8fr)', gap: 22, alignItems: 'start' }}>

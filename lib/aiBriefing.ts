@@ -57,7 +57,7 @@ async function briefRecipients(agencyId: string): Promise<string[]> {
   return (profiles || []).map((p) => p.email).filter(Boolean)
 }
 
-async function fetchBriefingData(agencyId: string): Promise<BriefingData> {
+export async function fetchBriefingData(agencyId: string): Promise<BriefingData> {
   if (!svc) return { agencyName: null, overdue: [], dueToday: [], deadlines: [], appointmentsToday: [], coldDeals: [] }
   const now = new Date()
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -112,7 +112,7 @@ function fmtTime(iso: string) {
 }
 
 /** Deterministic headline + body (AI polish applied on top when available). */
-function composeBriefing(data: BriefingData): { headline: string; body: string } {
+export function composeBriefing(data: BriefingData): { headline: string; body: string } {
   const parts: string[] = []
   if (data.overdue.length) parts.push(`${data.overdue.length} overdue task${data.overdue.length === 1 ? '' : 's'}`)
   if (data.dueToday.length) parts.push(`${data.dueToday.length} due today`)
