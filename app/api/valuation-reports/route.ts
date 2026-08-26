@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { VALUATION_TIERS, createValuationReportOrder, finalizeValuationReport } from '@/lib/valuationReports'
-import { createCheckoutSession, stripeConfigured } from '@/lib/stripeCheckout'
+import { createCheckoutSession, stripeConfigured, demoModeAllowed, demoBlockedError } from '@/lib/stripeCheckout'
 
 export const runtime = 'nodejs'
 
@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
   }
 
   // --- Demo mode: create the order and generate the PDF immediately -----------
+  if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
   const order = await createValuationReportOrder({ profileId, listingId, agencyId, tier: reportTier.id, stripeSession: null, status: 'pending' })
   if (!order.ok || !order.order) return NextResponse.json({ ok: false, error: order.error || 'Failed to create order' }, { status: 500 })
 

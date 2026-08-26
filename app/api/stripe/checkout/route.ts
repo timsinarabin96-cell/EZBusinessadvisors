@@ -12,7 +12,7 @@ import { PLANS, subscribeToTier } from '@/lib/billing'
 import { BUYER_PASS_PLANS, subscribeToBuyerPass } from '@/lib/buyerPass'
 import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS } from '@/lib/pricing'
 import { FEATURED_SLOT_OPTIONS, activateFeaturedSlot } from '@/lib/featuredSlots'
-import { createCheckoutSession, stripeConfigured } from '@/lib/stripeCheckout'
+import { createCheckoutSession, stripeConfigured, demoModeAllowed, demoBlockedError } from '@/lib/stripeCheckout'
 
 export const runtime = 'nodejs'
 
@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
     }
 
+    if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
     await subscribeToBuyerPass(tier)
     return NextResponse.json({ ok: true, url: `/dashboard/buyer?checkout=success`, mode: 'demo' })
   }
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
     }
 
+    if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
     // Demo mode: grant the badge locally.
     const db = createServerClient()
     if (db) {
@@ -148,6 +150,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
     }
 
+    if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
     // Demo mode: enable the add-on locally.
     const db = createServerClient()
     if (db) {
@@ -188,6 +191,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
     }
 
+    if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
     // Demo mode: activate immediately.
     const res = await activateFeaturedSlot(agencyId, listingId, optionId, { immediate: true })
     if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 500 })
@@ -229,6 +233,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
     }
 
+    if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
     // Demo mode: mark the agency licensed locally (no charge).
     const db = createServerClient()
     if (db) {
@@ -264,6 +269,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
   }
 
+  if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
   // Demo fallback: record the subscription locally (no charge).
   const email = String(body?.email || '').trim()
   await subscribeToTier(tier, email)

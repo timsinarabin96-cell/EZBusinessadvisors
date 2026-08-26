@@ -178,3 +178,18 @@ test('security: no table is left without row level security', async () => {
   })
   assert.ok(missing.length === 0, `tables without RLS (manifest): ${missing.join(', ')}`)
 })
+
+// --- 14. Demo-mode leak guard (production fail-closed) -----------------------
+test('checkout: demo grants are disabled in production (fail-closed)', () => {
+  const lib = readFileSync('lib/stripeCheckout.ts', 'utf8')
+  assert.match(lib, /demoModeAllowed/)
+  assert.match(lib, /NODE_ENV !== 'production'/)
+  assert.match(lib, /demoBlockedError/)
+  const checkout = readFileSync('app/api/stripe/checkout/route.ts', 'utf8')
+  // Every paid product's demo path must be guarded.
+  const demoGuards = checkout.match(/demoModeAllowed\(\)/g) || []
+  assert.ok(demoGuards.length >= 6, `expected >=6 demo guards, got ${demoGuards.length}`)
+  assert.doesNotMatch(checkout, /mode: 'demo'[\s\S]{0,200}?await subscribeToBuyerPass/s)
+  const valuation = readFileSync('app/api/valuation-reports/route.ts', 'utf8')
+  assert.match(valuation, /demoModeAllowed/)
+})

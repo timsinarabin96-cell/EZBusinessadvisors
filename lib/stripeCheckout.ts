@@ -21,6 +21,24 @@ export function stripeConfigured(): boolean {
   return STRIPE_SECRET_KEY.startsWith('sk_')
 }
 
+/**
+ * Demo mode (free feature grants) is ONLY allowed outside production.
+ * In production, if Stripe isn't configured, checkout must FAIL CLOSED —
+ * otherwise paid features (verified badge, featured slots, license, add-ons)
+ * activate for free. This is the "demo-mode leak" guard from the 8/26 audit.
+ */
+export function demoModeAllowed(): boolean {
+  return process.env.NODE_ENV !== 'production'
+}
+
+/** Standard 503 payload when production blocks demo-mode grants. */
+export function demoBlockedError(): { ok: boolean; error: string } {
+  return {
+    ok: false,
+    error: 'Payments are not configured yet. Add STRIPE_SECRET_KEY to enable live purchases — demo grants are disabled in production.',
+  }
+}
+
 export interface CheckoutItem {
   name: string
   amountCents: number
