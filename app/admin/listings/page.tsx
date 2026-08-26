@@ -34,6 +34,9 @@ interface ListingRow {
   owner_email: string
   moderation_reason: string | null
   moderated_at: string | null
+  riskScore?: number
+  riskLevel?: string
+  riskReasons?: string[]
 }
 
 const STAGES = [
@@ -63,6 +66,10 @@ export default function AdminListingsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
+  const [scanning, setScanning] = useState(false)
+  const [reviewTarget, setReviewTarget] = useState<ListingRow | null>(null)
+  const [reviewReport, setReviewReport] = useState<any | null>(null)
+  const [reviewLoading, setReviewLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -110,6 +117,44 @@ export default function AdminListingsPage() {
     a.click()
   }
 
+  const riskStyle = (level: string) =>
+    level === 'critical' ? { bg: '#ef44441a', color: '#b91c1c' }
+    : level === 'high' ? { bg: '#f973161a', color: '#c2410c' }
+    : level === 'medium' ? { bg: '#f59e0b1a', color: '#b45309' }
+    : { bg: '#22c55e1a', color: '#15803d' }
+
+  const aiScan = async () => {
+    if (!confirm('Run AI risk scan across all listings? Critical-risk listings get auto-flagged for review.')) return
+    setScanning(true)
+    try {
+      const res = await authenticatedFetch('/api/admin/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ai_scan' }),
+      })
+      const j = await res.json()
+      if (j.ok) toast(`Scan done — ${j.autoFlagged} auto-flagged of ${j.scanned} 🚩`, 'success')
+      else toast(j.error || 'Scan failed', 'error')
+      load()
+    } finally { setScanning(false) }
+  }
+
+  const aiReview = async (l: ListingRow) => {
+    setReviewTarget(l)
+    setReviewReport(null)
+    setReviewLoading(true)
+    try {
+      const res = await authenticatedFetch('/api/admin/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'ai_review', id: l.id }),
+      })
+      const j = await res.json()
+      if (j.ok) setReviewReport(j)
+      else toast(j.error || 'Review failed', 'error')
+    } catch { toast('Review failed', 'error') } finally { setReviewLoading(false) }
+  }
+
   const money = (v: number | null) => (v == null ? '—' : '$' + Number(v).toLocaleString())
 
   if (loading && listings.length === 0) return <LoadingState label="Loading moderation queue..." />
@@ -152,6 +197,7 @@ export default function AdminListingsPage() {
           style={{ marginLeft: 'auto', padding: '8px 12px', borderRadius: 8, border: '1px solid #d8d2c2', fontSize: 13, width: 220 }}
         />
         <button onClick={exportCSV} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>⬇️ CSV</button>
+        <button onClick={aiScan} disabled={scanning} style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#7c3aed', color: '#fff', fontSize: 12.5, fontWeight: 800, cursor: scanning ? 'wait' : 'pointer' }}>🤖 {scanning ? 'Scanning…' : 'AI Scan & Flag'}</button>
       </div>
 
       {/* Queue */}
@@ -170,6 +216,9 @@ export default function AdminListingsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 800, fontSize: 15.5, color: '#1a1a2e' }}>{l.business_name || 'Untitled business'}</span>
                   <span style={{ background: pill.bg, color: pill.color, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 800, textTransform: 'uppercase' }}>{l.review_stage || l.status}</span>
+                  {(l.riskScore ?? 0) >= 30 && (
+                    <span style={{ background: riskStyle(l.riskLevel).bg, color: riskStyle(l.riskLevel).color, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 800 }}>🤖 {l.riskScore}/100 {l.riskLevel.toUpperCase()}</span>
+                  )}
                   {l.flagged && <span style={{ background: '#ef44441a', color: '#b91c1c', padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 800 }}>🚩 {(l.flag_reasons || []).length > 0 ? `${l.flag_reasons!.length} flag(s)` : 'FLAGGED'}</span>}
                 </div>
                 <div style={{ color: '#64748b', fontSize: 13, marginTop: 5 }}>
@@ -199,11 +248,68 @@ export default function AdminListingsPage() {
                 {l.flagged
                   ? <ActionBtn color="#64748b" bg="#94a3b81a" disabled={busy === l.id} onClick={() => act(l.id, 'clear_flag')}>🚩 Clear flag</ActionBtn>
                   : <ActionBtn color="#b91c1c" bg="#fef2f2" disabled={busy === l.id} onClick={() => withReason(l.id, 'flag')}>🚩 Flag</ActionBtn>}
+                <ActionBtn color="#7c3aed" bg="#f5f3ff" disabled={busy === l.id} onClick={() => aiReview(l)}>🤖 AI Review</ActionBtn>
               </div>
             </div>
           )
         })}
       </div>
+
+      {/* AI review modal */}
+      {reviewTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'grid', placeItems: 'center', zIndex: 50, padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, maxWidth: 620, width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 30 }}>🤖</div>
+                <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '6px 0 2px' }}>{reviewTarget.business_name || 'Untitled business'}</h2>
+                <div style={{ color: '#888', fontSize: 13 }}>{reviewTarget.agency_name} · {money(reviewTarget.asking_price)} asking</div>
+              </div>
+              <button onClick={() => setReviewTarget(null)} style={{ background: 'none', border: 'none', fontSize: 22, color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            {reviewLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b', fontSize: 14 }}>Analyzing listing…</div>
+            ) : reviewReport ? (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                  <span style={{ fontSize: 26, fontWeight: 800, color: riskStyle(reviewReport.risk.level).color }}>{reviewReport.risk.score}/100</span>
+                  <span style={{ background: riskStyle(reviewReport.risk.level).bg, color: riskStyle(reviewReport.risk.level).color, padding: '5px 14px', borderRadius: 99, fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>{reviewReport.risk.level} risk</span>
+                  {reviewReport.ai?.data?.score != null && <span style={{ fontSize: 12, color: '#888' }}>AI model: {reviewReport.ai.data.score}/100</span>}
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: '#1a1a2e', marginBottom: 8 }}>Signals detected</div>
+                  {reviewReport.risk.reasons.length === 0 ? (
+                    <div style={{ color: '#64748b', fontSize: 13 }}>No deterministic red flags — looks clean.</div>
+                  ) : (
+                    reviewReport.risk.reasons.map((r: string, i: number) => (
+                      <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13, color: '#334155' }}>
+                        <span style={{ color: '#b45309' }}>⚠️</span>{r}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {reviewReport.ai?.data?.summary && (
+                  <div style={{ marginBottom: 16, background: '#f5f3ff', border: '1px solid #ede9fe', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#4c1d95' }}>
+                    <b>AI summary:</b> {reviewReport.ai.data.summary}
+                  </div>
+                )}
+                {reviewReport.ai?.error && <div style={{ color: '#b91c1c', fontSize: 13, marginBottom: 12 }}>AI deep-dive failed: {reviewReport.ai.error}</div>}
+                {reviewReport.ai && !reviewReport.ai.available && <div style={{ color: '#888', fontSize: 12.5, marginBottom: 12 }}>AI deep-dive not configured (add DEEPSEEK_API_KEY for model analysis). Deterministic scan shown.</div>}
+
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
+                  <button onClick={() => setReviewTarget(null)} style={{ padding: '10px 20px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontWeight: 700, cursor: 'pointer' }}>Close</button>
+                  {!reviewTarget.flagged && (
+                    <button onClick={() => { act(reviewTarget.id, 'flag', `AI review ${reviewReport.risk.score}/100 — ${reviewReport.risk.reasons.slice(0, 2).join('; ')}`); setReviewTarget(null) }} style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: '#b91c1c', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>🚩 Flag Listing</button>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

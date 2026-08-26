@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { LoadingState } from '@/components/ui'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
+import RevenueChart from '@/components/admin/RevenueChart'
+import { useToast } from '@/components/ui/Toast'
 
 // =============================================================================
 // /admin — Platform owner dashboard (super admin only).
@@ -24,19 +26,25 @@ interface Overview {
 }
 
 export default function PlatformAdminPage() {
+  const toast = useToast()
   const [data, setData] = useState<{ overview: Overview; settings: any[] } | null>(null)
+  const [charts, setCharts] = useState<{ series: any[]; totals: any } | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await authenticatedFetch('/api/admin/overview')
+        const [res, chartRes] = await Promise.all([
+          authenticatedFetch('/api/admin/overview'),
+          authenticatedFetch('/api/admin/charts').then((r) => r.json().catch(() => ({ ok: false }))),
+        ])
         const j = await res.json()
         if (!res.ok || !j.ok) {
           setError(j.error || 'Access denied — platform admin only.')
         } else {
           setData(j)
+          if (chartRes.ok) setCharts(chartRes)
         }
       } catch {
         setError('Failed to load platform overview.')
@@ -78,6 +86,33 @@ export default function PlatformAdminPage() {
         <Stat label="Featured Slots" value={'$' + (overview.featured.revenueCents / 100).toLocaleString()} sub={`${overview.featured.slots} slots sold`} />
         <Stat label="Match Pass" value={'$' + (overview.buyerPasses.revenueCents / 100).toLocaleString()} sub={`${overview.buyerPasses.active} active buyers`} />
       </div>
+
+      {/* Revenue & growth charts */}
+      {charts && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: 16, marginBottom: 32 }}>
+          <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: '18px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14.5, color: '#1a1a2e' }}>Signups & Listings — 12 months</div>
+              <div style={{ fontSize: 12, color: '#888' }}>+{charts.totals?.signups ?? 0} signups · +{charts.totals?.listings ?? 0} listings</div>
+            </div>
+            <RevenueChart points={(charts.series || []).map((s: any) => ({ label: s.month, value: s.signups, line: s.listings }))} barColor="#1a1a2e" lineColor="#7c3aed" />
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: '18px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14.5, color: '#1a1a2e' }}>MRR vs Expenses — 12 months</div>
+              <div style={{ fontSize: 12, color: '#888' }}>${((charts.totals?.mrrCents ?? 0) / 100).toLocaleString()} MRR · ${((charts.totals?.expensesCents ?? 0) / 100).toLocaleString()} costs</div>
+            </div>
+            <RevenueChart points={(charts.series || []).map((s: any) => ({ label: s.month, value: Math.round(s.mrrCents / 100), line: Math.round(s.expensesCents / 100) }))} barColor="#c9a84c" lineColor="#b91c1c" valueFormatter={(v) => '$' + v.toLocaleString()} />
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: '18px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <div style={{ fontWeight: 800, fontSize: 14.5, color: '#1a1a2e' }}>Success Fees Earned — 12 months</div>
+              <div style={{ fontSize: 12, color: '#888' }}>${((charts.totals?.feesCents ?? 0) / 100).toLocaleString()} total</div>
+            </div>
+            <RevenueChart points={(charts.series || []).map((s: any) => ({ label: s.month, value: Math.round(s.feesCents / 100) }))} barColor="#15803d" valueFormatter={(v) => '$' + v.toLocaleString()} />
+          </div>
+        </div>
+      )}
 
       {/* Recent agencies */}
       <Section title="Recent Tenants (CRMs sold / trials)">

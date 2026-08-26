@@ -48,6 +48,61 @@ export default function AdminUsersPage() {
   const [banConfirm, setBanConfirm] = useState('')
   const [banReason, setBanReason] = useState('')
   const [loginLink, setLoginLink] = useState<{ email: string; url: string } | null>(null)
+  const [showImport, setShowImport] = useState(false)
+  const [importRows, setImportRows] = useState<{ email: string; full_name: string; role: string; password: string; agencyId: string }[]>([])
+  const [importResults, setImportResults] = useState<{ email: string; ok: boolean; userId?: string; password?: string; error?: string }[] | null>(null)
+  const [importBusy, setImportBusy] = useState(false)
+
+  const parseCSV = (text: string) => {
+    const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+    if (lines.length === 0) return []
+    const header = lines[0].toLowerCase().split(',').map((h) => h.trim().replace(/^"|"$/g, ''))
+    const col = (name: string) => header.indexOf(name)
+    const iEmail = col('email')
+    if (iEmail === -1) return []
+    const rows = lines.slice(1).map((line) => {
+      const cells = line.split(',').map((c) => c.trim().replace(/^"|"$/g, ''))
+      return {
+        email: cells[iEmail] || '',
+        full_name: col('full_name') >= 0 ? cells[col('full_name')] || '' : '',
+        role: col('role') >= 0 ? cells[col('role')] || 'agent' : 'agent',
+        password: col('password') >= 0 ? cells[col('password')] || '' : '',
+        agencyId: col('agency') >= 0 || col('agency_id') >= 0 ? cells[Math.max(col('agency'), col('agency_id'))] || '' : '',
+      }
+    }).filter((r) => r.email.includes('@'))
+    return rows
+  }
+
+  const handleImportFile = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = () => setImportRows(parseCSV(String(reader.result || '')))
+    reader.readAsText(file)
+  }
+
+  const downloadTemplate = () => {
+    const csv = 'email,full_name,role,password,agency\njane@company.com,Jane Doe,broker,,9b1c…\njohn@company.com,John Smith,agent,TempPass123!,a1b2…\n'
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'users-import-template.csv'
+    a.click()
+  }
+
+  const runImport = async () => {
+    if (!importRows.length) return
+    setImportBusy(true)
+    try {
+      const res = await authenticatedFetch('/api/admin/users/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: importRows.map((r) => ({ ...r, agencyId: r.agencyId || null })) }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.ok) { toast(j.error || 'Import failed', 'error'); return }
+      setImportResults(j.results || [])
+      toast(`Import done: ${j.created} created, ${j.failed} failed ✅`, 'success')
+      load()
+    } catch (e: any) { toast(e.message, 'error') } finally { setImportBusy(false) }
+  }
 
   const exportCSV = () => {
     if (!users.length) { toast('Nothing to export', 'error'); return }
@@ -152,6 +207,9 @@ export default function AdminUsersPage() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={exportCSV} style={{ border: '2px solid #1a1a2e', color: '#1a1a2e', padding: '9px 18px', borderRadius: 8, background: '#fff', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}>⬇️ Export CSV</button>
+          <button onClick={() => { setShowImport(!showImport); setImportResults(null); setImportRows([]) }} style={{ background: '#0f766e', color: '#fff', padding: '11px 22px', borderRadius: 8, border: 'none', fontWeight: 800, cursor: 'pointer' }}>
+            ⬆️ Import CSV
+          </button>
           <button onClick={() => setShowCreate(!showCreate)} style={{ background: '#1a1a2e', color: '#c9a84c', padding: '11px 22px', borderRadius: 8, border: 'none', fontWeight: 800, cursor: 'pointer' }}>
             {showCreate ? 'Cancel' : '+ Create User'}
           </button>
@@ -296,6 +354,75 @@ export default function AdminUsersPage() {
                 {busy ? 'Banning…' : '🚫 Ban User'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk import modal */}
+      {showImport && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'grid', placeItems: 'center', zIndex: 50, padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, maxWidth: 640, width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 30 }}>⬆️</div>
+                <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '6px 0 2px' }}>Bulk Import Users</h2>
+                <p style={{ color: '#64748b', fontSize: 13, margin: 0 }}>CSV columns: <b>email, full_name, role, password, agency</b> (agency = agency id; password optional — generated if blank). Max 100 rows.</p>
+              </div>
+              <button onClick={() => setShowImport(false)} style={{ background: 'none', border: 'none', fontSize: 22, color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <label style={{ flex: 1, padding: '12px 16px', border: '2px dashed #d8d2c2', borderRadius: 10, textAlign: 'center', color: '#334155', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', background: '#f8fafc' }}>
+                📄 Choose CSV file
+                <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImportFile(f) }} />
+              </label>
+              <button onClick={downloadTemplate} style={{ padding: '12px 18px', borderRadius: 10, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>⬇️ Template</button>
+            </div>
+
+            {importRows.length > 0 && !importResults && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}><b>{importRows.length}</b> valid row(s) parsed — first 5:</div>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                    <thead><tr style={{ background: '#f8fafc', textAlign: 'left', color: '#334155' }}><th style={{ padding: '8px 10px' }}>Email</th><th style={{ padding: '8px 10px' }}>Name</th><th style={{ padding: '8px 10px' }}>Role</th></tr></thead>
+                    <tbody>
+                      {importRows.slice(0, 5).map((r, i) => (
+                        <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}><td style={{ padding: '8px 10px' }}>{r.email}</td><td style={{ padding: '8px 10px' }}>{r.full_name || '—'}</td><td style={{ padding: '8px 10px' }}>{r.role}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button onClick={runImport} disabled={importBusy} style={{ marginTop: 14, padding: '12px 28px', borderRadius: 8, border: 'none', background: '#0f766e', color: '#fff', fontWeight: 800, fontSize: 14, cursor: importBusy ? 'wait' : 'pointer' }}>
+                  {importBusy ? 'Importing…' : `🚀 Import ${importRows.length} users`}
+                </button>
+              </div>
+            )}
+
+            {importResults && (
+              <div>
+                <div style={{ fontSize: 13.5, color: '#334155', marginBottom: 10 }}>
+                  ✅ <b>{importResults.filter((r) => r.ok).length}</b> created · ❌ <b>{importResults.filter((r) => !r.ok).length}</b> failed
+                </div>
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', maxHeight: 300, overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                    <thead><tr style={{ background: '#f8fafc', textAlign: 'left', color: '#334155' }}><th style={{ padding: '8px 10px' }}>Email</th><th style={{ padding: '8px 10px' }}>Result</th></tr></thead>
+                    <tbody>
+                      {importResults.map((r, i) => (
+                        <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '8px 10px' }}>{r.email}</td>
+                          <td style={{ padding: '8px 10px', color: r.ok ? '#15803d' : '#b91c1c' }}>
+                            {r.ok ? (r.password ? `✅ created — temp password: ${r.password}` : '✅ created') : `❌ ${r.error}`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 14 }}>
+                  <button onClick={() => { setShowImport(false); setImportResults(null); setImportRows([]) }} style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: '#1a1a2e', color: '#c9a84c', fontWeight: 800, cursor: 'pointer' }}>Done</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
