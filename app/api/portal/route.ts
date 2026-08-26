@@ -146,6 +146,23 @@ export async function POST(req: NextRequest) {
     const file = form?.get('file')
     const kind = String(form?.get('kind') || 'Client Upload')
     if (!file || !(file instanceof File)) return NextResponse.json({ ok: false, error: 'no file' }, { status: 400 })
+    // SECURITY: hard caps on upload size (25 MB) and file type — prevents
+    // storage abuse, malware uploads, and HTML/script payloads served from
+    // our domain. PDFs, Office docs, and images only.
+    const MAX_BYTES = 25 * 1024 * 1024
+    const ALLOWED_TYPES = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'text/plain',
+    ])
+    if (file.size > MAX_BYTES) return NextResponse.json({ ok: false, error: 'File too large (max 25 MB).' }, { status: 413 })
+    if (!ALLOWED_TYPES.has(file.type)) return NextResponse.json({ ok: false, error: 'File type not allowed.' }, { status: 415 })
     try {
       const clean = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
       // SECURITY: upload to the PRIVATE financial_docs bucket — never the

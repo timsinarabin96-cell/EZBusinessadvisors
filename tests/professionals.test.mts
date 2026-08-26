@@ -11,7 +11,7 @@ const manager = readFileSync('app/dashboard/professionals/page.tsx', 'utf8')
 const panel = readFileSync('components/public/DealProfessionalsPanel.tsx', 'utf8')
 const listingPage = readFileSync('app/(public)/marketplace/listings/[id]/page.tsx', 'utf8')
 const nav = readFileSync('components/public/PublicNav.tsx', 'utf8')
-const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 test('professionals: schema creates deal_professionals with type enum + RLS', () => {
   assert.match(schema, /create table if not exists public\.deal_professionals/)

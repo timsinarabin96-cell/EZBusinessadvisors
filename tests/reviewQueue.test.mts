@@ -42,6 +42,6 @@ test('review queue page is wired into the dashboard', () => {
   assert.match(page, /Listing Review Queue/)
   assert.match(page, /\/api\/listings\/review/)
   assert.match(page, /Request changes/)
-  const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+  const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
   assert.match(shell, /review-queue/)
 })

@@ -33,7 +33,7 @@ test('offer API is agency-scoped and authenticated', () => {
 test('offer lab page is wired into dashboard nav', () => {
   assert.match(page, /Deal Offer Lab/)
   assert.match(page, /\/api\/offers/)
-  const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+  const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
   assert.match(shell, /dashboard\/offer-lab/)
 })
 

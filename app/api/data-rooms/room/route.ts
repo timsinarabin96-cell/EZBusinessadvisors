@@ -119,6 +119,23 @@ export async function POST(req: NextRequest) {
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ ok: false, error: 'no file' }, { status: 400 })
     }
+    // SECURITY: hard caps on upload size (50 MB) and file type — prevents
+    // storage abuse and malware/HTML payloads served from our domain.
+    const MAX_BYTES = 50 * 1024 * 1024
+    const ALLOWED_TYPES = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/tiff',
+      'text/plain', 'text/csv',
+      'application/zip',
+    ])
+    if (file.size > MAX_BYTES) return NextResponse.json({ ok: false, error: 'File too large (max 50 MB).' }, { status: 413 })
+    if (!ALLOWED_TYPES.has(file.type)) return NextResponse.json({ ok: false, error: 'File type not allowed.' }, { status: 415 })
     try {
       const clean = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
       const path = `data-room/${room.id}/${Date.now()}-${clean}`

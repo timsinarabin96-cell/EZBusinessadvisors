@@ -20,10 +20,21 @@
 
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
+const clientIp = (req: Request) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
+
 export async function POST(req: Request) {
+  // Brute-force protection: 10 password-reset attempts per IP per 10 minutes.
+  if (!rateLimit(clientIp(req), { limit: 10, windowMs: 10 * 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many attempts. Try again later.' }, { status: 429 })
+  }
+
   let token = ''
   let password = ''
   try {

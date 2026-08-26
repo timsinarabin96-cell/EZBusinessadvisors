@@ -44,7 +44,7 @@ export default function OwnershipPage() {
       <p>
         Nothing on the Platform or in its repository grants any license, express or implied, to use,
         copy, modify, or redistribute the Platform or any part of it. The full terms are set out in
-        the <a href="/LICENSE">LICENSE</a> file and the <a href="/legal/terms">Terms of Service</a>.
+        the <a href="/license">LICENSE</a> file and the <a href="/legal/terms">Terms of Service</a>.
       </p>
 
       <h2>5. What Is Not Protected (Public Domain Facts)</h2>

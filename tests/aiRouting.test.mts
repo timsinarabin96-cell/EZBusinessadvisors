@@ -2,10 +2,13 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-test('all AI agents route to DeepSeek (primary provider)', () => {
+test('sensitive AI agents route to Claude; non-sensitive fall back to DeepSeek', () => {
   const route = readFileSync('app/api/ai/chat/route.ts', 'utf8')
   assert.match(route, /completeWithDeepSeek/)
-  assert.match(route, /useClaude = false/)
+  // Financial/legal agents (document/training/lead) MUST use Claude when configured.
+  assert.match(route, /sensitiveAgent = agent === 'document' \|\| agent === 'training' \|\| agent === 'lead'/)
+  assert.match(route, /sensitiveAgent && !isClaudeConfigured\(\)/)
+  assert.match(route, /useClaude = sensitiveAgent \|\| !isDeepSeekConfigured\(\)/)
   assert.match(route, /provider: useClaude \? 'anthropic' : 'deepseek'/)
 })
 

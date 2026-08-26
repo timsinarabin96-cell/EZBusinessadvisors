@@ -6,7 +6,7 @@ const schema = readFileSync('sql/syndication_schema.sql', 'utf8')
 const lib = readFileSync('lib/syndication.ts', 'utf8')
 const api = readFileSync('app/api/syndication/route.ts', 'utf8')
 const hub = readFileSync('app/dashboard/syndication/page.tsx', 'utf8')
-const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 test('syndication: schema creates syndication_offers with splits + RLS', () => {
   assert.match(schema, /create table if not exists public\.syndication_offers/)

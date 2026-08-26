@@ -5,7 +5,7 @@ import test from 'node:test'
 const lib = readFileSync('lib/dealDoctor.ts', 'utf8')
 const core = readFileSync('lib/dealDoctorCore.ts', 'utf8')
 const page = readFileSync('app/dashboard/deal-doctor/page.tsx', 'utf8')
-const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 // Import the pure scorer directly (dependency-free core — no path aliases).
 const { scoreDeal, BAND_LABELS, BAND_COLORS } = await import('../lib/dealDoctorCore.ts')
@@ -78,7 +78,7 @@ test('deal-doctor: dashboard page renders scores, bands, actions, stat cards', (
 })
 
 test('deal-doctor: dashboard nav includes Deal Doctor', () => {
-  assert.match(shell, /dashboard\/deal-doctor/)
+  assert.match(shell, /dashboard\/ai\?tab=doctor/)
   assert.match(shell, /'Deal Doctor'/)
 })
 

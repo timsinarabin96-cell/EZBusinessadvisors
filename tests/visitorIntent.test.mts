@@ -7,7 +7,7 @@ const lib = readFileSync('lib/visitorIntent.ts', 'utf8')
 const api = readFileSync('app/api/track-view/route.ts', 'utf8')
 const page = readFileSync('app/dashboard/visitor-intent/page.tsx', 'utf8')
 const interactive = readFileSync('components/public/ListingDetailInteractive.tsx', 'utf8')
-const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 test('visitor-intent: schema creates listing_views with anonymous visitor + RLS', () => {
   assert.match(schema, /create table if not exists public\.listing_views/)
@@ -63,7 +63,7 @@ test('visitor-intent: dashboard page renders stats, hot list, per-listing rows',
 })
 
 test('visitor-intent: dashboard nav includes Visitor Intent', () => {
-  assert.match(shell, /dashboard\/visitor-intent/)
+  assert.match(shell, /dashboard\/ai\?tab=intent/)
   assert.match(shell, /'Visitor Intent'/)
 })
 

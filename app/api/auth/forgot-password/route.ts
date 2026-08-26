@@ -24,12 +24,23 @@
 
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { rateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
+const clientIp = (req: Request) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
+
 export async function POST(req: Request) {
+  // Brute-force / spam protection: 5 reset requests per IP per 10 minutes.
+  if (!rateLimit(clientIp(req), { limit: 5, windowMs: 10 * 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
+
   let email = ''
   try {
     const body = await req.json()

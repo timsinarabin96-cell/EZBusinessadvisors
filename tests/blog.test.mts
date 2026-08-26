@@ -7,7 +7,7 @@ const route = readFileSync('app/api/blog/route.ts', 'utf8')
 const hub = readFileSync('app/(public)/marketplace/insights/page.tsx', 'utf8')
 const article = readFileSync('app/(public)/marketplace/insights/[slug]/page.tsx', 'utf8')
 const page = readFileSync('app/dashboard/blog/page.tsx', 'utf8')
-const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 test('blog: engine is DDL-free on platform_settings with a curated seed set', () => {
   assert.match(lib, /platform_settings/)

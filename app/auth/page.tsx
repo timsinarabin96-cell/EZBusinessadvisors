@@ -43,7 +43,9 @@ export default function AuthPage() {
   const redirectAfterLogin = async (): Promise<string> => {
     const searchParams = new URLSearchParams(window.location.search)
     const next = searchParams.get('next')
-    if (next?.startsWith('/')) return next
+    // Open-redirect guard: only allow same-site relative paths, never
+    // protocol-relative (//evil.com) or absolute URLs.
+    if (next?.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')) return next
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return '/marketplace/listings'

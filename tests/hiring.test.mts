@@ -47,6 +47,6 @@ test('hiring API has public packages + authenticated review', () => {
 test('hiring dashboard is wired into nav', () => {
   assert.match(page, /Agent Hiring/)
   assert.match(page, /Submit Application/)
-  const shell = readFileSync('components/layout/AppShell.tsx', 'utf8')
+  const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
   assert.match(shell, /dashboard\/hiring/)
 })
