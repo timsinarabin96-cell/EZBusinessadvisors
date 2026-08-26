@@ -19,6 +19,7 @@ export default function robots(): MetadataRoute.Robots {
           '/portal/',           // token-gated client portals
           '/api/',              // API endpoints
           '/dashboard/',        // broker-only
+          '/admin/',            // platform admin
           '/pipeline', '/leads', '/listings', '/documents', '/recast',
           '/cim', '/bov', '/due-diligence', '/agencies', '/billing',
           '/sync', '/share/',   // token-gated CIM shares (unless listed)
