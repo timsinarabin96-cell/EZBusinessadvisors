@@ -61,6 +61,9 @@ export default function LicensePage() {
             <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12.5, color: '#999' }}>
               Starts with a free agency trial — no charge until you activate the license.
             </div>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #ece8dc', fontSize: 11.5, color: '#aaa', lineHeight: 1.6 }}>
+              This is a <strong>software license</strong> for the Concord platform — it is not a real-estate or brokerage license. Real-estate licenses are issued by state governments; our compliance tools only help brokers track and verify credentials they already hold.
+            </div>
           </div>
         </div>
       </section>
