@@ -275,6 +275,9 @@ export interface PublicBroker {
   credentials: string[]
   years_experience: number | null
   closed_deals_count: number
+  transaction_value_total: number | null
+  languages: string[]
+  service_areas: string[]
   booking_url: string
   agency?: { name: string } | null
   /** CBI certification proof (public trust signal). */
@@ -382,6 +385,9 @@ export async function fetchPublicBrokerById(id: string): Promise<PublicBroker | 
     credentials: stringArray(b.credentials),
     years_experience: numberOrNull(b.years_experience),
     closed_deals_count: Number(b.closed_deals_count || 0),
+    transaction_value_total: numberOrNull(b.transaction_value_total),
+    languages: stringArray(b.languages),
+    service_areas: stringArray(b.service_areas),
     booking_url: b.booking_url || '',
     agency: b.agency,
   }
@@ -422,6 +428,9 @@ export async function fetchBrokerByProfileId(profileId: string): Promise<PublicB
     credentials: stringArray(b.credentials),
     years_experience: numberOrNull(b.years_experience),
     closed_deals_count: Number(b.closed_deals_count || 0),
+    transaction_value_total: numberOrNull(b.transaction_value_total),
+    languages: stringArray(b.languages),
+    service_areas: stringArray(b.service_areas),
     booking_url: b.booking_url || '',
     agency: b.agency,
   }
