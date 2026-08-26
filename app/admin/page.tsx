@@ -177,11 +177,36 @@ export default function PlatformAdminPage() {
 
       <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <Link href="/admin/users" style={{ background: '#1a1a2e', color: '#c9a84c', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>👥 Users</Link>
+        <Link href="/admin/agencies" style={{ background: '#1a1a2e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🏛️ Agencies</Link>
         <Link href="/admin/listings" style={{ background: '#7c3aed', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🗂️ Moderation</Link>
+        <Link href="/admin/money" style={{ background: '#15803d', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>💸 Money Ops</Link>
         <Link href="/admin/audit" style={{ background: '#0f766e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>📜 Audit Log</Link>
+        <Link href="/admin/search" style={{ background: '#b45309', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🔍 Search</Link>
         <Link href="/admin/agencies/trials" style={{ background: '#1a1a2e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Manage Trials</Link>
         <Link href="/admin/trial-settings" style={{ border: '2px solid #1a1a2e', color: '#1a1a2e', padding: '9px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Trial Settings</Link>
-        <Link href="/admin/expenses" style={{ background: '#15803d', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>💸 Expenses</Link>
+        <Link href="/admin/expenses" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🧾 Expenses</Link>
+        <Link href="/admin/ai" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🤖 AI</Link>
+      </div>
+
+      {/* Security actions */}
+      <div style={{ marginTop: 28, background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: '20px 24px' }}>
+        <div style={{ fontWeight: 800, color: '#1a1a2e', fontSize: 15, marginBottom: 4 }}>🛡️ Security Actions</div>
+        <div style={{ color: '#888', fontSize: 13, marginBottom: 14 }}>Emergency controls for the whole platform.</div>
+        <button
+          onClick={async () => {
+            if (!confirm('Sign out EVERY user on the platform (except you)? This revokes all sessions — they will need to log in again.')) return
+            const res = await authenticatedFetch('/api/admin/overview', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'sign_out_all' }),
+            })
+            const j = await res.json()
+            alert(j.ok ? `✅ ${j.signedOut} session(s) revoked` : (j.error || 'Failed'))
+          }}
+          style={{ padding: '11px 20px', borderRadius: 8, background: '#b91c1c', color: '#fff', border: 'none', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}
+        >
+          ⏻ Sign Out All Users
+        </button>
       </div>
     </div>
   )

@@ -63,6 +63,17 @@ export default function AdminAuditPage() {
 
   useEffect(() => { load() }, [load])
 
+  const exportCSV = () => {
+    if (!entries.length) return
+    const rows = entries.map((e) => ({ created_at: e.created_at, action: e.action, actor_email: e.actor_email || '', target_type: e.target_type, target_label: e.target_label || '', target_id: e.target_id || '', details: JSON.stringify(e.details || {}) }))
+    const headers = Object.keys(rows[0])
+    const csv = [headers.join(','), ...rows.map((r) => headers.map((h) => `"${String((r as any)[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'audit-log.csv'
+    a.click()
+  }
+
   if (loading && entries.length === 0) return <LoadingState label="Loading audit trail..." />
   if (error) {
     return (
@@ -102,6 +113,7 @@ export default function AdminAuditPage() {
           style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #d8d2c2', fontSize: 13, width: 240 }}
         />
         <button onClick={load} style={{ padding: '8px 18px', borderRadius: 8, background: '#1a1a2e', color: '#c9a84c', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>Apply</button>
+        <button onClick={exportCSV} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>⬇️ CSV</button>
       </div>
 
       {/* Timeline */}

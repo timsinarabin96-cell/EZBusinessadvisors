@@ -99,6 +99,17 @@ export default function AdminListingsPage() {
     act(id, action, reason || undefined)
   }
 
+  const exportCSV = () => {
+    if (!listings.length) return
+    const rows = listings.map((l) => ({ business_name: l.business_name || '', status: l.status, review_stage: l.review_stage || '', flagged: l.flagged, agency: l.agency_name, owner: l.owner_name, owner_email: l.owner_email, asking_price: l.asking_price ?? '', annual_revenue: l.annual_revenue ?? '', sde: l.sde ?? '', created_at: l.created_at || '', moderation_reason: l.moderation_reason || '' }))
+    const headers = Object.keys(rows[0])
+    const csv = [headers.join(','), ...rows.map((r) => headers.map((h) => `"${String((r as any)[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'listings-moderation.csv'
+    a.click()
+  }
+
   const money = (v: number | null) => (v == null ? '—' : '$' + Number(v).toLocaleString())
 
   if (loading && listings.length === 0) return <LoadingState label="Loading moderation queue..." />
@@ -140,6 +151,7 @@ export default function AdminListingsPage() {
           placeholder="🔍 Search business name…"
           style={{ marginLeft: 'auto', padding: '8px 12px', borderRadius: 8, border: '1px solid #d8d2c2', fontSize: 13, width: 220 }}
         />
+        <button onClick={exportCSV} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>⬇️ CSV</button>
       </div>
 
       {/* Queue */}

@@ -47,6 +47,33 @@ export default function AdminUsersPage() {
   const [banTarget, setBanTarget] = useState<UserRow | null>(null)
   const [banConfirm, setBanConfirm] = useState('')
   const [banReason, setBanReason] = useState('')
+  const [loginLink, setLoginLink] = useState<{ email: string; url: string } | null>(null)
+
+  const exportCSV = () => {
+    if (!users.length) { toast('Nothing to export', 'error'); return }
+    const rows = users.map((u) => ({ email: u.email, full_name: u.full_name || '', role: u.role, status: u.status, agency: u.memberships?.map((m) => m.agency_id).join(';') || '', plan: u.subscription?.tier || '', plan_status: u.subscription?.status || '', last_login: u.last_login || '', created_at: u.created_at || '' }))
+    const headers = Object.keys(rows[0])
+    const csv = [headers.join(','), ...rows.map((r) => headers.map((h) => `"${String((r as any)[h] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = 'users-export.csv'
+    a.click()
+    toast('CSV exported 📄', 'success')
+  }
+
+  const genLoginLink = async (u: UserRow) => {
+    setBusy(true)
+    try {
+      const res = await authenticatedFetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login_link', email: u.email }),
+      })
+      const j = await res.json()
+      if (j.ok) setLoginLink({ email: u.email, url: j.url })
+      else toast(j.error || 'Failed to generate link', 'error')
+    } finally { setBusy(false) }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -123,9 +150,12 @@ export default function AdminUsersPage() {
           <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 30, color: '#1a1a2e', margin: '6px 0 0' }}>User Management</h1>
           <p style={{ color: '#888', fontSize: 14, margin: '6px 0 0' }}>Create users, assign roles, link agencies. Ban = full kill-switch (auth revoked, sessions killed, listings unpublished). {users.length} users.</p>
         </div>
-        <button onClick={() => setShowCreate(!showCreate)} style={{ background: '#1a1a2e', color: '#c9a84c', padding: '11px 22px', borderRadius: 8, border: 'none', fontWeight: 800, cursor: 'pointer' }}>
-          {showCreate ? 'Cancel' : '+ Create User'}
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={exportCSV} style={{ border: '2px solid #1a1a2e', color: '#1a1a2e', padding: '9px 18px', borderRadius: 8, background: '#fff', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}>⬇️ Export CSV</button>
+          <button onClick={() => setShowCreate(!showCreate)} style={{ background: '#1a1a2e', color: '#c9a84c', padding: '11px 22px', borderRadius: 8, border: 'none', fontWeight: 800, cursor: 'pointer' }}>
+            {showCreate ? 'Cancel' : '+ Create User'}
+          </button>
+        </div>
       </div>
 
       {showCreate && (
@@ -216,6 +246,7 @@ export default function AdminUsersPage() {
                           {u.status !== 'banned' && <SmallBtn color="#b91c1c" bg="#ef44441a" onClick={() => setBanTarget(u)}>🚫 Ban</SmallBtn>}
                         </>
                       )}
+                      <SmallBtn color="#1d4ed8" bg="#3b82f61a" onClick={() => genLoginLink(u)} disabled={busy}>🔗 Login</SmallBtn>
                     </div>
                   </td>
                   <td style={{ padding: '10px 12px', color: '#555', fontSize: 12.5 }}>{u.last_login ? new Date(u.last_login).toLocaleString() : 'never'}</td>
@@ -268,13 +299,31 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      {/* Login link modal — support toolbox: open to set a new password, then sign in as that user */}
+      {loginLink && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'grid', placeItems: 'center', zIndex: 50, padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, maxWidth: 560, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ fontSize: 34, marginBottom: 8 }}>🔗</div>
+            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '0 0 6px' }}>Login link for {loginLink.email}</h2>
+            <p style={{ color: '#64748b', fontSize: 13.5, lineHeight: 1.6, margin: '0 0 14px' }}>
+              Open this link to set a new password and sign in <b>as this user</b> (support / troubleshooting). It is a recovery link — the user can also use it themselves.
+            </p>
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px', fontSize: 12.5, color: '#334155', wordBreak: 'break-all', marginBottom: 16, fontFamily: 'monospace' }}>{loginLink.url}</div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button onClick={() => { navigator.clipboard?.writeText(loginLink.url); toast('Copied 📋', 'success') }} style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid #d8d2c2', background: '#fff', color: '#334155', fontWeight: 700, cursor: 'pointer' }}>Copy</button>
+              <button onClick={() => setLoginLink(null)} style={{ padding: '10px 22px', borderRadius: 8, border: 'none', background: '#1a1a2e', color: '#c9a84c', fontWeight: 800, cursor: 'pointer' }}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function SmallBtn({ children, onClick, color, bg }: { children: React.ReactNode; onClick: () => void; color: string; bg: string }) {
+function SmallBtn({ children, onClick, color, bg, disabled }: { children: React.ReactNode; onClick: () => void; color: string; bg: string; disabled?: boolean }) {
   return (
-    <button onClick={onClick} style={{ background: bg, color, padding: '5px 10px', borderRadius: 6, fontSize: 11.5, fontWeight: 800, border: 'none', cursor: 'pointer' }}>{children}</button>
+    <button onClick={onClick} disabled={disabled} style={{ background: bg, color, padding: '5px 10px', borderRadius: 6, fontSize: 11.5, fontWeight: 800, border: 'none', cursor: disabled ? 'wait' : 'pointer' }}>{children}</button>
   )
 }
 
