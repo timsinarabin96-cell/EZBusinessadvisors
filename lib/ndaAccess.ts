@@ -70,8 +70,8 @@ export async function requestNdaAccess(input: NdaRequestInput): Promise<{ ok: bo
 
   if (error) return { ok: false, error: error.message || 'Failed to create request' }
 
-  // Alert the agency's brokers.
-  await notifyAgencyBrokers(listing.agency_id, {
+  // Alert the agency's brokers — listing owner first (ownership model).
+  await notifyAgencyBrokers(listing.agency_id, input.listing_id, {
     requesterName: input.requester_name,
     requesterEmail: input.requester_email,
     businessName: listing.business_name || 'a listing',
@@ -82,6 +82,7 @@ export async function requestNdaAccess(input: NdaRequestInput): Promise<{ ok: bo
 
 async function notifyAgencyBrokers(
   agencyId: string,
+  listingId: string,
   info: { requesterName: string; requesterEmail: string; businessName: string },
 ) {
   if (!svc) return
@@ -91,7 +92,17 @@ async function notifyAgencyBrokers(
     .eq('agency_id', agencyId)
   if (!members?.length) return
 
-  const ids = members.filter((m) => m.is_owner || m.role === 'admin').map((m) => m.profile_id)
+  // Ownership model: the listing's OWNING agent is responsible for the deal,
+  // so they get the NDA alert first. The overseeing broker(s) stay in the
+  // loop for visibility.
+  const { data: listing } = await svc.from('listings').select('agent_id').eq('id', listingId).maybeSingle()
+  const ownerId = (listing as { agent_id?: string | null } | null)?.agent_id || null
+  const isOwnerOfListing = (m: { profile_id: string }) => m.profile_id === ownerId
+
+  // Owners/admins (broker oversight) + the listing's owning agent.
+  const ids = members
+    .filter((m) => m.is_owner || m.role === 'admin' || isOwnerOfListing(m))
+    .map((m) => m.profile_id)
   if (!ids.length) return
 
   const { data: profiles } = await svc.from('profiles').select('id, email').in('id', ids)
