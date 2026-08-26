@@ -51,11 +51,21 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
   try {
     // Resolve listings (id or slug) → id, agency_id, listing_ref.
     // Note: slug lives on public_listings, not listings; join through listing_id.
-    const { data: resolved, error: resolveErr } = await db
-      .from('public_listings')
-      .select('listing_id')
-      .or(idOrSlug.map((x) => `listing_id.eq.${x},slug.eq.${x}`).join(','))
-    if (resolveErr || !resolved?.length) return []
+    // UUIDs and slugs are matched separately — PostgREST can't OR a uuid column
+    // with a text value in one filter.
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const ids = idOrSlug.filter((x) => uuidRe.test(x))
+    const slugs = idOrSlug.filter((x) => !uuidRe.test(x))
+    const resolved: { listing_id: string }[] = []
+    if (slugs.length > 0) {
+      const { data } = await db.from('public_listings').select('listing_id').in('slug', slugs)
+      if (data) resolved.push(...(data as { listing_id: string }[]))
+    }
+    if (ids.length > 0) {
+      const { data } = await db.from('public_listings').select('listing_id').in('listing_id', ids)
+      if (data) resolved.push(...(data as { listing_id: string }[]))
+    }
+    if (resolved.length === 0) return []
 
     const listingIds = [...new Set(resolved.map((r) => r.listing_id).filter(Boolean))] as string[]
     if (listingIds.length === 0) return []
