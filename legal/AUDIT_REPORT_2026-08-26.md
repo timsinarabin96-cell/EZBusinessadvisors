@@ -44,7 +44,8 @@
 17. **JSON-LD XSS (`a5c668a`)** — 11 public pages injected seller-supplied data into `<script type="application/ld+json">` with no `</script>` breakout protection → new `lib/safeJsonLd.ts` (OWASP escaping) applied everywhere
 18. **Stripe redirect guard (`f47f613`)** — `successUrl`/`cancelUrl` were client-supplied with no same-origin check (phishing bounce after payment) → now validated against APP_ORIGIN
 
-Total now: **18 security fixes, ~46 commits, 605/605 tests green throughout**
+Total now: **18 security fixes, 50 commits, 618/618 tests green throughout**
+19. **Regression test suite (`0926bd9`)** — `tests/securityRegression.test.mts`: 13 tests lock in every fix (open redirect, auth rate limits, Twilio HMAC, upload caps, AI auth, CSPRNG, safeJsonLd, Stripe redirects, convert-trial gate, webhook lifecycle, cron headers, public rate limits, live RLS check vs production)
 
 ---
 
