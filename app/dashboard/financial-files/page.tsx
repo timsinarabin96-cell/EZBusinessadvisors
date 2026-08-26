@@ -37,6 +37,8 @@ import {
   FinancialDoc, fetchFinancialFiles, fetchDealOptions,
   deleteFinancialFile, getUserId, getAccessToken,
 } from '@/lib/financialFiles'
+import { getAgencyContext } from '@/lib/agencyContext'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 export default function FinancialFilesPage() {
   return (
@@ -68,6 +70,8 @@ function FinancialFilesDashboard() {
   // Financial Intelligence state
   const [intel, setIntel] = useState<FinancialIntelligence | null>(null)
   const [summary, setSummary] = useState<FinancialSummaryReport | null>(null)
+  const [addonEnabled, setAddonEnabled] = useState<boolean | null>(null)
+  const [addonAgencyId, setAddonAgencyId] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -79,6 +83,20 @@ function FinancialFilesDashboard() {
       const { data: prof } = await (await import('@/lib/supabase/client')).supabase
         .from('profiles').select('role').eq('id', u || 'none').maybeSingle()
       setIsAdmin(prof?.role === 'broker' || prof?.role === 'admin')
+      // Financial Intelligence add-on gate: lock the FIC tools when disabled.
+      const ctx = await getAgencyContext()
+      if (ctx?.agencyId) {
+        setAddonAgencyId(ctx.agencyId)
+        try {
+          const res = await authenticatedFetch(`/api/agency/settings?agencyId=${ctx.agencyId}`)
+          const j = await res.json()
+          setAddonEnabled(j?.settings?.financial_intelligence_enabled !== false)
+        } catch {
+          setAddonEnabled(true) // fail open on the UI banner; APIs still enforce
+        }
+      } else {
+        setAddonEnabled(true)
+      }
     } catch (e: any) {
       toast(e?.message || 'Failed to load financial files', 'error')
     } finally {
@@ -156,6 +174,38 @@ function FinancialFilesDashboard() {
         </div>
       </div>
 
+      {/* Financial Intelligence add-on gate banner ($100/mo upsell) */}
+      {addonEnabled === false && (
+        <div style={{ margin: '18px 0', padding: '18px 20px', borderRadius: 14, background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: '#fff', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', boxShadow: '0 10px 30px rgba(16,42,67,0.2)' }}>
+          <span style={{ fontSize: 34 }}>🔒</span>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, fontFamily: 'Georgia, serif' }}>Financial Intelligence is locked for this agency</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 4, lineHeight: 1.6 }}>
+              The AI financial reader, extraction review, multi-year ledger, and bank-vs-books verification are part of the Financial Intelligence add-on ($100/month).
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/stripe/checkout', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ product: 'financial_intelligence', agencyId: addonAgencyId }),
+                })
+                const j = await res.json()
+                if (j.url) window.location.href = j.url
+                else toast(j.error || 'Checkout failed', 'error')
+              } catch (e: any) {
+                toast(e.message || 'Checkout failed', 'error')
+              }
+            }}
+            style={{ padding: '12px 24px', borderRadius: 9, background: '#c9a84c', color: '#102a43', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}
+          >
+            💰 Enable — $100/month
+          </button>
+        </div>
+      )}
+
       {/* KPI row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, margin: '18px 0' }}>
         {[
@@ -173,6 +223,9 @@ function FinancialFilesDashboard() {
         ))}
       </div>
 
+      {/* FIC add-on gated tools — visible only when the add-on is enabled */}
+      {addonEnabled !== false && (
+<>
       {/* MULTI-YEAR FINANCIAL READER (Phase 1 of the FIC) */}
       <Card style={{ marginBottom: 22 }}>
         <CardHeader title="📚 Multi-Year Financial Reader" subtitle="Adaptive operating history (1–5 years): upload each year's docs with preview + delete, then the reader extracts everything into the recast → BOV → CIM → BLI pipeline" />
@@ -254,6 +307,9 @@ function FinancialFilesDashboard() {
           )}
         </div>
       </Card>
+
+      </>
+      )}
 
       {/* AUTO-GENERATE PIPELINE */}
       <Card style={{ marginBottom: 22 }}>
