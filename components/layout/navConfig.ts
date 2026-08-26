@@ -28,15 +28,15 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋', minRole: 'agent', group: 'Overview', keywords: 'log audit trail' },
   { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️', minRole: 'agent', group: 'Overview', keywords: 'alerts bell' },
   { href: '/dashboard/performance', label: 'Performance', icon: '🏆', minRole: 'broker', group: 'Overview', keywords: 'kpi goals targets' },
-  // ── AI AUTOPILOT ──────────────────────────────────────────
-  { href: '/dashboard/autopilot', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot', core: true, keywords: 'ai automation workflow' },
+  // ── AI AUTOPILOT (one cockpit, tabs per tool) ────────────
+  { href: '/dashboard/ai', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot', core: true, keywords: 'ai automation workflow cockpit' },
+  { href: '/dashboard/ai?tab=doctor', label: 'Deal Doctor', icon: '🩺', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai health check diagnosis' },
+  { href: '/dashboard/ai?tab=twin', label: 'Deal Twin', icon: '💠', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai simulation twin' },
+  { href: '/dashboard/ai?tab=summaries', label: 'Call Summaries', icon: '🎧', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai notes transcript calls' },
+  { href: '/dashboard/ai?tab=qa', label: 'Data Room Q&A', icon: '💬', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai questions answers diligence' },
+  { href: '/dashboard/ai?tab=intent', label: 'Visitor Intent', icon: '👀', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai behavior tracking buyers' },
+  { href: '/dashboard/ai?tab=flags', label: 'Red Flags', icon: '🔎', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai risk warning fraud' },
   { href: '/dashboard/intelligence', label: 'Intelligence Network', icon: '◇', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai insights network' },
-  { href: '/dashboard/deal-twin', label: 'Deal Twin', icon: '💠', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai simulation twin' },
-  { href: '/dashboard/deal-doctor', label: 'Deal Doctor', icon: '🩺', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai health check diagnosis' },
-  { href: '/dashboard/call-summaries', label: 'Call Summaries', icon: '🎧', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai notes transcript calls' },
-  { href: '/dashboard/data-room-qa', label: 'Data Room Q&A', icon: '💬', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai questions answers diligence' },
-  { href: '/dashboard/visitor-intent', label: 'Visitor Intent', icon: '👀', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai behavior tracking buyers' },
-  { href: '/dashboard/red-flags', label: 'Red Flags', icon: '🔎', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai risk warning fraud' },
   // ── DEALS & LISTINGS ──────────────────────────────────────
   { href: '/pipeline', label: 'Deal Pipeline', icon: '🔄', minRole: 'broker', group: 'Deals & Listings', core: true, keywords: 'kanban stages deals' },
   { href: '/listings', label: 'Listings', icon: '🏢', minRole: 'agent', group: 'Deals & Listings', core: true, keywords: 'businesses inventory' },
