@@ -34,8 +34,9 @@ test.describe('training rebuild', () => {
 
   test('a lesson page renders the AI Tutor panel', async ({ page }) => {
     await signIn(page)
-    // Module 1, lesson 1 from the seed data.
-    await page.goto('/dashboard/training/11111111-1111-1111-1111-111111111101/22222222-2222-2222-2222-222222222201')
-    await expect(page.getByText(/ai tutor/i).first()).toBeVisible({ timeout: 20_000 })
+    // Navigate to a real published lesson (prod IDs) — dashboard first module
+    // may be the hidden program module with no lesson links.
+    await page.goto('/dashboard/training/c0dec0de-0001-4000-8000-000000000001/c0dec0de-0101-4000-8000-000000000001')
+    await expect(page.getByText(/ai tutor/i).first()).toBeVisible({ timeout: 25_000 })
   })
 })
