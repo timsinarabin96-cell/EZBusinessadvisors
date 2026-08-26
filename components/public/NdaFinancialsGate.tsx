@@ -121,7 +121,7 @@ export default function NdaFinancialsGate({ listing, askingPrice }: { listing: P
             Match Pass sends you priority alerts when a business fits your criteria — including off-market listings other buyers never see.
           </div>
           <a
-            href="/marketplace/pricing#match-pass"
+            href="/pricing#match-pass"
             style={{ display: 'inline-block', marginTop: 10, background: '#c9a84c', color: '#1a1a2e', padding: '9px 18px', borderRadius: 6, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}
           >
             See Match Pass →

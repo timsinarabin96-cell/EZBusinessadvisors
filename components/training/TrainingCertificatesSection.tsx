@@ -70,7 +70,7 @@ export default function TrainingCertificatesSection({
     if (!trim) return
     setChecking(true)
     try {
-      const res = await fetch(`/api/certificates/verify?code=${encodeURIComponent(trim)}`)
+      const res = await fetch(`/api/certificates?code=${encodeURIComponent(trim)}`)
       setVerify(await res.json())
     } catch {
       setVerify({ ok: false, reason: 'Verification failed. Try again.' })
