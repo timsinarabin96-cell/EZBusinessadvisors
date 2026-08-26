@@ -29,7 +29,7 @@ begin
     'admin_audit_log','agency_usage','broker_photos','certified_brokers',
     'document_audit_logs','document_signatures','document_templates','documents',
     'marketing_designs','marketing_orders','marketing_products','profile_images',
-    'search_log','social_analytics','social_posts','social_settings','trial_settings'
+    'search_log','social_posts','social_settings','trial_settings'
   ] loop
     execute format('alter table public.%I enable row level security', t);
   end loop;
@@ -64,7 +64,7 @@ begin
   foreach t in array array[
     'broker_photos','certified_brokers','document_audit_logs','document_signatures',
     'document_templates','documents','marketing_designs','marketing_orders',
-    'marketing_products','profile_images','social_analytics','social_posts','social_settings'
+    'marketing_products','profile_images','social_posts','social_settings'
   ] loop
     execute format('drop policy if exists %I on public.%I', t || '_auth_read', t);
     execute format('create policy %I on public.%I for select to authenticated using (true)', t || '_auth_read', t);
@@ -91,7 +91,7 @@ revoke all on public.admin_audit_log, public.agency_usage, public.trial_settings
   public.broker_photos, public.certified_brokers, public.document_audit_logs,
   public.document_signatures, public.document_templates, public.documents,
   public.marketing_designs, public.marketing_orders, public.marketing_products,
-  public.profile_images, public.search_log, public.social_analytics,
+  public.profile_images, public.search_log,
   public.social_posts, public.social_settings
 from anon;
 

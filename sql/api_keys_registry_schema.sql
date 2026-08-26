@@ -80,8 +80,7 @@ insert into public.api_keys_registry (key_name, provider, website_url, purpose, 
 ('VAPID_PUBLIC_KEY',          'Web Push',    'https://web-push-codelab.glitch.me/', 'Push notifications — public key', 'configured'),
 ('VAPID_PRIVATE_KEY',         'Web Push',    'https://web-push-codelab.glitch.me/', 'Push notifications — private key', 'configured'),
 ('VAPID_SUBJECT',             'Web Push',    'https://web-push-codelab.glitch.me/', 'Push notifications — contact email', 'configured'),
-('CRON_SECRET',               'Internal',    'https://vercel.com',              'Cron job auth — protects scheduled tasks', 'configured'),
-('VERCEL_OIDC_TOKEN',         'Vercel',      'https://vercel.com',              'Deploy — OIDC token', 'configured')
+('CRON_SECRET',               'Internal',    'https://vercel.com',              'Cron job auth — protects scheduled tasks', 'configured')
 on conflict (key_name) do update set
   provider = excluded.provider,
   website_url = excluded.website_url,

@@ -222,7 +222,7 @@ Master list of every filing/registration with status. Update as completed.
 Notes:
 - PA LLCs file a DECENNIAL report (every 10 years), not annual. Verify due date.
 - Copyright is federal — PA has no role. Register at copyright.gov.
-$md$'),
+$md$),
 ('terms-index', 'Terms & Agreements Index', 'Legal', '1.0', $md$
 # Terms & Agreements Index
 
@@ -243,7 +243,7 @@ Internal tools that protect you:
 - Data room view logs: who saw what CIM, when.
 
 Keep this index updated as pages change.
-$md$')
+$md$)
 on conflict (slug) do update set
   title = excluded.title,
   category = excluded.category,
