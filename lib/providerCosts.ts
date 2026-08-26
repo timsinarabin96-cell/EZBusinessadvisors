@@ -103,6 +103,37 @@ async function anthropicCost(): Promise<ProviderCost | null> {
   }
 }
 
+async function openaiCost(): Promise<ProviderCost | null> {
+  // OpenAI usage API requires an admin key (sk-admin-...) or org owner key.
+  // Regular project keys will 401/403 → we return null and skip (no crash).
+  const key = process.env.OPENAI_API_KEY || process.env.OPENAI_ADMIN_KEY
+  if (!key) return null
+  try {
+    const now = new Date()
+    const start = Math.floor(new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000)
+    const end = Math.floor(now.getTime() / 1000)
+    const res = await fetch(
+      `https://api.openai.com/v1/organization/usage/completions?start_time=${start}&end_time=${end}&bucket_width=1d`,
+      { headers: { Authorization: `Bearer ${key}` } },
+    )
+    if (!res.ok) return null
+    const j = await res.json()
+    const buckets = j?.data || []
+    let total = 0
+    for (const b of buckets) {
+      for (const r of b?.results || []) total += parseFloat(r?.amount) || 0
+    }
+    if (total <= 0) return null
+    return {
+      provider: 'openai', vendor: 'OpenAI', category: 'ai_api',
+      description: 'OpenAI API usage — current month',
+      amountCents: Math.round(total * 100), expenseDate: today(), currency: 'USD',
+    }
+  } catch {
+    return null
+  }
+}
+
 /** 4) Supabase — project usage via management API (needs SUPABASE_MGMT_TOKEN). */
 async function supabaseCost(): Promise<ProviderCost | null> {
   const token = process.env.SUPABASE_MGMT_TOKEN
@@ -154,10 +185,59 @@ async function vercelCost(): Promise<ProviderCost | null> {
 /** Run every enabled provider and return the costs found (>=0 cents). */
 export async function syncProviderCosts(): Promise<ProviderCost[]> {
   const results = await Promise.allSettled([
-    twilioCost(), deepseekCost(), anthropicCost(), supabaseCost(), vercelCost(),
+    twilioCost(), deepseekCost(), anthropicCost(), openaiCost(), supabaseCost(), vercelCost(),
   ])
   return results
     .filter((r): r is PromiseFulfilledResult<ProviderCost | null> => r.status === 'fulfilled' && r.value !== null)
     .map((r) => r.value as ProviderCost)
     .filter((c) => c.amountCents > 0) // drop $0 markers from the books
+}
+
+/**
+ * Pull provider costs and record them into `expenses` (dedupe by
+ * vendor + description + amount + date). Shared by the admin Sync button
+ * and the daily /api/cron/provider-costs job so both use one code path.
+ */
+export async function recordProviderCosts(): Promise<{
+  added: unknown[]
+  skipped: unknown[]
+  providerLines: number
+}> {
+  const { createServerClient } = await import('@/lib/supabase/server')
+  const db = createServerClient()
+  if (!db) return { added: [], skipped: [{ error: 'not configured' }], providerLines: 0 }
+
+  const costs = await syncProviderCosts()
+  const added: unknown[] = []
+  const skipped: unknown[] = []
+  for (const c of costs) {
+    const { data: existing } = await db
+      .from('expenses')
+      .select('id')
+      .eq('vendor', c.vendor)
+      .eq('description', c.description)
+      .eq('amount_cents', c.amountCents)
+      .eq('expense_date', c.expenseDate)
+      .maybeSingle()
+    if (existing) {
+      skipped.push({ vendor: c.vendor, amountCents: c.amountCents, reason: 'duplicate' })
+      continue
+    }
+    const { data: row, error } = await db
+      .from('expenses')
+      .insert({
+        category: c.category, vendor: c.vendor, description: c.description,
+        amount_cents: c.amountCents, currency: c.currency,
+        expense_date: c.expenseDate, recurring: false, paid: true,
+        notes: 'Auto-synced from provider API',
+      })
+      .select()
+      .single()
+    if (error) {
+      skipped.push({ vendor: c.vendor, error: error.message })
+      continue
+    }
+    added.push(row)
+  }
+  return { added, skipped, providerLines: costs.length }
 }

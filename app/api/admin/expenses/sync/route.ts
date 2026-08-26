@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { isPlatformAdmin } from '@/lib/platform'
-import { syncProviderCosts } from '@/lib/providerCosts'
+import { recordProviderCosts } from '@/lib/providerCosts'
 import { chatWithDeepSeek } from '@/lib/deepseek/client'
 
 export const runtime = 'nodejs'
@@ -51,42 +51,9 @@ export async function POST(req: NextRequest) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
-  const added: unknown[] = []
-  const skipped: unknown[] = []
-
-  // 1) Provider auto-sync.
-  const costs = await syncProviderCosts()
-  for (const c of costs) {
-    // Duplicate check: same vendor + description + amount + date.
-    const { data: existing } = await db
-      .from('expenses')
-      .select('id')
-      .eq('vendor', c.vendor)
-      .eq('description', c.description)
-      .eq('amount_cents', c.amountCents)
-      .eq('expense_date', c.expenseDate)
-      .maybeSingle()
-    if (existing) {
-      skipped.push({ vendor: c.vendor, amountCents: c.amountCents, reason: 'duplicate' })
-      continue
-    }
-    const category = await aiCategorize(c.vendor, c.description)
-    const { data: row, error } = await db
-      .from('expenses')
-      .insert({
-        category, vendor: c.vendor, description: c.description,
-        amount_cents: c.amountCents, currency: c.currency,
-        expense_date: c.expenseDate, recurring: false, paid: true,
-        notes: 'Auto-synced from provider API',
-      })
-      .select()
-      .single()
-    if (error) {
-      skipped.push({ vendor: c.vendor, error: error.message })
-      continue
-    }
-    added.push(row)
-  }
+  // 1) Provider auto-sync (Twilio, DeepSeek, Anthropic, OpenAI, Supabase, Vercel).
+  // Shared with the daily cron so both use the same dedupe + insert path.
+  const { added, skipped, providerLines } = await recordProviderCosts()
 
   // 2) Backfill categories for any entries that slipped through as 'other'.
   const { data: uncategorized } = await db
@@ -108,7 +75,7 @@ export async function POST(req: NextRequest) {
     summary: {
       added: added.length,
       skipped: skipped.length,
-      providerLines: costs.length,
+      providerLines,
       backfilled: (uncategorized || []).length,
     },
   })
