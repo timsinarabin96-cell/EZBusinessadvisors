@@ -114,6 +114,38 @@ function normalizeBooking(raw: Record<string, unknown>): BookingInput | null {
   }
 }
 
+/**
+ * Team round-robin — pick the least-loaded agent for an appointment.
+ * Counts each member's upcoming (non-cancelled) appointments and returns the
+ * profile_id with the fewest, so buyer consultations spread across the team
+ * instead of stacking on whoever created the booking.
+ */
+export async function suggestRoundRobinAssignee(
+  agencyId: string,
+  _type?: string,
+): Promise<string | null> {
+  if (!svc) return null
+  const [membersRes, countsRes] = await Promise.all([
+    svc.from('agency_members').select('profile_id').eq('agency_id', agencyId),
+    svc
+      .from('appointments')
+      .select('assigned_to')
+      .eq('agency_id', agencyId)
+      .not('status', 'eq', 'cancelled')
+      .gte('starts_at', new Date().toISOString()),
+  ])
+  const members = (membersRes.data || []) as { profile_id: string }[]
+  if (!members.length) return null
+  const loads = new Map<string, number>()
+  for (const a of (countsRes.data || []) as { assigned_to: string | null }[]) {
+    if (a.assigned_to) loads.set(a.assigned_to, (loads.get(a.assigned_to) || 0) + 1)
+  }
+  // Stable tie-break: lowest load, then earliest profile id.
+  return members
+    .map((m) => m.profile_id)
+    .sort((a, b) => (loads.get(a) || 0) - (loads.get(b) || 0) || a.localeCompare(b))[0]
+}
+
 /** Create an appointment in the CRM calendar (service role, bypasses RLS). */
 export async function createBooking(
   agencyId: string,
@@ -142,11 +174,17 @@ export async function createBooking(
     .gt('ends_at', start.toISOString())
     .limit(5)
 
+  // Team round-robin: buyer consultations with no explicit assignee go to the
+  // least-loaded agent (fewest upcoming appointments), so the calendar acts as
+  // the agency's call-routing engine.
+  const assignee =
+    opts.createdBy || (await suggestRoundRobinAssignee(agencyId, input.appointment_type))
+
   const { data, error } = await svc
     .from('appointments')
     .insert({
       agency_id: agencyId,
-      assigned_to: opts.createdBy || null,
+      assigned_to: assignee || null,
       created_by: opts.createdBy || null,
       listing_id: opts.listingId || null,
       deal_id: opts.dealId || null,
