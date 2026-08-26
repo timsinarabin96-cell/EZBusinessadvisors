@@ -112,3 +112,21 @@ test('global: lead marketplace has per-lead pricing tiers + platform fee', () =>
   assert.match(page, /LEAD_TIERS\.map/)
   assert.match(page, /selectedTier/)
 })
+
+test('global: newsletter ad slot — sponsor injected into marketing emails only', () => {
+  const ad = readFileSync('lib/newsletterAd.ts', 'utf8')
+  assert.match(ad, /fetchNewsletterSponsor/)
+  assert.match(ad, /newsletterSponsorHtml/)
+  assert.match(ad, /injectNewsletterSponsor/)
+  assert.match(ad, /slot_key', 'newsletter_slot'/)
+  assert.match(ad, /Sponsored/)
+  const email = readFileSync('lib/email.ts', 'utf8')
+  assert.match(email, /fetchNewsletterSponsor/)
+  assert.match(email, /injectNewsletterSponsor/)
+  // Marketing kinds get the sponsor; security kinds must NOT.
+  assert.match(email, /kind === 'deal_notification' \|\| kind === 'match_alert'/)
+  assert.match(email, /password_reset/)
+  const adminAds = readFileSync('app/admin/ads/page.tsx', 'utf8')
+  assert.match(adminAds, /newsletter_slot/)
+  assert.match(adminAds, /newsletter_slot: '\$150\/send/)
+})

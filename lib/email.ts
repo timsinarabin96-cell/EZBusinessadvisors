@@ -25,6 +25,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
+import { fetchNewsletterSponsor, injectNewsletterSponsor, newsletterSponsorHtml } from './newsletterAd'
 
 // --- Server-only service-role client (bypasses RLS for queue writes) --------
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -483,5 +484,21 @@ export async function notify(
     case 'new_sign_in': built = emailTemplates.newSignIn(payload); break
     case 'generic': built = emailTemplates.generic({ title: payload.title || 'Notification', message: payload.message || '' }); break
   }
+
+  // Newsletter ad slot: sponsor rides inside marketing emails only
+  // (digests, briefs, match alerts, renewals) — never security/transactional
+  // mail like password resets or account alerts. Active slot required;
+  // lookup is cached, non-blocking, and fails silent.
+  if (kind === 'deal_notification' || kind === 'match_alert' || kind === 'daily_brief' ||
+      kind === 'captains_brief' || kind === 'renewal_proposal' || kind === 'renewal_renewed' ||
+      kind === 'due_diligence_reminder' || kind === 'document_upload' || kind === 'lead_assignment') {
+    try {
+      const sponsor = await fetchNewsletterSponsor()
+      if (sponsor) built.html = injectNewsletterSponsor(built.html, newsletterSponsorHtml(sponsor))
+    } catch {
+      // never break an email for a sponsor
+    }
+  }
+
   return sendEmail({ to, subject: built.subject, html: built.html, kind, meta: payload })
 }
