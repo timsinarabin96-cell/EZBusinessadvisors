@@ -73,6 +73,49 @@ export default function TermsPage() {
         Platform. Our aggregate liability shall not exceed the amount you paid us in the twelve
         months preceding the claim, or one hundred dollars ($100), whichever is greater.
       </p>
+      <p>
+        The Platform is a technology and matching service. It is not a party to any sale, listing
+        agreement, or brokerage engagement between users, and it is not a buyer&apos;s or seller&apos;s agent,
+        fiduciary, or advisor. No agency, partnership, joint venture, or employment relationship is
+        created by use of the Platform. Brokers using the Platform are independent contractors
+        responsible for their own licenses, obligations, and conduct.
+      </p>
+
+      <h2>8a. Indemnification</h2>
+      <p>
+        You agree to indemnify, defend, and hold harmless Concord Deal Platform, its affiliates,
+        and their respective officers, directors, employees, and agents from and against any
+        claims, liabilities, damages, losses, and expenses (including reasonable attorney&apos;s fees)
+        arising out of or related to: (a) your use of the Platform; (b) your violation of these
+        Terms; (c) your listings, content, or transactions; (d) your violation of any law or the
+        rights of any third party; or (e) any dispute between you and another user.
+      </p>
+
+      <h2>8b. Arbitration &amp; Class-Action Waiver</h2>
+      <p>
+        To the fullest extent permitted by law, any dispute arising out of or relating to these
+        Terms or your use of the Platform shall first be resolved through good-faith negotiation.
+        If the dispute is not resolved within thirty (30) days, it shall be settled by binding
+        arbitration administered in accordance with the rules of the American Arbitration
+        Association, and judgment on the award may be entered in any court of competent
+        jurisdiction. You agree that any arbitration shall be conducted on an individual basis and
+        that you waive the right to participate in any class, collective, or representative action.
+        You also waive the right to a jury trial to the extent permitted by law.
+      </p>
+      <p>
+        <strong>Opt-out:</strong> You may opt out of this arbitration provision by sending written
+        notice within thirty (30) days of first accepting these Terms.
+      </p>
+
+      <h2>8c. Compliance with Law &amp; Licensing</h2>
+      <p>
+        Users are solely responsible for complying with all applicable laws, regulations, and
+        licensing requirements in the jurisdictions where they operate, including any real-estate,
+        business-broker, or securities licensing requirements. Concord Deal Platform does not
+        guarantee that any user is licensed, and users are encouraged to verify credentials with
+        the relevant state regulator. See our <a href="/legal/regulations">State Regulations</a>
+        guide for general information.
+      </p>
 
       <h2>9. Termination</h2>
       <p>
