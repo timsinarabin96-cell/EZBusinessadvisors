@@ -8,7 +8,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Appointment, AppointmentType, createAppointment, fetchAppointments } from '@/lib/appointments'
-import { fetchTasks, buildTimeline, type TaskItem } from '@/lib/calendarFeed'
+import { fetchTasks, fetchDeadlines, buildTimeline, type TaskItem, type DeadlineItem } from '@/lib/calendarFeed'
 import { getStoredAccessToken } from '@/lib/authToken'
 
 const TYPE_LABELS: Record<AppointmentType, string> = {
@@ -59,6 +59,7 @@ export default function CalendarDashboard() {
   }, [])
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [tasks, setTasks] = useState<TaskItem[]>([])
+  const [deadlines, setDeadlines] = useState<DeadlineItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -83,9 +84,10 @@ export default function CalendarDashboard() {
     const to = new Date(from)
     to.setDate(to.getDate() + 45)
     try {
-      const [rows, taskRows] = await Promise.all([fetchAppointments(from, to), fetchTasks()])
+      const [rows, taskRows, deadlineRows] = await Promise.all([fetchAppointments(from, to), fetchTasks(), fetchDeadlines()])
       setAppointments(rows)
       setTasks(taskRows)
+      setDeadlines(deadlineRows)
       setSchemaPending(false)
     } catch (loadError) {
       const message = (loadError as Error).message
@@ -146,7 +148,7 @@ export default function CalendarDashboard() {
     await load()
   }
 
-  const days = useMemo(() => buildTimeline(appointments, tasks), [appointments, tasks])
+  const days = useMemo(() => buildTimeline(appointments, tasks, deadlines), [appointments, tasks, deadlines])
 
   return (
     <div style={{ display: 'grid', gap: 24 }}>
@@ -201,6 +203,26 @@ export default function CalendarDashboard() {
                               <span style={{ color: accent, fontWeight: 700 }}>{TYPE_LABELS[appt.appointment_type]}</span>
                               {appt.attendee_name ? ` · ${appt.attendee_name}` : ''}
                             </span>
+                          </article>
+                        )
+                      }
+                      if (item.kind === 'deadline') {
+                        const dl = item as DeadlineItem
+                        const soon = new Date(dl.due_at).getTime() - Date.now() < 3 * 86400000
+                        const accent = soon ? '#ef4444' : '#d97706'
+                        return (
+                          <article key={dl.id} style={{ padding: 13, border: '1px solid var(--line)', borderRadius: 10, borderLeft: `4px solid ${accent}`, display: 'flex', alignItems: 'center', gap: 12, background: soon ? '#fef7f7' : '#fffbeb' }}>
+                            <span style={{ fontSize: 17 }}>{dl.icon}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 14 }}>
+                                {dl.title}
+                                {soon && <span style={{ fontSize: 11, color: accent, fontWeight: 800, marginLeft: 6 }}>SOON</span>}
+                              </div>
+                              <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                                {dl.entity}{dl.listing_ref ? ` (${dl.listing_ref})` : ''} · {formatTime(dl.due_at)}
+                              </div>
+                            </div>
+                            <span style={{ fontSize: 11, color: accent, fontWeight: 800, whiteSpace: 'nowrap' }}>⏰</span>
                           </article>
                         )
                       }

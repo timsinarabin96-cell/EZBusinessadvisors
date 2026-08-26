@@ -20,7 +20,18 @@ export interface TaskItem {
   reminderKind: string
 }
 
-export type TimelineItem = Appointment | TaskItem
+export interface DeadlineItem {
+  id: string
+  kind: 'deadline'
+  source: 'listing_expiry' | 'nda_expiry' | 'approval_expiry'
+  title: string
+  due_at: string
+  entity: string
+  listing_ref: string | null
+  icon: string
+}
+
+export type TimelineItem = Appointment | TaskItem | DeadlineItem
 
 export interface TimelineDay {
   key: string
@@ -64,9 +75,30 @@ export async function fetchTasks(): Promise<TaskItem[]> {
   })
 }
 
-/** Merge appointments + tasks into day buckets (today / tomorrow / week / later). */
-export function buildTimeline(appointments: Appointment[], tasks: TaskItem[]): TimelineDay[] {
-  const items: TimelineItem[] = [...appointments, ...tasks]
+/** Fetch auto-deadlines (listing expiry, NDA expiry, approval windows). */
+export async function fetchDeadlines(): Promise<DeadlineItem[]> {
+  const ctx = await getAgencyContext()
+  if (!ctx) return []
+  const token = getStoredAccessToken()
+  const res = await fetch(`/api/calendar/deadlines?agencyId=${ctx.agencyId}`, {
+    headers: { authorization: `Bearer ${token}` },
+  })
+  const data = await res.json().catch(() => ({}))
+  return (data.deadlines || []).map((d: any) => ({
+    id: d.id,
+    kind: 'deadline' as const,
+    source: d.source,
+    title: d.title,
+    due_at: d.due_at,
+    entity: d.entity,
+    listing_ref: d.listing_ref,
+    icon: d.icon || '⏳',
+  }))
+}
+
+/** Merge appointments + tasks + deadlines into day buckets (today / tomorrow / week / later). */
+export function buildTimeline(appointments: Appointment[], tasks: TaskItem[], deadlines: DeadlineItem[] = []): TimelineDay[] {
+  const items: TimelineItem[] = [...appointments, ...tasks, ...deadlines]
 
   const startOfDay = (d: Date) => {
     const x = new Date(d)
@@ -83,8 +115,10 @@ export function buildTimeline(appointments: Appointment[], tasks: TaskItem[]): T
   const dayKey = (iso: string) => startOfDay(new Date(iso)).toDateString()
 
   // Bucket items by calendar day for the current week, plus a "later" bucket.
-  const itemTime = (item: TimelineItem) =>
-    new Date('appointment_type' in item ? (item as Appointment).starts_at : (item as TaskItem).due_at)
+  const itemTime = (item: TimelineItem) => {
+    if ('appointment_type' in item) return new Date((item as Appointment).starts_at)
+    return new Date((item as TaskItem | DeadlineItem).due_at)
+  }
 
   const buckets = new Map<string, TimelineItem[]>()
   const later: TimelineItem[] = []
