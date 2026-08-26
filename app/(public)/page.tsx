@@ -289,8 +289,8 @@ export default async function HomePage() {
                 </li>
               ))}
             </ul>
-            <Link href="/contact" style={{ display: 'block', textAlign: 'center', marginTop: 22, background: '#1a1a2e', color: '#c9a84c', padding: '13px 0', borderRadius: 8, textDecoration: 'none', fontWeight: 800, fontFamily: 'Georgia, serif' }}>
-              Request a Demo
+            <Link href="/license" style={{ display: 'block', textAlign: 'center', marginTop: 22, background: '#1a1a2e', color: '#c9a84c', padding: '13px 0', borderRadius: 8, textDecoration: 'none', fontWeight: 800, fontFamily: 'Georgia, serif' }}>
+              Buy the License →
             </Link>
           </div>
           <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 14, padding: 30, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 14 }}>
@@ -301,7 +301,7 @@ export default async function HomePage() {
             <div style={{ fontSize: 13.5, color: '#666', lineHeight: 1.7 }}>
               Agents and brokers get role-based logins inside your CRM: admins control everything, brokers run deals, agents manage listings and leads.
             </div>
-            <Link href="/contact" style={{ color: '#1a1a2e', fontWeight: 800, fontSize: 14 }}>Talk to us about licensing →</Link>
+            <Link href="/license" style={{ color: '#1a1a2e', fontWeight: 800, fontSize: 14 }}>How licensing works →</Link>
           </div>
         </div>
       </section>
