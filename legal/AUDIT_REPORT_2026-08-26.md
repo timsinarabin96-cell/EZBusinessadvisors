@@ -50,6 +50,18 @@ Total now: **18 security fixes, 50 commits, 618/618 tests green throughout**
 
 ---
 
+## 🔧 POST-AUDIT HARDENING BATCH (2026-08-26, afternoon — 7 commits, 648/648 tests)
+
+21. **Demo-mode production guard** — demo grants (free feature unlocks for testing) now **fail-closed in production**: disabled whenever `NODE_ENV === 'production'`, so no one can self-grant paid features unless Stripe is configured and the flow is real. Guarded all 6 demo paths in `/api/stripe/checkout` + `/api/valuation-reports`.
+22. **Account-change security emails** — added `password_changed`, `email_changed`, `new_sign_in` email kinds + templates; wired into reset-password and sign-in; new `/api/auth/security-alert` endpoint (rate-limited, session-authenticated) for future account alerts.
+23. **Lead marketplace pricing tiers** — per-lead pricing: Standard ($25–100, 15% platform fee), Premium ($100–350, 20%), Elite ($350–1000, 25%). `publishLead` validates price vs tier band; ledger records `platform_fee_cents`; tier badges shown on marketplace cards.
+24. **Financial Intelligence add-on gate** — the $100/mo FIC flag (`agency_settings.financial_intelligence_enabled`) now actually **enforces server-side** on all four broker-facing FIC routes (intelligence reader, ledger, extractions, verify). Platform admins always pass; tenants without the add-on get a clear 403. Seller portal stays free (it's the funnel, not the product). Gate defaults to allowed when no settings row exists (prevents breaking existing tenants).
+25. **FIC dashboard lock + upgrade CTA** — brokers no longer hit silent 403s: the Financial Files dashboard reads the flag on load, shows a gold “🔒 Financial Intelligence is locked” banner with an **Enable — $100/month** button (Stripe checkout for the add-on), and hides the four FIC tool cards behind the flag. Upload + auto-generation pipeline stay free.
+
+**Regression tests #14–#16 added** (demo guard, security emails, FIC gate) → **648/648 pass, typecheck clean, build green.**
+
+---
+
 ## ⚠️ FINDINGS TO ACT ON (ranked)
 
 ### 🔴 HIGH
