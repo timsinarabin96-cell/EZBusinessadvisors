@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import type { StudioDesignData } from '@/lib/marketing'
 import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
 import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
+import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
 // POST /api/ai/marketing-designs
@@ -56,6 +57,11 @@ function shiftHex(hex: string, amt: number): string {
 }
 
 export async function POST(req: Request) {
+  // SECURITY (2026-08-26 audit): AI generation burns provider credits —
+  // require a valid signed-in session. Was unauthenticated.
+  const auth = await authenticateProfileRequest(req as any)
+  if (!auth) return unauthorizedResponse()
+
   let body: Body = {}
   try {
     body = (await req.json()) as Body

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { validateServerInput } from '@cosmstack/blackshield/server'
+import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 import { buildAgentContext } from '@/lib/claude/context'
 import { complete, isClaudeConfigured, ClaudeConfigError } from '@/lib/claude/client'
 import { completeWithDeepSeek, isDeepSeekConfigured, DeepSeekConfigError } from '@/lib/deepseek/client'
@@ -69,6 +70,11 @@ function fail(message: string, status = 400, extra: object = {}) {
 }
 
 export async function POST(req: NextRequest) {
+  // SECURITY (2026-08-26 audit): AI calls burn provider credits — require a
+  // valid signed-in session before touching any model. Was unauthenticated.
+  const auth = await authenticateProfileRequest(req)
+  if (!auth) return unauthorizedResponse()
+
   // -------------------------------------------------------------------------
   // 0) Feature availability — fail fast with a clear, non-leaky message.
   // -------------------------------------------------------------------------
