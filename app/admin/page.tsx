@@ -227,6 +227,7 @@ export default function PlatformAdminPage() {
         <Link href="/admin/agencies/trials" style={{ background: '#1a1a2e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Manage Trials</Link>
         <Link href="/admin/trial-settings" style={{ border: '2px solid #1a1a2e', color: '#1a1a2e', padding: '9px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Trial Settings</Link>
         <Link href="/admin/expenses" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🧾 Expenses</Link>
+        <Link href="/admin/1099" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🧾 1099 Contractors</Link>
         <Link href="/admin/api-keys" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🔑 API Keys &amp; Accountant</Link>
         <Link href="/admin/ads" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>📣 Sponsored Slots</Link>
         <Link href="/admin/ai" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🤖 AI</Link>
