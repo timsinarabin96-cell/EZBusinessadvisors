@@ -39,6 +39,9 @@ export default function LegalFooter() {
           <Link href="/legal/cookies" style={{ color: 'var(--muted)', textDecoration: 'none' }}>
             Cookie Policy
           </Link>
+          <Link href="/legal/regulations" style={{ color: 'var(--muted)', textDecoration: 'none' }}>
+            State Regulations
+          </Link>
         </nav>
       </div>
     </footer>

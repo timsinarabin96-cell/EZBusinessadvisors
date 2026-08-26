@@ -21,6 +21,7 @@ import {
 } from '@/lib/marketplace'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import CbiBadge from '@/components/public/CbiBadge'
+import LegalDisclaimer from '@/components/public/LegalDisclaimer'
 import { LoadingState } from '@/components/ui'
 
 const money = (n: number | null | undefined) => (n != null ? '$' + Number(n).toLocaleString() : '—')
@@ -318,6 +319,9 @@ export default function BrokerProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Legal disclosures — advisory, licensing, non-affiliation */}
+      <LegalDisclaimer compact />
     </div>
   )
 }
