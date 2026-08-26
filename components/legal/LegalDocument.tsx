@@ -2,7 +2,10 @@ import Link from 'next/link'
 
 const NAV = [
   { href: '/legal/terms', label: 'Terms of Service' },
+  { href: '/legal/ownership', label: 'Ownership & Copyright' },
   { href: '/legal/agreement', label: 'Broker Agreement' },
+  { href: '/legal/buyer-agreement', label: 'Buyer Agreement' },
+  { href: '/legal/disclosure', label: 'Agency Disclosure' },
   { href: '/legal/regulations', label: 'State Regulations' },
   { href: '/legal/privacy', label: 'Privacy Policy' },
   { href: '/legal/dmca', label: 'DMCA' },
@@ -81,7 +84,10 @@ export default function LegalDocument({
 function currentSlug(title: string) {
   const map: Record<string, string> = {
     'Terms of Service': 'terms',
+    'Ownership & Copyright': 'ownership',
     'Broker Services Agreement (Template)': 'agreement',
+    'Buyer Representation Agreement (Template)': 'buyer-agreement',
+    'Agency Disclosure Form (Template)': 'disclosure',
     'Business Brokerage Regulations by State | Concord Deal Platform': 'regulations',
     'Privacy Policy': 'privacy',
     dmca: 'dmca',

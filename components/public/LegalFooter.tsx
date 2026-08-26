@@ -25,7 +25,7 @@ export default function LegalFooter() {
           color: 'var(--muted)',
         }}
       >
-        <span>© {year} Concord Deal Platform. All rights reserved.</span>
+        <span>© {year} Rabin Timsina (EZ Business Advisors / Concord Deal Platform). All rights reserved. Proprietary software — no copying without permission. <a href="/legal/ownership" style={{ color: 'inherit' }}>Ownership & Copyright</a></span>
         <nav style={{ display: 'flex', flexWrap: 'wrap', gap: 18 }}>
           <Link href="/legal/terms" style={{ color: 'var(--muted)', textDecoration: 'none' }}>
             Terms of Service
