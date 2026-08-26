@@ -187,6 +187,9 @@ export default function AdminExpensesPage() {
             {importing ? 'Importing…' : '📥 Import CSV'}
             <input type="file" accept=".csv,text/csv" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onImportCsv(f); e.target.value = '' }} />
           </label>
+          <button onClick={() => { const a = document.createElement('a'); a.href = `/api/admin/expenses/export?format=qbo${month ? `&month=${month}` : ''}`; a.download = ''; a.click() }} title="QuickBooks-ready CSV (Date, Payee, Memo, Account, Amount)" style={{ padding: '11px 20px', background: '#15803d', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+            📤 Export QB
+          </button>
           <button onClick={() => setShowForm((v) => !v)} style={{ padding: '11px 20px', background: '#1a1a2e', color: '#c9a84c', border: 'none', borderRadius: 9, fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
             {showForm ? '✕ Close' : '+ Add Expense'}
           </button>

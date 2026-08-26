@@ -92,6 +92,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/onboarding', label: 'Onboarding', icon: '🚀', minRole: 'admin', group: 'Team & Office', keywords: 'new hire setup' },
   // ── ADMIN ─────────────────────────────────────────────────
   { href: '/dashboard/commissions', label: 'Commissions', icon: '💰', minRole: 'admin', group: 'Admin', keywords: 'payout splits' },
+  { href: '/dashboard/expenses', label: 'Expenses', icon: '🧾', minRole: 'admin', group: 'Admin', keywords: 'costs ai spend ledger' },
   { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️', minRole: 'admin', group: 'Admin', keywords: 'moderation approval' },
   { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰', minRole: 'broker', group: 'Admin', keywords: 'import export csv' },
   { href: '/dashboard/security', label: 'Security', icon: '🛂', minRole: 'admin', group: 'Admin', keywords: '2fa login access' },

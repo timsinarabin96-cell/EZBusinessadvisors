@@ -44,6 +44,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.8,
       })
     }
+    // Public broker profile pages — SEO lead generation for every broker.
+    const { data: brokers } = await client
+      .from('broker_profiles')
+      .select('id, updated_at')
+      .eq('is_public', true)
+    for (const broker of brokers || []) {
+      entries.push({
+        url: `${BASE}/marketplace/brokers/${broker.id}`,
+        lastModified: broker.updated_at || new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.7,
+      })
+    }
   } catch {
     // Keep static routes available if the marketplace feed is unavailable.
   }
