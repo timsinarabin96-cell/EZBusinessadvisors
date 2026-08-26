@@ -13,6 +13,7 @@ import { fetchAllIndustries, fetchFeaturedListings, fetchMarketplaceStats, searc
 import { getPublicAgencyContext } from '@/lib/publicAgency'
 import SearchListingsClient from '@/components/public/SearchListingsClient'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
+import { SponsoredSlot } from '@/components/public/SponsoredSlot'
 import { LoadingState } from '@/components/ui'
 import { fmt$ } from '@/lib/recast'
 
@@ -100,6 +101,7 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
       <Suspense fallback={<LoadingState label="Loading listings..." />}>
         <SearchListingsClient initialResults={results} initialIndustries={industries} initialStats={stats} agencyScope={scope} />
       </Suspense>
+      <SponsoredSlot slotKey="marketplace_bottom" />
     </>
   )
 }
