@@ -8,6 +8,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import PublicPnlBuilder from '@/components/public/PublicPnlBuilder'
+import { SponsoredSlot } from '@/components/public/SponsoredSlot'
+
 
 export const metadata: Metadata = {
   title: 'Free P&L Builder — See Your Business\u2019s Real Earnings | Concord',
@@ -67,6 +69,7 @@ export default function PnlBuilderPage() {
           </div>
         </div>
       </section>
+      <SponsoredSlot slotKey="valuation_sidebar" />
     </main>
   )
 }

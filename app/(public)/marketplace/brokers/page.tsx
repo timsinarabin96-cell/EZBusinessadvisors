@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { fetchPublicBrokers, PublicBroker } from '@/lib/marketplace'
 import { LoadingState } from '@/components/ui'
 import { brokerProfileStrength, strengthColor } from '@/lib/brokerProfileStrength'
+import SponsoredSlotInline from '@/components/public/SponsoredSlotInline'
 
 export default function BrokersPage() {
   const [brokers, setBrokers] = useState<PublicBroker[]>([])
@@ -28,6 +29,7 @@ export default function BrokersPage() {
 
   return (
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: '60px 24px' }}>
+      <SponsoredSlotInline slotKey="brokers_page_spot" />
       <div style={{ textAlign: 'center', marginBottom: 44 }}>
         <div style={{ color: '#0e7490', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 800 }}>Advisor Intelligence Network</div>
         <h1 style={{ fontSize: 42, color: '#102a43', margin: '8px 0 12px' }}>Choose expertise, not just a name</h1>

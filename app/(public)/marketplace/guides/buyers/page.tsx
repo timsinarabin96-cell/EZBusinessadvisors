@@ -6,6 +6,8 @@
  */
 
 import Link from 'next/link'
+import AffiliateResources from '@/components/public/AffiliateResources'
+
 
 // Buyer Guides — step-by-step acquisition path for buyers. Server component.
 
@@ -90,6 +92,7 @@ export default function BuyerGuidesPage() {
           </Link>
         </div>
       </section>
+      <AffiliateResources surface="guides" />
     </main>
   )
 }

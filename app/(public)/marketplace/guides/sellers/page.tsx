@@ -6,6 +6,8 @@
  */
 
 import Link from 'next/link'
+import AffiliateResources from '@/components/public/AffiliateResources'
+
 
 // Seller Guides — lead magnet + SEO page: how to sell a business, checklist,
 // timeline, and FAQs. Server component, no auth needed.
@@ -91,6 +93,7 @@ export default function SellerGuidesPage() {
           </Link>
         </div>
       </section>
+      <AffiliateResources surface="guides" />
     </main>
   )
 }

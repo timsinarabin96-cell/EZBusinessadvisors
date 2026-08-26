@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { submitSellerListingOrder } from '@/lib/sellerOrderClient'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import InstantValuation from '@/components/public/InstantValuation'
+import SponsoredSlotInline from '@/components/public/SponsoredSlotInline'
 import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
@@ -108,6 +109,7 @@ function SellContent() {
 
   return (
     <main>
+      <SponsoredSlotInline slotKey="sell_page_promo" />
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
       {/* LEFT copy */}
       <div>

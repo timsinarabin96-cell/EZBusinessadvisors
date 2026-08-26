@@ -8,6 +8,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import FreeValuationTool from '@/components/public/FreeValuationTool'
+import { SponsoredSlot } from '@/components/public/SponsoredSlot'
+
 
 export const metadata: Metadata = {
   title: 'Free Business Valuation — Instant Market Range | Concord',
@@ -67,6 +69,7 @@ export default function ValuationPage() {
           </div>
         </div>
       </section>
+      <SponsoredSlot slotKey="valuation_sidebar" />
     </main>
   )
 }

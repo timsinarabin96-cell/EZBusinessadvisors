@@ -7,6 +7,8 @@
 
 import Link from 'next/link'
 import { listPublishedPosts } from '@/lib/blog'
+import { SponsoredSlot } from '@/components/public/SponsoredSlot'
+
 
 // Insights — SEO content hub powered by the blog engine (audit Part C #1).
 // Server component: renders published posts from the engine (curated seed set
@@ -69,6 +71,7 @@ export default async function InsightsPage() {
           </div>
         </div>
       </section>
+      <SponsoredSlot slotKey="insights_sidebar" />
     </main>
   )
 }

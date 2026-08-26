@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { fetchFinancingHubStats } from '@/lib/financing'
 import { fetchPublicProfessionals, PROFESSIONAL_LABELS, type DealProfessional } from '@/lib/professionals'
 import SbaCalculator from '@/components/public/SbaCalculator'
+import AffiliateResources from '@/components/public/AffiliateResources'
 import { safeJsonLd } from '@/lib/safeJsonLd'
 
 export const dynamic = 'force-dynamic'
@@ -114,6 +115,7 @@ export default async function FinancingPage() {
         <Link href="/marketplace/listings" style={{ background: 'linear-gradient(135deg, #c9a84c, #a8873a)', color: '#1a1a2e', fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 15, padding: '13px 28px', borderRadius: 8, textDecoration: 'none', display: 'inline-block', boxShadow: '0 2px 6px rgba(201,168,76,0.3)' }}>
           Browse Businesses →
         </Link>
+      <AffiliateResources surface="financing" />
       </div>
     </div>
   )

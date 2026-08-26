@@ -21,6 +21,8 @@ import InstantValuation from '@/components/public/InstantValuation'
 import HomeCountUp from '@/components/public/HomeCountUp'
 import { CRM_LICENSE } from '@/lib/billing'
 import { safeJsonLd } from '@/lib/safeJsonLd'
+import { SponsoredSlot } from '@/components/public/SponsoredSlot'
+
 
 // ===========================================================================
 // / — advanced public homepage (Server Component). Hero with animated market
@@ -117,6 +119,8 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      <SponsoredSlot slotKey="homepage_spotlight" />
 
       {/* ══ LIVE SOLD-DEALS TICKER — social proof marquee ══ */}
       {sold.length > 0 && (

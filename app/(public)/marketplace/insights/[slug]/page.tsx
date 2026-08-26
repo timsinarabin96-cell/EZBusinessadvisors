@@ -8,6 +8,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPostBySlug, listPublishedPosts } from '@/lib/blog'
+import { SponsoredSlot } from '@/components/public/SponsoredSlot'
+
 
 // Insights article detail — rendered from the blog engine (audit Part C #1).
 // Server component; revalidates so newly published posts appear without redeploy.
@@ -59,6 +61,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </Link>
         </div>
       </article>
+      <SponsoredSlot slotKey="insights_sidebar" />
     </main>
   )
 }

@@ -71,6 +71,7 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
 
   return (
     <>
+      <SponsoredSlot slotKey="marketplace_top" />
       <SoldCompsTicker limit={8} />
       {spotlight.length > 0 && (
         <section style={{ background: '#fff', borderBottom: '1px solid #ece8dc', padding: '22px 24px' }}>

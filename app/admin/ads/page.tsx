@@ -42,13 +42,32 @@ const EMPTY = {
 }
 
 const SLOT_PLACEMENTS = [
+  'homepage_spotlight',
+  'marketplace_top',
   'marketplace_bottom',
-  'marketplace_sidebar',
-  'newspaper_top',
   'valuation_sidebar',
-  'network_sidebar',
+  'insights_sidebar',
+  'sell_page_promo',
+  'brokers_page_spot',
   'listing_detail_bottom',
+  'newspaper_top',
+  'network_sidebar',
 ]
+
+// Rate card — what each placement sells for (monthly). Source of truth for
+// the "Advertise with Concord" pitch.
+const RATE_CARD: Record<string, string> = {
+  homepage_spotlight: '$400/mo — homepage, below hero',
+  marketplace_top: '$300/mo — top of listings page',
+  marketplace_bottom: '$150/mo — bottom of listings page',
+  valuation_sidebar: '$250/mo — valuation + P&L builder pages',
+  insights_sidebar: '$200/mo — insights hub + articles',
+  sell_page_promo: '$200/mo — sell-your-business page',
+  brokers_page_spot: '$150/mo — brokers directory page',
+  listing_detail_bottom: '$150/mo — individual listing pages',
+  newspaper_top: '$100/mo — newspaper/roundup pages',
+  network_sidebar: '$100/mo — network pages',
+}
 
 export default function AdminAdsPage() {
   const toast = useToast()
