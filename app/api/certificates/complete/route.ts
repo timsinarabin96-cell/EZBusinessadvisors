@@ -6,14 +6,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'node:crypto'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canAccessProfile, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 export const runtime = 'nodejs'
 
 function makeCode(): string {
+  // SECURITY (2026-08-26 audit): was Math.random() — now CSPRNG.
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  const bytes = randomBytes(8)
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('')
 }
 
 function makeKey(payload: unknown): string {

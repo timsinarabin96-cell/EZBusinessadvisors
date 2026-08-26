@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'node:crypto'
 import { authenticateProfileRequest, canAccessProfile, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
@@ -26,8 +27,10 @@ const SVC = process.env.NEXT_PUBLIC_SUPABASE_URL
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
 
 function makeCode(): string {
+  // SECURITY (2026-08-26 audit): was Math.random() — now CSPRNG.
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+  const bytes = randomBytes(8)
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('')
 }
 
 function makeKey(payload: unknown): string {

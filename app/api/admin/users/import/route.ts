@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'node:crypto'
 import { createServerClient } from '@/lib/supabase/server'
 import { isPlatformAdmin } from '@/lib/platform'
 import { recordAdminAudit, resolveAdminActor } from '@/lib/adminAudit'
@@ -56,8 +57,8 @@ export async function POST(req: NextRequest) {
       continue
     }
 
-    // Generate a password when the row doesn't provide one.
-    const password = String(row.password || '').trim() || `Temp!${Math.random().toString(36).slice(2, 10)}`
+    // Generate a password when the row doesn't provide one (CSPRNG — was Math.random).
+    const password = String(row.password || '').trim() || `Temp!${randomBytes(8).toString('base64url')}`
 
     try {
       const { data: createdUser, error: authErr } = await db.auth.admin.createUser({

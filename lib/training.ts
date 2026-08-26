@@ -212,9 +212,11 @@ export async function fetchCertificates(brokerId: string): Promise<TrainingCerti
 
 // Generate a short, human-readable verification code + a base64 payload for QR.
 function makeVerificationPayload(brokerId: string, moduleId: string, issuedAt: string) {
-  const code = Array.from({ length: 8 }, () =>
-    'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]
-  ).join('')
+  // SECURITY (2026-08-26 audit): was Math.random() — now CSPRNG (browser-safe).
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = new Uint8Array(8)
+  crypto.getRandomValues(bytes)
+  const code = Array.from(bytes, (b) => chars[b % chars.length]).join('')
   const key = Buffer.from(
     JSON.stringify({ broker: brokerId, module: moduleId, issued: issuedAt, code })
   ).toString('base64')
