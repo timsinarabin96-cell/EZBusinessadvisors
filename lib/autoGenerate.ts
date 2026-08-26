@@ -78,9 +78,20 @@ interface ExtractedData {
 async function extractFinancials(
   listing: Listing,
   docs: FinancialDoc[],
+  reviewedExtractions?: { year: number; revenue: number; expenses: number; source: string }[],
 ): Promise<ExtractedData> {
   const notes: string[] = []
   const rows: ExtractedFinancialRow[] = []
+
+  // 0) SOURCE OF TRUTH: broker-approved/overridden extractions from the FIC.
+  //    These beat every other path — the broker already looked at the docs.
+  if (reviewedExtractions && reviewedExtractions.length) {
+    for (const ex of reviewedExtractions) {
+      rows.push({ year: ex.year, revenue: ex.revenue, netIncome: ex.revenue - ex.expenses })
+      notes.push(`Year ${ex.year} from ${ex.source === 'override' ? 'broker override' : 'approved extraction'} ($${Math.round(ex.revenue).toLocaleString()} revenue).`)
+    }
+    return { rows, notes: notes.join(' ') }
+  }
 
   // 1) Try CSV/TSV parsing from any source docs we can fetch as text.
   //    (In practice source uploads are PDFs/Excel; CSV is the parseable case.)
@@ -145,9 +156,43 @@ async function extractFinancials(
   return { rows, notes: notes.join(' ') }
 }
 
-// ---------------------------------------------------------------------------
-// Persistence: upload PDF bytes to storage + insert generated_document row.
-// ---------------------------------------------------------------------------
+// Load the FIC's reviewed extractions (approved or overridden) as the
+// pipeline's preferred financial source. Returns per-year revenue/expenses.
+async function loadReviewedExtractions(
+  supabase: ReturnType<typeof createServerClient>,
+  listingId: string,
+): Promise<{ year: number; revenue: number; expenses: number; source: string }[]> {
+  try {
+    const { data } = await supabase
+      .from('financial_extractions')
+      .select('fiscal_year, extracted, broker_override, review_state')
+      .eq('listing_id', listingId)
+      .in('review_state', ['approved', 'overridden'])
+    const rows = (data || []) as Array<{
+      fiscal_year: number | null
+      extracted: Record<string, unknown> | null
+      broker_override: Record<string, unknown> | null
+      review_state: string
+    }>
+    const byYear = new Map<number, { revenue: number; expenses: number; source: string }>()
+    for (const r of rows) {
+      const year = r.fiscal_year
+      if (!year) continue
+      const d = r.review_state === 'overridden' && r.broker_override ? r.broker_override : r.extracted || {}
+      const revenue = Number(d.revenueTotal) || 0
+      const expenses = Number(d.expenseTotal) || 0
+      if (!revenue && !expenses) continue
+      const source = r.review_state === 'overridden' ? 'override' : 'extraction'
+      const existing = byYear.get(year)
+      if (!existing || (source === 'override' && existing.source !== 'override')) {
+        byYear.set(year, { revenue, expenses, source })
+      }
+    }
+    return Array.from(byYear.entries()).map(([year, v]) => ({ year, ...v }))
+  } catch {
+    return []
+  }
+}
 async function saveGeneratedDoc(step: {
   listingId: string
   dealId: string | null
@@ -276,8 +321,9 @@ export async function runAutoGeneration(input: {
   const sources = ((sourceDocs as FinancialDoc[] | null) || []).filter((d) => d.category !== 'generated_document')
   const grouped = groupUploadedDocs(sources)
 
-  // 3) Extract financial data (Claude / CSV / heuristic)
-  const extraction = await extractFinancials(L, sources)
+  // 3) Extract financial data — FIC reviewed extractions first, then fallbacks
+  const reviewedExtractions = await loadReviewedExtractions(supabase, input.listingId)
+  const extraction = await extractFinancials(L, sources, reviewedExtractions)
   if (extraction.notes) notes.push(extraction.notes)
 
   // 4) Build 3-year financial history from listing + extracted rows

@@ -26,6 +26,8 @@ import AllDocumentsView from '@/components/financial/AllDocumentsView'
 import type { AutoGenerateResult } from '@/lib/autoGenerateTypes'
 import UniversalDocumentUpload, { type AnalyzeResponse } from '@/components/financial/UniversalDocumentUpload'
 import MultiYearFinancialUpload from '@/components/financial/MultiYearFinancialUpload'
+import ExtractionReview from '@/components/financial/ExtractionReview'
+import FinancialLedgerView from '@/components/financial/FinancialLedgerView'
 import FinancialIntelligenceDashboard from '@/components/financial/FinancialIntelligenceDashboard'
 import FinancialSummaryView from '@/components/financial/FinancialSummaryView'
 import type { FinancialIntelligence } from '@/lib/ai/types'
@@ -183,6 +185,34 @@ function FinancialFilesDashboard() {
               load()
             }}
           />
+        </div>
+      </Card>
+
+      {/* EXTRACTION REVIEW — approve or correct the AI numbers (Phase 2) */}
+      <Card style={{ marginBottom: 22 }}>
+        <CardHeader title="🧐 Extraction Review" subtitle="Every AI-extracted number gets a confidence score. Approve it as trusted, or correct it — your override becomes the source of truth for valuation, BOV, CIM & recast" />
+        <div style={{ padding: 18 }}>
+          {selectedParent ? (
+            <ExtractionReview listingId={selectedParent} />
+          ) : (
+            <div style={{ padding: '20px 16px', border: '1px dashed var(--line)', borderRadius: 12, textAlign: 'center', color: '#94a3b8', fontSize: 13.5 }}>
+              Select a listing / deal above (or in the reader) to review its extractions.
+            </div>
+          )}
+        </div>
+      </Card>
+
+      {/* MULTI-YEAR LEDGER — normalized monthly P&L (Phase 2) */}
+      <Card style={{ marginBottom: 22 }}>
+        <CardHeader title="📊 Multi-Year Ledger" subtitle="One normalized monthly P&L per year — the single source of truth that feeds valuation, BOV, CIM and recast. Rebuild spreads approved/overridden extractions into 12 months" />
+        <div style={{ padding: 18 }}>
+          {selectedParent ? (
+            <FinancialLedgerView listingId={selectedParent} onRebuilt={() => load()} />
+          ) : (
+            <div style={{ padding: '20px 16px', border: '1px dashed var(--line)', borderRadius: 12, textAlign: 'center', color: '#94a3b8', fontSize: 13.5 }}>
+              Select a listing / deal above to view its monthly P&L.
+            </div>
+          )}
         </div>
       </Card>
 
