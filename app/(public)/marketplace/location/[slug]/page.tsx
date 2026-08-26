@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchPublicFeed, type PublicMarketplaceListing } from '@/lib/marketplace'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 import { resolveLocationSlug } from '@/lib/locationPages'
@@ -27,7 +28,8 @@ function titleCase(slug: string): string {
 }
 
 export async function generateStaticParams() {
-  const all = await fetchPublicFeed()
+  const agency = await getPublicAgencyContext()
+  const all = await fetchPublicFeed(null, agency?.scope || null)
   const states = new Set<string>()
   for (const l of all) {
     const loc = (l.location_general || '').toLowerCase()

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchAllIndustries } from '@/lib/marketplace'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 import DealAlertsSignup from '@/components/public/DealAlertsSignup'
 
 // ===========================================================================
@@ -19,7 +20,8 @@ export const metadata: Metadata = {
 }
 
 export default async function DealAlertsPage() {
-  const industries = await fetchAllIndustries()
+  const agency = await getPublicAgencyContext()
+  const industries = await fetchAllIndustries(agency?.scope || null)
 
   return (
     <div style={{ background: '#f7f6f2', minHeight: '100vh' }}>

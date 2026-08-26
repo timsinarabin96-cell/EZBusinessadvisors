@@ -40,8 +40,8 @@ const fmtPrice = (n: number | null | undefined) => (n == null ? null : Math.roun
  * Build the full market report from the public sold-listings RPC.
  * Deterministic, zero-token, no LLM. Aggregates by industry + state.
  */
-export async function buildSoldCompsReport(): Promise<SoldCompsReport> {
-  const { data, error } = await supabase.rpc('get_public_sold_listings')
+export async function buildSoldCompsReport(agency: string | null = null): Promise<SoldCompsReport> {
+  const { data, error } = await supabase.rpc('get_public_sold_listings', { p_agency: agency })
   if (error || !data) {
     return { industries: [], states: [], totals: { deals: 0, avgMultiple: null, avgSalePrice: null, industries: 0 }, updatedAt: new Date().toISOString() }
   }

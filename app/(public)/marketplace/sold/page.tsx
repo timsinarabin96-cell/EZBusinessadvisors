@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchSoldListings, type SoldListing } from '@/lib/marketplace'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 import SoldFilters from '@/components/public/SoldFilters'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,8 @@ export const metadata: Metadata = {
 }
 
 export default async function SoldListingsPage() {
-  const sold = await fetchSoldListings()
+  const agency = await getPublicAgencyContext()
+  const sold = await fetchSoldListings(agency?.scope || null)
 
   const jsonLd = {
     '@context': 'https://schema.org',

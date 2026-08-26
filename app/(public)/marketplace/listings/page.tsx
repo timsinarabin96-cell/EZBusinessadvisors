@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import Image from 'next/image'
 import { fetchAllIndustries, fetchFeaturedListings, fetchMarketplaceStats, searchPublicListings } from '@/lib/marketplace'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 import SearchListingsClient from '@/components/public/SearchListingsClient'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 import { LoadingState } from '@/components/ui'
@@ -35,6 +36,8 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
   const sp = searchParams || {}
   const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || ''
   const bool = (v: string | string[] | undefined) => str(v) === '1'
+  const agency = await getPublicAgencyContext()
+  const scope = agency?.scope || null
 
   const [results, industries, stats, spotlight] = await Promise.all([
     searchPublicListings({
@@ -52,10 +55,10 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
       status: (str(sp.status) as any) || undefined,
       minEmployees: str(sp.minEmployees) ? Number(str(sp.minEmployees)) : undefined,
       sortBy: (str(sp.sortBy) as any) || undefined,
-    }),
-    fetchAllIndustries(),
-    fetchMarketplaceStats(),
-    fetchFeaturedListings(4),
+    }, scope),
+    fetchAllIndustries(scope),
+    fetchMarketplaceStats(scope),
+    fetchFeaturedListings(4, scope),
   ])
 
   return (
@@ -88,7 +91,7 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
         </section>
       )}
       <Suspense fallback={<LoadingState label="Loading listings..." />}>
-        <SearchListingsClient initialResults={results} initialIndustries={industries} initialStats={stats} />
+        <SearchListingsClient initialResults={results} initialIndustries={industries} initialStats={stats} agencyScope={scope} />
       </Suspense>
     </>
   )

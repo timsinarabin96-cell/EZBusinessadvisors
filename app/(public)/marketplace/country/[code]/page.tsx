@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchPublicFeed, type PublicMarketplaceListing } from '@/lib/marketplace'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 import PublicListingCard from '@/components/public/PublicListingCard'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,8 @@ const COUNTRY_NAMES: Record<string, string> = {
 }
 
 export async function generateStaticParams() {
-  const all = await fetchPublicFeed()
+  const agency = await getPublicAgencyContext()
+  const all = await fetchPublicFeed(null, agency?.scope || null)
   const countries = new Set((all.map((l) => (l.country_code || 'US').toUpperCase()).filter(Boolean)))
   return Array.from(countries).map((code) => ({ code }))
 }

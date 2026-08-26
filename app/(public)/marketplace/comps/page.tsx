@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { buildSoldCompsReport } from '@/lib/soldComps'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 import { MARKET_MULTIPLES } from '@/lib/marketMultiplesCore.ts'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +17,8 @@ export const metadata: Metadata = {
 }
 
 export default async function SoldCompsPage() {
-  const report = await buildSoldCompsReport()
+  const agency = await getPublicAgencyContext()
+  const report = await buildSoldCompsReport(agency?.scope || null)
   const { industries, states, totals } = report
 
   const jsonLd = {

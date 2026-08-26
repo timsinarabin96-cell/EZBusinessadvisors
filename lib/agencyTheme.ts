@@ -99,16 +99,27 @@ export async function resolveAgencyThemeByHost(host: string | null | undefined):
   logoUrl: string | null
   theme: AgencyTheme
   cssVars: Record<string, string>
+  /** Feed-scope identifier (slug, domain, or custom_domain) for agency-isolated listings. */
+  scope: string
 } | null> {
   if (!svc || !host) return null
   const clean = host.replace(/^www\./, '').toLowerCase()
   if (!clean) return null
 
-  // Match by custom_domain or platform domain (agencies.domain column).
+  // Match by custom_domain or platform domain (agencies.domain column), or by
+  // subdomain: {slug}.concordplatform.com / {slug}.concord-deal-platform.vercel.app
+  const labels = clean.split('.')
+  const slugCandidate = labels.length > 2 ? labels[0] : null
   const { data: agency } = await svc
     .from('agencies')
-    .select('id, name, logo_url, custom_domain, domain')
-    .or(`custom_domain.eq.${clean},domain.eq.${clean}`)
+    .select('id, name, logo_url, custom_domain, domain, slug')
+    .or(
+      [
+        `custom_domain.eq.${clean}`,
+        `domain.eq.${clean}`,
+        ...(slugCandidate ? [`slug.eq.${slugCandidate}`] : []),
+      ].join(','),
+    )
     .maybeSingle()
   if (!agency?.id) return null
 
@@ -119,5 +130,6 @@ export async function resolveAgencyThemeByHost(host: string | null | undefined):
     logoUrl: agency.logo_url || theme.logo_url || null,
     theme,
     cssVars: themeToCssVars(theme),
+    scope: agency.custom_domain || agency.domain || agency.slug || '',
   }
 }

@@ -23,9 +23,11 @@ interface Props {
   initialResults: PublicMarketplaceListing[]
   initialIndustries: string[]
   initialStats: MarketplaceStats | null
+  /** Agency feed-scope (slug/domain) for white-label isolated marketplaces. */
+  agencyScope?: string | null
 }
 
-export default function SearchListingsClient({ initialResults, initialIndustries, initialStats }: Props) {
+export default function SearchListingsClient({ initialResults, initialIndustries, initialStats, agencyScope = null }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [results, setResults] = useState<PublicMarketplaceListing[]>(initialResults)
@@ -69,7 +71,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
   useEffect(() => {
     if (initialIndustries.length && initialStats) return
     ;(async () => {
-      const [ind, st] = await Promise.all([fetchAllIndustries(), fetchMarketplaceStats()])
+      const [ind, st] = await Promise.all([fetchAllIndustries(agencyScope || undefined), fetchMarketplaceStats(agencyScope || undefined)])
       if (!initialIndustries.length) setIndustries(ind)
       if (!initialStats) setStats(st)
     })()
@@ -92,7 +94,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       status: (status as any) || undefined,
       minEmployees: minEmployees ? Number(minEmployees) : undefined,
       sortBy: (sortBy as any) || undefined,
-    }).then(setResults).finally(() => setLoading(false))
+    }, agencyScope || undefined).then(setResults).finally(() => setLoading(false))
   }, [q, industry, location, minPriceParam, maxPrice, maxRevenue, maxSdeMultiple, absenteeOnly, franchiseOnly, financingAvailable, sbaOnly, status, minEmployees, sortBy])
 
   const applyFilters = (e: React.FormEvent) => {

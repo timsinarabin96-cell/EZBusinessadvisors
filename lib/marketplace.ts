@@ -179,8 +179,8 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
   }
 }
 
-export async function fetchPublicFeed(identifier: string | null = null): Promise<PublicMarketplaceListing[]> {
-  const { data, error } = await supabase.rpc('get_public_listing_feed', { p_slug: identifier })
+export async function fetchPublicFeed(identifier: string | null = null, agency: string | null = null): Promise<PublicMarketplaceListing[]> {
+  const { data, error } = await supabase.rpc('get_public_listing_feed', { p_slug: identifier, p_agency: agency })
   if (error) {
     console.error('get_public_listing_feed error:', error)
     return []
@@ -193,8 +193,8 @@ export async function fetchPublicListing(identifier: string): Promise<PublicMark
   return listings[0] || null
 }
 
-export async function fetchMarketplaceStats(): Promise<MarketplaceStats> {
-  const [listings, sold] = await Promise.all([fetchPublicFeed(), fetchSoldListings()])
+export async function fetchMarketplaceStats(agency: string | null = null): Promise<MarketplaceStats> {
+  const [listings, sold] = await Promise.all([fetchPublicFeed(null, agency), fetchSoldListings(agency)])
   const prices = listings.map((listing) => listing.asking_price).filter((price): price is number => price !== null)
   const industries = new Set(listings.map((listing) => listing.industry).filter(Boolean)).size
 
@@ -206,13 +206,13 @@ export async function fetchMarketplaceStats(): Promise<MarketplaceStats> {
   }
 }
 
-export async function searchPublicListings(filters: SearchFilters = {}): Promise<PublicMarketplaceListing[]> {
+export async function searchPublicListings(filters: SearchFilters = {}, agency: string | null = null): Promise<PublicMarketplaceListing[]> {
   const query = filters.query?.trim().toLowerCase()
   const industry = filters.industry?.trim().toLowerCase()
   const location = filters.location?.trim().toLowerCase()
   const country = filters.country?.trim().toUpperCase()
 
-  return (await fetchPublicFeed())
+  return (await fetchPublicFeed(null, agency))
     .filter((listing) => !country || (listing.country_code || 'US').toUpperCase() === country)
     .filter((listing) => !location || listing.location_general?.toLowerCase().includes(location))
     .filter((listing) => !filters.minPrice || (listing.asking_price !== null && listing.asking_price >= filters.minPrice))
@@ -247,14 +247,14 @@ export async function searchPublicListings(filters: SearchFilters = {}): Promise
  */
 export { publicListingSorter }
 
-export async function fetchFeaturedListings(limit = 6): Promise<PublicMarketplaceListing[]> {
-  return (await fetchPublicFeed())
+export async function fetchFeaturedListings(limit = 6, agency: string | null = null): Promise<PublicMarketplaceListing[]> {
+  return (await fetchPublicFeed(null, agency))
     .sort((a, b) => Number(b.is_featured) - Number(a.is_featured))
     .slice(0, limit)
 }
 
-export async function fetchAllIndustries(): Promise<string[]> {
-  const unique = new Set((await fetchPublicFeed()).map((listing) => listing.industry).filter((value): value is string => Boolean(value)))
+export async function fetchAllIndustries(agency: string | null = null): Promise<string[]> {
+  const unique = new Set((await fetchPublicFeed(null, agency)).map((listing) => listing.industry).filter((value): value is string => Boolean(value)))
   return Array.from(unique).sort()
 }
 
@@ -292,8 +292,8 @@ export interface SoldListing {
 }
 
 /** Anonymized recently-sold listings (public RPC — never names/addresses). */
-export async function fetchSoldListings(): Promise<SoldListing[]> {
-  const { data, error } = await supabase.rpc('get_public_sold_listings')
+export async function fetchSoldListings(agency: string | null = null): Promise<SoldListing[]> {
+  const { data, error } = await supabase.rpc('get_public_sold_listings', { p_agency: agency })
   if (error || !data) return []
   return (data as any[]).map((row) => ({
     listing_id: row.listing_id,

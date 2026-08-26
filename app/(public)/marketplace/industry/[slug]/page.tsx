@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { fetchPublicFeed, fetchAllIndustries, type PublicMarketplaceListing } from '@/lib/marketplace'
 import { buildSoldCompsReport } from '@/lib/soldComps'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
@@ -69,7 +70,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
 export default async function IndustryPage({ params }: { params: { slug: string } }) {
   const industry = SLUG_TO_INDUSTRY[params.slug] || params.slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-  const [all, industries, compsReport] = await Promise.all([fetchPublicFeed(), fetchAllIndustries(), buildSoldCompsReport()])
+  const agency = await getPublicAgencyContext()
+  const [all, industries, compsReport] = await Promise.all([fetchPublicFeed(null, agency?.scope || null), fetchAllIndustries(agency?.scope || null), buildSoldCompsReport(agency?.scope || null)])
 
   const listings = all
     .filter((l) => l.industry?.toLowerCase() === industry.toLowerCase() || l.sub_industry?.toLowerCase() === industry.toLowerCase())

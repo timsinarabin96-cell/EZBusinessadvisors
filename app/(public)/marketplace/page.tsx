@@ -1,10 +1,13 @@
 import Link from 'next/link'
 import { fetchMarketplaceStats, fetchAllIndustries } from '@/lib/marketplace'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 
 // /marketplace — public marketplace home hub (replaces a bare redirect that
 // broke hard navigations: 307 with no Location header).
 export default async function MarketplaceHome() {
-  const [stats, industries] = await Promise.all([fetchMarketplaceStats(), fetchAllIndustries()])
+  const agency = await getPublicAgencyContext()
+  const scope = agency?.scope || null
+  const [stats, industries] = await Promise.all([fetchMarketplaceStats(scope), fetchAllIndustries(scope)])
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 24px' }}>
       <div style={{ textAlign: 'center', marginBottom: 44 }}>

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import type { SoldListing } from '@/lib/marketplace'
 import { fetchFeaturedListings, fetchMarketplaceStats, fetchAllIndustries, fetchSoldListings } from '@/lib/marketplace'
 import { buildSoldCompsReport } from '@/lib/soldComps'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import AuthRedirect from '@/components/public/AuthRedirect'
 import ValuationLeadForm from '@/components/public/ValuationLeadForm'
@@ -38,12 +39,14 @@ export const metadata: Metadata = {
 }
 
 export default async function HomePage() {
+  const agency = await getPublicAgencyContext()
+  const scope = agency?.scope || null
   const [featured, stats, industries, sold, compsReport] = await Promise.all([
-    fetchFeaturedListings(6),
-    fetchMarketplaceStats(),
-    fetchAllIndustries(),
-    fetchSoldListings(),
-    buildSoldCompsReport(),
+    fetchFeaturedListings(6, scope),
+    fetchMarketplaceStats(scope),
+    fetchAllIndustries(scope),
+    fetchSoldListings(scope),
+    buildSoldCompsReport(scope),
   ])
 
   const jsonLd = {
