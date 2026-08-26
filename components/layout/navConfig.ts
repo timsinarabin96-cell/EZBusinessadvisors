@@ -77,6 +77,7 @@ export const NAV: NavItem[] = [
   // ── TEAM & OFFICE ─────────────────────────────────────────
   { href: '/dashboard/calendar', label: 'Calendar', icon: '📅', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'schedule meetings' },
   { href: '/dashboard/communications', label: 'Communications', icon: '🗒️', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'inbox messages' },
+  { href: '/dashboard/calls', label: 'Call Log', icon: '📞', minRole: 'agent', group: 'Team & Office', keywords: 'calls phone voice callbacks callers' },
   { href: '/dashboard/reminders', label: 'Call-Backs & Reminders', icon: '📞', minRole: 'agent', group: 'Team & Office', keywords: 'follow up calls tasks' },
   { href: '/dashboard/training', label: 'Training', icon: '🎓', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'courses cbi learn' },
   { href: '/dashboard/agents', label: 'Agents', icon: '🤖', minRole: 'admin', group: 'Team & Office', keywords: 'team members staff' },

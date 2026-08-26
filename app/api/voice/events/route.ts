@@ -152,6 +152,24 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }).eq('id', call.id)
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
+
+    // Missed-call → auto callback task for the right agent (fires when the
+    // call was too short to be a real conversation — nobody got through).
+    const dur = event.durationSeconds ?? 0
+    if (dur < 60) {
+      const { data: full } = await supabase.from('call_sessions').select('caller_number, caller_name, listing_id, started_at').eq('id', call.id).maybeSingle()
+      if (full?.caller_number) {
+        try {
+          const { createCallbackTask } = await import('@/lib/callbackTask')
+          await createCallbackTask(agencyId, {
+            callerNumber: full.caller_number,
+            callerName: full.caller_name || null,
+            listingId: full.listing_id || null,
+            startedAt: full.started_at || null,
+          })
+        } catch { /* callback task is best-effort */ }
+      }
+    }
     return NextResponse.json({ ok: true })
   }
 

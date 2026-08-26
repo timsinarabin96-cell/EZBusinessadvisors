@@ -257,6 +257,13 @@ create table if not exists public.agency_members (
   unique (agency_id, profile_id)
 );
 
+-- Per-agent call availability windows (Caller ID routing): each agent sets
+-- their own on-clock hours; inbound calls route to whoever's available, and
+-- missed calls create callbacks due at the next available slot.
+alter table public.agency_members add column if not exists available_from_hour int default 9;
+alter table public.agency_members add column if not exists available_to_hour int default 21;
+alter table public.agency_members add column if not exists timezone text default 'America/New_York';
+
 -- ---------------------------------------------------------------------------
 -- 3. Subscription billing (Stripe)
 -- ---------------------------------------------------------------------------
