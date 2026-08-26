@@ -62,7 +62,7 @@ Total now: **18 security fixes, ~46 commits, 605/605 tests green throughout**
 
 ### 🟢 LOW / NICE-TO-HAVE
 7. **~~`price-alerts` cron secret in URL~~ — FIXED 2026-08-26** (`69c2559`): now uses `x-cron-secret` header like all other crons.
-8. `X_CLIENT_ID/SECRET`, `TIKTOK_*`, `INSTAGRAM_*`, `FACEBOOK_*` keys in `.env.local` — verify each social integration is actually used or rotate/remove unused keys.
+8. **Unused social keys** — `INSTAGRAM_APP_ID` has **zero code references** (verified 2026-08-26); `FACEBOOK_APP_ID`, `TIKTOK_CLIENT_KEY`, `X_CLIENT_ID` have 2 refs each. Rotate/remove the Instagram key or wire up the integration.
 9. `mailer_notifications_*` all disabled — enable password/email/MFA-change emails in Supabase dashboard → Auth → Email templates → Notifications (API rejected the change: 403/1010).
 10. **MFA not enforced for platform admins** — 2FA is offered per-agency (agency settings `require2fa`) and self-enrollment exists on /dashboard/security, but nothing forces admins/super_admins to enroll. Recommendation: require TOTP for all platform-admin logins once you have >1 admin (super_admin stays exempt as break-glass).
 
