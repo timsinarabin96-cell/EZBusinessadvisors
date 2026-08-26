@@ -77,6 +77,10 @@ export default function AdminListingsPage() {
   const [reviewTarget, setReviewTarget] = useState<ListingRow | null>(null)
   const [reviewReport, setReviewReport] = useState<any | null>(null)
   const [reviewLoading, setReviewLoading] = useState(false)
+  const [verifyTarget, setVerifyTarget] = useState<ListingRow | null>(null)
+  const [verifyReport, setVerifyReport] = useState<any | null>(null)
+  const [verifyLoading, setVerifyLoading] = useState(false)
+  const [unlocking, setUnlocking] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -111,6 +115,47 @@ export default function AdminListingsPage() {
     const reason = window.prompt(action === 'reject' ? 'Rejection reason (sent to the listing owner):' : 'Flag reason:')
     if (reason === null) return
     act(id, action, reason || undefined)
+  }
+
+  const aiVerify = async (l: ListingRow) => {
+    setVerifyTarget(l)
+    setVerifyReport(null)
+    setVerifyLoading(true)
+    try {
+      const res = await authenticatedFetch('/api/admin/verify-unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: l.id, action: 'verify' }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Verification failed')
+      setVerifyReport(j.report)
+    } catch (e: any) {
+      setVerifyReport({ error: e.message || 'Verification failed' })
+    } finally {
+      setVerifyLoading(false)
+    }
+  }
+
+  const aiUnlock = async (l: ListingRow) => {
+    if (!confirm(`Grant ALL unlocks for "${l.business_name}"?\n\n✅ Verified Revenue badge\n⭐ Featured placement\n💰 Financial Intelligence add-on\n\n(Admin-granted — use for demos/partners, or the Stripe webhook handles paid unlocks.)`)) return
+    setUnlocking(true)
+    try {
+      const res = await authenticatedFetch('/api/admin/verify-unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: l.id, action: 'unlock' }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Unlock failed')
+      toast(`Unlocked: ${j.granted.join(', ')} ✅`, 'success')
+      setVerifyTarget(null)
+      load()
+    } catch (e: any) {
+      toast(e.message || 'Unlock failed', 'error')
+    } finally {
+      setUnlocking(false)
+    }
   }
 
   const exportCSV = () => {
@@ -256,11 +301,74 @@ export default function AdminListingsPage() {
                   ? <ActionBtn color="#64748b" bg="#94a3b81a" disabled={busy === l.id} onClick={() => act(l.id, 'clear_flag')}>🚩 Clear flag</ActionBtn>
                   : <ActionBtn color="#b91c1c" bg="#fef2f2" disabled={busy === l.id} onClick={() => withReason(l.id, 'flag')}>🚩 Flag</ActionBtn>}
                 <ActionBtn color="#7c3aed" bg="#f5f3ff" disabled={busy === l.id} onClick={() => aiReview(l)}>🤖 AI Review</ActionBtn>
+                <ActionBtn color="#0e7490" bg="#e6f6fa" disabled={busy === l.id} onClick={() => aiVerify(l)}>🔍 AI Verify</ActionBtn>
               </div>
             </div>
           )
         })}
       </div>
+
+      {/* AI verify & unlock modal (pricing/trust stack) */}
+      {verifyTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'grid', placeItems: 'center', zIndex: 50, padding: 24 }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, maxWidth: 620, width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 30 }}>🔍</div>
+                <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '6px 0 2px' }}>{verifyTarget.business_name || 'Untitled business'}</h2>
+                <div style={{ color: '#888', fontSize: 13 }}>{verifyTarget.agency_name} · {money(verifyTarget.asking_price)} asking</div>
+              </div>
+              <button onClick={() => setVerifyTarget(null)} style={{ background: 'none', border: 'none', fontSize: 22, color: '#94a3b8', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            {verifyLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b', fontSize: 14 }}>Running the full verification stack… (extraction, bank-vs-books, seller interview)</div>
+            ) : verifyReport?.error ? (
+              <div style={{ color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: 14, fontSize: 13.5 }}>{verifyReport.error}</div>
+            ) : verifyReport ? (
+              <div>
+                {/* Overall verdict */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: verifyReport.overall === 'ready' ? '#15803d' : verifyReport.overall === 'extracted_unreviewed' ? '#b45309' : '#b91c1c', background: verifyReport.overall === 'ready' ? '#e8f7ee' : verifyReport.overall === 'extracted_unreviewed' ? '#fdf3e3' : '#fdeaea', padding: '7px 16px', borderRadius: 99, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    {verifyReport.overall === 'ready' ? '✅ Ready to unlock' : verifyReport.overall === 'extracted_unreviewed' ? '⚠️ Extracted, unreviewed' : '📄 No financials yet'}
+                  </span>
+                  {verifyReport.avgConfidence != null && <span style={{ fontSize: 13, color: '#64748b' }}>Avg confidence {verifyReport.avgConfidence}%</span>}
+                </div>
+
+                {/* Stack metrics */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 18 }}>
+                  <VStat label="Documents" value={String(verifyReport.documents)} sub={`${verifyReport.sellerUploads} by seller`} />
+                  <VStat label="AI extractions" value={String(verifyReport.extractions)} sub={`${verifyReport.reviewedExtractions} reviewed`} />
+                  <VStat label="Seller interview" value={verifyReport.sellerInterview ? `${verifyReport.sellerInterview} answers` : 'none'} sub="attestation" />
+                  {verifyReport.bankBooks && (
+                    <VStat
+                      label="Bank vs books"
+                      value={verifyReport.bankBooks.status === 'verified' ? '✅ match' : verifyReport.bankBooks.status === 'review' ? '⚠️ gap' : 'no bank docs'}
+                      sub={verifyReport.bankBooks.variancePct != null ? `${verifyReport.bankBooks.variancePct}% variance` : '—'}
+                      color={verifyReport.bankBooks.status === 'verified' ? '#15803d' : verifyReport.bankBooks.status === 'review' ? '#b45309' : '#64748b'}
+                    />
+                  )}
+                </div>
+
+                <div style={{ fontSize: 12.5, color: '#64748b', background: '#f8fafc', border: '1px solid var(--line)', borderRadius: 10, padding: '10px 14px', lineHeight: 1.6, marginBottom: 18 }}>
+                  Unlock grants: <b>✅ Verified Revenue badge</b> (public trust layer) · <b>⭐ Featured placement</b> (top of marketplace) · <b>💰 Financial Intelligence</b> (per-agency add-on).
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    onClick={() => aiUnlock(verifyTarget)}
+                    disabled={unlocking}
+                    style={{ flex: 1, padding: '12px 0', borderRadius: 8, border: 'none', background: '#15803d', color: '#fff', fontWeight: 800, fontSize: 13.5, cursor: unlocking ? 'wait' : 'pointer' }}
+                  >
+                    {unlocking ? 'Unlocking…' : '✅ Unlock all (admin grant)'}
+                  </button>
+                  <button onClick={() => setVerifyTarget(null)} style={{ padding: '12px 18px', borderRadius: 8, border: '1px solid var(--line)', background: '#fff', color: '#64748b', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>Close</button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* AI review modal */}
       {reviewTarget && (
@@ -324,5 +432,15 @@ export default function AdminListingsPage() {
 function ActionBtn({ children, onClick, color, bg, disabled }: { children: React.ReactNode; onClick: () => void; color: string; bg: string; disabled?: boolean }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{ background: bg, color, padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 800, border: 'none', cursor: disabled ? 'wait' : 'pointer' }}>{children}</button>
+  )
+}
+
+function VStat({ label, value, sub, color = '#1a1a2e' }: { label: string; value: string; sub?: string; color?: string }) {
+  return (
+    <div style={{ background: '#f8fafc', border: '1px solid var(--line)', borderRadius: 10, padding: '10px 12px' }}>
+      <div style={{ fontSize: 10.5, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: 15, fontWeight: 800, color, marginTop: 3 }}>{value}</div>
+      {sub && <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{sub}</div>}
+    </div>
   )
 }

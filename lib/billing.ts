@@ -13,8 +13,9 @@
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
+import { CRM_PLANS, CRM_LICENSE, OWNER_LISTING_PLANS } from '@/lib/pricing'
 
-// --- Plan definitions ---
+// --- Plan definitions (single source of truth: lib/pricing.ts) -------------
 export interface Plan {
   id: string
   name: string
@@ -26,73 +27,14 @@ export interface Plan {
   highlighted?: boolean
 }
 
-export const PLANS: Plan[] = [
-  {
-    id: 'free',
-    name: 'Owner',
-    monthly: 0,
-    icon: '🔑',
-    tagline: 'For business owners — list your business for sale',
-    features: [
-      '1 active listing on the marketplace',
-      'Login + add your listing',
-      'Buyer inquiry notifications',
-      'No CRM system',
-    ],
-    cta: 'Get Started Free',
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    monthly: 49,
-    icon: '💼',
-    tagline: 'For brokerages posting on our marketplace',
-    highlighted: true,
-    features: [
-      '10 active listings on our site',
-      '5 agent seats',
-      'Deal pipeline (1 board)',
-      'Lead management',
-      'CIM & BOV generation',
-      'Email support',
-    ],
-    cta: 'Start Free Trial',
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    monthly: 99,
-    icon: '🏛️',
-    tagline: 'For larger teams and agencies',
-    features: [
-      '20 active listings on our site',
-      '10 agent seats',
-      'Everything in Professional',
-      'Financial recasting engine',
-      'Priority support',
-    ],
-    cta: 'Start Free Trial',
-  },
-]
+// Backward-compatible re-export — ALL prices now live in lib/pricing.ts so
+// the $499/mo CRM price can never drift between surfaces.
+export const PLANS: Plan[] = CRM_PLANS.map(({ id, name, monthly, icon, tagline, features, cta, highlighted }) => ({
+  id, name, monthly, icon, tagline, features, cta, highlighted,
+}))
 
-// ---------------------------------------------------------------------------
-// Full CRM platform — sold as a separate product (not a subscription tier).
-// One-time license + monthly platform fee; the buyer covers all API token
-// usage and third-party costs (AI, Plaid, storage, etc.).
-// ---------------------------------------------------------------------------
-export const CRM_LICENSE = {
-  name: 'Concord CRM Platform',
-  setupFee: 4999,
-  monthly: 500,
-  includes: [
-    'Full CRM system (deal pipeline, leads, CIM/BOV, recasting)',
-    'AI agents (DeepSeek/Claude via your own API keys)',
-    'White-label branding & your own subdomain',
-    'Buyer portal, NDA workflow, documents, e-sign',
-    'Own Supabase + storage (you pay infrastructure)',
-    'All API token costs billed to you',
-  ],
-} as const
+export { CRM_LICENSE, OWNER_LISTING_PLANS }
+export { CRM_MONTHLY, CRM_ANNUAL, LICENSE_SETUP_FEE, LICENSE_MONTHLY } from '@/lib/pricing'
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled'
 

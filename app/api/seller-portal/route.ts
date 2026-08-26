@@ -68,12 +68,13 @@ export async function GET(req: NextRequest) {
   if (listingId) {
     const { data: l } = await db
       .from('listings')
-      .select('id, listing_ref, business_name, industry, location_general, asking_price, annual_revenue, sde, ebitda, status, published_at')
+      .select('id, agency_id, listing_ref, business_name, industry, location_general, asking_price, annual_revenue, sde, ebitda, status, published_at')
       .eq('id', listingId)
       .maybeSingle()
     if (l) {
       listing = {
         id: (l as { id: string }).id,
+        agency_id: (l as { agency_id?: string | null }).agency_id || null,
         listing_ref: (l as { listing_ref?: string | null }).listing_ref || null,
         business_name: (l as { business_name?: string | null }).business_name || null,
         industry: (l as { industry?: string | null }).industry || null,

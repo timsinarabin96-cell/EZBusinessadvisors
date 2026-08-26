@@ -26,6 +26,7 @@ export interface SellerPortalData {
   } | null
   listing: {
     id: string
+    agency_id: string | null
     listing_ref: string | null
     business_name: string | null
     industry: string | null

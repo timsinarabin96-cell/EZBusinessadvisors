@@ -19,6 +19,7 @@ import { useParams } from 'next/navigation'
 import { fetchSellerPortal, leadStatusLabel, uploadSellerFinancial, deleteSellerFinancial, type SellerPortalData } from '@/lib/sellerPortal'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import Link from 'next/link'
+import ListingUpsellPanel from '@/components/public/ListingUpsellPanel'
 
 const money = (n: number | null | undefined) => (n != null ? '$' + Math.round(n).toLocaleString() : '—')
 
@@ -361,6 +362,13 @@ function SellerBody() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Boost your listing — upsells for FREE owner listings */}
+            {data?.listing?.id && (
+              <div style={{ background: '#fff', borderRadius: 14, padding: '22px 24px', marginTop: 16, boxShadow: '0 8px 30px rgba(26,26,46,0.08)' }}>
+                <ListingUpsellPanel listingId={data.listing.id} agencyId={(data.listing as { agency_id?: string | null }).agency_id || null} />
               </div>
             )}
 

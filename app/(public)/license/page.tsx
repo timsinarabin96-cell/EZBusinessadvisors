@@ -98,7 +98,7 @@ export default function LicensePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
           {[
             ['1', 'Create your agency', 'Sign up free — your branded workspace is ready in minutes.'],
-            ['2', 'Activate the license', 'One-time $4,999 setup + $500/mo platform fee via secure checkout.'],
+            ['2', 'Activate the license', `One-time $${CRM_LICENSE.setupFee.toLocaleString()} setup + $${CRM_LICENSE.monthly}/mo platform fee via secure checkout.`],
             ['3', 'Connect your keys', 'Add your own DeepSeek/Claude, Supabase, and Stripe credentials.'],
             ['4', 'Launch your domain', 'Your subdomain goes live with your branding and isolated marketplace.'],
           ].map(([num, title, body]) => (

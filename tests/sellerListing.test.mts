@@ -38,9 +38,16 @@ test('sell page offers paid plans and submits real orders', () => {
 })
 
 test('plans exist with the new monthly model', () => {
-  const plans = readFileSync('lib/listingIntelligence.ts', 'utf8')
-  assert.match(plans, /Free Listing/)
-  assert.match(plans, /per listing \/ month/)
-  assert.match(plans, /Enterprise Network/)
-  assert.match(plans, /monthly: 499/)
+  // Owner plans + upsells now live in the single source of truth (pricing.ts).
+  const pricing = readFileSync('lib/pricing.ts', 'utf8')
+  assert.match(pricing, /Free Listing/)
+  assert.match(pricing, /per listing \/ month/)
+  assert.match(pricing, /LISTING_UPSELL_OPTIONS/)
+  assert.match(pricing, /CRM_MONTHLY = 499/)
+  assert.match(pricing, /featured_30/)
+  // Brokerage SaaS plans remain in listingIntelligence.
+  const intel = readFileSync('lib/listingIntelligence.ts', 'utf8')
+  assert.match(intel, /Enterprise Network/)
+  assert.match(intel, /monthly: 499/)
+  assert.match(intel, /OWNER_LISTING_PLANS.*from '@\/lib\/pricing'/)
 })

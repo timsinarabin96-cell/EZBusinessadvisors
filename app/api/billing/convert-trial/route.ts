@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { CRM_PLANS } from '@/lib/pricing'
 
 // ---------------------------------------------------------------------------
 // POST /api/billing/convert-trial
@@ -30,11 +31,9 @@ interface Body {
   paymentConfirmed?: boolean
 }
 
-const PLANS: Record<string, { monthly: number; annual: number }> = {
-  free: { monthly: 0, annual: 0 },
-  professional: { monthly: 49, annual: 470 },
-  enterprise: { monthly: 99, annual: 950 },
-}
+const PLANS: Record<string, { monthly: number; annual: number }> = Object.fromEntries(
+  CRM_PLANS.filter((p) => p.id !== 'free').map((p) => [p.id, { monthly: p.monthly, annual: p.annual }]),
+)
 
 const ONBOARDING_STEPS = [
   { key: 'profile', label: 'Set up your profile (name, photo, role)' },

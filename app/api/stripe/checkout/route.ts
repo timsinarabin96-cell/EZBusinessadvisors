@@ -10,6 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { PLANS, subscribeToTier } from '@/lib/billing'
 import { BUYER_PASS_PLANS, subscribeToBuyerPass } from '@/lib/buyerPass'
+import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS } from '@/lib/pricing'
 import { FEATURED_SLOT_OPTIONS, activateFeaturedSlot } from '@/lib/featuredSlots'
 import { createCheckoutSession, stripeConfigured } from '@/lib/stripeCheckout'
 
@@ -88,6 +89,76 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, url: `/dashboard/buyer?checkout=success`, mode: 'demo' })
   }
 
+  // --- Verified Revenue badge (bank-vs-books upsell for owner listings) ------
+  if (product === 'verified_revenue') {
+    const listingId = String(body?.listingId || '').trim()
+    const agencyId = String(body?.agencyId || '').trim()
+    if (!listingId || !agencyId) {
+      return NextResponse.json({ ok: false, error: 'listingId and agencyId are required' }, { status: 400 })
+    }
+    const successUrl = safeUrl(body?.successUrl, `${origin}/dashboard/listings/${listingId}/edit?verified=success`)
+    const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/dashboard/listings/${listingId}/edit`)
+    const amount = VERIFIED_REVENUE_PRICE_CENTS
+
+    if (stripeConfigured()) {
+      const result = await createCheckoutSession({
+        agencyId,
+        items: [{ name: 'Verified Revenue badge', amountCents: amount, description: 'Bank-vs-books verification + public ✅ Verified Revenue badge' }],
+        successUrl,
+        cancelUrl,
+        customerEmail: body?.email || null,
+        metadata: { kind: 'verified_revenue', listingId },
+      })
+      if (result.ok && result.url) {
+        return NextResponse.json({ ok: true, url: result.url, mode: 'stripe' })
+      }
+      return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
+    }
+
+    // Demo mode: grant the badge locally.
+    const db = createServerClient()
+    if (db) {
+      await db.from('public_listings').update({ revenue_verified: true }).eq('listing_id', listingId)
+    }
+    return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
+  }
+
+  // --- Financial Intelligence add-on (the $100/mo upsell) ---------------------
+  if (product === 'financial_intelligence') {
+    const agencyId = String(body?.agencyId || '').trim()
+    if (!agencyId) {
+      return NextResponse.json({ ok: false, error: 'agencyId is required' }, { status: 400 })
+    }
+    const successUrl = safeUrl(body?.successUrl, `${origin}/dashboard/financial-files?addon=success`)
+    const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/dashboard/financial-files`)
+
+    if (stripeConfigured()) {
+      const result = await createCheckoutSession({
+        agencyId,
+        mode: 'subscription',
+        items: [{ name: 'Financial Intelligence add-on', amountCents: FINANCIAL_INTELLIGENCE_CENTS, description: 'AI financial reader + recast + verification', recurringInterval: 'month' }],
+        successUrl,
+        cancelUrl,
+        customerEmail: body?.email || null,
+        metadata: { kind: 'financial_intelligence', tier: 'financial_intelligence' },
+      })
+      if (result.ok && result.url) {
+        return NextResponse.json({ ok: true, url: result.url, mode: 'stripe' })
+      }
+      return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
+    }
+
+    // Demo mode: enable the add-on locally.
+    const db = createServerClient()
+    if (db) {
+      await db.from('agency_settings').upsert(
+        { agency_id: agencyId, financial_intelligence_enabled: true, updated_at: new Date().toISOString() },
+        { onConflict: 'agency_id' },
+      )
+    }
+    return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
+  }
+
   // --- Featured listing slot product ------------------------------------------
   if (product === 'featured') {
     const optionId = String(body?.optionId || '').trim()
@@ -144,8 +215,8 @@ export async function POST(req: NextRequest) {
         agencyId,
         mode: 'subscription',
         items: [
-          { name: 'Concord CRM Platform — setup fee', amountCents: 499900, description: 'One-time white-label license setup' },
-          { name: 'Concord CRM Platform — platform fee', amountCents: 50000, description: 'Monthly platform fee', recurringInterval: 'month' },
+          { name: 'Concord CRM Platform — setup fee', amountCents: LICENSE_SETUP_CENTS, description: 'One-time white-label license setup' },
+          { name: 'Concord CRM Platform — platform fee', amountCents: LICENSE_MONTHLY_CENTS, description: 'Monthly platform fee', recurringInterval: 'month' },
         ],
         successUrl: licenseSuccessUrl,
         cancelUrl: licenseCancelUrl,

@@ -1,0 +1,192 @@
+/**
+ * Concord Deal Platform
+ * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
+ * Proprietary & confidential. No copying, distribution, or modification without
+ * prior written permission. See LICENSE for full terms.
+ */
+
+// =============================================================================
+// lib/pricing.ts — THE single source of truth for every price in the system.
+// -----------------------------------------------------------------------------
+// Every surface (convert-trial, billing, Stripe checkout, Stripe webhook,
+// license page, pricing page, upsell panels) imports from here. If a price
+// changes, it changes in ONE file — drift is impossible.
+//
+// 2026-08-26 consolidation: CRM monthly is now $499.00 everywhere.
+//   * Professional: $499/mo (annual $4,790 — 2 months free)
+//   * Enterprise:   $499/mo (annual $4,790) — same price, more seats/limits
+//   * License:      $4,999 one-time setup + $499/mo platform fee
+//   * Buyer Pass:   $49/$99 — SEPARATE product (buyers, not brokerages);
+//     kept distinct so it never reads as the CRM price.
+// =============================================================================
+
+export interface PricePlan {
+  id: string
+  name: string
+  monthly: number
+  annual: number
+  icon: string
+  tagline: string
+  features: string[]
+  cta: string
+  highlighted?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// CRM subscription tiers (brokerages)
+// ---------------------------------------------------------------------------
+export const CRM_MONTHLY = 499
+export const CRM_ANNUAL = 4790 // 20% off ≈ 2 months free
+
+export const CRM_PLANS: PricePlan[] = [
+  {
+    id: 'free',
+    name: 'Owner',
+    monthly: 0,
+    annual: 0,
+    icon: '🔑',
+    tagline: 'For business owners — list your business for sale',
+    features: [
+      '1 active listing on the marketplace',
+      'Login + add your listing',
+      'Buyer inquiry notifications',
+      'No CRM system',
+    ],
+    cta: 'Get Started Free',
+  },
+  {
+    id: 'professional',
+    name: 'Professional',
+    monthly: CRM_MONTHLY,
+    annual: CRM_ANNUAL,
+    icon: '💼',
+    tagline: 'For brokerages posting on our marketplace',
+    highlighted: true,
+    features: [
+      '10 active listings on our site',
+      '5 agent seats',
+      'Deal pipeline (1 board)',
+      'Lead management',
+      'CIM & BOV generation',
+      'Email support',
+    ],
+    cta: 'Start Free Trial',
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    monthly: CRM_MONTHLY,
+    annual: CRM_ANNUAL,
+    icon: '🏛️',
+    tagline: 'For larger teams and agencies',
+    features: [
+      '20 active listings on our site',
+      '10 agent seats',
+      'Everything in Professional',
+      'Financial recasting engine',
+      'Priority support',
+    ],
+    cta: 'Start Free Trial',
+  },
+]
+
+// ---------------------------------------------------------------------------
+// White-label CRM license (separate product from the subscription tiers)
+// ---------------------------------------------------------------------------
+export const LICENSE_SETUP_FEE = 4999 // one-time
+export const LICENSE_MONTHLY = 499 // recurring platform fee
+
+export const CRM_LICENSE = {
+  name: 'Concord CRM Platform',
+  setupFee: LICENSE_SETUP_FEE,
+  monthly: LICENSE_MONTHLY,
+  includes: [
+    'Full CRM system (deal pipeline, leads, CIM/BOV, recasting)',
+    'AI agents (DeepSeek/Claude via your own API keys)',
+    'White-label branding & your own subdomain',
+    'Buyer portal, NDA workflow, documents, e-sign',
+    'Own Supabase + storage (you pay infrastructure)',
+    'All API token costs billed to you',
+  ],
+} as const
+
+// ---------------------------------------------------------------------------
+// Owner listing plans (free entry + paid renewals/upsells)
+// ---------------------------------------------------------------------------
+export const OWNER_LISTING_PLANS = [
+  {
+    id: 'free', name: 'Free Listing', price: 0, billing: 'first 2 months',
+    description: 'One-time free listing for business owners. Free for the first 2 months, then $50/month per listing to stay live.',
+    features: ['1 free listing for 2 months', 'Confidential by default', 'Buyer inquiry notifications', 'Renew at $50/mo after the free window'],
+    featured: true,
+  },
+  {
+    id: 'professional', name: 'Renewal', price: 50, billing: 'per listing / month',
+    description: 'Keep your listing live after the free window.',
+    features: ['Listing stays live', 'Unlimited inquiries', 'Cancel anytime'],
+    featured: false,
+  },
+] as const
+
+// ---------------------------------------------------------------------------
+// Add-on pricing (declared before LISTING_UPSELL_OPTIONS references them)
+// ---------------------------------------------------------------------------
+export const FINANCIAL_INTELLIGENCE_MONTHLY = 100   // the $100/mo upsell
+
+export const VERIFIED_REVENUE_PRICE = 199            // one-time bank-vs-books badge
+
+// Upsell options — sold to FREE owner listings. Kept separate from
+// OWNER_LISTING_PLANS (which drives the sell-page order flow) so the upsell
+// panel can grow without touching the listing-order zod enum.
+export interface UpsellOption {
+  id: string
+  name: string
+  price: number
+  billing: string
+  description: string
+  features: string[]
+  icon: string
+  checkoutProduct: string
+}
+
+export const LISTING_UPSELL_OPTIONS: UpsellOption[] = [
+  {
+    id: 'featured_30', name: 'Featured 30 days', price: 149, billing: 'one-time',
+    description: 'Top of the public feed + homepage carousel for 30 days.',
+    features: ['Top placement', '★ Featured badge', 'More buyer views'],
+    icon: '⭐',
+    checkoutProduct: 'featured',
+  },
+  {
+    id: 'featured_90', name: 'Featured 90 days', price: 349, billing: 'one-time',
+    description: 'Best value — top placement for 90 days.',
+    features: ['Top placement for 3 months', '★ Featured badge', 'Weekly spotlight eligibility'],
+    icon: '🚀',
+    checkoutProduct: 'featured',
+  },
+  {
+    id: 'verified_revenue', name: 'Verified Revenue badge', price: 199, billing: 'one-time',
+    description: 'Bank-vs-books verification with a public ✅ Verified Revenue badge.',
+    features: ['Bank statement review', '✅ Verified badge on the listing', 'Buyer trust boost'],
+    icon: '✅',
+    checkoutProduct: 'verified_revenue',
+  },
+  {
+    id: 'financial_intelligence', name: 'Financial Intelligence', price: FINANCIAL_INTELLIGENCE_MONTHLY, billing: '/month',
+    description: 'AI reads your P&L, bank statements & POS summaries into a broker-grade recast.',
+    features: ['Universal document reader', 'Multi-year recast & valuation', 'Bank-vs-books check'],
+    icon: '🧠',
+    checkoutProduct: 'financial_intelligence',
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Cents helpers (Stripe wants integer cents)
+// ---------------------------------------------------------------------------
+export const cents = (dollars: number): number => Math.round(dollars * 100)
+export const CRM_MONTHLY_CENTS = cents(CRM_MONTHLY)
+export const CRM_ANNUAL_CENTS = cents(CRM_ANNUAL)
+export const LICENSE_SETUP_CENTS = cents(LICENSE_SETUP_FEE)
+export const LICENSE_MONTHLY_CENTS = cents(LICENSE_MONTHLY)
+export const FINANCIAL_INTELLIGENCE_CENTS = cents(FINANCIAL_INTELLIGENCE_MONTHLY)
+export const VERIFIED_REVENUE_PRICE_CENTS = cents(VERIFIED_REVENUE_PRICE)

@@ -189,20 +189,11 @@ export function calculateListingReadiness(input: IntelligentListingInput): Listi
   return { score: readinessScore, label, missing }
 }
 
-export const OWNER_LISTING_PLANS = [
-  {
-    id: 'free', name: 'Free Listing', price: 0, billing: 'first 2 months',
-    description: 'One-time free listing for business owners. Free for the first 2 months, then $50/month per listing to stay live.',
-    features: ['1 free listing for 2 months', 'Confidential by default', 'Buyer inquiry notifications', 'Renew at $50/mo after the free window'],
-    featured: true,
-  },
-  {
-    id: 'professional', name: 'Renewal', price: 50, billing: 'per listing / month',
-    description: 'Keep your listing live after the 2-month free window.',
-    features: ['$50 per listing per month', 'Stay live — never auto-delete without notice', 'Price shown only to qualified buyers'],
-    featured: false,
-  },
-] as const
+// Owner listing plans — single source of truth in lib/pricing.ts (free entry +
+// paid renewals/upsells: featured placements). Re-exported here so the sell
+// page and sellerListing keep working without touching call sites.
+export { OWNER_LISTING_PLANS } from '@/lib/pricing'
+export type { PricePlan } from '@/lib/pricing'
 
 export const BROKERAGE_SAAS_PLANS = [
   { id: 'solo', name: 'Solo Advisor', monthly: 499, users: 1, listings: 25 },

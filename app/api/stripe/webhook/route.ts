@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { verifyStripeSignature } from '@/lib/stripeVerify'
+import { LICENSE_SETUP_FEE, CRM_PLANS } from '@/lib/pricing'
 
 export const runtime = 'nodejs'
 
@@ -149,6 +150,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // --- Verified Revenue badge: confirm payment → flag for bank-vs-books -------
+  if (kind === 'verified_revenue') {
+    const listingId = String(metadata?.listingId || clientRef || '')
+    if (listingId) {
+      // Mark the verified record so the admin AI verify flow can finish it.
+      const { data: existing } = await db.from('verified_financials').select('id').eq('listing_id', listingId).maybeSingle()
+      if (existing) {
+        await db.from('verified_financials').update({
+          status: 'connected',
+          verified_revenue_basis: 'bank_deposits',
+        }).eq('listing_id', listingId)
+      } else {
+        await db.from('verified_financials').insert({
+          listing_id: listingId,
+          agency_id: null,
+          status: 'connected',
+          verified_revenue_basis: 'bank_deposits',
+        })
+      }
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // --- Financial Intelligence add-on: confirm payment → enable per agency -----
+  if (kind === 'financial_intelligence') {
+    if (clientRef) {
+      await db.from('agency_settings').upsert(
+        { agency_id: clientRef, financial_intelligence_enabled: true, updated_at: now.toISOString() },
+        { onConflict: 'agency_id' },
+      )
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   // --- Buyer Pass: activate buyer_subscriptions + verified badge -------------
   if (kind === 'buyer_pass') {
     const email = session?.customer_details?.email || ''
@@ -212,7 +247,7 @@ export async function POST(req: NextRequest) {
       try {
         await db.from('invoices').insert({
           profile_id: profileId,
-          amount: amountTotal ? Math.round(amountTotal / 100) : 5499,
+          amount: amountTotal ? Math.round(amountTotal / 100) : LICENSE_SETUP_FEE,
           currency: 'usd',
           status: 'paid',
           stripe_invoice: session?.id || null,
@@ -252,7 +287,8 @@ export async function POST(req: NextRequest) {
 
   // 3) Record an invoice row.
   if (profileId) {
-    const amount = tier === 'enterprise' ? 9900 : tier === 'professional' ? 4900 : 0
+    const plan = CRM_PLANS.find((p) => p.id === tier)
+    const amount = plan ? plan.monthly * 100 : 0
     await db.from('invoices').insert({
       profile_id: profileId,
       amount,
