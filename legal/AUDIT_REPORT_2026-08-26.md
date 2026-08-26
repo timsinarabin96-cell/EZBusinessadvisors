@@ -23,7 +23,7 @@
 
 ---
 
-## 🔧 FIXED TODAY (7 commits: f807b03 → 5b8b727)
+## 🔧 FIXED TODAY (audit rounds 1–5 — 14 commits: f807b03 → ae95b91)
 
 1. **Open redirect** — `?next=` accepted `//evil.com` → now same-site-only
 2. **Auth brute force** — forgot/reset password had NO rate limit → added (5/10 per 10 min)
@@ -33,6 +33,14 @@
 6. **Dangling link** — `/LICENSE` → `/license` (route audit caught)
 7. **Stale tests** — 11 tests asserted old nav/AI-routing → updated to current architecture
 8. **Password policy** — Supabase min length 6 → **8** (HIBP breach check needs Pro plan — see below)
+9. **Cron secret leak (`69c2559`)** — `price-alerts` used `?secret=` in URL (query strings can leak into logs) → switched to `x-cron-secret` header like all other crons
+10. **Payment trust hole + webhook lifecycle (`5d49d51`)** — see HIGH #1/#2 below (both fixed)
+11. **Predictable tokens (`4e8f1ef`)** — portal token was base64(dealId:email:Date.now()) — forgeable; lender links used Math.random() → both now CSPRNG
+12. **Weak randomness (`b959fea`)** — certificate codes, training verification codes, admin temp passwords all used Math.random() → CSPRNG
+13. **AI credit burn (`67d3683`)** — ai/chat, ai/marketing-copy, ai/marketing-designs called Claude/DeepSeek with NO session check → now require auth
+14. **Rate-limit sweep (`ec5be34`, `e32ee27`, `ae95b91`)** — chat-widget/message, directory/join, newsletter, marketplace/seller-order, data-rooms/view-log all rate-limited
+
+Total today: **~16 security fixes, 42 commits, 605/605 tests green throughout**
 
 ---
 
