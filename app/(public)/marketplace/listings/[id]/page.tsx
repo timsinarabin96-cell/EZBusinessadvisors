@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!listing) return { title: 'Listing Not Found', robots: { index: false } }
 
   const title = `${listing.public_title}${listing.location_general ? ` — ${listing.location_general}` : ''}`
-  const description = listing.public_summary?.slice(0, 155) || 'A confidential business acquisition opportunity represented by Concord Deal Exchange.'
+  const description = listing.public_summary?.slice(0, 155) || 'A confidential business acquisition opportunity represented by Concord Deal Platform.'
   const images = listing.gallery_urls.slice(0, 1)
   const identifier = listing.slug || listing.id
 
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title,
     description,
     alternates: { canonical: `${BASE}/marketplace/listings/${identifier}` },
-    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/listings/${identifier}`, siteName: 'Concord Deal Exchange', images: images.map((url) => ({ url, width: 1200, height: 630, alt: listing.public_title })) },
+    openGraph: { title, description, type: 'website', url: `${BASE}/marketplace/listings/${identifier}`, siteName: 'Concord Deal Platform', images: images.map((url) => ({ url, width: 1200, height: 630, alt: listing.public_title })) },
     twitter: { card: 'summary_large_image', title, description, images },
   }
 }
