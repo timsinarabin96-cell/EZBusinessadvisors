@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { submitSellerListingOrder } from '@/lib/sellerOrderClient'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import InstantValuation from '@/components/public/InstantValuation'
+import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 
@@ -120,6 +121,7 @@ function SellContent() {
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <BuyerDemandPanel industry={form.industry || undefined} location={form.location || undefined} />
           <InstantValuation
             onLead={(v) => {
               // Pre-fill the free valuation form below with the estimate context.

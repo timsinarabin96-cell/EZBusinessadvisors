@@ -44,6 +44,7 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
         <nav className="publicnav-links" style={{ gap: 28, alignItems: 'center' }}>
           <NavLink href="/marketplace/listings">Buy a Business</NavLink>
           <NavLink href="/marketplace/sell">Sell a Business</NavLink>
+          <NavLink href="/brokerai">BrokerAI</NavLink>
           <NavLink href="/marketplace/brokers">Our Brokers</NavLink>
           <NavLink href="/marketplace/financing">Financing</NavLink>
           <NavLink href="/marketplace/qualify">Pre-Qualify</NavLink>
@@ -75,6 +76,7 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
         <nav style={{ padding: '12px 24px', display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid #ece8dc', background: '#fff' }}>
           <NavLink href="/marketplace/listings" onClick={() => setOpen(false)}>Buy a Business</NavLink>
           <NavLink href="/marketplace/sell" onClick={() => setOpen(false)}>Sell a Business</NavLink>
+          <NavLink href="/brokerai" onClick={() => setOpen(false)}>BrokerAI</NavLink>
           <NavLink href="/marketplace/brokers" onClick={() => setOpen(false)}>Our Brokers</NavLink>
           <NavLink href="/marketplace/financing" onClick={() => setOpen(false)}>Financing</NavLink>
           <NavLink href="/marketplace/qualify" onClick={() => setOpen(false)}>Pre-Qualify</NavLink>

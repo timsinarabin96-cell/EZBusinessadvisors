@@ -22,6 +22,7 @@ import ListingIntakeModal from './ListingIntakeModal'
 import DuplicateListingModal from './DuplicateListingModal'
 import { checkListingDuplicates } from '@/lib/listingDedup'
 import type { ListingMatch } from '@/lib/listingDedup'
+import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import { pricePosition } from '@/lib/listingMarketContextCore.ts'
 import { uploadListingImages, deleteListingImage } from '@/lib/supabase/listings'
@@ -255,6 +256,7 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
             <button type="button" className="btn btn-navy" onClick={() => setShowIntake(true)} style={{ fontSize: 13 }}>✨ AI Intake</button>
             <ReadinessCard score={readiness.score} label={readiness.label} />
           </div>
+          <BuyerDemandPanel compact industry={form.industry || undefined} location={form.location_general || undefined} />
           <div style={{ fontSize: 12.5, fontWeight: 600, color: saveState === 'saved' ? '#16a34a' : saveState === 'error' ? '#b91c1c' : '#9a6700', minHeight: 16 }}>
             {saveState === 'saving' ? '⏳ Saving…' : saveState === 'saved' ? (editListingId ? '✓ Changes saved' : '✓ Draft auto-saved') : saveState === 'error' ? '⚠ Save failed — check connection' : ''}
           </div>
