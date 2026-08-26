@@ -9,6 +9,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { completeWithDeepSeek } from '@/lib/deepseek/client'
+import { resolveListingOwner } from '@/lib/callRouting'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -174,11 +175,13 @@ export async function createBooking(
     .gt('ends_at', start.toISOString())
     .limit(5)
 
-  // Team round-robin: buyer consultations with no explicit assignee go to the
-  // least-loaded agent (fewest upcoming appointments), so the calendar acts as
-  // the agency's call-routing engine.
+  // Ownership-first assignment (independent-contractor model): bookings tied
+  // to a listing go to that listing's OWNING agent — their deal, their close.
+  // Fall back to the overseeing broker, then least-loaded agent.
   const assignee =
-    opts.createdBy || (await suggestRoundRobinAssignee(agencyId, input.appointment_type))
+    opts.createdBy ||
+    (opts.listingId ? await resolveListingOwner(agencyId, opts.listingId) : null) ||
+    (await suggestRoundRobinAssignee(agencyId, input.appointment_type))
 
   const { data, error } = await svc
     .from('appointments')

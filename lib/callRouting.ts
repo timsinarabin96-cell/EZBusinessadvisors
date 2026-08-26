@@ -1,10 +1,12 @@
 // =============================================================================
-// Call Routing — who should handle this call?
+// Call Routing — who should handle this call? (ownership-based)
 // -----------------------------------------------------------------------------
-// Availability-aware agent selection for inbound calls and callbacks.
-//  1. Known lead (buyer/seller) with an owning agent → that agent (if on clock)
-//  2. Otherwise → least-loaded agent currently within their hours
-//  3. Nobody on the clock → null (caller gets a callback task instead)
+// Independent-contractor broker model: each agent owns their listings and is
+// responsible for closing them; the agency owner is the overseeing broker.
+//  1. Caller matches a buyer lead tied to a listing → that listing's OWNING
+//     agent (listings.agent_id) handles it — their deal, their close.
+//  2. Explicit listing context → that listing's owning agent.
+//  3. No listing context → the overseeing broker (agency owner).
 // Server-only, never throws.
 // =============================================================================
 
@@ -18,7 +20,7 @@ const svc =
     ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
     : null
 
-interface AgentSlot {
+export interface AgentSlot {
   profileId: string
   isOwner: boolean
   role: string | null
@@ -28,7 +30,7 @@ interface AgentSlot {
 }
 
 /** Is the given hour within the agent's window, in their timezone? */
-function isOnClock(slot: AgentSlot, now: Date): boolean {
+export function isOnClock(slot: Pick<AgentSlot, 'availableFrom' | 'availableTo' | 'timezone'>, now: Date): boolean {
   try {
     const hour = Number(
       new Intl.DateTimeFormat('en-US', {
@@ -44,7 +46,7 @@ function isOnClock(slot: AgentSlot, now: Date): boolean {
 }
 
 /** All agency members with their availability windows. */
-async function agentSlots(agencyId: string): Promise<AgentSlot[]> {
+export async function agentSlots(agencyId: string): Promise<AgentSlot[]> {
   if (!svc) return []
   const { data } = await svc
     .from('agency_members')
@@ -60,53 +62,60 @@ async function agentSlots(agencyId: string): Promise<AgentSlot[]> {
   }))
 }
 
+/** The agent who OWNS a listing (listings.agent_id) — responsible for the close. */
+export async function resolveListingOwner(agencyId: string, listingId: string | null | undefined): Promise<string | null> {
+  if (!svc || !listingId) return null
+  const { data } = await svc.from('listings').select('agent_id').eq('id', listingId).maybeSingle()
+  const agentId = (data as { agent_id?: string | null } | null)?.agent_id || null
+  if (!agentId) return null
+  // Guard: the agent must actually belong to this agency.
+  const { data: member } = await svc.from('agency_members').select('profile_id').eq('agency_id', agencyId).eq('profile_id', agentId).maybeSingle()
+  return member ? agentId : null
+}
+
+export interface CallRoutingResult {
+  profileId: string | null
+  onClock: boolean
+  identity: CallerIdentity
+  listingId: string | null
+  basis: 'listing_owner' | 'broker_owner' | 'none'
+}
+
 /**
- * Pick the best agent for an inbound call.
- * Returns { profileId, onClock } — onClock=false means nobody is in hours and
- * the caller should get a callback task instead.
+ * Pick who handles an inbound call.
+ * Ownership first: the listing's agent (their deal). Otherwise the
+ * overseeing broker (agency owner). onClock=false → callback task instead.
  */
 export async function pickAgentForCall(
   agencyId: string,
   callerPhone: string | null | undefined,
-): Promise<{ profileId: string | null; onClock: boolean; identity: CallerIdentity }> {
+  opts: { listingId?: string | null } = {},
+): Promise<CallRoutingResult> {
   const identity = await matchCaller(agencyId, callerPhone)
   const slots = await agentSlots(agencyId)
   const now = new Date()
-  const available = slots.filter((s) => isOnClock(s, now))
-  const fallback = slots[0] || null
 
-  if (available.length === 0) {
-    // Nobody on the clock → callback task assigned to the owner if present.
-    const owner = slots.find((s) => s.isOwner) || fallback
-    return { profileId: owner?.profileId || null, onClock: false, identity }
-  }
-
-  // Known lead with an owning agent who's on the clock → that agent.
-  if (identity.matched && identity.sourceId && available.length > 1) {
-    const { data: lead } = await svc!
-      .from('buyer_leads')
-      .select('assigned_agent_id, claimed_by')
-      .eq('id', identity.sourceId)
-      .maybeSingle()
-    const ownerId = (lead as any)?.assigned_agent_id || (lead as any)?.claimed_by
-    if (ownerId && available.some((a) => a.profileId === ownerId)) {
-      return { profileId: ownerId, onClock: true, identity }
+  // 1) Listing ownership — from explicit context or the caller's matched lead.
+  const listingId = opts.listingId || identity.listingId || null
+  const listingOwner = listingId ? await resolveListingOwner(agencyId, listingId) : null
+  if (listingOwner) {
+    const slot = slots.find((s) => s.profileId === listingOwner) || null
+    return {
+      profileId: listingOwner,
+      onClock: slot ? isOnClock(slot, now) : true,
+      identity,
+      listingId,
+      basis: 'listing_owner',
     }
   }
 
-  // Least-loaded available agent (upcoming non-cancelled appointments).
-  const upcoming = await svc!
-    .from('appointments')
-    .select('assigned_to')
-    .eq('agency_id', agencyId)
-    .not('status', 'eq', 'cancelled')
-    .gte('starts_at', now.toISOString())
-  const loads = new Map<string, number>()
-  for (const a of (upcoming.data || []) as { assigned_to: string | null }[]) {
-    if (a.assigned_to) loads.set(a.assigned_to, (loads.get(a.assigned_to) || 0) + 1)
+  // 2) Overseeing broker (agency owner) as the default.
+  const broker = slots.find((s) => s.isOwner) || slots[0] || null
+  return {
+    profileId: broker?.profileId || null,
+    onClock: broker ? isOnClock(broker, now) : false,
+    identity,
+    listingId,
+    basis: broker ? 'broker_owner' : 'none',
   }
-  const pick = available.sort(
-    (a, b) => (loads.get(a.profileId) || 0) - (loads.get(b.profileId) || 0) || a.profileId.localeCompare(b.profileId),
-  )[0]
-  return { profileId: pick?.profileId || null, onClock: true, identity }
 }

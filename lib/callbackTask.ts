@@ -8,7 +8,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { pickAgentForCall } from './callRouting'
+import { pickAgentForCall, agentSlots, type AgentSlot } from './callRouting'
 import { createReminder } from './reminders'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -19,19 +19,29 @@ const svc =
     : null
 
 /** Next slot when an agent is on the clock, in their timezone. */
-function nextAvailableDue(slot: { availableFrom: number; timezone: string } | null, now = new Date()): string {
+function nextAvailableDue(slot: AgentSlot | null, now = new Date()): string {
   const fromHour = slot?.availableFrom ?? 9
   const tz = slot?.timezone || 'America/New_York'
-  // Try today; if the hour already passed, roll to tomorrow.
-  for (let offset = 0; offset < 2; offset++) {
-    const candidate = new Date(now)
-    candidate.setDate(candidate.getDate() + offset)
-    candidate.setHours(fromHour, 0, 0, 0)
-    if (candidate > now) return candidate.toISOString()
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  })
+  const wall = (d: Date) => {
+    const map: Record<string, number> = {}
+    for (const p of dtf.formatToParts(d)) if (p.type !== 'literal') map[p.type] = Number(p.value)
+    return map
   }
-  const fallback = new Date(now.getTime() + 3600000)
-  void tz
-  return fallback.toISOString()
+  const wallNow = wall(now)
+  for (let offset = 0; offset < 3; offset++) {
+    const wallTarget = new Date(Date.UTC(wallNow.year, wallNow.month - 1, wallNow.day + offset, fromHour, 0, 0))
+    // Convert wall-clock (in agent tz) to the real UTC instant.
+    const w2 = wall(wallTarget)
+    const wallAsUtc = Date.UTC(w2.year, w2.month - 1, w2.day, w2.hour, w2.minute, w2.second)
+    const offsetMs = wallAsUtc - wallTarget.getTime()
+    const real = new Date(wallTarget.getTime() - offsetMs)
+    if (real.getTime() > now.getTime()) return real.toISOString()
+  }
+  return new Date(now.getTime() + 3600000).toISOString()
 }
 
 export interface CallbackTaskResult {
@@ -55,11 +65,11 @@ export async function createCallbackTask(
   if (!phone) return { ok: false, created: false, error: 'no caller number' }
 
   try {
-    const routing = await pickAgentForCall(agencyId, phone)
+    const routing = await pickAgentForCall(agencyId, phone, { listingId: opts.listingId })
     const assignee = routing.profileId
-    const due = nextAvailableDue(
-      assignee ? { availableFrom: 9, timezone: 'America/New_York' } : null,
-    )
+    const slots = assignee ? await agentSlots(agencyId) : []
+    const assigneeSlot = slots.find((s) => s.profileId === assignee) || null
+    const due = nextAvailableDue(assigneeSlot)
 
     const name = routing.identity.name || opts.callerName || 'Unknown caller'
     const title = `📞 Call back ${name} (${phone})${routing.identity.listingRef ? ` re: ${routing.identity.listingRef}` : ''} — called ${opts.startedAt ? new Date(opts.startedAt).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'recently'}`
@@ -67,11 +77,13 @@ export async function createCallbackTask(
     const result = await createReminder({
       agency_id: agencyId,
       profile_id: assignee,
-      listing_id: routing.identity.listingId || opts.listingId || null,
+      listing_id: routing.listingId || opts.listingId || null,
       title: title.slice(0, 300),
       kind: 'call_back',
       due_at: due,
-      notes: routing.identity.matched ? 'Known contact — matched from CRM phone records.' : 'Unknown number — caller left a message?',
+      notes: routing.identity.matched
+        ? `Known contact — matched from CRM phone records. Routing basis: ${routing.basis}.`
+        : `Routing basis: ${routing.basis}${routing.listingId ? ' (listing owner)' : ' (overseeing broker)'}. Unknown number — caller left a message?`,
     })
 
     if (!result.ok) return { ok: true, created: false, error: result.error }
