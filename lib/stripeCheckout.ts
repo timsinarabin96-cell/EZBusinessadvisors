@@ -19,6 +19,8 @@ export interface CheckoutItem {
   amountCents: number
   quantity?: number
   description?: string
+  /** Set to 'month' (etc.) to make this line item recurring in subscription mode. */
+  recurringInterval?: 'day' | 'week' | 'month' | 'year'
 }
 
 export interface CheckoutSessionInput {
@@ -28,6 +30,8 @@ export interface CheckoutSessionInput {
   cancelUrl: string
   metadata?: Record<string, string>
   customerEmail?: string | null
+  /** 'payment' (default) = one-time charge; 'subscription' = recurring billing. */
+  mode?: 'payment' | 'subscription'
 }
 
 /**
@@ -44,7 +48,7 @@ export async function createCheckoutSession(input: CheckoutSessionInput): Promis
   if (!input.items?.length) return { ok: false, error: 'At least one item is required' }
 
   const params = new URLSearchParams()
-  params.set('mode', 'payment')
+  params.set('mode', input.mode === 'subscription' ? 'subscription' : 'payment')
   params.set('success_url', input.successUrl)
   params.set('cancel_url', input.cancelUrl)
   params.set('client_reference_id', input.agencyId)
@@ -58,6 +62,9 @@ export async function createCheckoutSession(input: CheckoutSessionInput): Promis
     params.set(`${prefix}[price_data][product_data][name]`, item.name)
     if (item.description) params.set(`${prefix}[price_data][product_data][description]`, item.description)
     params.set(`${prefix}[price_data][unit_amount]`, String(Math.round(item.amountCents)))
+    if (item.recurringInterval && input.mode === 'subscription') {
+      params.set(`${prefix}[price_data][recurring][interval]`, item.recurringInterval)
+    }
     params.set(`${prefix}[quantity]`, String(item.quantity || 1))
   }
 

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase/server'
+import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { PLANS, subscribeToTier } from '@/lib/billing'
 import { BUYER_PASS_PLANS, subscribeToBuyerPass } from '@/lib/buyerPass'
 import { FEATURED_SLOT_OPTIONS, activateFeaturedSlot } from '@/lib/featuredSlots'
@@ -97,14 +99,64 @@ export async function POST(req: NextRequest) {
   const successUrl = body?.successUrl || `${origin}/billing?checkout=success&tier=${tier}`
   const cancelUrl = body?.cancelUrl || `${origin}/billing`
 
+  // --- White-label CRM license: one-time setup + recurring platform fee ------
+  if (product === 'license') {
+    const agencyId = String(body?.agencyId || '').trim()
+    if (!agencyId) {
+      return NextResponse.json({ ok: false, error: 'agencyId is required' }, { status: 400 })
+    }
+    const auth = await authenticateProfileRequest(req)
+    if (!auth) return unauthorizedResponse()
+    if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
+
+    const licenseSuccessUrl = body?.successUrl || `${origin}/dashboard/agency/settings/billing?license=success`
+    const licenseCancelUrl = body?.cancelUrl || `${origin}/dashboard/agency/settings/billing`
+
+    if (stripeConfigured()) {
+      const result = await createCheckoutSession({
+        agencyId,
+        mode: 'subscription',
+        items: [
+          { name: 'Concord CRM Platform — setup fee', amountCents: 499900, description: 'One-time white-label license setup' },
+          { name: 'Concord CRM Platform — platform fee', amountCents: 50000, description: 'Monthly platform fee', recurringInterval: 'month' },
+        ],
+        successUrl: licenseSuccessUrl,
+        cancelUrl: licenseCancelUrl,
+        customerEmail: body?.email || null,
+        metadata: { kind: 'license', tier: 'license' },
+      })
+      if (result.ok && result.url) {
+        return NextResponse.json({ ok: true, url: result.url, mode: 'stripe' })
+      }
+      return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
+    }
+
+    // Demo mode: mark the agency licensed locally (no charge).
+    const db = createServerClient()
+    if (db) {
+      await db.from('agencies').update({
+        paid_plan_active: true,
+        trial_active: false,
+        plan_type: 'license',
+        locked_at: null,
+        archive_at: null,
+        grace_end_date: null,
+      }).eq('id', agencyId)
+    }
+    return NextResponse.json({ ok: true, url: licenseSuccessUrl, mode: 'demo' })
+  }
+
+  const realSuccessUrl = body?.successUrl || `${origin}/billing?checkout=success&tier=${tier}`
+  const realCancelUrl = body?.cancelUrl || `${origin}/billing`
+
   // Real Stripe path.
   if (stripeConfigured() && plan.monthly > 0) {
     const { data: { user } } = await (await import('@/lib/supabase/client')).supabase.auth.getUser().catch(() => ({ data: { user: null } }))
     const result = await createCheckoutSession({
       agencyId: body?.agencyId || '',
       items: [{ name: `${plan.name} — monthly`, amountCents: plan.monthly * 100, description: plan.tagline }],
-      successUrl,
-      cancelUrl,
+      successUrl: realSuccessUrl,
+      cancelUrl: realCancelUrl,
       customerEmail: user?.email || body?.email || null,
       metadata: { tier, kind: 'subscription' },
     })
