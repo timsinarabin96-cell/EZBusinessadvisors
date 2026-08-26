@@ -98,6 +98,17 @@ export async function POST(req: NextRequest) {
     })()
   }
 
+  // Award module-completion XP server-side (authoritative streak math).
+  void (async () => {
+    try {
+      await fetch(`${req.nextUrl.origin}/api/training/gamification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: req.headers.get('cookie') || '' },
+        body: JSON.stringify({ activity: 'module_certified' }),
+      })
+    } catch { /* gamification is best-effort */ }
+  })()
+
   return NextResponse.json({
     ok: true,
     certificate: {

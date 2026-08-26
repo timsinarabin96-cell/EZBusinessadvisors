@@ -8,6 +8,8 @@ import {
 } from '@/lib/training'
 import { Card, CardHeader, StatCard, LoadingState, EmptyState, Badge } from '@/components/ui'
 import TrainingCertificatesSection from './TrainingCertificatesSection'
+import TrainingGamificationCard from './TrainingGamificationCard'
+import TrainingSimulator from './TrainingSimulator'
 
 export default function TrainingDashboard() {
   const [modules, setModules] = useState<TrainingModule[]>([])
@@ -107,6 +109,12 @@ export default function TrainingDashboard() {
           </div>
         </div>
       </Card>
+
+      {/* Gamification — XP, streak, and CBI title ladder */}
+      <TrainingGamificationCard />
+
+      {/* Deal Simulator — learn-by-doing */}
+      <TrainingSimulator />
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14, marginBottom: 24 }}>

@@ -142,7 +142,7 @@ async function firePublishBlast(listingId: string, agencyId: string): Promise<vo
  * Returns blocked with missing items when the gate fails.
  */
 export async function publishListing(listingId: string, actorProfileId?: string, opts?: { force?: boolean }): Promise<{
-  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation
+  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }
 }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   const { data: listing } = await svc.from('listings').select('*').eq('id', listingId).maybeSingle()
@@ -160,6 +160,46 @@ export async function publishListing(listingId: string, actorProfileId?: string,
 
   const readiness = calculateListingReadiness(listingToReadinessInput(listing))
   const force = opts?.force === true
+
+  // Certification gate — publishing requires CBI Module 1 (Introduction to
+  // Business Brokerage) completion. Training is the workflow: brokers who
+  // haven't passed the core module can't go live (admins can force).
+  const CBI_MODULE_1 = '11111111-1111-1111-1111-111111111101'
+  let trainingGate: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string } | null = null
+  if (actorProfileId && !force) {
+    try {
+      const { data: moduleLessons } = await svc.from('training_lessons').select('id').eq('module_id', CBI_MODULE_1)
+      if (moduleLessons && moduleLessons.length > 0) {
+        const { data: progress } = await svc
+          .from('training_progress')
+          .select('lesson_id')
+          .eq('broker_id', actorProfileId)
+          .eq('completed', true)
+        const done = new Set((progress || []).map((p: any) => p.lesson_id))
+        const satisfied = moduleLessons.every((l: any) => done.has(l.id))
+        trainingGate = {
+          required: true,
+          satisfied,
+          moduleId: CBI_MODULE_1,
+          moduleTitle: 'Introduction to Business Brokerage',
+        }
+      }
+    } catch {
+      trainingGate = null // gate is best-effort — never hard-fail on a DB hiccup
+    }
+  }
+
+  if (trainingGate && !trainingGate.satisfied) {
+    return {
+      ok: false,
+      blocked: true,
+      score: readiness.score,
+      missing: [...(readiness.missing || []), 'Complete CBI Module 1: Introduction to Business Brokerage to unlock publishing'],
+      error: 'Certification gate: finish Module 1 training before publishing this listing.',
+      trainingGate,
+    }
+  }
+
   if (!force && readiness.score < PUBLISH_READINESS_MIN) {
     return { ok: false, blocked: true, score: readiness.score, missing: readiness.missing, error: `Readiness ${readiness.score}/100 — below the ${PUBLISH_READINESS_MIN} publish threshold` }
   }

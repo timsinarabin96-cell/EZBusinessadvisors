@@ -9,6 +9,7 @@ import {
 import { LoadingState, EmptyState, Badge } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 import TrainingQuiz from './TrainingQuiz'
+import TrainingTutor from './TrainingTutor'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: string; lessonId: string }) {
@@ -145,6 +146,11 @@ export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: s
         {/* Quiz */}
         {quiz.length > 0 && <TrainingQuiz questions={quiz} onPass={handleQuizPass} />}
       </article>
+
+      {/* AI Tutor — Socratic coach grounded in this lesson + its quiz */}
+      <div style={{ maxWidth: 860 }}>
+        <TrainingTutor lessonId={lesson.id} lessonTitle={lesson.title} />
+      </div>
     </div>
   )
 }
