@@ -172,7 +172,24 @@ drop policy if exists buyer_leads_auth_delete on public.buyer_leads;
 drop policy if exists buyer_leads_auth_insert on public.buyer_leads;
 drop policy if exists buyer_leads_auth_select on public.buyer_leads;
 drop policy if exists buyer_leads_auth_update on public.buyer_leads;
-create policy buyer_leads_public_insert on public.buyer_leads for insert to anon with check (agency_id = '354facdb-cce2-4eb0-a160-8454854e731a');
+-- SECURITY DEFINER so anon/authenticated can resolve a listing's agency without
+-- direct SELECT access to the private listings table.
+create or replace function public.buyer_lead_insert_allowed(p_agency_id uuid, p_listing_id uuid)
+returns boolean
+language sql
+security definer
+set search_path to public, pg_temp
+as $$
+  select p_agency_id = '354facdb-cce2-4eb0-a160-8454854e731a'
+      or (p_listing_id is not null and exists (
+            select 1 from public.listings l
+            where l.id = p_listing_id
+              and l.agency_id = p_agency_id
+          ));
+$$;
+create policy buyer_leads_public_insert on public.buyer_leads for insert to anon with check (public.buyer_lead_insert_allowed(agency_id, listing_id));
+-- Signed-in buyers can also submit public inquiries (listing or default agency rows).
+create policy buyer_leads_public_insert_auth on public.buyer_leads for insert to authenticated with check (public.buyer_lead_insert_allowed(agency_id, listing_id));
 create policy buyer_leads_agency_manage on public.buyer_leads for all to authenticated using (public.is_agency_member(agency_id)) with check (public.is_agency_member(agency_id));
 
 drop policy if exists "seller_leads: agents and admin read/manage" on public.seller_leads;
@@ -183,6 +200,8 @@ drop policy if exists seller_leads_auth_insert on public.seller_leads;
 drop policy if exists seller_leads_auth_select on public.seller_leads;
 drop policy if exists seller_leads_auth_update on public.seller_leads;
 create policy seller_leads_public_insert on public.seller_leads for insert to anon with check (agency_id = '354facdb-cce2-4eb0-a160-8454854e731a');
+-- Signed-in sellers can also submit public inquiries (default agency rows).
+create policy seller_leads_public_insert_auth on public.seller_leads for insert to authenticated with check (agency_id = '354facdb-cce2-4eb0-a160-8454854e731a');
 create policy seller_leads_agency_manage on public.seller_leads for all to authenticated using (public.is_agency_member(agency_id)) with check (public.is_agency_member(agency_id));
 
 drop policy if exists "deals: agents and admin manage" on public.deals;

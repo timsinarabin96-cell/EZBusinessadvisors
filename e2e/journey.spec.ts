@@ -74,19 +74,25 @@ test.describe('full journey', () => {
     expect(pubBody.risk).toBeTruthy()
     expect(typeof pubBody.risk.score).toBe('number')
 
-    // 4. Public marketplace: the listing is live and visible.
-    await page.goto(`/marketplace/listings/${listingId}`)
+    // 4. Public marketplace: the listing is live and visible. The detail page
+    //    resolves by slug (matches syncPublicListingRow's deterministic format)
+    //    and titles itself with the marketing headline, not the business name.
+    const slugBase = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 60) || 'business'
+    const listingSlug = `${slugBase}-${listingId.slice(0, 8)}`
+    await page.goto(`/marketplace/listings/${listingSlug}`)
     await page.waitForLoadState('networkidle').catch(() => {})
-    await expect(page.getByText(businessName).first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('Established service business with recurring revenue').first()).toBeVisible({ timeout: 20_000 })
     await expect(page.getByRole('button', { name: 'Request Confidential Details' })).toBeVisible()
 
     // 5. Buyer NDA / inquiry: request confidential details → form → success.
+    //    Scope to the contact form (the page has other email inputs).
     await page.getByRole('button', { name: 'Request Confidential Details' }).click()
-    await page.getByPlaceholder('Full name').fill(BUYER.name)
-    await page.getByPlaceholder('Email').fill(BUYER.email)
-    await page.getByPlaceholder('Phone').fill(BUYER.phone)
-    await page.getByPlaceholder(/Tell us about your acquisition goals/).fill('Looking for a service business in the Philadelphia area.')
-    await page.getByRole('button', { name: 'Submit Request' }).click()
+    const contactForm = page.locator('form').filter({ has: page.getByRole('button', { name: 'Submit Request' }) })
+    await contactForm.getByPlaceholder('Full name').fill(BUYER.name)
+    await contactForm.getByPlaceholder('Email').fill(BUYER.email)
+    await contactForm.getByPlaceholder('Phone').fill(BUYER.phone)
+    await contactForm.getByPlaceholder(/Tell us about your acquisition goals/).fill('Looking for a service business in the Philadelphia area.')
+    await contactForm.getByRole('button', { name: 'Submit Request' }).click()
     await expect(page.getByText(/broker will contact you/i).first()).toBeVisible({ timeout: 20_000 })
 
     // 6. Cleanup: remove the test listing (server-side delete).

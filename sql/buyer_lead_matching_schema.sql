@@ -12,6 +12,8 @@ alter table public.buyer_leads add column if not exists desired_business_type te
 alter table public.buyer_leads add column if not exists budget_range text;           -- e.g. "$500k–$2M"
 alter table public.buyer_leads add column if not exists funds_available numeric;     -- verified funds / cash available
 alter table public.buyer_leads add column if not exists financing_method text;       -- cash / SBA / private investor
+-- Verified-buyer stamp: set when the inquirer holds an active Match Pass.
+alter table public.buyer_leads add column if not exists verified_buyer boolean;
 alter table public.buyer_leads add column if not exists preferred_location text;     -- optional geographic preference
 alter table public.buyer_leads add column if not exists notes text;
 

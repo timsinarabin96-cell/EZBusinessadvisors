@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { normalizePublicListing, type PublicMarketplaceListing } from '@/lib/marketplace'
 import ListingDetailInteractive from '@/components/public/ListingDetailInteractive'
+import { ToastProvider } from '@/components/ui/Toast'
 import SimilarListings from '@/components/public/SimilarListings'
 import DealProfessionalsPanel from '@/components/public/DealProfessionalsPanel'
 import AgentContactCard from '@/components/public/AgentContactCard'
@@ -92,7 +93,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         <AgentContactCard agent={meta?.agent || null} />
       </div>
       <ListingMarketContextPanel ctx={marketCtx} />
-      <ListingDetailInteractive listing={listing} />
+      <ToastProvider>
+        <ListingDetailInteractive listing={listing} />
+      </ToastProvider>
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
         <Link
           href={`/flyer/${listing.slug || listing.id}`}

@@ -50,10 +50,20 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
 
   try {
     // Resolve listings (id or slug) → id, agency_id, listing_ref.
+    // Note: slug lives on public_listings, not listings; join through listing_id.
+    const { data: resolved, error: resolveErr } = await db
+      .from('public_listings')
+      .select('listing_id')
+      .or(idOrSlug.map((x) => `listing_id.eq.${x},slug.eq.${x}`).join(','))
+    if (resolveErr || !resolved?.length) return []
+
+    const listingIds = [...new Set(resolved.map((r) => r.listing_id).filter(Boolean))] as string[]
+    if (listingIds.length === 0) return []
+
     const { data: listings, error } = await db
       .from('listings')
       .select('id, agency_id, listing_ref')
-      .or(idOrSlug.map((x) => `id.eq.${x},slug.eq.${x}`).join(','))
+      .in('id', listingIds)
     if (error || !listings?.length) return []
 
     const agencyIds = [...new Set(listings.map((l) => l.agency_id).filter(Boolean))] as string[]
