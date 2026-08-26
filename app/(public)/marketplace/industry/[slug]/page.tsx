@@ -13,6 +13,7 @@ import { getPublicAgencyContext } from '@/lib/publicAgency'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
+import { safeJsonLd } from '@/lib/safeJsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -106,9 +107,9 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
     <>
       <SoldCompsTicker limit={6} />
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
         {compStat && (
-          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd({
             '@context': 'https://schema.org',
             '@type': 'FAQPage',
             mainEntity: [

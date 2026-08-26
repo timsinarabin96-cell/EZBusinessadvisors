@@ -20,6 +20,7 @@ import HomeSearchCategory from '@/components/public/HomeSearchCategory'
 import InstantValuation from '@/components/public/InstantValuation'
 import HomeCountUp from '@/components/public/HomeCountUp'
 import { CRM_LICENSE } from '@/lib/billing'
+import { safeJsonLd } from '@/lib/safeJsonLd'
 
 // ===========================================================================
 // / — advanced public homepage (Server Component). Hero with animated market
@@ -67,7 +68,7 @@ export default async function HomePage() {
   return (
     <div>
       <AuthRedirect />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
 
       {/* ══ HERO — premium animated band ══ */}
       <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 45%,#0f3460 100%)', color: '#fff', padding: '84px 24px 72px', position: 'relative', overflow: 'hidden' }}>

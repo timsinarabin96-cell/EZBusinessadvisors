@@ -12,6 +12,7 @@ import { fetchPublicProfessional, PROFESSIONAL_LABELS } from '@/lib/professional
 import { createServerClient } from '@/lib/supabase/server'
 import { getBrokerVideo } from '@/lib/brokerVideos'
 import ListingVideo from '@/components/listings/ListingVideo'
+import { safeJsonLd } from '@/lib/safeJsonLd'
 
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
 
@@ -59,7 +60,7 @@ export default async function ProfessionalProfilePage({ params }: { params: Prom
 
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '56px 24px 80px' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <Link href="/marketplace/professionals" style={{ color: '#0e7490', fontSize: 13.5, fontWeight: 700, textDecoration: 'none' }}>← All professionals</Link>
 
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', marginTop: 28, flexWrap: 'wrap' }}>

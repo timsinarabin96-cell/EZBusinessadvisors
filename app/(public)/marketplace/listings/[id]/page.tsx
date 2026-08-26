@@ -18,6 +18,7 @@ import AgentContactCard from '@/components/public/AgentContactCard'
 import ListingMarketContextPanel from '@/components/public/ListingMarketContextPanel'
 import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
 import { fetchListingMarketContext } from '@/lib/listingMarketContext'
+import { safeJsonLd } from '@/lib/safeJsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,7 +82,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <Link href="/marketplace/listings" style={{ color: '#888', textDecoration: 'none', fontSize: 14, fontFamily: 'Georgia, serif' }}>← Back to listings</Link>
       <div style={{ margin: '20px 0 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

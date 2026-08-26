@@ -9,6 +9,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { buildSoldCompsReport } from '@/lib/soldComps'
 import { getPublicAgencyContext } from '@/lib/publicAgency'
+import { safeJsonLd } from '@/lib/safeJsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +41,7 @@ export default async function MarketPulsePage() {
 
   return (
     <main style={{ background: '#f4f7fb', minHeight: '100vh' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
 
       {/* Hero */}
       <section style={{ background: 'linear-gradient(135deg,#071827,#0f3460)', color: '#fff', padding: '64px 24px' }}>

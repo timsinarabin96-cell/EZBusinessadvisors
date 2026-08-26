@@ -12,6 +12,7 @@ import { getPublicAgencyContext } from '@/lib/publicAgency'
 import PublicListingCard from '@/components/public/PublicListingCard'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 import { resolveLocationSlug } from '@/lib/locationPages'
+import { safeJsonLd } from '@/lib/safeJsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -131,8 +132,8 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
     <>
       <SoldCompsTicker limit={6} />
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />
       <nav style={{ fontSize: 13, color: '#888', marginBottom: 16, fontFamily: 'Georgia, serif' }}>
         <Link href="/" style={{ color: '#888', textDecoration: 'none' }}>Home</Link> <span>›</span>{' '}
         <Link href="/marketplace/listings" style={{ color: '#888', textDecoration: 'none' }}>Businesses for Sale</Link> <span>›</span>{' '}

@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { fetchFinancingHubStats } from '@/lib/financing'
 import { fetchPublicProfessionals, PROFESSIONAL_LABELS, type DealProfessional } from '@/lib/professionals'
 import SbaCalculator from '@/components/public/SbaCalculator'
+import { safeJsonLd } from '@/lib/safeJsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,7 @@ export default async function FinancingPage() {
 
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: '56px 24px 80px' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Financing Marketplace</div>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 36, color: '#1a1a2e', margin: '10px 0 12px' }}>
