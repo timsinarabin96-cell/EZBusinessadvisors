@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { authenticateProfileRequest, canAccessProfile, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { rateLimit } from '@/lib/rateLimit'
 
 // ---------------------------------------------------------------------------
 // Certificate API — generate/issue a certificate record + public verification.
@@ -17,6 +18,11 @@ import { authenticateProfileRequest, canAccessProfile, forbiddenResponse, unauth
 // ---------------------------------------------------------------------------
 
 export const runtime = 'nodejs'
+
+const clientIp = (req: NextRequest) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
 
 const SVC = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY || 'NO_KEY', {
@@ -39,6 +45,10 @@ function makeKey(payload: unknown): string {
 
 // GET /api/certificates/verify?code=XXXX — public verification of a cert code.
 export async function GET(req: NextRequest) {
+  // Anti-abuse: public certificate verification — rate limited per IP.
+  if (!rateLimit(clientIp(req), { limit: 20, windowMs: 60 * 1000 })) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
   const code = (req.nextUrl.searchParams.get('code') || '').trim().toUpperCase()
   const key = (req.nextUrl.searchParams.get('key') || '').trim()
   const svc = SVC
