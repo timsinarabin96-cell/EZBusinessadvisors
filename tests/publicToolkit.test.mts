@@ -21,6 +21,8 @@ const brokerFloat = readFileSync('components/public/BrokerFloat.tsx', 'utf8')
 const detailInteractive = readFileSync('components/public/ListingDetailInteractive.tsx', 'utf8')
 const suggestRoute = readFileSync('app/api/search/suggest/route.ts', 'utf8')
 const categoriesLib = readFileSync('lib/businessCategories.ts', 'utf8')
+const intakeRoute = readFileSync('app/api/listings/intake/route.ts', 'utf8')
+const recentViewed = readFileSync('components/public/RecentlyViewed.tsx', 'utf8')
 
 test('flyer: title is white-on-navy, broker card has phone/email/website + vCard QR', () => {
   // The header band is dark navy — the title must be white so it never hides.
@@ -68,6 +70,29 @@ test('marketplace: category suggestions use the curated business taxonomy, not j
   assert.match(categoriesLib, /titleCaseCategory/)
   assert.match(suggestRoute, /suggestBusinessCategories\(q, listingValues\)/)
   assert.match(suggestRoute, /titleCaseCategory\(String\(\(row as any\)\[col\] \|\| ''\)\)/)
+})
+
+test('marketplace: cards + spotlight use plain img (not optimizer) so photos always load', () => {
+  // The image optimizer (next/image) rejects our proxied stock-photo URLs (400),
+  // which made cards fall back to letter blocks. Cards now use plain <img>.
+  assert.match(card, /<img src=\{image\}/)
+  assert.doesNotMatch(card, /<Image src=\{image\}/)
+  assert.match(listingsPage, /<img src=\{img\}/)
+  assert.doesNotMatch(listingsPage, /<Image src=\{img\}/)
+})
+
+test('marketplace: recently viewed stores a real image and renders proxied + fallback', () => {
+  assert.match(detailInteractive, /image: listingImageFor\(listing\.gallery_urls, listing\.industry/)
+  assert.match(recentViewed, /proxiedStockUrl\(item\.image\)/)
+  assert.match(recentViewed, /onError=\{\(e\) =>/)
+})
+
+test('marketplace: intake accepts the studio context field (fixes Build my listing error)', () => {
+  // The studio posts pasted text as `context`; the API used to require `notes`,
+  // so every Build-my-listing click failed with "Field: notes".
+  assert.match(intakeRoute, /notes: z\.string\(\)\.max\(8000\)\.optional\(\)/)
+  assert.match(intakeRoute, /const rawNotes = \(notes \|\| context \|\| ''\)\.trim\(\)/)
+  assert.match(intakeRoute, /rawNotes\.length < 20/)
 })
 
 test('favorites: localStorage helpers for favorites, compare, buyer profile', () => {

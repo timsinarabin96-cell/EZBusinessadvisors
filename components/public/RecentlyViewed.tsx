@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { proxiedStockUrl } from '@/lib/stockImages'
 
 interface RecentEntry {
   id: string
@@ -58,8 +59,10 @@ export default function RecentlyViewed() {
             <div style={{ width: 44, height: 44, flex: '0 0 44px', borderRadius: 8, overflow: 'hidden', background: '#1a1a2e', display: 'grid', placeItems: 'center', fontSize: 18 }}>
               {item.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : '🏢'}
+                <img src={proxiedStockUrl(item.image) ?? item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
+              ) : (
+                <span style={{ color: 'rgba(201,168,76,0.6)', fontSize: 16, fontWeight: 800 }}>{(item.industry || 'B').slice(0, 1).toUpperCase()}</span>
+              )}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1a1a2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

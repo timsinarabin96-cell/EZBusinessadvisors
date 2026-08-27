@@ -9,7 +9,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import type { PublicMarketplaceListing } from '@/lib/marketplace'
 import { fmt$ } from '@/lib/recast'
 import { priceTeaser, PRICING_CTA } from '@/lib/pricingPolicy'
@@ -64,7 +63,8 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
       <Link href={href} style={{ display: 'block', textDecoration: 'none', background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
         <div style={{ height: 180, background: '#1a1a2e', position: 'relative', overflow: 'hidden' }}>
           {image && !imgError ? (
-            <Image src={image} alt={listing.public_title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} onError={() => setImgError(true)} />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt={listing.public_title} onError={() => setImgError(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: 'rgba(201,168,76,0.55)', fontSize: 40, fontFamily: 'Georgia, serif' }}>{(listing.industry || 'B').slice(0, 1).toUpperCase()}</div>
           )}

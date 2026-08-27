@@ -47,7 +47,9 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
         title: listing.public_title,
         price: listing.asking_price,
         industry: listing.industry,
-        image: listing.gallery_urls?.[0] || null,
+        // Store the best available image (gallery photo, else industry stock
+        // photo, else null) so the recently-viewed strip always has a picture.
+        image: listingImageFor(listing.gallery_urls, listing.industry, { title: listing.public_title, price: listing.asking_price ?? undefined, subIndustry: listing.sub_industry }),
         slug: listing.slug || listing.id,
         at: Date.now(),
       }

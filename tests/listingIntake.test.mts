@@ -59,7 +59,7 @@ test('intake: coverage counts filled fields', () => {
 test('intake: API route is auth-gated, zod-validated, server-only', () => {
   assert.match(route, /export const runtime = 'nodejs'/)
   assert.match(route, /authenticateProfileRequest/)
-  assert.match(route, /z\.string\(\)\.min\(20\)/)
+  assert.match(route, /notes: z\.string\(\)\.max\(8000\)\.optional\(\)/)
   assert.match(route, /mode: z\.enum/)
   assert.match(route, /chatWithDeepSeek/)
   assert.match(route, /sanitizeIntakeDraft/)

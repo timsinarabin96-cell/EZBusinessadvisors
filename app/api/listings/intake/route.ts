@@ -27,9 +27,9 @@ export const maxDuration = 40
 // =============================================================================
 
 const intakeSchema = z.object({
-  notes: z.string().min(20).max(8000),
+  notes: z.string().max(8000).optional(), // legacy field name — still accepted
   mode: z.enum(['full', 'public']).optional().default('full'),
-  context: z.string().max(4000).optional(), // private fields to draft public copy from
+  context: z.string().max(4000).optional(), // the studio sends the pasted text here
 })
 
 const SYSTEM_FULL = `You are the intake engine for a confidential business brokerage. A broker pastes raw notes about a business (from calls, emails, voicemail transcripts, intake forms, or P&L summaries). Extract a structured listing draft as JSON.
@@ -82,14 +82,20 @@ export async function POST(req: NextRequest) {
     const issue = parsed.error.issues[0]
     // Concierge-specific guidance: tell the broker WHAT to add and WHAT to tap.
     const friendly =
-      issue?.path?.[0] === 'notes' && issue.code === 'too_small'
-        ? '✍️ Add more detail — I need at least 20 characters to build the record. Include industry, location, revenue, and asking price (example: "HVAC company in Harrisburg, $950k revenue, asking $720k"), then tap Build my listing.'
-        : issue?.code === 'too_big'
-          ? 'That input is too long (max 8000 characters). Shorten it to the key facts, then tap Build my listing.'
-          : validationErrorJson(parsed.error).error
+      issue?.code === 'too_big'
+        ? 'That input is too long (max 8000 characters). Shorten it to the key facts, then tap Build my listing.'
+        : validationErrorJson(parsed.error).error
     return NextResponse.json({ ok: false, error: friendly, detail: issue?.message }, { status: 422 })
   }
   const { notes, mode, context } = parsed.data
+  // The studio posts the pasted text as `context`; older clients used `notes`.
+  const rawNotes = (notes || context || '').trim()
+  if (rawNotes.length < 20) {
+    return NextResponse.json(
+      { ok: false, error: '✍️ Add more detail — I need at least 20 characters to build the record. Include industry, location, revenue, and asking price (example: "HVAC company in Harrisburg, $950k revenue, asking $720k"), then tap Build my listing.', detail: 'too_small' },
+      { status: 422 },
+    )
+  }
 
   // Per-tenant AI credentials (sold CRMs bring their own key).
   let tenant = null
@@ -102,7 +108,7 @@ export async function POST(req: NextRequest) {
   const isPublic = mode === 'public'
   const userMessage = isPublic
     ? `PRIVATE RECORD:\n${context || ''}\n\nDraft the anonymous public preview.`
-    : `BROKER NOTES:\n${notes}`
+    : `BROKER NOTES:\n${rawNotes}`
 
   try {
     const result = await chatWithDeepSeek({
