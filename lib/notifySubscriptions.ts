@@ -17,11 +17,16 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { notify } from './email'
+import { createReminder } from './reminders'
 
 // Service-role client for public capture. The key is server-only; this module
 // is never imported by client components.
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+// EZ Business Advisors — default tenant for the public marketplace (matches
+// the agency seed in sql/core_agency_isolation.sql).
+const DEFAULT_AGENCY_ID = '354facdb-cce2-4eb0-a160-8454854e731a'
 const svc =
   SUPABASE_URL && SERVICE_KEY
     ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
@@ -97,7 +102,42 @@ export async function subscribe(input: {
     .select()
     .maybeSingle()
   if (error) return { ok: false, error: error.message }
+
+  // Lead connection (best-effort, never throws): invitation email with a
+  // calendar-booking link + a broker follow-up reminder in the CRM.
+  await connectLead(data as NotifySubscription)
+
   return { ok: true, data: data as NotifySubscription }
+}
+
+/**
+ * Connect a freshly captured buyer: send the invitation email (with the
+ * public booking link) and drop a follow-up reminder for the broker. Fails
+ * silent — capture and alerting must never break on the connection flow.
+ */
+async function connectLead(sub: NotifySubscription): Promise<void> {
+  try {
+    const criteria = sub.criteria || {}
+    const industries = Array.isArray(criteria.industries) ? criteria.industries : []
+    await notify('buyer_invite', sub.email, {
+      name: sub.name || null,
+      industries,
+      maxPrice: criteria.max_price ?? null,
+      bookingUrl: `${APP_URL}/book`,
+    })
+
+    const agencyId = sub.agency_id || DEFAULT_AGENCY_ID
+    const dueAt = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
+    await createReminder({
+      agency_id: agencyId,
+      title: `Follow up — new buyer lead${sub.name ? ` (${sub.name})` : ''}`,
+      notes: `${sub.email} · looking for ${industries.join(', ') || 'a business'}${criteria.max_price ? ` · up to $${Number(criteria.max_price).toLocaleString()}` : ''}`,
+      kind: 'follow_up',
+      due_at: dueAt,
+    })
+  } catch (e) {
+    console.log(`[notify] lead connection skipped: ${(e as Error)?.message}`)
+  }
 }
 
 /** Fetch active subscriptions for an agency (service-role read). */

@@ -60,6 +60,8 @@ export type EmailKind =
   | 'daily_brief'
   | 'portal_invite'
   | 'data_room_change'
+  | 'buyer_invite'
+  | 'booking_confirmed'
   | 'password_reset'
   | 'password_changed'
   | 'email_changed'
@@ -355,6 +357,24 @@ export const emailTemplates = {
     return { subject, html: shell(subject, body, opts.portalUrl ? { label: 'Open deal room', href: opts.portalUrl } : undefined) }
   },
 
+  buyerInvite(opts: { name?: string; bookingUrl?: string; industries?: string[]; maxPrice?: number | null }) {
+    const subject = `You're on the list — let's find your business`
+    const body = `<p>Hi ${esc(opts.name || 'there')},</p>
+      <p>Thanks for telling us what you're looking for${opts.industries?.length ? ` — <strong>${esc(opts.industries.join(', '))}</strong>` : ''}${opts.maxPrice ? ` up to <strong>$${Number(opts.maxPrice).toLocaleString()}</strong>` : ''}.</p>
+      <p>You're now on the list — the moment a matching business goes live, you'll be the first to know.</p>
+      <p>Want to move faster? Book a quick call with a broker and we'll line up off-market opportunities that never hit the public feed.</p>`
+    return { subject, html: shell(subject, body, opts.bookingUrl ? { label: 'Book a call', href: opts.bookingUrl } : undefined) }
+  },
+
+  bookingConfirmed(opts: { name?: string; startsAt?: string; endsAt?: string; title?: string }) {
+    const subject = `Your call is booked — see you there`
+    const body = `<p>Hi ${esc(opts.name || 'there')},</p>
+      <p>Your call is confirmed:</p>
+      <p style="font-size:15px;"><strong>${esc(opts.title || 'Buyer intro call')}</strong><br/>${esc(opts.startsAt || '')}${opts.endsAt ? ` – ${esc(opts.endsAt)}` : ''}</p>
+      <p style="color:#8a8678;font-size:13px;">We'll reach out at the contact details you provided. See you then!</p>`
+    return { subject, html: shell(subject, body) }
+  },
+
   generic(opts: { title: string; message: string }) {
     const subject = opts.title
     return { subject, html: shell(opts.title, `<p>${esc(opts.message)}</p>`) }
@@ -499,6 +519,8 @@ export async function notify(
     case 'daily_brief': built = emailTemplates.dailyBrief(payload); break
     case 'portal_invite': built = emailTemplates.portalInvite(payload); break
     case 'data_room_change': built = emailTemplates.dataRoomChange(payload); break
+    case 'buyer_invite': built = emailTemplates.buyerInvite(payload); break
+    case 'booking_confirmed': built = emailTemplates.bookingConfirmed(payload); break
     case 'password_reset': built = emailTemplates.passwordReset(); break
     case 'password_changed': built = emailTemplates.passwordChanged(payload); break
     case 'email_changed': built = emailTemplates.emailChanged(payload); break

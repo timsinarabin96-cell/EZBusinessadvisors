@@ -101,7 +101,7 @@ export default function BuyerCapturePrompt({ hintIndustry }: { hintIndustry?: st
           <div style={{ textAlign: 'center', padding: '14px 0' }}>
             <div style={{ fontSize: 34, marginBottom: 8 }}>✅</div>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>Matches are live</div>
-            <div style={{ fontSize: 13, color: '#666', marginTop: 6 }}>Every listing now shows your fit score.</div>
+            <div style={{ fontSize: 13, color: '#666', marginTop: 6 }}>Every listing now shows your fit score.{email.trim() ? ' Check your inbox for your invite.' : ''}</div>
           </div>
         ) : (
           <>
@@ -165,7 +165,7 @@ export default function BuyerCapturePrompt({ hintIndustry }: { hintIndustry?: st
             >
               {busy ? 'Saving…' : 'Show my matches →'}
             </button>
-            <div style={{ fontSize: 11, color: '#aaa', textAlign: 'center', marginTop: 10 }}>No spam — we only email when a matching business goes live.</div>
+            <div style={{ fontSize: 11, color: '#aaa', textAlign: 'center', marginTop: 10 }}>No spam — we email your invite + matching listings only.</div>
           </>
         )}
       </div>
