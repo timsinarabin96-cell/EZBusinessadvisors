@@ -7,7 +7,7 @@ const prompts = readFileSync('lib/claude/prompts.ts', 'utf8')
 const context = readFileSync('lib/claude/context.ts', 'utf8')
 const route = readFileSync('app/api/ai/chat/route.ts', 'utf8')
 const copilot = readFileSync('components/listings/ListingCopilot.tsx', 'utf8')
-const wfPage = readFileSync('app/dashboard/listings/[id]/workflow/page.tsx', 'utf8')
+const wfPage = readFileSync('components/studio/AIDealStudio.tsx', 'utf8')
 
 test('listing copilot: agent kind registered', () => {
   assert.match(types, /'listing'/)
@@ -39,7 +39,10 @@ test('listing copilot: chat UI posts to the listing agent with entityId', () => 
   assert.match(copilot, /Why is this listing not publish-ready/)
 })
 
-test('listing copilot: workflow page mounts the copilot rail', () => {
+test('listing copilot: AI Deal Studio mounts the copilot rail (Verify phase)', () => {
   assert.match(wfPage, /ListingCopilot/)
-  assert.match(wfPage, /businessName=\{listing\?\.business_name\}/)
+  assert.match(wfPage, /ListingCopilot listingId=\{listingId\} businessName=\{listing\?\.business_name\}/)
+  // Old standalone workflow page now redirects into the studio.
+  const redirect = readFileSync('app/dashboard/listings/[id]/workflow/page.tsx', 'utf8')
+  assert.match(redirect, /redirect\(`\/dashboard\/studio\?phase=verify/)
 })

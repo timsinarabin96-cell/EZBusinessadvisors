@@ -44,7 +44,7 @@ const SECTIONS: Array<{ id: SectionId; label: string; description: string }> = [
   { id: 'public', label: 'Public Preview', description: 'Anonymous seller-approved marketplace content' },
 ]
 
-export default function IntelligentListingForm({ listingId: editListingId }: { listingId?: string }) {
+export default function IntelligentListingForm({ listingId: editListingId, onCreated, onPhaseDone }: { listingId?: string; onCreated?: (listingId: string) => void; onPhaseDone?: () => void }) {
   const router = useRouter()
   const toast = useToast()
   const [section, setSection] = useState<SectionId>('identity')
@@ -223,6 +223,12 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
       }
       await startWorkflow(listingId)
       toast(editListingId ? 'Listing updated — continuing workflow' : 'AI-ready listing created — broker workflow started', 'success')
+      // AI Deal Studio: stay in the same canvas — advance to Verify in-place.
+      if (onCreated) {
+        onCreated(listingId)
+        onPhaseDone?.()
+        return
+      }
       router.push(`/dashboard/listings/${listingId}/workflow`)
     } catch (error) {
       toast(error instanceof Error ? error.message : 'Failed to save listing', 'error')
@@ -235,6 +241,12 @@ export default function IntelligentListingForm({ listingId: editListingId }: { l
     setMatched(null)
     if (goToWorkflow) {
       try { await startWorkflow(createdListingId) } catch {}
+      // AI Deal Studio: advance in-place when hosted.
+      if (onCreated) {
+        onCreated(createdListingId)
+        onPhaseDone?.()
+        return
+      }
       router.push(`/dashboard/listings/${createdListingId}/workflow`)
       return
     }

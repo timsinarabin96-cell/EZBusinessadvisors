@@ -1,22 +1,14 @@
-/**
- * Concord Deal Platform
- * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
- * Proprietary & confidential. No copying, distribution, or modification without
- * prior written permission. See LICENSE for full terms.
- */
-
 import AppShell from '@/components/layout/AppShell'
-import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
-import { ToastProvider } from '@/components/ui/Toast'
+import AIDealStudio from '@/components/studio/AIDealStudio'
 
+// New listings open inside the AI Deal Studio (Capture phase) — one continuous
+// canvas from here through Verify → Go Live → Sell & Close.
 export default function NewListingPage() {
   return (
-    <AppShell active="Listings">
-      <ToastProvider>
-        <div style={{ maxWidth: 1380, margin: '0 auto' }}>
-          <IntelligentListingForm />
-        </div>
-      </ToastProvider>
+    <AppShell active="Deal Studio">
+      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 18px 60px' }}>
+        <AIDealStudio />
+      </div>
     </AppShell>
   )
 }

@@ -6,7 +6,7 @@ const core = readFileSync('lib/listingReadinessCore.ts', 'utf8')
 const lib = readFileSync('lib/listingReadiness.ts', 'utf8')
 const panel = readFileSync('components/listings/ListingReadinessPanel.tsx', 'utf8')
 const pipeline = readFileSync('lib/listingPipeline.ts', 'utf8')
-const wfPage = readFileSync('app/dashboard/listings/[id]/workflow/page.tsx', 'utf8')
+const wfPage = readFileSync('components/studio/AIDealStudio.tsx', 'utf8')
 const step8 = readFileSync('components/listings/Step8ListBusiness.tsx', 'utf8')
 
 // Import the pure scorer (dependency-free core — no path aliases).
@@ -100,10 +100,11 @@ test('readiness: panel renders score, blockers and step checklist', () => {
   assert.match(panel, /⟳ Refresh/)
 })
 
-test('readiness: workflow page mounts the panel and auto-advances on step completion', () => {
+test('readiness: AI Deal Studio mounts the readiness panel + auto-advance (Verify phase)', () => {
   assert.match(wfPage, /ListingReadinessPanel/)
-  assert.match(wfPage, /autoAdvance/)
-  assert.match(wfPage, /toast\(notes\.join/)
+  assert.match(wfPage, /ListingReadinessPanel listingId=\{listingId\}/)
+  assert.match(wfPage, /autoAdvance\(listingId, activeStep\)/)
+  assert.match(wfPage, /toast\(notes\.join\(' \u00b7 '\)/)
 })
 
 test('readiness: step 8 gates publish on readiness', () => {
