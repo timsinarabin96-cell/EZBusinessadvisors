@@ -22,6 +22,10 @@
 //
 // To enable real delivery set these env vars:
 //   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, EMAIL_ENABLED=true
+//   — or — RESEND_API_KEY (+ RESEND_FROM)
+//   — or — EMAIL_GRAPH_CLIENT_ID, EMAIL_GRAPH_TENANT, EMAIL_GRAPH_REFRESH_TOKEN,
+//          EMAIL_GRAPH_MAILBOX (Microsoft Graph send-as via delegated Mail.Send)
+// Delivery order: Resend → SMTP → Microsoft Graph → queue for retry.
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
@@ -427,6 +431,57 @@ async function deliverViaResend(to: string, subject: string, html: string): Prom
   }
 }
 
+/**
+ * Send via Microsoft Graph (delegated Mail.Send) — refresh-token flow.
+ * Refreshes the access token on every call (cheap at platform volumes) and
+ * sends as the configured mailbox. Used when no SMTP/Resend is configured.
+ */
+async function deliverViaGraph(to: string, subject: string, html: string): Promise<boolean> {
+  const clientId = process.env.EMAIL_GRAPH_CLIENT_ID
+  const tenant = process.env.EMAIL_GRAPH_TENANT || 'common'
+  const refreshToken = process.env.EMAIL_GRAPH_REFRESH_TOKEN
+  const mailbox = process.env.EMAIL_GRAPH_MAILBOX
+  if (!clientId || !refreshToken || !mailbox) return false
+  try {
+    // 1) Exchange the refresh token for a fresh access token.
+    const tokRes = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        scope: 'https://graph.microsoft.com/Mail.Send offline_access',
+      }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    const tok = await tokRes.json()
+    const accessToken = tok?.access_token
+    if (!accessToken) return false
+
+    // 2) Send as the configured mailbox.
+    const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/sendMail`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        message: {
+          subject,
+          body: { contentType: 'HTML', content: html },
+          toRecipients: [{ emailAddress: { address: to } }],
+        },
+        saveToSentItems: true,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 const toText = (html: string): string =>
   html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 
@@ -461,14 +516,17 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
   const { to, subject, html, kind = 'generic', meta } = opts
   if (!to) return { ok: false, queued: false, reason: 'no recipient' }
 
-  const canDeliver = EMAIL_ENABLED && (!!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY)
+  const canDeliver = EMAIL_ENABLED && (!!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY || !!process.env.EMAIL_GRAPH_REFRESH_TOKEN)
 
-  // Attempt real delivery when configured (Resend first — easiest, then SMTP).
+  // Attempt real delivery when configured (Resend first — easiest, then SMTP,
+  // then Microsoft Graph as the business-mailbox sender).
   if (canDeliver) {
     const viaResend = await deliverViaResend(to, subject, html)
     if (viaResend) return { ok: true, queued: false }
     const delivered = await deliverViaSmtp(to, subject, html)
     if (delivered) return { ok: true, queued: false }
+    const viaGraph = await deliverViaGraph(to, subject, html)
+    if (viaGraph) return { ok: true, queued: false }
   }
 
   // Queue a record for history + retry.

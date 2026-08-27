@@ -46,3 +46,18 @@ test('buyer capture popup tells the visitor to expect the invite', () => {
   assert.match(src, /Check your inbox for your invite/)
   assert.match(src, /we email your invite \+ matching listings only/)
 })
+
+test('email service can deliver via Microsoft Graph (business mailbox sender)', () => {
+  const src = readFileSync('lib/email.ts', 'utf8')
+  assert.match(src, /deliverViaGraph/)
+  assert.match(src, /EMAIL_GRAPH_REFRESH_TOKEN/)
+  assert.match(src, /Mail.Send offline_access/)
+  assert.match(src, /sendMail/)
+  assert.match(src, /saveToSentItems: true/)
+})
+
+test('buyer capture popup offers a book-a-call CTA after capture', () => {
+  const src = readFileSync('components/public/BuyerCapturePrompt.tsx', 'utf8')
+  assert.match(src, /\/book/)
+  assert.match(src, /Book a call with a broker/)
+})

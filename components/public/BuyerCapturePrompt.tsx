@@ -102,6 +102,13 @@ export default function BuyerCapturePrompt({ hintIndustry }: { hintIndustry?: st
             <div style={{ fontSize: 34, marginBottom: 8 }}>✅</div>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>Matches are live</div>
             <div style={{ fontSize: 13, color: '#666', marginTop: 6 }}>Every listing now shows your fit score.{email.trim() ? ' Check your inbox for your invite.' : ''}</div>
+            <a
+              href="/book"
+              style={{ display: 'inline-block', marginTop: 16, padding: '12px 22px', borderRadius: 10, background: '#1a1a2e', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 14, fontFamily: 'Georgia, serif' }}
+            >
+              📅 Book a call with a broker
+            </a>
+            <div style={{ fontSize: 11, color: '#aaa', marginTop: 10 }}>Free, no obligation — 30 minutes.</div>
           </div>
         ) : (
           <>
