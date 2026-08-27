@@ -488,6 +488,16 @@ h1, h2, h3, h4 {
   .listing-studio-grid > aside:last-child { display: none !important; }
 }
 
+/* Listing studio grid lives inside the AI Deal Studio's center column —
+   collapse on the CONTAINER width, not the viewport. Without this the fixed
+   230px+280px side columns overflow a narrow canvas and the right rail
+   intercepts clicks on the submit button. */
+@container (max-width: 1180px) {
+  .listing-studio-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .listing-studio-grid > aside:first-child { position: static !important; }
+  .listing-studio-grid > aside:last-child { display: none !important; }
+}
+
 @media (max-width: 760px) {
   .listing-studio-grid { grid-template-columns: 1fr !important; }
   .listing-studio-grid > aside:first-child { position: static !important; }

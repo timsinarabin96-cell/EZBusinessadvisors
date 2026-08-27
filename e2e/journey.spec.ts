@@ -63,9 +63,10 @@ test.describe('full journey', () => {
       await page.waitForTimeout(750)
     }
 
-    // The draft lands in the guided workflow.
-    await expect(page).toHaveURL(/\/dashboard\/listings\/[0-9a-f-]+\/workflow/, { timeout: 60_000 })
-    const listingId = new URL(page.url()).pathname.split('/')[3]
+    // The draft stays in the AI Deal Studio (single canvas) — the listing id
+    // rides in the ?listing= query param, and the studio stays on Capture.
+    await expect(page).toHaveURL(/\/dashboard\/studio\?.*listing=[0-9a-f-]+/, { timeout: 60_000 })
+    const listingId = new URL(page.url()).searchParams.get('listing')
     expect(listingId).toBeTruthy()
 
     // 3. Publish through the real API (force bypasses readiness for thin test
