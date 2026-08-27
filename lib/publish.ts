@@ -284,14 +284,18 @@ async function syncPublicListingRow(listing: any): Promise<void> {
   const row = {
     listing_id: listing.id,
     slug,
-    public_title: listing.headline || listing.business_name || null,
-    public_summary: listing.description ? String(listing.description).slice(0, 600) : null,
-    public_highlights: Array.isArray(listing.public_highlights) ? listing.public_highlights : [],
+    public_title: listing.ai_metadata?.public_title || listing.headline || listing.business_name || null,
+    public_summary: listing.ai_metadata?.public_summary || (listing.description ? String(listing.description).slice(0, 600) : null),
+    public_highlights: Array.isArray(listing.ai_metadata?.public_highlights)
+      ? listing.ai_metadata.public_highlights
+      : Array.isArray(listing.public_highlights)
+        ? listing.public_highlights
+        : [],
     gallery_json: Array.isArray(listing.image_urls) ? listing.image_urls : [],
     published: true,
     published_at: now,
     is_confidential: !isFull,
-    show_financials: isFull,
+    show_financials: isFull || Boolean(listing.ai_metadata?.show_financials),
     location_exposure: 'general',
     seller_approved_at: now,
     seller_approval_reference: 'auto-publish',
