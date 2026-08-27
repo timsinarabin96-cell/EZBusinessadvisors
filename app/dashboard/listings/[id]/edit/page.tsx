@@ -7,34 +7,31 @@
 
 'use client'
 
-// ---------------------------------------------------------------------------
-// /dashboard/listings/[id]/edit — Edit a listing in the AI Listing Studio.
-// Same auto-saving intelligent form used for new listings; loads the existing
-// record into edit mode so there is exactly ONE editor everywhere.
-// ---------------------------------------------------------------------------
+import { useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 
-import AppShell from '@/components/layout/AppShell'
-import { ToastProvider } from '@/components/ui/Toast'
-import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
-import FeaturedSlotCard from '@/components/listing/FeaturedSlotCard'
-import { useParams } from 'next/navigation'
+// =============================================================================
+// /dashboard/listings/[id]/edit — legacy route. Everything now lives in the
+// AI Deal Studio (Verify phase for existing records). Redirect in-place so
+// old bookmarks and links never land on the outdated form.
+// =============================================================================
 
-export default function EditListingPage() {
-  const params = useParams()
-  const listingId = String(params.id || '')
+export default function LegacyEditRedirect() {
+  const router = useRouter()
+  const params = useParams<{ id: string }>()
+
+  useEffect(() => {
+    const id = params?.id
+    if (id) {
+      router.replace(`/dashboard/studio?phase=verify&listing=${encodeURIComponent(id)}`)
+    } else {
+      router.replace('/dashboard/studio')
+    }
+  }, [params, router])
+
   return (
-    <AppShell active="Listings">
-      <ToastProvider>
-        <div style={{ maxWidth: 1380, margin: '0 auto' }}>
-          {/* Studio editor + featured-slot promotion rail */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 20, alignItems: 'start' }}>
-            <IntelligentListingForm listingId={listingId} />
-            <div style={{ position: 'sticky', top: 16 }}>
-              <FeaturedSlotCard listingId={listingId} />
-            </div>
-          </div>
-        </div>
-      </ToastProvider>
-    </AppShell>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', color: 'var(--muted)', fontSize: 14 }}>
+      Opening in the AI Deal Studio…
+    </div>
   )
 }

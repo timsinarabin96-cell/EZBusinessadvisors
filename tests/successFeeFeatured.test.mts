@@ -56,9 +56,10 @@ test('stripe webhook confirms featured slots', () => {
   assert.match(route, /confirmFeaturedSlot/)
 })
 
-test('featured purchase UI exists on the listing edit page', () => {
-  const page = readFileSync('app/dashboard/listings/[id]/edit/page.tsx', 'utf8')
-  assert.match(page, /FeaturedSlotCard/)
+test('featured purchase UI exists in the publish flow (studio)', () => {
+  const panel = readFileSync('components/listing/PublishPanel.tsx', 'utf8')
+  assert.match(panel, /Featured-listing upsell/)
+  assert.match(panel, /Boost with Featured Placement/)
   const card = readFileSync('components/listing/FeaturedSlotCard.tsx', 'utf8')
   assert.match(card, /Feature this listing/)
   assert.match(card, /FEATURED_SLOT_OPTIONS/)
