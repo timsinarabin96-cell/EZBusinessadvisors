@@ -40,6 +40,14 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
   const [exporting, setExporting] = useState(false)
   const [signTarget, setSignTarget] = useState<{ sigId: string; partyName: string } | null>(null)
   const [error, setError] = useState('')
+  // Seller details collected BEFORE generating the pack so the docs render
+  // filled instead of showing [seller_name] / [commission_rate] placeholders.
+  const [seller, setSeller] = useState({ name: '', email: '', phone: '', address: '', commissionRate: 10, termMonths: 12, exclusive: 'Yes' })
+  const [showSellerForm, setShowSellerForm] = useState(false)
+  // Buyer details — collected before generating the buyer pack so the NDA,
+  // Buyer Profile, and Purchase Agreement render filled instead of placeholders.
+  const [buyer, setBuyer] = useState({ name: '', email: '', phone: '', address: '' })
+  const [showBuyerForm, setShowBuyerForm] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -75,40 +83,95 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
 
   const genPack = async (pack: 'seller' | 'buyer') => {
     if (!listing) return
+    // Seller pack needs the seller's contact details upfront — never generate
+    // a pack that renders as [seller_name] / [commission_rate] placeholders.
+    if (pack === 'seller') {
+      if (!seller.name.trim() || !seller.email.trim()) {
+        setShowSellerForm(true)
+        setError('Add the seller\'s name and email first — the legal docs need them to render correctly.')
+        return
+      }
+    }
+    // Buyer pack needs the buyer's name + email for the NDA / profile / purchase agreement.
+    if (pack === 'buyer') {
+      if (!buyer.name.trim() || !buyer.email.trim()) {
+        setShowBuyerForm(true)
+        setError('Add the buyer\'s name and email first — the legal docs need them to render correctly.')
+        return
+      }
+    }
     setBusy(true)
     setError('')
     const names = pack === 'seller' ? SELLER_TEMPLATES : BUYER_TEMPLATES
+    // Property Addendum only belongs in the pack when real estate is included.
+    const filtered = pack === 'seller' && !listing.real_estate_included
+      ? names.filter((n) => !n.toLowerCase().includes('property addendum'))
+      : names
     let created = 0
-    for (const tplName of names) {
+    for (const tplName of filtered) {
       const tpl = templateByName(tplName)
       if (!tpl) continue
       const existing = docs.some((d) => d.template_id === tpl.id)
       if (existing) continue
 
+      const listingDate = new Date().toISOString().slice(0, 10)
+      const termMonths = Number(seller.termMonths) || 12
+      const exclusive = seller.exclusive === 'No' ? 'non-exclusive' : 'exclusive'
       const filled: Record<string, unknown> = {
         business_name: listing.business_name || '',
         asking_price: listing.asking_price ?? '',
+        listing_price: listing.asking_price ?? '',
         agency_name: me?.full_name || '',
         effective_date: new Date().toISOString().slice(0, 10),
-        listing_date: new Date().toISOString().slice(0, 10),
+        listing_date: listingDate,
         agreement_year: String(new Date().getFullYear()),
         resolution_date: new Date().toISOString().slice(0, 10),
         checklist_date: new Date().toISOString().slice(0, 10),
         profile_date: new Date().toISOString().slice(0, 10),
         addendum_date: new Date().toISOString().slice(0, 10),
+        // Buyer details (collected above) — fill the buyer-pack templates.
+        buyer_name: buyer.name,
+        prospect_name: buyer.name,
+        buyer_email: buyer.email,
+        email: buyer.email,
+        phone: buyer.phone || '',
+        cell: buyer.phone || '',
+        address: buyer.address || '',
+        // Seller details (collected above) — the fields the PDF was missing.
+        seller_name: seller.name,
+        seller_entity: seller.name,
+        seller_email: seller.email,
+        seller_phone: seller.phone,
+        seller_address: seller.address,
+        commission_rate: seller.commissionRate ?? 10,
+        term_months: termMonths,
+        exclusive,
+        expiry_clause: `${termMonths} months after the Listing Date`,
+        property_included: listing.real_estate_included ? 'Yes — see Property Addendum' : 'No',
+        property_address: listing.property_address || '',
+        property_value: listing.property_value ?? '',
+        sale_type: 'Asset + Real Estate',
       }
       // Fill template defaults for other fields.
       for (const f of tpl.fields) {
         if (filled[f.key] === undefined) filled[f.key] = f.type === 'select' ? (f.options?.[0] || '') : ''
       }
 
-      const parties: FilledParty[] = tpl.parties.map((p) => ({
-        key: p.key,
-        label: p.label,
-        role: p.role,
-        name: p.role === 'agent' ? (me?.full_name || me?.email || null) : null,
-        email: p.role === 'agent' ? (me?.email || null) : null,
-      }))
+      const parties: FilledParty[] = tpl.parties.map((p) => {
+        if (p.role === 'agent') {
+          return { key: p.key, label: p.label, role: p.role, name: me?.full_name || me?.email || null, email: me?.email || null }
+        }
+        if (pack === 'seller' && p.role === 'seller') {
+          // First seller slot gets the collected contact; extra slots stay open.
+          const isFirst = p.key === 'seller1' || p.key === 'member1' || p.key === 'officer1'
+          return {
+            key: p.key, label: p.label, role: p.role,
+            name: isFirst ? seller.name || null : null,
+            email: isFirst ? seller.email || null : null,
+          }
+        }
+        return { key: p.key, label: p.label, role: p.role, name: null, email: null }
+      })
 
       try {
         await createDocument({
@@ -123,8 +186,6 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         // Auto-set the listing expiration from the Listing Agreement's
         // listing date + term months — agents track expiry with zero extra steps.
         if (tpl.name.toLowerCase().includes('listing agreement')) {
-          const listingDate = String(filled.listing_date || '')
-          const termMonths = Number(filled.term_months || 0)
           if (listingDate && termMonths > 0) {
             const expiresAt = new Date(new Date(listingDate + 'T12:00:00').getTime() + termMonths * 30.44 * 86400000).toISOString().slice(0, 10)
             const { supabase } = await import('@/lib/supabase/client')
@@ -212,6 +273,98 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
       </div>
 
       {error && <div style={{ padding: '10px 14px', borderRadius: 8, background: '#fdecea', color: '#b91c1c', fontSize: 13 }}>{error}</div>}
+
+      {/* Seller details — collected before generating the seller pack so the
+          legal docs render filled (no [seller_name] placeholders). */}
+      <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, overflow: 'hidden' }}>
+        <div
+          style={{ padding: '12px 18px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', background: showSellerForm ? '#faf9f4' : '#fff' }}
+          onClick={() => setShowSellerForm((s) => !s)}
+        >
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>🧑 Seller details</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+              {seller.name && seller.email
+                ? `${seller.name} · ${seller.email}${seller.phone ? ' · ' + seller.phone : ''}`
+                : 'Add seller name / email / phone / address — used to fill the legal docs and signature requests'}
+            </div>
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{showSellerForm ? '▾ Hide' : '▸ Edit'}</span>
+        </div>
+        {showSellerForm && (
+          <div style={{ padding: '16px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Seller name(s)
+              <input className="input" value={seller.name} onChange={(e) => setSeller({ ...seller, name: e.target.value })} placeholder="e.g. John Smith & Jane Smith" style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Seller email
+              <input className="input" value={seller.email} onChange={(e) => setSeller({ ...seller, email: e.target.value })} placeholder="seller@email.com" style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Seller phone
+              <input className="input" value={seller.phone} onChange={(e) => setSeller({ ...seller, phone: e.target.value })} placeholder="(555) 123-4567" style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Seller address
+              <input className="input" value={seller.address} onChange={(e) => setSeller({ ...seller, address: e.target.value })} placeholder="123 Main St, Harrisburg, PA" style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Commission rate (%)
+              <input className="input" type="number" value={seller.commissionRate} onChange={(e) => setSeller({ ...seller, commissionRate: Number(e.target.value) })} style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Term (months)
+              <input className="input" type="number" value={seller.termMonths} onChange={(e) => setSeller({ ...seller, termMonths: Number(e.target.value) })} style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Exclusive listing?
+              <select className="input" value={seller.exclusive} onChange={(e) => setSeller({ ...seller, exclusive: e.target.value })} style={{ fontSize: 13 }}>
+                <option value="Yes">Yes — exclusive</option>
+                <option value="No">No — non-exclusive</option>
+              </select>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Buyer details — collected before generating the buyer pack. */}
+      <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, overflow: 'hidden' }}>
+        <div
+          style={{ padding: '12px 18px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', background: showBuyerForm ? '#faf9f4' : '#fff' }}
+          onClick={() => setShowBuyerForm((s) => !s)}
+        >
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>🤝 Buyer details</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+              {buyer.name && buyer.email
+                ? `${buyer.name} · ${buyer.email}${buyer.phone ? ' · ' + buyer.phone : ''}`
+                : 'Add buyer name / email / phone / address — used to fill the NDA, buyer profile, and purchase agreement'}
+            </div>
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>{showBuyerForm ? '▾ Hide' : '▸ Edit'}</span>
+        </div>
+        {showBuyerForm && (
+          <div style={{ padding: '16px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Buyer name
+              <input className="input" value={buyer.name} onChange={(e) => setBuyer({ ...buyer, name: e.target.value })} placeholder="e.g. John Smith" style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Buyer email
+              <input className="input" value={buyer.email} onChange={(e) => setBuyer({ ...buyer, email: e.target.value })} placeholder="buyer@email.com" style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Buyer phone
+              <input className="input" value={buyer.phone} onChange={(e) => setBuyer({ ...buyer, phone: e.target.value })} placeholder="(555) 123-4567" style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Buyer address
+              <input className="input" value={buyer.address} onChange={(e) => setBuyer({ ...buyer, address: e.target.value })} placeholder="123 Main St, Harrisburg, PA" style={{ fontSize: 13 }} />
+            </label>
+          </div>
+        )}
+      </div>
 
       {/* Seller pack */}
       <PackSection

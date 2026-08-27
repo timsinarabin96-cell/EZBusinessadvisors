@@ -226,9 +226,12 @@ async function logAction(
 
 export function renderTemplateBody(body: string | null, filled: Record<string, unknown>): string {
   if (!body) return ''
-  return body.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key: string) => {
+  const rendered = body.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key: string) => {
     const v = filled[key]
     if (v == null || v === '') return `[${key}]`
     return String(v)
   })
+  // Safety net: any leftover {{...}} (e.g. a raw JS expression pasted into a
+  // template body) renders as its first identifier instead of raw code.
+  return rendered.replace(/\{\{\s*([^}\s]+)[^}]*\}\}/g, (_, key: string) => String(filled[key] ?? key))
 }

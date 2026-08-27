@@ -70,7 +70,49 @@ const TEMPLATES = [
       { key: 'seller3', label: 'Owner 3 (if any)', role: 'seller' },
       { key: 'seller4', label: 'Owner 4 (if any)', role: 'seller' },
     ],
-    body_template: `MARKETING AGREEMENT\n\nEffective Date: {{effective_date}} · Listing Date: {{listing_date}}\n\nThis Marketing Agreement ("Agreement") is entered into by and between {{agency_name}} ("Broker") and {{seller_entity}} ("Seller") for the {{exclusive.toLowerCase() === "yes" ? "exclusive" : "non-exclusive"}} right to market and sell {{business_name}} (a {{entity_type}}).\n\nAsking Price: {{asking_price}}\nCommission Rate: {{commission_rate}}%\nTerm: {{term_months}} months\nReal Property Included: {{property_included}}\n\nEach Owner executing below confirms their authority to bind the Seller and agrees to the terms of this Agreement. If more than four owners exist, additional signature pages are attached.\n\nIN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date in the year {{agreement_year}}.\n\n${PA_DISCLOSURE}`,
+        body_template: `MARKETING AGREEMENT
+
+Effective Date: {{effective_date}} · Listing Date: {{listing_date}}
+
+THIS MARKETING AGREEMENT ("Agreement") is made and entered into as of the Effective Date set forth above, by and between {{agency_name}} ("Broker") and {{seller_entity}} ("Seller"), for the {{exclusive}} right to market and sell the Business described below. The parties agree as follows:
+
+1. ENGAGEMENT. Seller engages Broker as Seller's broker and advisor, on an {{exclusive}} basis, to market, advertise, and solicit buyers for the sale of {{business_name}} (the "Business"), a {{entity_type}}.
+
+2. ASKING PRICE. The initial asking price for the Business shall be \${{asking_price}} (the "Asking Price"). Broker shall not advertise a price other than the Asking Price without Seller's prior written consent.
+
+3. COMMISSION. In consideration of Broker's services, Seller agrees to pay Broker a commission equal to {{commission_rate}}% of the total consideration received for the sale of the Business (including cash, notes, assumed liabilities, and any other consideration), payable at closing. Commission shall be deemed earned if, during the Term or any extension, Broker produces a ready, willing, and able buyer, or the Business is sold, transferred, or leased to any party introduced by Broker or any other party. If Seller sells the Business within {{term_months}} months after expiration of this Agreement to a buyer with whom Broker had substantive negotiations during the Term, the commission shall nevertheless be due and payable ("Protection Period").
+
+4. TERM. This Agreement shall commence on the Listing Date and continue for {{term_months}} months (the "Term"), unless earlier terminated in writing by mutual consent. Expiration: {{expiry_clause}}.
+
+5. AUTHORITY OF BROKER. Seller authorizes Broker to: (a) advertise the Business in any media Broker deems appropriate; (b) show the Business to prospective buyers; (c) provide financial and operational information to qualified buyers who have executed a confidentiality agreement; and (d) place a "for sale" sign or listing on the premises with Seller's consent.
+
+6. SELLER'S REPRESENTATIONS. Seller represents and warrants that: (a) Seller owns the Business and has full authority to sell it; (b) all financial statements and information provided to Broker are true and accurate; (c) there are no undisclosed liens, judgments, or encumbrances against the Business; (d) Seller will cooperate in good faith with Broker's marketing efforts; and (e) Seller will promptly refer all inquiries regarding the sale of the Business to Broker.
+
+7. ACCESS AND COOPERATION. Seller shall provide Broker and qualified buyers with reasonable access to the Business premises, books, records, and personnel during normal business hours, and shall cooperate with reasonable buyer due diligence.
+
+8. CONFIDENTIALITY. Both parties shall keep the terms of this Agreement and all non-public information concerning the other party confidential, except as required to market the Business or by law.
+
+9. NO OTHER BROKER. Seller agrees not to list the Business with, or authorize any other broker to sell the Business during the Term, and to refer all inquiries to Broker.
+
+10. INDEPENDENT CONTRACTOR. Broker is an independent contractor, not an employee, joint venturer, or agent of Seller except as expressly provided herein. Broker is not authorized to bind Seller to any contract without Seller's written consent.
+
+11. PROPERTY. Real property, if any, is included in the sale only as set forth in the Property Addendum, if attached. {{property_included}}.
+
+12. GOVERNING LAW. This Agreement shall be governed by and construed in accordance with the laws of the Commonwealth of Pennsylvania, and the parties consent to exclusive jurisdiction and venue in Dauphin County, Pennsylvania.
+
+13. ENTIRE AGREEMENT. This Agreement constitutes the entire agreement between the parties and supersedes all prior discussions, understandings, and agreements. It may be amended only in writing signed by both parties.
+
+14. NOTICES. All notices under this Agreement shall be in writing and delivered personally or by email to the parties at their addresses set forth above.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date in the year {{agreement_year}}.
+
+BROKER: {{agency_name}}
+By: ____________________________  Date: ____________
+
+SELLER:
+Each Owner executing below confirms their authority to bind the Seller and agrees to the terms of this Agreement. If more than four owners exist, additional signature pages are attached.
+
+${PA_DISCLOSURE}`,
   },
   {
     id: 'd0c00000-0007-4000-8000-000000000007',
@@ -93,7 +135,39 @@ const TEMPLATES = [
       { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
       { key: 'seller3', label: 'Owner 3 (if any)', role: 'seller' },
     ],
-    body_template: `LISTING AGREEMENT\n\nEffective Date: {{effective_date}} · Listing Date: {{listing_date}}\n\nSeller: {{seller_name}}\nBusiness: {{business_name}}\nListing Price: {{listing_price}}\nCommission Rate: {{commission_rate}}%\nBroker: {{agency_name}}\nYear: {{agreement_year}}\n\nEach Owner executing below authorizes the listing and sale of {{business_name}}. This listing expires {{term_months ? term_months + ' months after the Listing Date' : 'per the agreed term'}} unless renewed in writing.\n\n${PA_DISCLOSURE}`,
+    body_template: `LISTING AGREEMENT
+
+Effective Date: {{effective_date}} · Listing Date: {{listing_date}}
+
+THIS LISTING AGREEMENT (\"Agreement\") is entered into as of the Effective Date set forth above, by and between {{agency_name}} (\"Broker\") and the Seller(s) identified below (\"Seller\"), relating to the listing and sale of {{business_name}} (the \"Business\"). The parties agree as follows:
+
+1. APPOINTMENT. Seller hereby appoints Broker as Seller's exclusive agent for the listing and sale of the Business, and Broker accepts such appointment.
+
+2. LISTING PRICE. The initial listing price for the Business shall be \${{listing_price}} (the \"Listing Price\"). Broker shall not market the Business above or below the Listing Price without Seller's prior written consent.
+
+3. COMMISSION. Seller shall pay Broker a commission of {{commission_rate}}% of the gross selling price (defined as the total consideration paid for the Business, including cash, notes, assumed debt, and other value), earned and payable at closing. The commission shall be earned if the Business is sold, or a binding agreement to sell is executed, during the Term of this Agreement, or during the Protection Period set forth in Section 4, to any buyer. If the transaction does not close due to Seller's breach, default, or refusal to proceed, the commission shall nevertheless be due and payable.
+
+4. TERM AND PROTECTION. This Agreement shall remain in effect for {{term_months}} months from the Listing Date (the \"Term\"). Expiration: {{expiry_clause}}. For a period of {{term_months}} months following expiration (the \"Protection Period\"), if the Business is sold to any person or entity with whom Broker or Seller had substantive negotiations during the Term, Seller shall pay Broker the commission set forth in Section 3.
+
+5. BROKER'S AUTHORITY. Broker is authorized to: (a) advertise and market the Business; (b) distribute information to prospective buyers subject to confidentiality agreements; (c) qualify and pre-screen buyers; (d) coordinate showings and site visits; and (e) negotiate on Seller's behalf, subject to Seller's written approval of price and material terms.
+
+6. SELLER'S OBLIGATIONS. Seller shall: (a) provide accurate financial statements and business records; (b) make the premises and records available for reasonable inspection; (c) refer all buyer inquiries to Broker; (d) not negotiate with any prospective buyer without Broker's involvement; and (e) keep Broker informed of any material changes in the Business.
+
+7. REPRESENTATIONS. Seller represents and warrants that Seller has the legal right and authority to sell the Business, that the Business is free of undisclosed liens and encumbrances, and that all information provided to Broker is true, accurate, and complete in all material respects.
+
+8. GOVERNING LAW; VENUE. This Agreement shall be governed by the laws of the Commonwealth of Pennsylvania. Venue shall lie exclusively in Dauphin County, Pennsylvania.
+
+9. ENTIRE AGREEMENT. This Agreement contains the entire understanding of the parties and may only be amended in writing signed by both parties.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the year {{agreement_year}}.
+
+BROKER: {{agency_name}}
+By: ____________________________  Date: ____________
+
+SELLER(S):
+Each Owner executing below authorizes the listing and sale of {{business_name}}.
+
+${PA_DISCLOSURE}`,
   },
   {
     id: 'd0c00000-0002-4000-8000-000000000002',
@@ -215,7 +289,29 @@ ${PA_DISCLOSURE}`,
       { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
       { key: 'buyer', label: 'Buyer', role: 'buyer' },
     ],
-    body_template: `PROPERTY ADDENDUM\n\nBusiness: {{business_name}}\nProperty: {{property_address}}\nProperty Value: {{property_value}}\nSale Type: {{sale_type}}\n\nThis addendum confirms the real property at the above address is included in the sale of {{business_name}}. Broker acts as transaction intermediary only and is not a real estate broker or agent; the parties should engage licensed real estate counsel regarding the property transfer.\n\nDate: {{addendum_date}}\n\n${PA_DISCLOSURE}`,
+    body_template: `PROPERTY ADDENDUM
+
+Business: {{business_name}}
+Property: {{property_address}}
+Property Value: {{property_value}}
+Sale Type: {{sale_type}}
+Date: {{addendum_date}}
+
+THIS PROPERTY ADDENDUM (\"Addendum\") is attached to and made a part of the Marketing Agreement and/or Listing Agreement between the Seller and Broker, and confirms the following:
+
+1. INCLUSION OF REAL PROPERTY. The real property located at {{property_address}} (the \"Property\") is included in the sale of {{business_name}} as a {{sale_type}} transaction. The agreed value attributed to the Property for purposes of the sale is \${{property_value}}.
+
+2. TRANSFER. The Property shall be conveyed by a deed or other instrument of transfer at closing, subject to any existing mortgages, liens, easements, and encumbrances of record.
+
+3. BROKER NOT A REAL ESTATE BROKER. Broker acts as a business broker and transaction intermediary only and is not a real estate broker or real estate agent. The parties are advised to engage licensed real estate counsel to review the property transfer documents.
+
+4. PROPERTY CONDITION. The Property is sold in its present \"as-is\" condition, and Seller makes no warranty as to its condition except as expressly set forth in the purchase agreement for the Property.
+
+5. GOVERNING LAW. This Addendum shall be governed by the laws of the Commonwealth of Pennsylvania, and venue shall lie exclusively in Dauphin County, Pennsylvania.
+
+IN WITNESS WHEREOF, the parties have executed this Addendum as of the date set forth above.
+
+${PA_DISCLOSURE}`,
   },
   // -------------------------------------------------------------------------
   // BUYER PACK
@@ -425,7 +521,40 @@ ${PA_DISCLOSURE}`,
       { key: 'seller2', label: 'Owner 2 (if any)', role: 'seller' },
       { key: 'buyer', label: 'Buyer', role: 'buyer' },
     ],
-    body_template: `PURCHASE AGREEMENT\n\nBusiness: {{business_name}}\nPurchase Price: {{purchase_price}}\nTarget Closing: {{closing_date}}\n\nBuyer: {{buyer_name}}\nSeller(s): {{seller_name}}\n\nEach Seller executing below confirms their authority to sell. Buyer confirms financial capacity.\n\n${PA_DISCLOSURE}`,
+    body_template: `PURCHASE AGREEMENT
+
+Business: {{business_name}}
+Purchase Price: \${{purchase_price}}
+Target Closing: {{closing_date}}
+
+THIS PURCHASE AGREEMENT (\"Agreement\") is entered into as of {{closing_date}}, by and between the Seller(s) identified below (\"Seller\") and {{buyer_name}} (\"Buyer\"), for the purchase and sale of {{business_name}} (the \"Business\"). The parties agree as follows:
+
+1. PURCHASE AND SALE. Subject to the terms of this Agreement, Seller agrees to sell, and Buyer agrees to purchase, the Business, including its assets, goodwill, trade name, inventory, equipment, and other tangible and intangible property as more fully described in the Definitive Purchase Agreement to be executed by the parties (the \"Definitive Agreement\").
+
+2. PURCHASE PRICE. The total purchase price for the Business is \${{purchase_price}}, payable in cash, promissory note, assumed liabilities, or other consideration as set forth in the Definitive Agreement.
+
+3. DUE DILIGENCE. Buyer shall have the right to conduct due diligence with respect to the Business, including review of financial statements, tax returns, contracts, leases, and other records, for the period set forth in the Due Diligence Checklist.
+
+4. CLOSING. The closing of the transaction shall occur on or before the Target Closing Date, or such other date as the parties may agree in writing (the \"Closing\").
+
+5. CONDITIONS. Seller's obligation to close is subject to Buyer's payment of the Purchase Price. Buyer's obligation to close is subject to satisfactory completion of due diligence and Buyer's ability to obtain financing, if any.
+
+6. SELLER'S REPRESENTATIONS. Each Seller represents and warrants that Seller has full authority to sell the Business, that the Business is free of undisclosed liens and encumbrances, and that all information provided to Buyer is true and accurate in all material respects.
+
+7. BUYER'S REPRESENTATIONS. Buyer represents that Buyer has the financial capacity to complete the purchase and that Buyer is acquiring the Business for Buyer's own account.
+
+8. BROKER'S ROLE. The parties acknowledge that Broker acted as a transaction intermediary in this transaction. Broker is not a party to this Agreement and makes no representations or warranties regarding the Business.
+
+9. GOVERNING LAW. This Agreement shall be governed by the laws of the Commonwealth of Pennsylvania, with venue in Dauphin County, Pennsylvania.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+
+SELLER(S):
+Each Seller executing below confirms their authority to sell.
+
+BUYER: {{buyer_name}}
+
+${PA_DISCLOSURE}`,
   },
   {
     id: 'd0c00000-000c-4000-8000-00000000000c',
