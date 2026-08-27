@@ -30,6 +30,18 @@ check "image proxy"      "$BASE/api/listing-images/proxy?u=https%3A%2F%2Fimages.
 check "category suggest" "$BASE/api/search/suggest?q=r&type=category"
 check "placeholder img"  "$BASE/api/listing-images/placeholder?title=Health%20Check"
 
+# Booking path probe — exercises the FULL create flow incl. the appointments
+# source constraint, in a safe test mode (creates a cancelled appointment,
+# no email, no calendar pollution). Alerts if the constraint ever bites again.
+BK=$(curl -s --max-time 20 -X POST "$BASE/api/public/book" -H "Content-Type: application/json" \
+  -d '{"name":"Health Check","email":"health@ezbusinessadvisors.com","date":"2026-09-10","hour":10,"test":true}')
+if echo "$BK" | grep -q '"ok":true'; then
+  echo "ok   booking path (source constraint + full create flow)"
+else
+  echo "FAIL booking path: $(echo "$BK" | head -c 160)"
+  FAILED=1
+fi
+
 # Marketplace page must actually contain listing markup (not a blank shell).
 if curl -s --max-time 20 "$BASE/marketplace/listings" | grep -q "Businesses for Sale"; then
   echo "ok   marketplace content"

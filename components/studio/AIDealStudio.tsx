@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { getStoredAccessToken } from '@/lib/authToken'
 import StudioConcierge from '@/components/studio/StudioConcierge'
 import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
 import WorkflowDashboard from '@/components/listings/WorkflowDashboard'
@@ -143,6 +144,24 @@ export default function AIDealStudio() {
   const handleCreated = useCallback((id: string) => {
     toast('Deal record captured — moving to verification', 'success')
     setPhase('verify', id, 1)
+    // Post-capture checklist: surface the top 3 missing items from the
+    // Listing Advisor so nothing slips before the deal goes to market.
+    ;(async () => {
+      try {
+        const token = await getStoredAccessToken()
+        if (!token) return
+        const res = await fetch('/api/listing-advisor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+          body: JSON.stringify({ listingId: id }),
+        })
+        const json = await res.json().catch(() => null)
+        const blockers = json?.report?.verdict?.blockers
+        if (Array.isArray(blockers) && blockers.length > 0) {
+          toast(`📋 Before going live: ${blockers.slice(0, 3).join(' · ')}`, 'info')
+        }
+      } catch { /* non-fatal */ }
+    })()
   }, [setPhase, toast])
 
   const goNext = async () => {
@@ -192,6 +211,28 @@ export default function AIDealStudio() {
           )
         })}
       </div>
+
+      {/* Resumed-position ribbon — where the broker left off in this listing. */}
+      {listingId && listing && workflow && phase !== 'capture' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, background: 'linear-gradient(135deg,#1a1a2e,#14294f)', color: '#fff', borderRadius: 12, padding: '10px 16px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 16 }}>📍</span>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800 }}>
+              Where you left off: Step {(workflow?.current_step || 1)}/10 — {WORKFLOW_STEPS.find((s) => s.step === (workflow?.current_step || 1))?.label || 'Verify'}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>
+              {doneSteps.size > 0 ? `${doneSteps.size} step${doneSteps.size === 1 ? '' : 's'} complete` : 'Not started yet'}
+              {workflow?.updated_at ? ` · last saved ${new Date(workflow.updated_at).toLocaleString()}` : ''}
+            </div>
+          </div>
+          <button
+            onClick={() => setPhase(phase, listingId, workflow?.current_step || 1)}
+            style={{ padding: '8px 16px', background: '#c9a84c', color: '#0b1f3a', border: 'none', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 12.5, fontFamily: 'Georgia, serif' }}
+          >
+            Resume here →
+          </button>
+        </div>
+      )}
 
       <div className="studio-grid" style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr) 300px', gap: 18, alignItems: 'start', padding: '8px 2px' }}>
         {/* ══ LEFT: PHASE RAIL ══ */}

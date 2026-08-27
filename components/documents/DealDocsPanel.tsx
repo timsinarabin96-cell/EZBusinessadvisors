@@ -67,6 +67,22 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
       setTemplates(tpls)
       setDocs(d)
       setMe(user.data.user ? { id: user.data.user.id, email: user.data.user.email, full_name: (user.data.user.user_metadata?.full_name as string) || undefined } : null)
+      // Pre-fill seller details from the listing record (contact_phone +
+      // any seller info captured during intake) so the pack flow needs less typing.
+      if (l) {
+        const meta = (l as any)?.ai_metadata || {}
+        const sellerName = String(meta?.seller_name || meta?.seller_entity || '')
+        const sellerEmail = String(meta?.seller_email || '')
+        const sellerPhone = String(meta?.seller_phone || (l as any)?.contact_phone || '')
+        const sellerAddress = String(meta?.seller_address || '')
+        setSeller((cur) => ({
+          ...cur,
+          name: sellerName || cur.name,
+          email: sellerEmail || cur.email,
+          phone: sellerPhone || cur.phone,
+          address: sellerAddress || cur.address,
+        }))
+      }
       const sigMap: Record<string, DocumentSignature[]> = {}
       await Promise.all(d.map(async (doc) => { sigMap[doc.id] = await fetchSignatures(doc.id) }))
       setSignatures(sigMap)

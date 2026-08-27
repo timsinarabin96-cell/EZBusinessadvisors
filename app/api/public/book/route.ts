@@ -116,34 +116,45 @@ export async function POST(req: NextRequest) {
   }
 
   // Create the appointment in the CRM calendar (service role).
+  // Health-check mode (test: true) creates a cancelled appointment and skips
+  // the confirmation email — used by the daily site-health sweep to verify the
+  // full booking path (incl. the source constraint) without polluting the calendar.
+  const isTest = body?.test === true
   const result = await createBooking(agencyId, {
-    title: `Buyer intro call — ${name}`,
+    title: isTest ? 'Health check — booking path probe' : `Buyer intro call — ${name}`,
     appointment_type: 'buyer',
     starts_at: startsAt,
     ends_at: endsAt,
-    attendee_name: name,
-    attendee_email: email,
+    attendee_name: isTest ? 'Health Check' : name,
+    attendee_email: isTest ? 'health@ezbusinessadvisors.com' : email,
     location_type: 'phone',
-    notes: 'Booked via the public buyer invitation link.',
-  }, { source: 'api' })
+    notes: isTest ? 'Automated health check — no action needed.' : 'Booked via the public buyer invitation link.',
+  }, { source: 'api', status: isTest ? 'cancelled' : undefined })
 
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error || 'Booking failed. Please try another slot.' }, { status: 500 })
   }
 
-  // Confirmation email to the buyer.
-  await notify('booking_confirmed', email, {
-    name,
-    title: 'Buyer intro call',
-    startsAt: formatEt(startsAt),
-    endsAt: formatEt(endsAt),
-  }).catch(() => {})
+  const conflicts = (result as { conflicts?: unknown[] }).conflicts || []
+
+  // Confirmation email to the buyer (skipped for health-check probes).
+  if (!isTest) {
+    await notify('booking_confirmed', email, {
+      name,
+      title: 'Buyer intro call',
+      startsAt: formatEt(startsAt),
+      endsAt: formatEt(endsAt),
+    }).catch(() => {})
+  }
 
   return NextResponse.json({
     ok: true,
     appointment: result.appointment,
     startsAt,
     endsAt,
-    message: `Booked ${formatEt(startsAt)} — confirmation sent to ${email}.`,
+    conflicts,
+    message: conflicts.length
+      ? `Booked ${formatEt(startsAt)} — but it overlaps ${conflicts.length} existing appointment${conflicts.length === 1 ? '' : 's'}. Your broker will confirm the slot.`
+      : `Booked ${formatEt(startsAt)} — confirmation sent to ${email}.`,
   }, { status: 201 })
 }

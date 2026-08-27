@@ -39,6 +39,7 @@ export default function BookPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState<string | null>(null)
+  const [conflicts, setConflicts] = useState<number>(0)
 
   const days = useMemo(() => {
     const out: { date: string; label: string }[] = []
@@ -74,6 +75,7 @@ export default function BookPage() {
         setBusy(false)
         return
       }
+      setConflicts(Number(json.conflicts?.length || 0))
       setDone(json.message || 'Booked!')
     } catch {
       setError('Network error — please try again.')
@@ -94,6 +96,11 @@ export default function BookPage() {
             <div style={{ fontSize: 34, marginBottom: 8 }}>📅</div>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>You&apos;re booked</div>
             <div style={{ fontSize: 13, color: '#666', marginTop: 6 }}>{done}</div>
+            {conflicts > 0 && (
+              <div style={{ fontSize: 12.5, color: '#b7791f', background: '#fdf6e3', border: '1px solid #f0e0b0', borderRadius: 8, padding: '10px 12px', marginTop: 12, textAlign: 'left' }}>
+                ⚠️ This slot overlaps {conflicts} existing appointment{conflicts === 1 ? '' : 's'} in the broker&apos;s calendar. Your broker will confirm the exact time — watch for a follow-up email.
+              </div>
+            )}
           </div>
         ) : (
           <>

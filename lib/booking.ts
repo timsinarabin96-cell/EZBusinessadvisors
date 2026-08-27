@@ -158,7 +158,7 @@ export async function suggestRoundRobinAssignee(
 export async function createBooking(
   agencyId: string,
   input: BookingInput,
-  opts: { createdBy?: string | null; source?: string; listingId?: string | null; dealId?: string | null } = {},
+  opts: { createdBy?: string | null; source?: string; listingId?: string | null; dealId?: string | null; status?: string } = {},
 ): Promise<BookingResult> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   if (!agencyId) return { ok: false, error: 'An agency context is required to book appointments' }
@@ -200,7 +200,7 @@ export async function createBooking(
       deal_id: opts.dealId || null,
       title: input.title,
       appointment_type: input.appointment_type,
-      status: 'scheduled',
+      status: opts.status || 'scheduled',
       starts_at: start.toISOString(),
       ends_at: end.toISOString(),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
