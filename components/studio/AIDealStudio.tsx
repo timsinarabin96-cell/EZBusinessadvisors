@@ -17,7 +17,7 @@ import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
 import ListingCopilot from '@/components/listings/ListingCopilot'
 import ListingReadinessPanel from '@/components/listings/ListingReadinessPanel'
 import PublishPanel from '@/components/listing/PublishPanel'
-import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard, CompsCard, ValuationSliderCard, BuyerLeaderboardCard, SyndicationPackCard, OfferIntelligenceCard, AutoClosingDriveCard, VoiceIntakeCard, PhotoAICard, CompetitiveBoardCard } from '@/components/studio/StudioInsights'
+import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard, CompsCard, ValuationSliderCard, BuyerLeaderboardCard, SyndicationPackCard, OfferIntelligenceCard, AutoClosingDriveCard, VoiceIntakeCard, PhotoAICard, CompetitiveBoardCard, OfferCompareCard, ClosingRunwayCard, ClosingCostCard } from '@/components/studio/StudioInsights'
 import BuyerPipelineBoard from '@/components/buyers/BuyerPipelineBoard'
 import StatusBadge from '@/components/listings/StatusBadge'
 import Step1LegalDocs from '@/components/listings/Step1LegalDocs'
@@ -405,7 +405,10 @@ export default function AIDealStudio() {
             <>
               <DealPulseCard listingId={listingId} />
               <OfferIntelligenceCard listingId={listingId} askingPrice={listing?.asking_price} />
+              <OfferCompareCard listingId={listingId} askingPrice={listing?.asking_price} />
               <AutoClosingDriveCard />
+              <ClosingRunwayCard />
+              <ClosingCostCard purchasePrice={listing?.asking_price} />
               <ConductorCard title="🤝 Next best action" body="Review buyer interest and NDAs first — then shortlist the primary buyer before any LOI or closing step." />
               <ConductorCard title="🏁 Closing" body="The closing step records milestones, escrow, and the success fee — everything flows to the commission tracker." />
             </>

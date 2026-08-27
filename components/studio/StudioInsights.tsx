@@ -408,6 +408,151 @@ export function OfferIntelligenceCard({ listingId, askingPrice }: { listingId: s
 }
 
 // ---------------------------------------------------------------------------
+// Offer compare — side-by-side offers with health + recommendation
+// ---------------------------------------------------------------------------
+export function OfferCompareCard({ listingId, askingPrice }: { listingId: string; askingPrice?: number | null }) {
+  const toast = useToast()
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/offers/compare?listingId=${encodeURIComponent(listingId)}`, { headers: authHeaders() })
+      const j = await res.json()
+      if (j.ok) setData(j)
+    } catch { /* non-fatal */ }
+    finally { setLoading(false) }
+  }, [listingId])
+
+  useEffect(() => { load() }, [load])
+
+  if (loading) return null
+  const offers = data?.offers || []
+  if (offers.length === 0) return null
+  const rec = data?.recommendation
+  const healthColor: Record<string, string> = { strong: '#166534', negotiate: '#9a6700', weak: '#b91c1c' }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 6 }}>⚖️ Offer compare</div>
+      {rec?.summary && (
+        <div style={{ fontSize: 12, color: 'var(--navy)', fontWeight: 700, background: '#f4f8fc', borderRadius: 8, padding: '8px 10px', marginBottom: 10, lineHeight: 1.5 }}>
+          {rec.summary}
+        </div>
+      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {offers.map((o: any) => {
+          const h = o.health || {}
+          return (
+            <div key={o.id} style={{ border: '1px solid #e7edf4', borderRadius: 8, padding: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 13, flex: 1 }}>{o.buyerName || 'Buyer'}</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: healthColor[h.health] || 'var(--muted)' }}>{h.label || '—'}</span>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
+                {o.purchasePrice ? `$${Number(o.purchasePrice).toLocaleString()}` : '—'}
+                {data?.askingPrice ? ` · ${o.purchasePrice ? Math.round((Number(o.purchasePrice) / Number(data.askingPrice)) * 100) : '?'}% of asking` : ''}
+              </div>
+              {h.reasons?.length > 0 && (
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 5, lineHeight: 1.5 }}>
+                  {h.reasons.slice(0, 2).join(' · ')}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Closing runway — reverse timeline from target close date
+// ---------------------------------------------------------------------------
+export function ClosingRunwayCard() {
+  const [closeDate, setCloseDate] = useState('')
+  const [runway, setRunway] = useState<any[] | null>(null)
+
+  const compute = () => {
+    if (!closeDate) return
+    const res = fetch(`/api/closing/runway?closeDate=${encodeURIComponent(closeDate)}`, { headers: authHeaders() }).then((r) => r.json()).then((j) => { if (j.ok) setRunway(j.runway) }).catch(() => {})
+    return res
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 6 }}>🏁 Closing runway</div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
+        Pick the target close date — every task schedules itself backwards, so nothing is late.
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input type="date" value={closeDate} onChange={(e) => setCloseDate(e.target.value)} style={{ flex: 1, padding: '9px 10px', borderRadius: 8, border: '1px solid #d8dee6', fontSize: 12.5, fontFamily: 'inherit' }} />
+        <button onClick={compute} disabled={!closeDate} style={{ padding: '9px 14px', borderRadius: 8, background: 'var(--navy)', color: '#fff', border: 'none', fontWeight: 800, fontSize: 12.5, cursor: closeDate ? 'pointer' : 'not-allowed', opacity: closeDate ? 1 : 0.5 }}>
+          Compute
+        </button>
+      </div>
+      {runway && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+          {runway.map((r: any) => (
+            <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <span>{r.overdue ? '🔴' : r.daysLeft <= 3 ? '🟠' : '🟢'}</span>
+              <span style={{ fontWeight: 700, color: r.overdue ? '#b91c1c' : 'var(--navy)', flex: 1 }}>{r.label}</span>
+              <span style={{ color: 'var(--muted)', fontSize: 11.5 }}>{r.dueDate}{r.overdue ? ' · overdue' : r.daysLeft <= 3 ? ` · ${r.daysLeft}d left` : ''}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Closing cost estimator — buyer/seller side numbers on the spot
+// ---------------------------------------------------------------------------
+export function ClosingCostCard({ purchasePrice }: { purchasePrice?: number | null }) {
+  const [price, setPrice] = useState(purchasePrice || 500000)
+  const [costs, setCosts] = useState<any>(null)
+
+  useEffect(() => { if (purchasePrice) setPrice(Number(purchasePrice)) }, [purchasePrice])
+
+  const compute = async () => {
+    try {
+      const res = await fetch(`/api/closing/costs?price=${price}`, { headers: authHeaders() })
+      const j = await res.json()
+      if (j.ok) setCosts(j.breakdown)
+    } catch { /* non-fatal */ }
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 6 }}>💰 Closing cost estimate</div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+        <input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} style={{ flex: 1, padding: '9px 10px', borderRadius: 8, border: '1px solid #d8dee6', fontSize: 12.5, fontFamily: 'inherit' }} />
+        <button onClick={compute} style={{ padding: '9px 14px', borderRadius: 8, background: '#0e7490', color: '#fff', border: 'none', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }}>
+          Estimate
+        </button>
+      </div>
+      {costs && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Success fee (10%/8% tiered)</span><strong>${costs.successFee.toLocaleString()}</strong></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Sales tax (PA 6%, inventory+FFE)</span><strong>${costs.salesTax.toLocaleString()}</strong></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Legal fees (buyer + seller)</span><strong>${(costs.buyerLegalFees + costs.sellerLegalFees).toLocaleString()}</strong></div>
+          <div style={{ borderTop: '1px solid #e7edf4', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 800, color: 'var(--navy)' }}>Seller net</span>
+            <strong style={{ color: '#166534' }}>${costs.sellerNet.toLocaleString()}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 800, color: 'var(--navy)' }}>Buyer total</span>
+            <strong>${costs.buyerTotalEstimate.toLocaleString()}</strong>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Competitive board — seller-consented urgency lever (Phase A extra)
 // ---------------------------------------------------------------------------
 export function CompetitiveBoardCard({ listingId, enabled }: { listingId: string; enabled?: boolean }) {
