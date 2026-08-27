@@ -100,7 +100,7 @@ export default function ListingsDashboard() {
               {/* Image — auto branded cover when no photo (same fallback as the public site) */}
               <div style={{ height: 140, background: 'var(--navy)', position: 'relative' }}>
                 {(() => {
-                  const img = listingImageFor((listing as any).image_urls, (listing as any).industry, { title: (listing as any).business_name, price: (listing as any).asking_price })
+                  const img = listingImageFor((listing as any).image_urls, (listing as any).industry, { title: (listing as any).business_name, price: (listing as any).asking_price, subIndustry: (listing as any).sub_industry })
                   return img ? (
                     <img src={img} alt={listing.business_name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (

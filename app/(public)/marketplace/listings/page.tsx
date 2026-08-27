@@ -16,6 +16,7 @@ import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 import { SponsoredSlot } from '@/components/public/SponsoredSlot'
 import { LoadingState } from '@/components/ui'
 import { fmt$ } from '@/lib/recast'
+import { listingImageFor } from '@/lib/stockImages'
 
 export const metadata: Metadata = {
   title: 'Businesses for Sale | Buy a Business — Concord Deal Platform',
@@ -86,7 +87,7 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
               {spotlight.map((l) => (
                 <Link key={l.id} href={`/marketplace/listings/${l.slug || l.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 12, alignItems: 'center', background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: 10, transition: 'box-shadow .15s ease' }}>
                   <div style={{ width: 64, height: 48, borderRadius: 8, overflow: 'hidden', background: '#1a1a2e', flex: '0 0 64px', position: 'relative' }}>
-                    {l.gallery_urls[0] ? <Image src={l.gallery_urls[0]} alt={l.public_title} fill sizes="64px" style={{ objectFit: 'cover' }} /> : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 20 }}>🏪</div>}
+                    {(() => { const img = listingImageFor(l.gallery_urls, l.industry, { subIndustry: l.sub_industry }); return img ? <Image src={img} alt={l.public_title} fill sizes="64px" style={{ objectFit: 'cover' }} /> : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 20 }}>🏪</div> })()}
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1a1a2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.public_title}</div>

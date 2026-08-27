@@ -21,7 +21,7 @@ import SuggestionInput from './SuggestionInput'
 import ListingIntakeModal from './ListingIntakeModal'
 import DuplicateListingModal from './DuplicateListingModal'
 import { checkListingDuplicates } from '@/lib/listingDedup'
-import { placeholderImageFor } from '@/lib/stockImages'
+import { listingImageFor, placeholderImageFor } from '@/lib/stockImages'
 import type { ListingMatch } from '@/lib/listingDedup'
 import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
@@ -653,17 +653,17 @@ function MediaSection({ form, setValue, listingId }: SectionProps & { listingId?
     {photoCount === 0 && (
       <div style={{ marginBottom: 14, padding: '12px 14px', background: 'linear-gradient(135deg,#faf9f6,#f4f1e8)', border: '1px dashed #c9b98a', borderRadius: 10, fontSize: 12.5, color: '#6b5b2a' }}>
         <div style={{ fontWeight: 800, color: '#1a1a2e', marginBottom: 4 }}>✨ No photos yet?</div>
-        <div style={{ marginBottom: 10 }}>Generate a branded cover instantly (industry icon + title + price) so the listing looks professional the moment it publishes. Replace with real photos anytime.</div>
+        <div style={{ marginBottom: 10 }}>Generate a cover instantly — a real industry photo (bakery, plumbing, restaurant…) when available, branded cover as fallback — so the listing looks professional the moment it publishes. Replace with real photos anytime.</div>
         <button
           type="button"
           onClick={() => {
-            const cover = placeholderImageFor({ title: form.business_name || form.public_title, industry: form.industry, price: form.asking_price })
+            const cover = listingImageFor(form.gallery_images ?? [], form.industry, { title: form.business_name || form.public_title, price: form.asking_price, subIndustry: form.sub_industry }) ?? placeholderImageFor({ title: form.business_name || form.public_title, industry: form.industry, price: form.asking_price })
             setValue('gallery_images', [cover])
-            toast('Branded cover generated — it becomes the listing cover', 'success')
+            toast('Cover generated — real industry photo when available, becomes the listing cover', 'success')
           }}
           style={{ padding: '8px 16px', borderRadius: 8, background: '#1a1a2e', color: '#fff', border: 'none', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
         >
-          🎨 Generate branded cover
+          🖼️ Generate cover
         </button>
       </div>
     )}

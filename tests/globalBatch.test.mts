@@ -43,8 +43,37 @@ test('global: free stock photo library covers industries with fallback', () => {
   assert.match(stock, /export function stockImagesFor/)
   assert.match(stock, /export function placeholderImageFor/)
   assert.match(stock, /export function listingImageFor/)
+  assert.match(stock, /export function bestStockImage/)
   assert.match(stock, /GENERIC/)
   assert.match(stock, /images\.unsplash\.com/)
+})
+
+test('global: real industry photo is preferred before the branded placeholder', () => {
+  // listingImageFor must try a real stock photo (sub-industry → industry → generic)
+  // before falling back to the branded placeholder.
+  assert.match(stock, /const stock = bestStockImage\(opts\.subIndustry \|\| null, industry\)/)
+  assert.match(stock, /if \(stock\) return stock/)
+  // Fuzzy matching lets "Bakery Cafe" resolve to the 'Bakery' photo.
+  assert.match(stock, /subLower\.includes\(k\) \|\| k\.includes\(subLower\)/)
+  assert.match(stock, /'Bakery': \['https:\/\/images\.unsplash\.com\//)
+  assert.match(stock, /'Plumbing': \['https:\/\/images\.unsplash\.com\//)
+})
+
+test('global: dashboard + public card + detail hero pass sub_industry to image fallback', () => {
+  const dash = readFileSync('components/listings/ListingsDashboard.tsx', 'utf8')
+  assert.match(dash, /subIndustry: \(listing as any\)\.sub_industry/)
+  assert.match(card, /subIndustry: listing\.sub_industry/)
+  const detail = readFileSync('components/public/ListingDetailInteractive.tsx', 'utf8')
+  assert.match(detail, /listingImageFor\(listing\.gallery_urls, listing\.industry/)
+  assert.match(detail, /subIndustry: listing\.sub_industry/)
+})
+
+test('global: publish seeds gallery with a real stock photo when listing has no photos', () => {
+  const publish = readFileSync('lib/publish.ts', 'utf8')
+  assert.match(publish, /bestStockImage\(listing\.sub_industry, listing\.industry\)/)
+  assert.match(publish, /return stock \? \[stock\] : \[\]/)
+  const studio = readFileSync('components/listings/IntelligentListingForm.tsx', 'utf8')
+  assert.match(studio, /listingImageFor\(form\.gallery_images \?\? \[\], form\.industry/)
 })
 
 test('global: listing quality score checks the elements buyers respond to', () => {

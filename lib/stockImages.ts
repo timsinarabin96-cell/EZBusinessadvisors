@@ -90,14 +90,42 @@ export function placeholderImageFor(opts: {
   return `${base}/api/listing-images/placeholder?${p.toString()}`
 }
 
-/** Full fallback chain: gallery → stock → auto-generated placeholder. */
+/** Full fallback chain: gallery → real industry stock photo → branded placeholder. */
 export function listingImageFor(
   gallery: string[] | null | undefined,
   industry: string | null | undefined,
-  opts: { title?: string | null; price?: number | string | null; agency?: string | null } = {},
+  opts: { title?: string | null; price?: number | string | null; agency?: string | null; subIndustry?: string | null } = {},
 ): string | null {
   if (gallery && gallery.length > 0 && gallery[0]) return gallery[0]
+  // Real photo first: sub-industry (e.g. "Bakery Cafe") → industry (e.g. "Food & Beverage") → generic.
+  const stock = bestStockImage(opts.subIndustry || null, industry)
+  if (stock) return stock
   return placeholderImageFor({ industry, title: opts.title, price: opts.price, agency: opts.agency })
+}
+
+/** Pick the most relevant real stock photo: sub-industry → industry → generic. */
+export function bestStockImage(subIndustry: string | null | undefined, industry: string | null | undefined): string | null {
+  const tryExact = (label: string | null | undefined) => {
+    const key = (label || '').trim()
+    return key && FREE_IMAGE_LIBRARY[key] ? FREE_IMAGE_LIBRARY[key][0] : null
+  }
+  // Exact sub-industry (e.g. "Bakery Cafe") → exact industry → fuzzy contains → generic.
+  const sub = (subIndustry || '').trim()
+  const ind = (industry || '').trim()
+  const exact = tryExact(sub) || tryExact(ind)
+  if (exact) return exact
+  // Fuzzy: sub contains a library key, or a key contains the sub (case-insensitive).
+  const subLower = sub.toLowerCase()
+  for (const [key] of Object.entries(FREE_IMAGE_LIBRARY)) {
+    const k = key.toLowerCase()
+    if (subLower && (subLower.includes(k) || k.includes(subLower))) return FREE_IMAGE_LIBRARY[key][0]
+  }
+  const indLower = ind.toLowerCase()
+  for (const [key] of Object.entries(FREE_IMAGE_LIBRARY)) {
+    const k = key.toLowerCase()
+    if (indLower && (indLower.includes(k) || k.includes(indLower))) return FREE_IMAGE_LIBRARY[key][0]
+  }
+  return GENERIC[0] || null
 }
 
 /** All suggested images for an industry (for the broker photo picker). */

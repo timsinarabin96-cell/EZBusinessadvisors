@@ -27,6 +27,7 @@ import { sendEmail } from '@/lib/email'
 import { recordSuccessFee } from '@/lib/successFee'
 import { matchPublicSubscriptions } from '@/lib/notifySubscriptions'
 import { assessListingRisk, type RiskReport } from '@/lib/scamDetectionCore'
+import { bestStockImage } from '@/lib/stockImages'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -291,7 +292,14 @@ async function syncPublicListingRow(listing: any): Promise<void> {
       : Array.isArray(listing.public_highlights)
         ? listing.public_highlights
         : [],
-    gallery_json: Array.isArray(listing.image_urls) ? listing.image_urls : [],
+    gallery_json: (() => {
+      const imgs = Array.isArray(listing.image_urls) ? listing.image_urls : []
+      if (imgs.length > 0) return imgs
+      // No photos → seed the public feed with the best real industry stock photo
+      // (e.g. a bakery photo for "Bakery Cafe") instead of an empty gallery.
+      const stock = bestStockImage(listing.sub_industry, listing.industry)
+      return stock ? [stock] : []
+    })(),
     published: true,
     published_at: now,
     is_confidential: !isFull,

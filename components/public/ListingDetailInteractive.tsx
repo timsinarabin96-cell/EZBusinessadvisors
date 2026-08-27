@@ -12,7 +12,7 @@ import { capturePublicLead, type PublicMarketplaceListing } from '@/lib/marketpl
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fmt$ } from '@/lib/recast'
 import { priceTeaser, PRICING_CTA, PRICING_HINT } from '@/lib/pricingPolicy'
-import { placeholderImageFor } from '@/lib/stockImages'
+import { listingImageFor, placeholderImageFor } from '@/lib/stockImages'
 import { trackListingView } from '@/lib/visitorIntent'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 import NdaFinancialsGate from '@/components/public/NdaFinancialsGate'
@@ -162,7 +162,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
   }
 
   const contactPhone = (listing as { contact_phone?: string | null }).contact_phone || null
-  const placeholderSrc = placeholderImageFor({ title: listing.public_title, industry: listing.industry, price: listing.asking_price ?? undefined })
+  const placeholderSrc = listingImageFor(listing.gallery_urls, listing.industry, { title: listing.public_title, price: listing.asking_price ?? undefined, subIndustry: listing.sub_industry }) ?? placeholderImageFor({ title: listing.public_title, industry: listing.industry, price: listing.asking_price ?? undefined })
 
   return (
     <ToastProvider>

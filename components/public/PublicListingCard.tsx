@@ -19,7 +19,7 @@ import { scoreListingMatch, matchBand, type MatchScoreResult } from '@/lib/match
 import RequestPricingForm from '@/components/public/RequestPricingForm'
 
 export default function PublicListingCard({ listing }: { listing: PublicMarketplaceListing }) {
-  const image = listingImageFor(listing.gallery_urls, listing.industry, { title: listing.public_title, price: listing.asking_price ?? undefined })
+  const image = listingImageFor(listing.gallery_urls, listing.industry, { title: listing.public_title, price: listing.asking_price ?? undefined, subIndustry: listing.sub_industry })
   const href = `/marketplace/listings/${listing.slug || listing.id}`
   const isNew = listing.published_at ? Date.now() - new Date(listing.published_at).getTime() < 7 * 86400000 : false
 
