@@ -59,6 +59,16 @@ test('global: real industry photo is preferred before the branded placeholder', 
   assert.match(stock, /'Plumbing': \['https:\/\/images\.unsplash\.com\//)
 })
 
+test('global: flyer page is server-safe — print action lives in a client component', () => {
+  const flyer = readFileSync('app/(public)/flyer/[id]/page.tsx', 'utf8')
+  // Server components can't pass onClick handlers; the print button must be a client island.
+  assert.doesNotMatch(flyer, /<button[^>]*onClick/)
+  assert.match(flyer, /PrintFlyerButton/)
+  const btn = readFileSync('components/public/PrintFlyerButton.tsx', 'utf8')
+  assert.match(btn, /'use client'/)
+  assert.match(btn, /window\.print\(\)/)
+})
+
 test('global: dashboard + public card + detail hero pass sub_industry to image fallback', () => {
   const dash = readFileSync('components/listings/ListingsDashboard.tsx', 'utf8')
   assert.match(dash, /subIndustry: \(listing as any\)\.sub_industry/)

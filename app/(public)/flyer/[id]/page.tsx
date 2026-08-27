@@ -9,6 +9,7 @@ import { fetchPublicListing } from '@/lib/marketplace'
 import { fmt$ } from '@/lib/recast'
 import Link from 'next/link'
 import AgentContactCard from '@/components/public/AgentContactCard'
+import PrintFlyerButton from '@/components/public/PrintFlyerButton'
 import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
 
 export const dynamic = 'force-dynamic'
@@ -123,12 +124,7 @@ export default async function FlyerPage({ params }: { params: Promise<{ id: stri
         <div style={{ background: '#1a1a2e', color: '#fff', padding: '18px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)' }}>Concord Deal Platform · Concord Business Brokerage</div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              onClick={() => window.print()}
-              style={{ padding: '9px 18px', borderRadius: 8, background: '#c9a84c', color: '#1a1a2e', border: 'none', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif' }}
-            >
-              🖨️ Print / Save PDF
-            </button>
+            <PrintFlyerButton />
             <Link href={`/marketplace/listings/${listing.slug}`} style={{ padding: '9px 18px', borderRadius: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: 'Georgia, serif' }}>
               View listing →
             </Link>
