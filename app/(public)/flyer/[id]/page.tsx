@@ -46,7 +46,7 @@ export default async function FlyerPage({ params }: { params: Promise<{ id: stri
         <div style={{ background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: '#fff', padding: '28px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#c9a84c', fontWeight: 700 }}>Concord · Business For Sale</div>
-            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 28, margin: '6px 0 4px' }}>{listing.public_title}</h1>
+            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 28, margin: '6px 0 4px', color: '#fff', lineHeight: 1.25 }}>{listing.public_title}</h1>
             <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.75)' }}>
               {[listing.industry, listing.sub_industry, listing.location_general].filter(Boolean).join(' · ')}
             </div>
@@ -122,7 +122,17 @@ export default async function FlyerPage({ params }: { params: Promise<{ id: stri
 
         {/* Footer */}
         <div style={{ background: '#1a1a2e', color: '#fff', padding: '18px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)' }}>Concord Deal Platform · Concord Business Brokerage</div>
+          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+            Concord Deal Platform · Concord Business Brokerage
+            <br />
+            {meta?.agent?.agencyWebsite ? (
+              <a href={meta.agent.agencyWebsite} target="_blank" rel="noopener noreferrer" style={{ color: '#c9a84c', textDecoration: 'none', fontWeight: 700 }}>
+                {meta.agent.agencyWebsite.replace(/^https?:\/\//, '')}
+              </a>
+            ) : (
+              <span>concord.ezbusinessadvisors.com</span>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <PrintFlyerButton />
             <Link href={`/marketplace/listings/${listing.slug}`} style={{ padding: '9px 18px', borderRadius: 8, background: 'rgba(255,255,255,0.12)', color: '#fff', textDecoration: 'none', fontWeight: 700, fontFamily: 'Georgia, serif' }}>

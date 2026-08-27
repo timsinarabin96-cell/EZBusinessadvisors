@@ -12,6 +12,33 @@ const profilePanel = readFileSync('components/public/MatchProfilePanel.tsx', 'ut
 const listingsPage = readFileSync('app/(public)/marketplace/listings/page.tsx', 'utf8')
 const searchClient = readFileSync('components/public/SearchListingsClient.tsx', 'utf8')
 const nav = readFileSync('components/public/PublicNav.tsx', 'utf8')
+const metaLib = readFileSync('lib/publicListingMeta.ts', 'utf8')
+const agentCard = readFileSync('components/public/AgentContactCard.tsx', 'utf8')
+const agentQr = readFileSync('components/public/AgentQrCode.tsx', 'utf8')
+const flyer = readFileSync('app/(public)/flyer/[id]/page.tsx', 'utf8')
+
+test('flyer: title is white-on-navy, broker card has phone/email/website + vCard QR', () => {
+  // The header band is dark navy — the title must be white so it never hides.
+  assert.match(flyer, /fontSize: 28, margin: '6px 0 4px', color: '#fff'/)
+  // Broker card: phone + email always visible + one-tap actions.
+  assert.match(agentCard, /const phone = agent\.phone \|\| agent\.agencyPhone \|\| null/)
+  assert.match(agentCard, /const email = agent\.email \|\| agent\.agencyEmail \|\| null/)
+  assert.match(agentCard, /displayPhone/)
+  assert.match(agentCard, /telHref/)
+  // QR is rendered from agent data (works for every agent automatically).
+  assert.match(agentCard, /<AgentQrCode name=\{agent\.name\}/)
+  assert.match(agentQr, /'use client'/)
+  assert.match(agentQr, /BEGIN:VCARD/)
+  assert.match(agentQr, /TEL;TYPE=CELL/)
+  assert.match(agentQr, /URL:/)
+  assert.match(agentQr, /EMAIL:/)
+  assert.match(agentQr, /QRCode\.toDataURL/)
+  // Meta lib: agency fallback so every broker card is complete.
+  assert.match(metaLib, /agencyPhone/)
+  assert.match(metaLib, /agencyEmail/)
+  assert.match(metaLib, /agencyWebsite/)
+  assert.match(metaLib, /phone: clean\(broker\.phone\) \|\| clean\(agency\?\.phone\)/)
+})
 
 test('favorites: localStorage helpers for favorites, compare, buyer profile', () => {
   assert.match(favLib, /getFavorites/)

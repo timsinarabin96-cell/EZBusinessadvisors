@@ -23,6 +23,11 @@ export interface PublicAgentInfo {
   phone: string | null
   email: string | null
   bio: string | null
+  /** Agency-level fallbacks so every broker card has full contact info. */
+  agencyName: string | null
+  agencyPhone: string | null
+  agencyEmail: string | null
+  agencyWebsite: string | null
 }
 
 export interface PublicListingMeta {
@@ -97,8 +102,30 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
       }
     }
 
+    // Agency-level contact (phone/email/website) — used as fallback so every
+    // broker card can show full contact details even before the broker fills
+    // in their own profile fields.
+    let agencyById: Record<string, any> = {}
+    if (agencyIds.length > 0) {
+      const { data: agencies } = await db
+        .from('agencies')
+        .select('id, name, phone, email, domain, custom_domain, slug')
+        .in('id', agencyIds)
+      for (const a of agencies || []) agencyById[a.id] = a
+    }
+
     return listings.map((l) => {
       const broker = l.agency_id ? brokerByAgency[l.agency_id] : null
+      const agency = l.agency_id ? agencyById[l.agency_id] : null
+      const website = agency
+        ? agency.custom_domain
+          ? `https://${agency.custom_domain}`
+          : agency.domain
+            ? `https://${agency.domain}`
+            : agency.slug
+              ? `https://${agency.slug}.concord.ezbusinessadvisors.com`
+              : null
+        : null
       return {
         listingId: l.id,
         listingRef: clean(l.listing_ref),
@@ -107,9 +134,13 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
               profileId: broker.profile_id,
               name: clean(broker.public_name) || clean(broker.email_public)?.split('@')[0] || 'Your Broker',
               photo: clean(broker.avatar_url),
-              phone: clean(broker.phone),
-              email: clean(broker.email_public),
+              phone: clean(broker.phone) || clean(agency?.phone),
+              email: clean(broker.email_public) || clean(agency?.email),
               bio: clean(broker.bio),
+              agencyName: clean(agency?.name),
+              agencyPhone: clean(agency?.phone),
+              agencyEmail: clean(agency?.email),
+              agencyWebsite: website,
             }
           : null,
       }
