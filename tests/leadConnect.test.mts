@@ -31,7 +31,7 @@ test('public booking API creates a CRM appointment and confirms by email', () =>
   assert.match(src, /appointment_type: 'buyer'/)
   assert.match(src, /notify\('booking_confirmed'/)
   assert.match(src, /rateLimitAsync/)
-  assert.match(src, /source: 'public_book'/)
+  assert.match(src, /source: 'api'/)
 })
 
 test('public /book page posts to the booking API', () => {

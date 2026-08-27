@@ -81,7 +81,7 @@ create table if not exists public.appointments (
   attendee_email        text,
   attendee_phone        text,
   notes                 text,
-  source                text not null default 'manual' check (source in ('manual', 'ai_phone', 'portal', 'calendar_sync', 'api')),
+  source                text not null default 'manual' check (source in ('manual', 'ai_phone', 'portal', 'calendar_sync', 'api', 'ai_chat', 'public_book', 'ai_booking')),
   external_event_id     text,
   confirmation_sent_at  timestamptz,
   reminder_sent_at      timestamptz,

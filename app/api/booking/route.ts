@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
   // Step 3 — create the appointment in the calendar.
   const result = await createBooking(resolvedAgencyId, extraction.data, {
     createdBy,
-    source: source || 'ai_chat',
+    source: source || 'api',
     listingId: listingId || null,
     dealId: dealId || null,
   })

@@ -210,7 +210,7 @@ export async function createBooking(
       attendee_email: input.attendee_email || null,
       attendee_phone: input.attendee_phone || null,
       notes: input.notes || null,
-      source: opts.source || 'ai_booking',
+      source: opts.source || 'api',
     })
     .select()
     .single()

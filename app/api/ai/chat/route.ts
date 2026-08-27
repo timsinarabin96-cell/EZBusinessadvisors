@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
       }
       const result = await createBooking(ctx.agencyId, extraction.data, {
         createdBy: ctx.userId,
-        source: 'ai_chat',
+        source: 'api',
       })
       if (!result.ok) {
         return fail(result.error || 'Failed to create appointment', 500, {

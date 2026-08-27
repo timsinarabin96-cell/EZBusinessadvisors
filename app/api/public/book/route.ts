@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     attendee_email: email,
     location_type: 'phone',
     notes: 'Booked via the public buyer invitation link.',
-  }, { source: 'public_book' })
+  }, { source: 'api' })
 
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error || 'Booking failed. Please try another slot.' }, { status: 500 })
