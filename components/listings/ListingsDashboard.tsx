@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Listing, fetchListings, updateListing, deleteListing, fmtMoney, LISTING_STATUSES } from '@/lib/listings'
+import { listingImageFor } from '@/lib/stockImages'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
 import { queueAutoPosts } from '@/lib/services/social'
@@ -73,7 +74,7 @@ export default function ListingsDashboard() {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-ghost" onClick={load}>↻ Refresh</button>
-          <Link href="/dashboard/listings/new" className="btn btn-primary" style={{ textDecoration: 'none' }}>+ New Listing (AI Studio)</Link>
+          <Link href="/dashboard/studio" className="btn btn-primary" style={{ textDecoration: 'none' }}>+ New Listing (AI Studio)</Link>
         </div>
       </header>
 
@@ -96,13 +97,16 @@ export default function ListingsDashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
           {!loading && filtered.map((listing) => (
             <Card key={listing.id} style={{ overflow: 'hidden' }}>
-              {/* Image */}
+              {/* Image — auto branded cover when no photo (same fallback as the public site) */}
               <div style={{ height: 140, background: 'var(--navy)', position: 'relative' }}>
-                {listing.primary_image_url ? (
-                  <img src={listing.primary_image_url} alt={listing.business_name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--gold-light)', fontSize: 32 }}>🏢</div>
-                )}
+                {(() => {
+                  const img = listingImageFor((listing as any).image_urls, (listing as any).industry, { title: (listing as any).business_name, price: (listing as any).asking_price })
+                  return img ? (
+                    <img src={img} alt={listing.business_name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--gold-light)', fontSize: 32 }}>🏢</div>
+                  )
+                })()}
                 <div style={{ position: 'absolute', top: 10, left: 10 }}>
                   <Badge color={statusColor(listing.status)}>{listing.status || 'draft'}</Badge>
                 </div>
@@ -161,9 +165,9 @@ export default function ListingsDashboard() {
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                  <Link href={`/cim?listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>📑 CIM</Link>
-                  <Link href={`/bov?listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>⚖️ BOV</Link>
-                  <Link href={`/dashboard/listings/${listing.id}/edit`} className="btn btn-ghost" title="Open in AI Listing Studio" style={{ padding: '8px 12px' }}>✎ AI Studio</Link>
+                  <Link href={`/dashboard/studio?phase=verify&listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>✨ Open in Deal Studio</Link>
+                  <Link href={`/cim?listing=${listing.id}`} className="btn btn-ghost" style={{ padding: '8px 10px', fontSize: 12.5 }}>📑 CIM</Link>
+                  <Link href={`/bov?listing=${listing.id}`} className="btn btn-ghost" style={{ padding: '8px 10px', fontSize: 12.5 }}>⚖️ BOV</Link>
                   <button className="btn btn-danger" onClick={() => handleDelete(listing)}>🗑</button>
                 </div>
 
