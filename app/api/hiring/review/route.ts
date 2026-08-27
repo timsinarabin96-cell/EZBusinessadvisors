@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
 export const runtime = 'nodejs'
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = reviewSchema.safeParse(await req.json().catch(() => ({})))
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: 'Validation failed', detail: parsed.error.issues[0]?.message }, { status: 422 })
+    return NextResponse.json(validationErrorJson(parsed.error), { status: 422 })
   }
   const { applicationId, action, notes } = parsed.data
   const { data: app } = await db.from('agent_applications').select('id').eq('id', applicationId).maybeSingle()

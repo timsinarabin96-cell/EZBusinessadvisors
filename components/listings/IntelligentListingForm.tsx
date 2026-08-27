@@ -74,6 +74,54 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
   }, [form])
   const sectionsDone = SECTIONS.filter((s) => sectionComplete[s.id]).length
 
+  // ── Missing-field guidance: what's missing + what to tap next ──────────────
+  // Each section's key fields with human labels, so validation errors say
+  // "fill X in Section Y, then tap Next" instead of a cryptic failure.
+  const SECTION_FIELDS: Record<SectionId, Array<{ key: string; label: string }>> = {
+    identity: [
+      { key: 'business_name', label: 'Business name' },
+      { key: 'industry', label: 'Industry' },
+      { key: 'location_general', label: 'Location (region/state)' },
+    ],
+    financials: [
+      { key: 'asking_price', label: 'Asking price' },
+      { key: 'annual_revenue', label: 'Annual revenue' },
+      { key: 'sde', label: 'SDE' },
+    ],
+    operations: [
+      { key: 'employees_full_time', label: 'FT employees' },
+      { key: 'facilities_summary', label: 'Facilities' },
+      { key: 'competitive_advantages', label: 'Competitive advantages' },
+    ],
+    transition: [
+      { key: 'reason_for_sale', label: 'Reason for sale' },
+      { key: 'transition_support', label: 'Transition support' },
+    ],
+    media: [{ key: 'gallery_images', label: 'Photos' }],
+    public: [
+      { key: 'public_title', label: 'Anonymous public title' },
+      { key: 'public_summary', label: 'Public summary' },
+    ],
+  }
+
+  /** Human labels of missing fields in a section (for guidance messages). */
+  const missingInSection = (sec: SectionId): string[] => {
+    const f = form as any
+    const out: string[] = []
+    for (const field of SECTION_FIELDS[sec]) {
+      const v = f[field.key]
+      const empty = v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)
+      if (empty) out.push(field.label)
+    }
+    return out
+  }
+
+  /** First incomplete section (for routing the user to the right spot). */
+  const firstIncompleteSection = (): SectionId | null => {
+    for (const s of SECTIONS) if (!sectionComplete[s.id]) return s.id
+    return null
+  }
+
   // Live conductor feed: report readiness + key fields to the studio rail as
   // the broker types — the AI conductor reacts in real time.
   useEffect(() => {
@@ -214,7 +262,22 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
     event.preventDefault()
     if (!form.business_name.trim()) {
       setSection('identity')
-      toast('Business name is required', 'error')
+      toast('Business name is missing — type it in the Business section (first field), then tap Create again.', 'error')
+      return
+    }
+
+    // Friendly missing-field guidance: say WHAT is missing + WHERE to tap next.
+    const firstMissing = firstIncompleteSection()
+    if (firstMissing && firstMissing !== 'media') {
+      const missing = missingInSection(firstMissing)
+      const secLabel = SECTIONS.find((s) => s.id === firstMissing)?.label || ''
+      setSection(firstMissing)
+      toast(
+        missing.length
+          ? `Almost there — add ${missing.join(', ')} in the ${secLabel} section, then tap Create again. (Or tap Continue to skip for now.)`
+          : `Fill the ${secLabel} section, then tap Create again. (Or tap Continue to skip for now.)`,
+        'error',
+      )
       return
     }
 
@@ -347,7 +410,14 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
             <button type="button" className="btn btn-ghost" onClick={() => moveSection(section, -1, setSection)} disabled={section === SECTIONS[0].id}>Previous</button>
             {section === SECTIONS[SECTIONS.length - 1].id
               ? <button type="submit" className="btn btn-primary" disabled={busy} style={{ opacity: busy ? 0.6 : 1, background: readiness.score >= 70 ? '#166534' : undefined, borderColor: readiness.score >= 70 ? '#166534' : undefined }}>{busy ? 'Creating trusted record…' : readiness.score >= 70 ? '✓ Ready — advance to Verify' : 'Create Draft & Start Review'}</button>
-              : <button type="button" className="btn btn-navy" onClick={() => moveSection(section, 1, setSection)}>{readiness.score >= 70 && sectionComplete[section] ? '✓ Next' : 'Continue'}</button>}
+              : <button type="button" className="btn btn-navy" onClick={() => {
+                  const missing = missingInSection(section)
+                  if (missing.length) {
+                    const secLabel = SECTIONS.find((s) => s.id === section)?.label || ''
+                    toast(`Optional for now — ${missing.join(', ')} missing in ${secLabel}. You can fill them later; tap Continue to move on.`, 'info')
+                  }
+                  moveSection(section, 1, setSection)
+                }}>{readiness.score >= 70 && sectionComplete[section] ? '✓ Next' : 'Continue'}</button>}
           </div>
         </section>
 

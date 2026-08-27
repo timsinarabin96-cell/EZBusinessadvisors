@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { isPlatformAdmin } from '@/lib/platform'
 import { saveAgencyTheme } from '@/lib/agencyTheme'
 
@@ -110,8 +111,7 @@ export async function POST(req: NextRequest) {
   const parsed = themePatchSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
-      { ok: false, error: 'Validation failed', detail: parsed.error.issues[0]?.message },
-      { status: 422 },
+      validationErrorJson(parsed.error), { status: 422 },
     )
   }
   const { agencyId, ...patch } = parsed.data

@@ -569,7 +569,7 @@ export function CompetitiveBoardCard({ listingId, enabled }: { listingId: string
         body: JSON.stringify({ action: 'competitive', listingId, enabled: next }),
       })
       const j = await res.json()
-      if (!res.ok || !j.ok) throw new Error(j.error || 'Failed')
+      if (!res.ok || !j.ok) throw new Error(j.error || j.detail || 'Failed — try again')
       setOn(next)
       toast(next ? 'Competitive board ON — buyers will see live interest counts' : 'Competitive board off', 'success')
     } catch (e: any) {
@@ -637,7 +637,7 @@ export function VoiceIntakeCard({ onDraft }: { onDraft?: (draft: any) => void })
         body: JSON.stringify({ mode: 'full', context: transcript }),
       })
       const j = await res.json()
-      if (!res.ok || !j.ok) throw new Error(j.error || 'Extraction failed')
+      if (!res.ok || !j.ok) throw new Error(j.error || j.detail || 'Extraction failed — the call transcript may be too short')
       const draft = (j.draft || {}) as any
       if (Object.keys(draft).length === 0) throw new Error('Could not extract fields from this call')
       onDraft?.(draft)

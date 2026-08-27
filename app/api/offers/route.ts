@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { createOffer, fetchOffers, updateOfferStatus } from '@/lib/offers'
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = offerSchema.safeParse(await req.json().catch(() => ({})))
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: 'Validation failed', detail: parsed.error.issues[0]?.message }, { status: 422 })
+    return NextResponse.json(validationErrorJson(parsed.error), { status: 422 })
   }
 
   const result = await createOffer(parsed.data)
@@ -61,7 +62,7 @@ export async function PATCH(req: NextRequest) {
 
   const parsed = statusSchema.safeParse(await req.json().catch(() => ({})))
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: 'Validation failed', detail: parsed.error.issues[0]?.message }, { status: 422 })
+    return NextResponse.json(validationErrorJson(parsed.error), { status: 422 })
   }
   const { offerId, status } = parsed.data
 

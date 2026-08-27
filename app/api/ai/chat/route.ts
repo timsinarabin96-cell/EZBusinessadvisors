@@ -108,7 +108,11 @@ export async function POST(req: NextRequest) {
   const validation = validateServerInput(chatRequestSchema, body)
   if (!validation.isValid) {
     const first = Object.values(validation.errors)[0]?.[0]
-    return fail('Validation failed.', 422, { detail: first })
+    return fail(
+      `That request isn't quite right — ${first || 'one of the fields is missing or invalid'}. Check the message and try again.`,
+      422,
+      { detail: first },
+    )
   }
   const { agent, message, entityId, history, json } = body as z.infer<
     typeof chatRequestSchema

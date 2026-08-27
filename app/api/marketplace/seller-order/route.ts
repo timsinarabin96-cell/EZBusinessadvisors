@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createSellerListingOrder, resolveListingAgency } from '@/lib/sellerListing'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { createNotification } from '@/lib/notifications'
 import {rateLimitAsync } from '@/lib/rateLimit'
 
@@ -71,9 +72,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = sellerOrderSchema.safeParse(body)
   if (!parsed.success) {
-    return fail('Validation failed.', 422, {
-      detail: parsed.error.issues[0]?.message,
-    })
+    return fail(validationErrorJson(parsed.error).error, 422, { detail: validationErrorJson(parsed.error).detail })
   }
 
   const agencyId = await resolveListingAgency(parsed.data.agencySlug || undefined)

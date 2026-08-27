@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
 import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
@@ -78,7 +79,15 @@ export async function POST(req: NextRequest) {
   }
   const parsed = intakeSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: 'Validation failed', detail: parsed.error.issues[0]?.message }, { status: 422 })
+    const issue = parsed.error.issues[0]
+    // Concierge-specific guidance: tell the broker WHAT to add and WHAT to tap.
+    const friendly =
+      issue?.path?.[0] === 'notes' && issue.code === 'too_small'
+        ? '✍️ Add more detail — I need at least 20 characters to build the record. Include industry, location, revenue, and asking price (example: "HVAC company in Harrisburg, $950k revenue, asking $720k"), then tap Build my listing.'
+        : issue?.code === 'too_big'
+          ? 'That input is too long (max 8000 characters). Shorten it to the key facts, then tap Build my listing.'
+          : validationErrorJson(parsed.error).error
+    return NextResponse.json({ ok: false, error: friendly, detail: issue?.message }, { status: 422 })
   }
   const { notes, mode, context } = parsed.data
 

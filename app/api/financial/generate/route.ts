@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { runAutoGeneration } from '@/lib/autoGenerate'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { createServerClient } from '@/lib/supabase/server'
 
 // =============================================================================
@@ -68,8 +69,7 @@ export async function POST(req: NextRequest) {
   const parsed = generateSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
-      { ok: false, error: 'Validation failed', detail: parsed.error.issues[0]?.message },
-      { status: 422 },
+      validationErrorJson(parsed.error), { status: 422 },
     )
   }
 

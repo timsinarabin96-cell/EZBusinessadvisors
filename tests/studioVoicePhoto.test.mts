@@ -35,7 +35,7 @@ test('photo analysis route is auth-gated and agency-scoped (IDOR guard)', () => 
 
 test('photo analysis route requires a uuid listingId', () => {
   assert.match(route, /z\.string\(\)\.uuid\(\)/)
-  assert.match(route, /Validation failed: listingId/)
+  assert.match(route, /Missing or invalid: listingId/)
 })
 
 test('photo analysis returns 503 when Claude is not configured', () => {

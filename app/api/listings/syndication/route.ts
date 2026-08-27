@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { authenticateProfileRequest, unauthorizedResponse, forbiddenResponse } from '@/lib/supabase/auth'
 
 export const runtime = 'nodejs'
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   const parsed = pushSchema.safeParse(body)
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: 'Validation failed', detail: parsed.error.issues[0]?.message }, { status: 422 })
+    return NextResponse.json(validationErrorJson(parsed.error), { status: 422 })
   }
   const { listingId, providers } = parsed.data
 

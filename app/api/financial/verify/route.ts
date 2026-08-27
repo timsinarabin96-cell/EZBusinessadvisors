@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = schema.safeParse(await req.json().catch(() => ({})))
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: 'Validation failed: listingId (uuid) required.' }, { status: 422 })
+    return NextResponse.json({ ok: false, error: 'Missing or invalid: listingId (uuid) required.' }, { status: 422 })
   }
   const { listingId } = parsed.data
 

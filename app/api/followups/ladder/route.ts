@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   let body: unknown
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 }) }
   const parsed = composeSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ ok: false, error: 'Validation failed: kind + leadId required' }, { status: 422 })
+  if (!parsed.success) return NextResponse.json({ ok: false, error: 'Missing or invalid: kind + leadId required' }, { status: 422 })
   const { kind, leadId, name, phone, stage, ladderDay } = parsed.data
 
   const agencyId = String((body as any).agencyId || '') || auth.memberships[0]?.agency_id

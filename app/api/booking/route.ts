@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { extractBooking, createBooking } from '@/lib/booking'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { getAgencyContext } from '@/lib/agencyContext'
 import {rateLimitAsync, clientIp } from '@/lib/rateLimit'
 
@@ -58,9 +59,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = bookingRequestSchema.safeParse(body)
   if (!parsed.success) {
-    return fail('Validation failed.', 422, {
-      detail: parsed.error.issues[0]?.message,
-    })
+    return fail(validationErrorJson(parsed.error).error, 422, { detail: validationErrorJson(parsed.error).detail })
   }
   const { message, agencyId, listingId, dealId, source } = parsed.data
 

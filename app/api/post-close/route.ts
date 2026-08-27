@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   let body: unknown
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 }) }
   const parsed = scheduleSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ ok: false, error: 'Validation failed: listingId + closedAt + action=schedule' }, { status: 422 })
+  if (!parsed.success) return NextResponse.json({ ok: false, error: 'Missing or invalid: listingId + closedAt + action=schedule' }, { status: 422 })
   const { listingId, closedAt, sellerName, sellerEmail, buyerName, buyerEmail } = parsed.data
 
   const { data: listing } = await db.from('listings').select('agency_id, business_name, seller_name, seller_email').eq('id', listingId).maybeSingle()
@@ -93,7 +93,7 @@ export async function PATCH(req: NextRequest) {
   let body: unknown
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 }) }
   const parsed = patchSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ ok: false, error: 'Validation failed: checkinId required' }, { status: 422 })
+  if (!parsed.success) return NextResponse.json({ ok: false, error: 'Missing or invalid: checkinId required' }, { status: 422 })
   const { checkinId, status, reply, convertedListingId } = parsed.data
 
   const { data: row } = await db.from('post_close_checkins').select('agency_id').eq('id', checkinId).maybeSingle()

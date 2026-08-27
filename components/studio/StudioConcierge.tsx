@@ -109,7 +109,7 @@ export default function StudioConcierge({
         body: JSON.stringify({ mode: 'full', context: input }),
       })
       const j = await res.json()
-      if (!res.ok || !j.ok) throw new Error(j.error || 'Extraction failed')
+      if (!res.ok || !j.ok) throw new Error(j.error || j.detail || 'Extraction failed — add more detail (name, revenue, location, industry) and tap Build my listing again')
       const draft = (j.draft || {}) as IntakeDraft
       if (Object.keys(draft).length === 0) {
         toast('Could not extract fields — try more detail (name, revenue, location, industry)', 'error')

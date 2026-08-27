@@ -78,7 +78,7 @@ export async function PATCH(req: NextRequest) {
   let body: unknown
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 }) }
   const parsed = moveSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ ok: false, error: 'Validation failed: buyerListId, listingId, toStage required' }, { status: 422 })
+  if (!parsed.success) return NextResponse.json({ ok: false, error: 'Missing or invalid: buyerListId, listingId, toStage required' }, { status: 422 })
 
   const { listingId, buyerListId, toStage, note } = parsed.data
   const { agencyId, error } = await resolveAgency(db, auth, listingId)

@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
+import { validationErrorJson } from '@/lib/friendlyValidation'
 import { isPlatformAdmin } from '@/lib/platform'
 import { runBankBooksVerification } from '@/lib/bankBooksVerification'
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const parsed = schema.safeParse(await req.json().catch(() => ({})))
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: 'Validation failed', detail: parsed.error.issues[0]?.message }, { status: 422 })
+    return NextResponse.json(validationErrorJson(parsed.error), { status: 422 })
   }
   const { listingId, action, unlockFlags } = parsed.data
 
