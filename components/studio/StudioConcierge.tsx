@@ -13,12 +13,14 @@ import { authHeaders } from '@/lib/authToken'
 import type { IntakeDraft } from '@/lib/listingIntakeCore'
 
 // =============================================================================
-// StudioConcierge — the conversation-first capture layer.
+// StudioConcierge — the conversation-first capture layer (AI Interviewer).
 // -----------------------------------------------------------------------------
 // "Tell me about the business — or paste call notes, a voicemail transcript,
 // or a P&L summary. I'll build the record." The broker talks; the AI extracts
-// a structured draft and the studio form fills itself LIVE. The broker only
-// touches what the AI missed.
+// a structured draft and the studio form fills itself LIVE. When the answer
+// is thin, the concierge INTERVIEWS: it asks one follow-up at a time (reason
+// for sale? owner hours? real estate? price?) until the key fields are
+// covered or the broker says done — like a human broker, not a one-shot form.
 // =============================================================================
 
 const EXAMPLES = [
@@ -53,6 +55,20 @@ const FIELD_LABELS: Record<string, string> = {
   public_highlights: 'Highlights',
 }
 
+// Interview question queue — asked one at a time when a key field is missing.
+const INTERVIEW_QUESTIONS: Array<{ field: string; ask: string }> = [
+  { field: 'industry', ask: 'What industry is the business in? (e.g. restaurant, HVAC, e-commerce)' },
+  { field: 'location_general', ask: 'What general market area is it in? (region/state, never the exact address)' },
+  { field: 'asking_price', ask: 'What asking price is the seller considering?' },
+  { field: 'annual_revenue', ask: 'What is the annual revenue? (or SDE/EBITDA if you know it)' },
+  { field: 'reason_for_sale', ask: "What's the seller's reason for selling?" },
+  { field: 'established_year', ask: 'What year was the business established?' },
+  { field: 'employees_full_time', ask: 'How many full-time employees does it have?' },
+  { field: 'owner_hours_weekly', ask: 'How many hours per week does the owner work?' },
+  { field: 'transition_support', ask: 'Is the seller willing to stay for a transition/training period?' },
+  { field: 'growth_opportunities', ask: 'Any growth opportunities worth mentioning?' },
+]
+
 export default function StudioConcierge({
   onDraft,
 }: {
@@ -65,12 +81,27 @@ export default function StudioConcierge({
   const [pubBusy, setPubBusy] = useState(false)
   const [lastDraft, setLastDraft] = useState<IntakeDraft | null>(null)
   const [applied, setApplied] = useState(false)
+  const [question, setQuestion] = useState<{ field: string; ask: string } | null>(null)
+  const [answer, setAnswer] = useState('')
+  const [qaCount, setQaCount] = useState(0)
+
+  const hasField = (draft: IntakeDraft | null, field: string) => {
+    const v = draft?.[field]
+    return v !== undefined && v !== null && v !== ''
+  }
+
+  /** Pick the next missing key field from the interview queue. */
+  const nextQuestion = (draft: IntakeDraft): { field: string; ask: string } | null => {
+    for (const q of INTERVIEW_QUESTIONS) {
+      if (!hasField(draft, q.field)) return q
+    }
+    return null
+  }
 
   const extract = async (raw?: string) => {
     const input = (raw ?? text).trim()
     if (!input) { toast('Tell me about the business first', 'error'); return }
     setBusy(true)
-    setApplied(false)
     try {
       const res = await fetch('/api/listings/intake', {
         method: 'POST',
@@ -85,7 +116,17 @@ export default function StudioConcierge({
         return
       }
       setLastDraft(draft)
-      toast(`AI extracted ${j.coverage?.filled || Object.keys(draft).length} fields — review, then apply`, 'success')
+      setApplied(false)
+      toast(`AI extracted ${j.coverage?.filled || Object.keys(draft).length} fields`, 'success')
+
+      // AI Interviewer: if key fields are still missing, ask one at a time.
+      const next = nextQuestion(draft)
+      if (next && qaCount < 6) {
+        setQuestion(next)
+        setAnswer('')
+      } else {
+        setQuestion(null)
+      }
     } catch (e: any) {
       toast(e.message || 'Extraction failed', 'error')
     } finally {
@@ -93,7 +134,19 @@ export default function StudioConcierge({
     }
   }
 
-  /** Draft the anonymized public positioning (title/summary/highlights) from the pasted record. */
+  /** Answer the current interview question → append to context → re-extract. */
+  const answerQuestion = async () => {
+    const a = answer.trim()
+    if (!a) { toast('Type an answer first', 'error'); return }
+    const q = question
+    if (!q) return
+    const nextText = `${text.trim()}\n${q.ask} — ${a}`
+    setText(nextText)
+    setQaCount((c) => c + 1)
+    await extract(nextText)
+  }
+
+  /** Draft the anonymized public positioning (title/summary/highlights). */
   const draftPublic = async () => {
     const input = text.trim()
     if (!input) { toast('Paste or describe the business first', 'error'); return }
@@ -142,46 +195,63 @@ export default function StudioConcierge({
           </div>
         </div>
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.72)', lineHeight: 1.6, maxWidth: 640, margin: '0 0 14px' }}>
-          Paste what you know — call notes, a voicemail transcript, a P&L summary, or plain sentences. The AI fills the form live; you only touch what it missed.
+          Paste what you know — call notes, a voicemail transcript, a P&L summary, or plain sentences. I&apos;ll ask for anything I&apos;m missing, one question at a time.
         </p>
 
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={EXAMPLES[0]}
-          rows={3}
-          style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13.5, fontFamily: 'inherit', resize: 'vertical' }}
-        />
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
-          <button
-            onClick={() => extract()}
-            disabled={busy || !text.trim()}
-            style={{ padding: '11px 22px', borderRadius: 9, background: '#c9a84c', color: '#0f1023', border: 'none', fontWeight: 800, fontSize: 13.5, cursor: busy || !text.trim() ? 'not-allowed' : 'pointer', opacity: busy || !text.trim() ? 0.55 : 1 }}
-          >
-            {busy ? '✨ Extracting…' : '✨ Build my listing'}
-          </button>
-          <button
-            onClick={draftPublic}
-            disabled={pubBusy || !text.trim()}
-            style={{ padding: '11px 22px', borderRadius: 9, background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.35)', fontWeight: 800, fontSize: 13.5, cursor: pubBusy || !text.trim() ? 'not-allowed' : 'pointer', opacity: pubBusy || !text.trim() ? 0.55 : 1 }}
-          >
-            {pubBusy ? '📣 Drafting…' : '📣 Draft public positioning'}
-          </button>
-          {lastDraft && !applied && (
-            <button
-              onClick={apply}
-              style={{ padding: '11px 22px', borderRadius: 9, background: '#22c55e', color: '#052e16', border: 'none', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}
-            >
-              ✓ Apply {draftFields.length} fields to the form
-            </button>
-          )}
-          {applied && (
-            <span style={{ fontSize: 13, color: '#86efac', fontWeight: 700 }}>✓ Applied — the record is filling itself</span>
-          )}
-          <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>Public copy stays anonymous — never the legal name, address, or owner.</span>
-        </div>
+        {/* Interview Q&A — one question at a time, like a human broker */}
+        {question ? (
+          <div style={{ background: 'rgba(255,255,255,0.07)', border: '1.5px solid rgba(201,168,76,0.5)', borderRadius: 12, padding: '14px 16px', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#f5d97a', marginBottom: 8 }}>🧑‍💼 {question.ask}</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <input
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && answerQuestion()}
+                placeholder="Type your answer…"
+                autoFocus
+                style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 13.5, fontFamily: 'inherit' }}
+              />
+              <button
+                onClick={answerQuestion}
+                disabled={busy || !answer.trim()}
+                style={{ padding: '10px 20px', borderRadius: 8, background: '#c9a84c', color: '#0f1023', border: 'none', fontWeight: 800, fontSize: 13, cursor: busy || !answer.trim() ? 'not-allowed' : 'pointer', opacity: busy || !answer.trim() ? 0.55 : 1 }}
+              >
+                {busy ? '…' : 'Answer'}
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 8 }}>
+              {qaCount}/6 follow-ups · answer or skip to apply what we have
+            </div>
+          </div>
+        ) : (
+          <>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={EXAMPLES[0]}
+              rows={3}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 13.5, fontFamily: 'inherit', resize: 'vertical' }}
+            />
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginTop: 12 }}>
+              <button
+                onClick={() => extract()}
+                disabled={busy || !text.trim()}
+                style={{ padding: '11px 22px', borderRadius: 9, background: '#c9a84c', color: '#0f1023', border: 'none', fontWeight: 800, fontSize: 13.5, cursor: busy || !text.trim() ? 'not-allowed' : 'pointer', opacity: busy || !text.trim() ? 0.55 : 1 }}
+              >
+                {busy ? '✨ Extracting…' : '✨ Build my listing'}
+              </button>
+              <button
+                onClick={draftPublic}
+                disabled={pubBusy || !text.trim()}
+                style={{ padding: '11px 22px', borderRadius: 9, background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.35)', fontWeight: 800, fontSize: 13.5, cursor: pubBusy || !text.trim() ? 'not-allowed' : 'pointer', opacity: pubBusy || !text.trim() ? 0.55 : 1 }}
+              >
+                {pubBusy ? '📣 Drafting…' : '📣 Draft public positioning'}
+              </button>
+              <div style={{ flex: 1 }} />
+              <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>Public copy stays anonymous — never the legal name, address, or owner.</span>
+            </div>
+          </>
+        )}
 
         {/* Extracted-field preview chips */}
         {lastDraft && draftFields.length > 0 && (
@@ -192,6 +262,14 @@ export default function StudioConcierge({
               </span>
             ))}
             {draftFields.length > 14 && <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', alignSelf: 'center' }}>+{draftFields.length - 14} more…</span>}
+            {lastDraft && !applied && (
+              <button
+                onClick={apply}
+                style={{ fontSize: 12, padding: '4px 14px', borderRadius: 99, background: '#22c55e', color: '#052e16', border: 'none', fontWeight: 800, cursor: 'pointer' }}
+              >
+                ✓ Apply {draftFields.length} fields
+              </button>
+            )}
           </div>
         )}
       </div>
