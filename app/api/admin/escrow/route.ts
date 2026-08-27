@@ -28,18 +28,41 @@ export async function GET(req: NextRequest) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
+  // Escrow accounts + listing/deal refs in one query, then closing details
+  // separately (PostgREST cannot embed deal_closing_details — no FK declared)
+  // and merge in code.
   const { data, error } = await db
     .from('deal_escrow_accounts')
-    .select('*, listings(business_name), deals(id), deal_closing_details(final_purchase_price, closing_date)')
+    .select('*, listings(business_name), deals(id)')
     .order('created_at', { ascending: false })
     .limit(200)
   if (error) return NextResponse.json({ ok: false, error: 'query failed' }, { status: 500 })
 
-  const rows = (data || []).map((e) => ({
-    ...e,
-    final_purchase_price: e.deal_closing_details?.[0]?.final_purchase_price ?? null,
-    closing_date: e.deal_closing_details?.[0]?.closing_date ?? null,
-  }))
+  const listingIds = [...new Set((data || []).map((e) => e.listing_id).filter(Boolean))]
+  let closingByListing: Record<string, { final_purchase_price: number | null; closing_date: string | null }> = {}
+  if (listingIds.length > 0) {
+    const { data: closing, error: cerr } = await db
+      .from('deal_closing_details')
+      .select('listing_id, final_purchase_price, closing_date')
+      .in('listing_id', listingIds)
+    if (!cerr) {
+      for (const row of closing || []) {
+        closingByListing[row.listing_id] = {
+          final_purchase_price: row.final_purchase_price != null ? Number(row.final_purchase_price) : null,
+          closing_date: row.closing_date || null,
+        }
+      }
+    }
+  }
+
+  const rows = (data || []).map((e) => {
+    const close = closingByListing[e.listing_id]
+    return {
+      ...e,
+      final_purchase_price: close?.final_purchase_price ?? null,
+      closing_date: close?.closing_date ?? null,
+    }
+  })
   return NextResponse.json({ ok: true, escrow: rows })
 }
 

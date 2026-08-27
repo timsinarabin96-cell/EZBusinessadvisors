@@ -25,15 +25,37 @@ export async function GET(req: NextRequest) {
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
   // Commissions joined with listing + closing details for success-fee math.
+  // NOTE: PostgREST cannot embed deal_closing_details here (no FK declared), so
+  // we fetch commissions + listings + profiles in one query, then pull closing
+  // details separately and merge in code.
   const { data: commissions, error } = await db
     .from('deal_commissions')
-    .select('*, listings(business_name), deal_closing_details(final_purchase_price, closing_date), profiles(full_name)')
+    .select('*, listings(business_name), profiles(full_name)')
     .order('created_at', { ascending: false })
     .limit(200)
   if (error) return NextResponse.json({ ok: false, error: 'query failed' }, { status: 500 })
 
+  // Closing details keyed by listing_id (closing date + final price).
+  const listingIds = [...new Set((commissions || []).map((c) => c.listing_id).filter(Boolean))]
+  let closingByListing: Record<string, { final_purchase_price: number | null; closing_date: string | null }> = {}
+  if (listingIds.length > 0) {
+    const { data: closing, error: cerr } = await db
+      .from('deal_closing_details')
+      .select('listing_id, final_purchase_price, closing_date')
+      .in('listing_id', listingIds)
+    if (!cerr) {
+      for (const row of closing || []) {
+        closingByListing[row.listing_id] = {
+          final_purchase_price: row.final_purchase_price != null ? Number(row.final_purchase_price) : null,
+          closing_date: row.closing_date || null,
+        }
+      }
+    }
+  }
+
   const rows = (commissions || []).map((c) => {
-    const price = Number(c.deal_closing_details?.[0]?.final_purchase_price) || 0
+    const close = closingByListing[c.listing_id]
+    const price = Number(close?.final_purchase_price) || 0
     const pct = Number(c.commission_percentage) || 0
     const amount = Number(c.commission_amount) || 0
     const computed = amount > 0 ? amount : (price * pct) / 100
@@ -50,7 +72,7 @@ export async function GET(req: NextRequest) {
       success_fee: Math.round(computed * 100) / 100,
       paid_status: c.paid_status,
       paid_at: c.paid_at,
-      closing_date: c.deal_closing_details?.[0]?.closing_date || null,
+      closing_date: close?.closing_date || null,
       created_at: c.created_at,
     }
   })
