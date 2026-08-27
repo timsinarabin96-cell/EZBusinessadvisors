@@ -182,7 +182,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
             )
           })}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Keyword" style={inputStyle} />
           <AutocompleteInput type="category" value={selIndustry} onChange={setSelIndustry} placeholder="Category (e.g. Retail, Restaurant)…" style={{ ...inputStyle, paddingLeft: 12 }} />
           <AutocompleteInput type="location" value={loc} onChange={setLoc} placeholder="City, county, or state…" style={inputStyle} />
@@ -195,27 +195,39 @@ export default function SearchListingsClient({ initialResults, initialIndustries
               <input value={employees} onChange={(e) => setEmployees(e.target.value)} placeholder="Min FT employees" type="number" style={inputStyle} />
             </>
           )}
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-            <label style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 600 }}><input type="checkbox" checked={absentee} onChange={(e) => setAbsentee(e.target.checked)} style={{ marginRight: 5 }} />🏖️ Absentee</label>
-            <label style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 600 }}><input type="checkbox" checked={franchise} onChange={(e) => setFranchise(e.target.checked)} style={{ marginRight: 5 }} />🏷️ Franchise</label>
-            <label style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 600 }}><input type="checkbox" checked={financing} onChange={(e) => setFinancing(e.target.checked)} style={{ marginRight: 5 }} />💰 Financing</label>
-            <label style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 600 }}><input type="checkbox" checked={sba} onChange={(e) => setSba(e.target.checked)} style={{ marginRight: 5 }} />🏦 SBA Qualified</label>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+            {[
+              { label: 'Absentee', checked: absentee, set: setAbsentee },
+              { label: 'Franchise', checked: franchise, set: setFranchise },
+              { label: 'Financing', checked: financing, set: setFinancing },
+              { label: 'SBA Qualified', checked: sba, set: setSba },
+            ].map((opt) => (
+              <label key={opt.label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#1a1a2e', fontWeight: 600, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={opt.checked}
+                  onChange={(e) => opt.set(e.target.checked)}
+                  style={{ width: 15, height: 15, accentColor: '#1a1a2e', cursor: 'pointer' }}
+                />
+                {opt.label}
+              </label>
+            ))}
           </div>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={inputStyle}>
             <option value="">Any Status</option>
-            <option value="active">● Active</option>
-            <option value="under_contract">📝 Under Contract</option>
-            <option value="sold">✅ Sold</option>
+            <option value="active">Active</option>
+            <option value="under_contract">Under Contract</option>
+            <option value="sold">Sold</option>
           </select>
           <select value={sort} onChange={(e) => setSort(e.target.value)} style={inputStyle}>
             <option value="">Sort: Featured first</option>
-            <option value="newest">🕒 Newest</option>
-            <option value="price_asc">💰 Price: Low → High</option>
-            <option value="price_desc">💰 Price: High → Low</option>
-            <option value="revenue_desc">📈 Revenue: High → Low</option>
-            <option value="multiple_desc">⚖️ Multiple: High → Low</option>
+            <option value="newest">Newest</option>
+            <option value="price_asc">Price: Low → High</option>
+            <option value="price_desc">Price: High → Low</option>
+            <option value="revenue_desc">Revenue: High → Low</option>
+            <option value="multiple_desc">Multiple: High → Low</option>
           </select>
-          <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: 14 }}>Apply Filters</button>
+          <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: '1px solid #1a1a2e', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: 14, padding: '12px 14px', letterSpacing: '0.02em', boxShadow: '0 2px 10px rgba(26,26,46,0.18)', transition: 'all .15s ease' }}>Apply Filters</button>
         </div>
       </form>
 
@@ -231,7 +243,9 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       {/* RESULTS */}
       {loading ? <LoadingState /> : results.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 24px', background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, color: '#888' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+          <div style={{ width: 64, height: 64, margin: '0 auto 14px', borderRadius: '50%', background: '#f4f1e8', display: 'grid', placeItems: 'center' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#c9a84c" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
+          </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>No listings match your criteria</div>
           <div style={{ fontSize: 14, marginTop: 8 }}>Try broadening your filters or contact a broker for off-market opportunities.</div>
         </div>
@@ -247,4 +261,4 @@ export default function SearchListingsClient({ initialResults, initialIndustries
   )
 }
 
-const inputStyle: React.CSSProperties = { padding: '12px 14px', border: '1px solid #d8d2c2', borderRadius: 6, fontSize: 14, fontFamily: 'Georgia, serif', outline: 'none', background: '#fff' }
+const inputStyle: React.CSSProperties = { padding: '12px 14px', border: '1px solid #d8d2c2', borderRadius: 8, fontSize: 14, fontFamily: 'Inter, system-ui, -apple-system, sans-serif', outline: 'none', background: '#fff', transition: 'border-color .15s ease' }

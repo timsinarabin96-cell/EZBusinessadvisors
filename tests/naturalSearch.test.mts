@@ -79,7 +79,10 @@ test('website: card shows marketing badges', () => {
 test('website: listings page has advanced filter controls', () => {
   assert.match(client, /Max SDE multiple/)
   assert.match(client, /Min FT employees/)
-  assert.match(client, /🏖️ Absentee/)
-  assert.match(client, /🏷️ Franchise/)
-  assert.match(client, /💰 Financing/)
+  assert.match(client, /Absentee/)
+  assert.match(client, /Franchise/)
+  assert.match(client, /Financing/)
+  // Brand-clean filters: native checkboxes with navy accent, no emojis.
+  assert.match(client, /accentColor: '#1a1a2e'/)
+  assert.doesNotMatch(client, /🏖️ Absentee/)
 })

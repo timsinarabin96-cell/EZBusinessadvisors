@@ -113,14 +113,14 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
           onClick={() => { setOpen(true); setShowHint(false) }}
           style={{
             position: 'fixed', bottom: 92, right: 22, zIndex: 9998,
-            background: '#fff', border: '1px solid #0e7490', borderRadius: 14,
-            padding: '12px 16px', boxShadow: '0 12px 40px rgba(14,116,144,0.25)',
+            background: '#fff', border: '1px solid #c9a84c', borderRadius: 14,
+            padding: '12px 16px', boxShadow: '0 12px 40px rgba(26,26,46,0.18)',
             maxWidth: 260, cursor: 'pointer', animation: 'none',
             fontSize: 13, color: '#1e293b', lineHeight: 1.5,
           }}
         >
-          <span style={{ fontWeight: 800, color: '#0e7490' }}>✨ Need help?</span>
-          <div>Ask me anything about {isCrm ? 'the CRM' : 'this site'} — I\'m the AI assistant.</div>
+          <span style={{ fontWeight: 800, color: '#8a6d1a' }}>✨ Need help?</span>
+          <div>Ask me anything about {isCrm ? 'the CRM' : 'this site'} — I'm the AI assistant.</div>
         </div>
       )}
       {/* Floating button */}
@@ -130,8 +130,8 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
         style={{
           position: 'fixed', bottom: 22, right: 22, zIndex: 9999,
           width: 58, height: 58, borderRadius: '50%', border: 'none', cursor: 'pointer',
-          background: 'linear-gradient(135deg,#0e7490,#155e75)', color: '#fff', fontSize: 26,
-          boxShadow: '0 10px 30px rgba(14,116,144,0.45)', display: 'grid', placeItems: 'center',
+          background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: '#fff', fontSize: 26,
+          boxShadow: '0 10px 30px rgba(16,42,67,0.4)', display: 'grid', placeItems: 'center',
           transition: 'transform .15s ease',
         }}
       >
@@ -147,8 +147,8 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
           display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #e2e8f0',
         }}>
           {/* Header */}
-          <div style={{ background: 'linear-gradient(135deg,#0e7490,#155e75)', color: '#fff', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'grid', placeItems: 'center', fontSize: 17 }}>🤖</div>
+          <div style={{ background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: '#fff', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#c9a84c,#a8872f)', display: 'grid', placeItems: 'center', fontSize: 15, fontWeight: 800, color: '#1a1a2e' }}>C</div>
             <div>
               <div style={{ fontWeight: 800, fontSize: 14 }}>{isCrm ? 'CRM Assistant' : 'Concord Assistant'}</div>
               <div style={{ fontSize: 11, opacity: 0.85 }}>Live agent · books appointments · 24/7</div>
@@ -160,7 +160,7 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
             {msgs.map((m, i) => (
               <div key={i} style={{
                 maxWidth: '85%', padding: '10px 13px', borderRadius: 14, fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap',
-                background: m.role === 'assistant' ? '#fff' : '#0e7490', color: m.role === 'assistant' ? '#1e293b' : '#fff',
+                background: m.role === 'assistant' ? '#fff' : '#1a1a2e', color: m.role === 'assistant' ? '#1e293b' : '#fff',
                 alignSelf: m.role === 'assistant' ? 'flex-start' : 'flex-end',
                 border: m.role === 'assistant' ? '1px solid #e2e8f0' : 'none',
                 borderBottomLeftRadius: m.role === 'assistant' ? 4 : 14, borderBottomRightRadius: m.role === 'assistant' ? 14 : 4,
@@ -180,7 +180,7 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
           {msgs.length <= 2 && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '0 12px 8px', background: '#f8fafc' }}>
               {(isCrm ? CRM_SUGGESTIONS : PUBLIC_SUGGESTIONS).map((s) => (
-                <button key={s} onClick={() => send(s)} style={{ padding: '6px 10px', borderRadius: 999, border: '1px solid #cbd5e1', background: '#fff', color: '#0e7490', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                <button key={s} onClick={() => send(s)} style={{ padding: '6px 10px', borderRadius: 999, border: '1px solid #d8d2c2', background: '#fff', color: '#8a6d1a', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
                   {s}
                 </button>
               ))}
@@ -196,7 +196,7 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
               placeholder="Ask me anything…"
               style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 13.5, outline: 'none', fontFamily: 'inherit' }}
             />
-            <button onClick={() => send(input)} disabled={busy || !input.trim()} style={{ padding: '10px 16px', borderRadius: 10, background: '#0e7490', color: '#fff', border: 'none', fontWeight: 700, cursor: busy || !input.trim() ? 'not-allowed' : 'pointer', fontSize: 14 }}>
+            <button onClick={() => send(input)} disabled={busy || !input.trim()} style={{ padding: '10px 16px', borderRadius: 10, background: '#1a1a2e', color: '#fff', border: 'none', fontWeight: 700, cursor: busy || !input.trim() ? 'not-allowed' : 'pointer', fontSize: 14 }}>
               ➤
             </button>
           </div>

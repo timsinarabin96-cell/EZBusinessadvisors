@@ -65,7 +65,7 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
           {image ? (
             <Image src={image} alt={listing.public_title} fill sizes="(max-width: 768px) 100vw, 33vw" style={{ objectFit: 'cover' }} />
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(201,168,76,0.5)', fontSize: 40 }}>🏢</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: 'rgba(201,168,76,0.55)', fontSize: 40, fontFamily: 'Georgia, serif' }}>{(listing.industry || 'B').slice(0, 1).toUpperCase()}</div>
           )}
           <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(26,26,46,0.85)', color: '#c9a84c', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>
             {listing.industry || 'Business'}
@@ -88,26 +88,26 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
         </div>
         <div style={{ padding: 16 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-            {listing.listing_ref && <BadgeTone color="#1a1a2e">🆔 {listing.listing_ref}</BadgeTone>}
-            {(listing.views_7d != null && listing.views_7d > 0) && <BadgeTone color="#e11d48">🔥 {listing.views_7d} viewed this week</BadgeTone>}
-            {listing.vetted && <BadgeTone color="#0e7490">🏅 Vetted</BadgeTone>}
-            {listing.status === 'active' && <BadgeTone color="#1e7e34">● Active</BadgeTone>}
-            {listing.status === 'under_contract' && <BadgeTone color="#b45309">📝 Under Contract</BadgeTone>}
-            {listing.status === 'sold' && <BadgeTone color="#7b8794">✅ Sold</BadgeTone>}
-            {listing.sba_qualified === true && <BadgeTone color="#0e7490">🏦 SBA Qualified</BadgeTone>}
+            {listing.listing_ref && <BadgeTone color="#1a1a2e">{listing.listing_ref}</BadgeTone>}
+            {(listing.views_7d != null && listing.views_7d > 0) && <BadgeTone color="#e11d48">{listing.views_7d} views this wk</BadgeTone>}
+            {listing.vetted && <BadgeTone color="#0e7490">Vetted</BadgeTone>}
+            {listing.status === 'active' && <BadgeTone color="#1e7e34">Active</BadgeTone>}
+            {listing.status === 'under_contract' && <BadgeTone color="#b45309">Under Contract</BadgeTone>}
+            {listing.status === 'sold' && <BadgeTone color="#7b8794">Sold</BadgeTone>}
+            {listing.sba_qualified === true && <BadgeTone color="#0e7490">SBA Qualified</BadgeTone>}
             {listing.sba_qualified === false && <BadgeTone color="#64748b">Not SBA</BadgeTone>}
-            {listing.seller_financing_available && <BadgeTone color="#0e7490">💰 Financing</BadgeTone>}
-            {listing.revenue_verified && <BadgeTone color="#1e7e34">✅ Verified Revenue</BadgeTone>}
-            {listing.is_absentee_owner && <BadgeTone color="#15803d">🏖️ Absentee</BadgeTone>}
-            {listing.is_franchise && <BadgeTone color="#7c3aed">🏷️ Franchise</BadgeTone>}
-            {listing.is_relocatable && <BadgeTone color="#b45309">📦 Relocatable</BadgeTone>}
+            {listing.seller_financing_available && <BadgeTone color="#0e7490">Financing</BadgeTone>}
+            {listing.revenue_verified && <BadgeTone color="#1e7e34">Verified Revenue</BadgeTone>}
+            {listing.is_absentee_owner && <BadgeTone color="#15803d">Absentee</BadgeTone>}
+            {listing.is_franchise && <BadgeTone color="#7c3aed">Franchise</BadgeTone>}
+            {listing.is_relocatable && <BadgeTone color="#b45309">Relocatable</BadgeTone>}
             {listing.employees_full_time != null && <BadgeTone color="#64748b">{listing.employees_full_time} FT</BadgeTone>}
           </div>
           {match && match.hasProfile && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: matchBand(match.score).color }}>{match.score}%</span>
-              <span style={{ fontSize: 12, color: matchBand(match.score).color, fontWeight: 600 }}>{matchBand(match.score).label}</span>
-              <span style={{ fontSize: 11, color: '#999' }}>for you</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10, background: 'linear-gradient(135deg,#fdf9ef,#f7efd8)', border: '1px solid #c9a84c55', borderRadius: 99, padding: '5px 12px' }}>
+              <span style={{ fontSize: 16, fontWeight: 800, color: '#8a6d1a' }}>{match.score}%</span>
+              <span style={{ fontSize: 12, color: '#8a6d1a', fontWeight: 700 }}>{matchBand(match.score).label}</span>
+              <span style={{ fontSize: 11, color: '#a08a4a' }}>for you</span>
             </div>
           )}
           <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a2e', fontFamily: 'Georgia, serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
