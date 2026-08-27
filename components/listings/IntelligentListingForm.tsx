@@ -141,6 +141,10 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
   // Edit mode: load the existing listing into the form.
   useEffect(() => {
     if (!editListingId) return
+    // Guard: if the form already has content (user typed / autosave created the
+    // draft this session), never clobber it with a fetch. This prevents the
+    // studio's URL-sync (onDraftCreated) from remounting the form mid-click.
+    if (form.business_name.trim()) return
     fetchListing(editListingId).then((l) => {
       if (!l) return
       const meta = (l as any).ai_metadata || {}
