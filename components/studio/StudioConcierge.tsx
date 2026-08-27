@@ -128,7 +128,13 @@ export default function StudioConcierge({
         setQuestion(null)
       }
     } catch (e: any) {
-      toast(e.message || 'Extraction failed', 'error')
+      const msg = e.message || 'Extraction failed'
+      // If the AI service is down/out of credits, guide the broker to the manual form.
+      if (/unavailable|busy right now|out of credits|not configured|service hiccup/i.test(msg)) {
+        toast('AI intake is down right now — no problem, you can still fill the form below manually and the listing saves fine ✍️', 'info')
+      } else {
+        toast(msg, 'error')
+      }
     } finally {
       setBusy(false)
     }

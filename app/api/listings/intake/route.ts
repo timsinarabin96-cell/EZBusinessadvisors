@@ -62,7 +62,7 @@ Respond with a single JSON object with keys: public_title, public_summary, publi
 
 export async function POST(req: NextRequest) {
   if (!isDeepSeekConfigured()) {
-    return NextResponse.json({ ok: false, error: 'AI is not configured yet.' }, { status: 503 })
+    return NextResponse.json({ ok: false, error: 'AI intake is unavailable right now (not configured). No problem — you can still fill the form below manually and the listing saves fine.' }, { status: 503 })
   }
 
   const db = createServerClient()
@@ -138,6 +138,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, mode: 'full', draft, coverage: draftCoverage(draft) })
   } catch (err) {
     console.error('[listings/intake] failed:', (err as Error)?.message)
-    return NextResponse.json({ ok: false, error: 'AI intake failed. Please try again.' }, { status: 502 })
+    return NextResponse.json({ ok: false, error: 'AI intake is busy right now (out of credits or service hiccup). No problem — you can still fill the form below manually and the listing saves fine.' }, { status: 502 })
   }
 }
