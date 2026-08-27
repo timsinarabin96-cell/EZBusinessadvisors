@@ -84,21 +84,26 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
 
     const { data: listings, error } = await db
       .from('listings')
-      .select('id, agency_id, listing_ref')
+      .select('id, agency_id, agent_id, listing_ref')
       .in('id', listingIds)
     if (error || !listings?.length) return []
 
     const agencyIds = [...new Set(listings.map((l) => l.agency_id).filter(Boolean))] as string[]
+    const agentIds = [...new Set(listings.map((l) => l.agent_id).filter(Boolean))] as string[]
 
-    // Primary broker(s) per agency (first profile per agency).
+    // Resolve broker profiles: first by the agent actually assigned to each
+    // listing (listings.agent_id = broker_profiles.profile_id), then fall back
+    // to the agency's first broker so every card still shows someone.
+    let brokerByProfile: Record<string, any> = {}
     let brokerByAgency: Record<string, any> = {}
-    if (agencyIds.length > 0) {
+    if (agentIds.length > 0 || agencyIds.length > 0) {
       const { data: brokers } = await db
         .from('broker_profiles')
         .select('profile_id, agency_id, public_name, avatar_url, phone, email_public, bio')
-        .in('agency_id', agencyIds)
+        .or(`profile_id.in.(${agentIds.join(',')}),agency_id.in.(${agencyIds.join(',')})`)
       for (const b of brokers || []) {
-        if (!brokerByAgency[b.agency_id]) brokerByAgency[b.agency_id] = b
+        if (b.profile_id && !brokerByProfile[b.profile_id]) brokerByProfile[b.profile_id] = b
+        if (b.agency_id && !brokerByAgency[b.agency_id]) brokerByAgency[b.agency_id] = b
       }
     }
 
@@ -115,7 +120,9 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
     }
 
     return listings.map((l) => {
-      const broker = l.agency_id ? brokerByAgency[l.agency_id] : null
+      // Assigned agent first (agent_id → broker profile); agency primary broker
+      // as fallback so the card is never empty.
+      const broker = (l.agent_id && brokerByProfile[l.agent_id]) || (l.agency_id ? brokerByAgency[l.agency_id] : null)
       const agency = l.agency_id ? agencyById[l.agency_id] : null
       const website = agency
         ? agency.custom_domain
