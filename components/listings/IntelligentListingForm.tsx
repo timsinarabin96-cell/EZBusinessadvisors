@@ -45,7 +45,7 @@ const SECTIONS: Array<{ id: SectionId; label: string; description: string }> = [
   { id: 'public', label: 'Public Preview', description: 'Anonymous seller-approved marketplace content' },
 ]
 
-export default function IntelligentListingForm({ listingId: editListingId, onCreated, onPhaseDone, externalDraft, onLiveState }: { listingId?: string; onCreated?: (listingId: string) => void; onPhaseDone?: () => void; externalDraft?: Record<string, string | boolean | number | null> | null; onLiveState?: (s: { score: number; label: string; missing: string[]; industry: string; location: string; askingPrice: string; photoCount: number }) => void }) {
+export default function IntelligentListingForm({ listingId: editListingId, onCreated, onPhaseDone, externalDraft, onLiveState, onDraftCreated }: { listingId?: string; onCreated?: (listingId: string) => void; onPhaseDone?: () => void; externalDraft?: Record<string, string | boolean | number | null> | null; onLiveState?: (s: { score: number; label: string; missing: string[]; industry: string; location: string; askingPrice: string; photoCount: number }) => void; onDraftCreated?: (id: string) => void }) {
   const router = useRouter()
   const toast = useToast()
   const [section, setSection] = useState<SectionId>('identity')
@@ -215,6 +215,7 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
       } else {
         const created = await createListing(insert)
         setCreatedListingId(created.id)
+        onDraftCreated?.(created.id)
       }
       lastSaved.current = snapshot
       setSaveState('saved')

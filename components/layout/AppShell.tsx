@@ -335,8 +335,15 @@ export default function AppShell({
 
         {/* Main */}
         <main className="app-shell-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {/* Top header with global search */}
-          <div style={{ padding: '14px 40px', borderBottom: '1px solid var(--line)', background: '#fff', display: 'flex', justifyContent: 'flex-end' }}>
+          {/* Top header with global search + back arrow */}
+          <div style={{ padding: '14px 40px', borderBottom: '1px solid var(--line)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <button
+              onClick={() => { if (window.history.length > 1) router.back(); else router.push('/dashboard') }}
+              title="Go back"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid var(--line)', background: '#fff', color: 'var(--navy)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              ← Back
+            </button>
             <div style={{ width: '100%', maxWidth: 420 }}>
               <SearchBar backdrop />
             </div>
