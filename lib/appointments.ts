@@ -84,3 +84,31 @@ export async function createAppointment(input: AppointmentInput): Promise<Appoin
   if (error) throw new Error(error.message || 'Failed to create appointment')
   return data as Appointment
 }
+
+export async function updateAppointment(id: string, input: AppointmentInput): Promise<Appointment> {
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({
+      title: input.title,
+      appointment_type: input.appointment_type,
+      status: input.status || 'scheduled',
+      starts_at: input.starts_at,
+      ends_at: input.ends_at,
+      attendee_name: input.attendee_name || null,
+      attendee_email: input.attendee_email || null,
+      attendee_phone: input.attendee_phone || null,
+      notes: input.notes || null,
+      location_type: input.location_type || 'phone',
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw new Error(error.message || 'Failed to update appointment')
+  return data as Appointment
+}
+
+export async function deleteAppointment(id: string): Promise<void> {
+  const { error } = await supabase.from('appointments').delete().eq('id', id)
+  if (error) throw new Error(error.message || 'Failed to delete appointment')
+}

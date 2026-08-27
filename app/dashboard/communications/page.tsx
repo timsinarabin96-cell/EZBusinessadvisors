@@ -177,7 +177,7 @@ function Communications() {
                   <p className="text-sm font-medium truncate">{TYPE_ICONS[s.entity_type]} {s.label}{s.ref ? ` (${s.ref})` : ''}</p>
                   <p className="text-xs text-gray-500">
                     {s.last_contacted_at ? `Last contact ${fmtTime(s.last_contacted_at)}` : 'Never contacted'}
-                    {s.days_since !== Infinity && <span className="text-amber-700 font-medium"> · {s.days_since}d ago</span>}
+                    {typeof s.days_since === 'number' && Number.isFinite(s.days_since) && <span className="text-amber-700 font-medium"> · {Math.round(s.days_since)}d ago</span>}
                   </p>
                 </div>
                 <button onClick={() => remindStale(s)} className="shrink-0 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg">⏰ Remind me</button>

@@ -122,17 +122,25 @@ export function bestStockImage(subIndustry: string | null | undefined, industry:
     const key = (label || '').trim()
     return key && FREE_IMAGE_LIBRARY[key] ? FREE_IMAGE_LIBRARY[key][0] : null
   }
-  // Exact sub-industry (e.g. "Bakery Cafe") → exact industry → fuzzy contains → generic.
+  // Exact sub-industry (e.g. "Smoke Shop") → fuzzy sub → exact industry → fuzzy industry → generic.
   const sub = (subIndustry || '').trim()
   const ind = (industry || '').trim()
-  const exact = tryExact(sub) || tryExact(ind)
+  const exact = tryExact(sub)
   if (exact) return exact
-  // Fuzzy: sub contains a library key, or a key contains the sub (case-insensitive).
+  // Fuzzy sub-industry BEFORE industry fallback — so "Smoke Shop" never
+  // silently becomes a clothing-store "Retail" photo.
   const subLower = sub.toLowerCase()
-  for (const [key] of Object.entries(FREE_IMAGE_LIBRARY)) {
-    const k = key.toLowerCase()
-    if (subLower && (subLower.includes(k) || k.includes(subLower))) return FREE_IMAGE_LIBRARY[key][0]
+  if (subLower) {
+    for (const [key] of Object.entries(FREE_IMAGE_LIBRARY)) {
+      const k = key.toLowerCase()
+      if (subLower.includes(k) || k.includes(subLower)) return FREE_IMAGE_LIBRARY[key][0]
+    }
+    // A specific sub-industry that has no matching photo → branded placeholder
+    // (shows the business name + industry), never an unrelated industry photo.
+    return null
   }
+  const indExact = tryExact(ind)
+  if (indExact) return indExact
   const indLower = ind.toLowerCase()
   for (const [key] of Object.entries(FREE_IMAGE_LIBRARY)) {
     const k = key.toLowerCase()

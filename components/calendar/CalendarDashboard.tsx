@@ -14,7 +14,7 @@
 // =============================================================================
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { Appointment, AppointmentType, createAppointment, fetchAppointments } from '@/lib/appointments'
+import { Appointment, AppointmentType, createAppointment, fetchAppointments, updateAppointment } from '@/lib/appointments'
 import { fetchTasks, fetchDeadlines, buildTimeline, type TaskItem, type DeadlineItem } from '@/lib/calendarFeed'
 import { getStoredAccessToken } from '@/lib/authToken'
 import { getAgencyContext } from '@/lib/agencyContext'
@@ -89,6 +89,7 @@ export default function CalendarDashboard() {
   })
   const [taskForm, setTaskForm] = useState({ title: '', due_at: dateTimeLocalValue(defaultStart) })
   const [taskBusy, setTaskBusy] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -137,13 +138,19 @@ export default function CalendarDashboard() {
     try {
       const start = new Date(form.starts_at)
       const end = new Date(start.getTime() + 60 * 60 * 1000)
-      await createAppointment({
+      const payload = {
         ...form,
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
         location_type: 'phone',
-      })
-      setForm((current) => ({ ...current, attendee_name: '', attendee_email: '', attendee_phone: '', notes: '' }))
+      }
+      if (editingId) {
+        await updateAppointment(editingId, payload)
+      } else {
+        await createAppointment(payload)
+      }
+      setForm((current) => ({ ...current, title: 'Listing consultation', attendee_name: '', attendee_email: '', attendee_phone: '', notes: '' }))
+      setEditingId(null)
       await load()
     } catch (saveError) {
       setError((saveError as Error).message)
@@ -176,6 +183,48 @@ export default function CalendarDashboard() {
       body: JSON.stringify({ reminderId: id, status }),
     })
     await load()
+  }
+
+  const deleteTask = async (id: string) => {
+    const token = getStoredAccessToken()
+    await fetch('/api/reminders', {
+      method: 'DELETE',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ reminderId: id }),
+    })
+    await load()
+  }
+
+  const startEdit = (appt: Appointment) => {
+    setEditingId(appt.id)
+    setForm({
+      title: appt.title,
+      appointment_type: appt.appointment_type,
+      starts_at: dateTimeLocalValue(new Date(appt.starts_at)),
+      attendee_name: appt.attendee_name || '',
+      attendee_email: appt.attendee_email || '',
+      attendee_phone: appt.attendee_phone || '',
+      notes: appt.notes || '',
+    })
+  }
+
+  const removeAppointment = async (id: string) => {
+    if (!window.confirm('Delete this appointment?')) return
+    setError('')
+    try {
+      // Server-side delete (service role) — client RLS delete is admin-only.
+      const token = getStoredAccessToken()
+      const res = await fetch(`/api/appointments/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { authorization: `Bearer ${token}` },
+      })
+      const data = await res.json().catch(() => ({ ok: false, error: 'Delete failed' }))
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to delete appointment')
+      if (editingId === id) setEditingId(null)
+      await load()
+    } catch (deleteError) {
+      setError((deleteError as Error).message)
+    }
   }
 
   const days = useMemo(() => buildTimeline(appointments, tasks, deadlines), [appointments, tasks, deadlines])
@@ -258,6 +307,16 @@ export default function CalendarDashboard() {
                               <span style={{ color: accent, fontWeight: 700 }}>{TYPE_LABELS[appt.appointment_type]}</span>
                               {appt.attendee_name ? ` · ${appt.attendee_name}` : ''}
                             </span>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                              <button
+                                onClick={() => startEdit(appt)}
+                                style={{ border: '1px solid var(--line)', background: '#fff', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer', color: 'var(--navy)' }}
+                              >✎ Edit</button>
+                              <button
+                                onClick={() => removeAppointment(appt.id)}
+                                style={{ border: '1px solid #fecaca', background: '#fff', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer', color: '#b91c1c' }}
+                              >🗑 Delete</button>
+                            </div>
                           </article>
                         )
                       }
@@ -303,6 +362,13 @@ export default function CalendarDashboard() {
                           >
                             ✓ Done
                           </button>
+                          <button
+                            onClick={() => deleteTask(task.id)}
+                            style={{ border: '1px solid #fecaca', background: '#fff', borderRadius: 6, padding: '5px 9px', fontSize: 12, cursor: 'pointer', color: '#b91c1c', whiteSpace: 'nowrap' }}
+                            title="Delete task"
+                          >
+                            🗑
+                          </button>
                         </article>
                       )
                     })}
@@ -316,7 +382,7 @@ export default function CalendarDashboard() {
         {/* Quick add — appointment + task */}
         <div style={{ display: 'grid', gap: 16 }}>
           <form onSubmit={handleSubmit} style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: 20, display: 'grid', gap: 11 }}>
-            <h2 style={{ margin: 0, color: 'var(--navy)', fontFamily: 'Georgia, serif', fontSize: 16 }}>🗓 Book appointment</h2>
+            <h2 style={{ margin: 0, color: 'var(--navy)', fontFamily: 'Georgia, serif', fontSize: 16 }}>🗓 {editingId ? 'Edit appointment' : 'Book appointment'}</h2>
             <input required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Appointment title" style={inputStyle} />
             <select value={form.appointment_type} onChange={(event) => setForm({ ...form, appointment_type: event.target.value as AppointmentType })} style={inputStyle}>
               {Object.entries(TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -327,8 +393,13 @@ export default function CalendarDashboard() {
             <input value={form.attendee_phone} onChange={(event) => setForm({ ...form, attendee_phone: event.target.value })} placeholder="Phone" style={inputStyle} />
             <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Preparation notes" rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
             <button disabled={saving || schemaPending} style={{ padding: '10px 14px', borderRadius: 8, border: 0, background: 'var(--navy)', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: saving || schemaPending ? 0.55 : 1 }}>
-              {saving ? 'Booking…' : 'Book appointment'}
+              {saving ? (editingId ? 'Saving…' : 'Booking…') : editingId ? '💾 Save changes' : 'Book appointment'}
             </button>
+            {editingId && (
+              <button type="button" onClick={() => { setEditingId(null); setForm({ title: 'Listing consultation', appointment_type: 'listing', starts_at: dateTimeLocalValue(defaultStart), attendee_name: '', attendee_email: '', attendee_phone: '', notes: '' }) }} style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid var(--line)', background: '#fff', color: 'var(--navy)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+                Cancel edit
+              </button>
+            )}
           </form>
 
           <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: 20, display: 'grid', gap: 11 }}>
