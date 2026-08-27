@@ -392,7 +392,17 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         onSign={setSignTarget}
         onSend={async (docId) => {
           try {
-            await updateDocument(docId, { status: 'pending_signature' })
+            // Real eSign request: grant portal access + email a signing link.
+            const token = await getStoredAccessToken()
+            if (!token) throw new Error('Not authenticated')
+            const res = await fetch('/api/documents/send-for-signature', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+              body: JSON.stringify({ documentId: docId }),
+            })
+            const json = await res.json().catch(() => ({ ok: false, error: 'Server error' }))
+            if (!res.ok || !json.ok) throw new Error(json.error || 'Could not send for signature')
+            setError('')
             await load()
           } catch (e) {
             setError((e as Error).message || 'Could not send for signature')
@@ -410,7 +420,17 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         onSign={setSignTarget}
         onSend={async (docId) => {
           try {
-            await updateDocument(docId, { status: 'pending_signature' })
+            // Real eSign request: grant portal access + email a signing link.
+            const token = await getStoredAccessToken()
+            if (!token) throw new Error('Not authenticated')
+            const res = await fetch('/api/documents/send-for-signature', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+              body: JSON.stringify({ documentId: docId }),
+            })
+            const json = await res.json().catch(() => ({ ok: false, error: 'Server error' }))
+            if (!res.ok || !json.ok) throw new Error(json.error || 'Could not send for signature')
+            setError('')
             await load()
           } catch (e) {
             setError((e as Error).message || 'Could not send for signature')

@@ -156,7 +156,7 @@ async function firePublishBlast(listingId: string, agencyId: string): Promise<vo
  * Returns blocked with missing items when the gate fails.
  */
 export async function publishListing(listingId: string, actorProfileId?: string, opts?: { force?: boolean }): Promise<{
-  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }; risk?: { score: number; level: string; reasons: string[] } | null
+  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }; risk?: { score: number; level: string; reasons: string[] } | null; sellerApproval?: { approved: boolean; reference: string | null }
 }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   const { data: listing } = await svc.from('listings').select('*').eq('id', listingId).maybeSingle()
@@ -218,6 +218,25 @@ export async function publishListing(listingId: string, actorProfileId?: string,
     return { ok: false, blocked: true, score: readiness.score, missing: readiness.missing, error: `Readiness ${readiness.score}/100 — below the ${PUBLISH_READINESS_MIN} publish threshold` }
   }
 
+  // ── SELLER-APPROVAL GATE ───────────────────────────────────────────────
+  // Publishing requires the seller to have ACTUALLY approved — a signed
+  // seller document (via the Deal Docs portal) or a recorded approval
+  // reference. No more auto-stamped "approved" on publish. Compliance win.
+  const approval = await sellerApprovalState(listing)
+  if (!force && !approval.approved) {
+    return {
+      ok: false,
+      blocked: true,
+      score: readiness.score,
+      missing: [
+        ...(readiness.missing || []),
+        'Seller approval required — send the Listing/Marketing Agreement for signature and have the seller sign in the portal (Deal Docs → Send for signature)',
+      ],
+      error: 'Seller approval required before publishing. Use Deal Docs & eSign → Send for signature, then the seller signs via the emailed portal link.',
+      sellerApproval: approval,
+    }
+  }
+
   // Premature / low-quality listings still go live on explicit Save, but get auto-flagged for review.
   const flagged = readiness.score < PUBLISH_READINESS_MIN
   const vetted = readiness.score >= VETTED_READINESS_MIN && Boolean(listing.revenue_verified)
@@ -238,7 +257,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
 
   // CRITICAL: create/update the public_listings row the public feed reads from.
   // Without this, a published listing never appears on the website.
-  await syncPublicListingRow(listing)
+  await syncPublicListingRow(listing, approval.approved ? approval : { approved: true, reference: 'force-publish' })
 
   // Preventative AI risk gate: newly published listings get scored immediately;
   // critical risk (>= 75) auto-flags them for admin review — before they can
@@ -275,7 +294,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
 }
 
 /** Ensure the public feed row exists for a published listing. */
-async function syncPublicListingRow(listing: any): Promise<void> {
+async function syncPublicListingRow(listing: any, approval?: { approved: boolean; reference: string | null }): Promise<void> {
   if (!svc) return
   const now = new Date().toISOString()
   const slugBase = String(listing.business_name || listing.headline || 'business')
@@ -305,14 +324,45 @@ async function syncPublicListingRow(listing: any): Promise<void> {
     is_confidential: !isFull,
     show_financials: isFull || Boolean(listing.ai_metadata?.show_financials),
     location_exposure: 'general',
-    seller_approved_at: now,
-    seller_approval_reference: 'auto-publish',
+    seller_approved_at: approval?.approved ? now : null,
+    seller_approval_reference: approval?.approved ? (approval.reference || 'portal-signed') : null,
   }
   const { data: existing } = await svc.from('public_listings').select('id').eq('listing_id', listing.id).maybeSingle()
   if (existing) {
     await svc.from('public_listings').update(row).eq('listing_id', listing.id)
   } else {
     await svc.from('public_listings').insert(row)
+  }
+}
+
+/**
+ * True when the seller has actually approved the listing: a signed
+ * seller-role signature on any document for the listing (portal eSign), or
+ * an explicit seller_approval_reference recorded during intake. Never throws.
+ */
+async function sellerApprovalState(listing: any): Promise<{ approved: boolean; reference: string | null }> {
+  if (!svc) return { approved: false, reference: null }
+  try {
+    const manualRef = String(listing?.ai_metadata?.seller_approval_reference || '').trim()
+    if (manualRef) return { approved: true, reference: manualRef }
+
+    const { data: docs } = await svc.from('documents').select('id').eq('listing_id', listing?.id)
+    const ids = (docs || []).map((d: any) => d.id)
+    if (ids.length === 0) return { approved: false, reference: null }
+
+    const { data: sigs } = await svc
+      .from('document_signatures')
+      .select('id, signed_at')
+      .eq('role', 'seller')
+      .eq('status', 'signed')
+      .in('document_id', ids)
+      .limit(1)
+    if ((sigs || []).length > 0) {
+      return { approved: true, reference: 'portal-signed' }
+    }
+    return { approved: false, reference: null }
+  } catch {
+    return { approved: false, reference: null }
   }
 }
 
