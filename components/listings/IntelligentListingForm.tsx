@@ -588,7 +588,12 @@ function OperationsSection({ form, setValue }: SectionProps) {
     <Field label="Full-time employees"><input className="input" inputMode="numeric" value={form.employees_full_time} onChange={(event) => setValue('employees_full_time', event.target.value)} /></Field>
     <Field label="Part-time employees"><input className="input" inputMode="numeric" value={form.employees_part_time} onChange={(event) => setValue('employees_part_time', event.target.value)} /></Field>
     <Field label="Owner hours per week"><input className="input" inputMode="numeric" value={form.owner_hours_weekly} onChange={(event) => setValue('owner_hours_weekly', event.target.value)} /></Field>
-    <Field label="Customer concentration"><input className="input" value={form.customer_concentration} onChange={(event) => setValue('customer_concentration', event.target.value)} placeholder="Largest customer is 12% of revenue" /></Field>
+    <Field label="Customer concentration"><select className="select" value={form.customer_concentration} onChange={(event) => setValue('customer_concentration', event.target.value)}>
+        <option value="">Select largest customer share…</option>
+        {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => <option key={n} value={`${n}%`}>{n}% of revenue</option>)}
+        <option value="none">None — no single customer over 12%</option>
+        {form.customer_concentration && !['none', ...Array.from({ length: 12 }, (_, i) => `${i + 1}%`)].includes(form.customer_concentration) && <option value={form.customer_concentration}>{form.customer_concentration} (existing)</option>}
+      </select></Field>
     <Field label="Competitive advantages" span><textarea className="textarea" rows={5} value={form.competitive_advantages} onChange={(event) => setValue('competitive_advantages', event.target.value)} /></Field>
     <Field label="Growth opportunities" span><textarea className="textarea" rows={5} value={form.growth_opportunities} onChange={(event) => setValue('growth_opportunities', event.target.value)} /></Field>
     <Field label="Facilities and operating footprint" span><textarea className="textarea" rows={4} value={form.facilities_summary} onChange={(event) => setValue('facilities_summary', event.target.value)} /></Field>
