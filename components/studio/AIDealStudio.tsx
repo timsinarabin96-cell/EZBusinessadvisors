@@ -187,9 +187,9 @@ export default function AIDealStudio() {
         })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr) 300px', gap: 18, alignItems: 'start', padding: '8px 2px' }}>
+      <div className="studio-grid" style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr) 300px', gap: 18, alignItems: 'start', padding: '8px 2px' }}>
         {/* ══ LEFT: PHASE RAIL ══ */}
-        <aside style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <aside className="studio-rail studio-rail-left" style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {PHASES.map((p, idx) => {
             const active = phase === p.key
             const done = idx < PHASES.findIndex((x) => x.key === phase)
@@ -232,7 +232,7 @@ export default function AIDealStudio() {
         </aside>
 
         {/* ══ CENTER: ACTIVE PHASE CANVAS ══ */}
-        <main style={{ minWidth: 0 }}>
+        <main className="studio-canvas" style={{ minWidth: 0 }}>
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 14, flexWrap: 'wrap' }}>
             <div>
@@ -345,7 +345,7 @@ export default function AIDealStudio() {
         </main>
 
         {/* ══ RIGHT: AI CONDUCTOR RAIL ══ */}
-        <aside style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <aside className="studio-rail studio-rail-right" style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {phase === 'capture' && (
             <>
               {/* LIVE conductor — reacts as the broker types */}

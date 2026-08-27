@@ -209,6 +209,7 @@ export default function AppShell({
 
         {/* Sidebar */}
         <aside
+          className="app-shell-aside"
           style={{
             width: 240, flexShrink: 0,
             background: 'linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%)',
@@ -333,7 +334,7 @@ export default function AppShell({
         </aside>
 
         {/* Main */}
-        <main style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <main className="app-shell-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {/* Top header with global search */}
           <div style={{ padding: '14px 40px', borderBottom: '1px solid var(--line)', background: '#fff', display: 'flex', justifyContent: 'flex-end' }}>
             <div style={{ width: '100%', maxWidth: 420 }}>

@@ -380,6 +380,51 @@ h1, h2, h3, h4 {
   .grid-4 { grid-template-columns: 1fr; }
 }
 
+/* ---- AI Deal Studio: phone-first collapse ---- */
+@media (max-width: 1100px) {
+  .studio-grid { grid-template-columns: 1fr !important; }
+  .studio-rail { position: static !important; }
+  .studio-rail-left {
+    flex-direction: row !important;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .studio-rail-left > * { min-width: 140px; }
+  .studio-rail-right { order: 3; }
+}
+
+/* ---- Workflow form grids: stack on phone ---- */
+@media (max-width: 760px) {
+  .wf-grid-4 { grid-template-columns: 1fr !important; }
+  .wf-grid-2 { grid-template-columns: 1fr !important; }
+}
+
+/* ---- Buyer pipeline kanban: keep swipeable, tighten columns ---- */
+@media (max-width: 760px) {
+  .pipeline-board-grid {
+    grid-template-columns: repeat(10, minmax(110px, 1fr)) !important;
+  }
+  .pipeline-funnel-strip { flex-wrap: wrap; }
+}
+
+/* ---- Pipeline dashboard: stack on phone ---- */
+@media (max-width: 760px) {
+  .pipeline-dash-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ---- AppShell: slide-over sidebar on phone ---- */
+@media (max-width: 900px) {
+  .app-shell-aside {
+    position: fixed !important;
+    left: 0; top: 0;
+    transform: translateX(-100%);
+  }
+  .app-shell-aside.app-shell-open {
+    transform: translateX(0);
+  }
+  .app-shell-main { min-width: 0; }
+}
+
 /* ---- Scrollable horizontal tables ---- */
 .table-scroll { overflow-x: auto; }
 

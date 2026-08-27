@@ -117,7 +117,7 @@ export default function BuyerPipelineBoard({ listingId, onBuyersChange }: { list
   return (
     <div>
       {/* Funnel strip */}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+      <div className="pipeline-funnel-strip" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
         <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy)' }}>📊 Pipeline:</span>
         {COMPACT_STAGES.filter((s) => s !== 'lost').map((s) => (
           <span key={s} style={{ fontSize: 11.5, padding: '3px 10px', borderRadius: 99, background: (funnel[s] || 0) > 0 ? 'var(--navy)' : '#eef1f5', color: (funnel[s] || 0) > 0 ? '#fff' : 'var(--muted)', fontWeight: 700 }}>
@@ -133,7 +133,7 @@ export default function BuyerPipelineBoard({ listingId, onBuyersChange }: { list
       ) : buyers.length === 0 ? (
         <div style={{ padding: 20, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>Add buyers above — they land in 🆕 New and you move them down the pipeline.</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, minmax(120px, 1fr))', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
+        <div className="pipeline-board-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(10, minmax(120px, 1fr))', gap: 8, overflowX: 'auto', paddingBottom: 6 }}>
           {COMPACT_STAGES.map((stage) => {
             const inStage = buyers.filter((b) => b.pipeline_stage === stage)
             return (
