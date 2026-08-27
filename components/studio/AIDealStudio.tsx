@@ -17,7 +17,7 @@ import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
 import ListingCopilot from '@/components/listings/ListingCopilot'
 import ListingReadinessPanel from '@/components/listings/ListingReadinessPanel'
 import PublishPanel from '@/components/listing/PublishPanel'
-import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard, CompsCard, ValuationSliderCard, BuyerLeaderboardCard, SyndicationPackCard, OfferIntelligenceCard, AutoClosingDriveCard } from '@/components/studio/StudioInsights'
+import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard, CompsCard, ValuationSliderCard, BuyerLeaderboardCard, SyndicationPackCard, OfferIntelligenceCard, AutoClosingDriveCard, VoiceIntakeCard, PhotoAICard } from '@/components/studio/StudioInsights'
 import StatusBadge from '@/components/listings/StatusBadge'
 import Step1LegalDocs from '@/components/listings/Step1LegalDocs'
 import Step2FinancialDetails from '@/components/listings/Step2FinancialDetails'
@@ -345,6 +345,7 @@ export default function AIDealStudio() {
           {phase === 'capture' && (
             <>
               {/* LIVE conductor — reacts as the broker types */}
+              <VoiceIntakeCard onDraft={(d) => setConciergeDraft(d)} />
               <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif' }}>✨ Live readiness</span>
@@ -381,6 +382,7 @@ export default function AIDealStudio() {
             <>
               <PipelineStatusCard listingId={listingId} businessName={listing?.business_name} />
               <ValuationSliderCard industry={listing?.industry} basis={(listing?.ebitda ? 'EBITDA' : 'SDE') as 'SDE' | 'EBITDA'} baseValue={Number(listing?.ebitda || listing?.sde) || null} />
+              <PhotoAICard listingId={listingId} />
               <RiskCard listingId={listingId} />
               <WorkflowGuidance step={activeStep} stepLabel={stepMeta?.label || ''} listing={listing} workflow={workflow} doneSteps={doneSteps} />
               <ListingCopilot listingId={listingId} businessName={listing?.business_name} />

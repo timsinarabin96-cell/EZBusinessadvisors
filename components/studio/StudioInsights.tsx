@@ -408,6 +408,217 @@ export function OfferIntelligenceCard({ listingId, askingPrice }: { listingId: s
 }
 
 // ---------------------------------------------------------------------------
+// Voice intake — pull a phone-call transcript straight into the concierge.
+// ---------------------------------------------------------------------------
+export function VoiceIntakeCard({ onDraft }: { onDraft?: (draft: any) => void }) {
+  const toast = useToast()
+  const [calls, setCalls] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/calls?hours=168&includeTranscripts=1', { headers: authHeaders() })
+      const j = await res.json()
+      setCalls(Array.isArray(j.calls) ? j.calls.filter((c: any) => (c.transcripts || []).length > 0).slice(0, 8) : [])
+    } catch {
+      setCalls([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  /** Feed a call's transcript into the concierge → structured draft. */
+  const useCall = async (call: any) => {
+    setBusy(call.id)
+    try {
+      const transcript = (call.transcripts || [])
+        .map((s: any) => `${s.speaker === 'caller' ? 'Caller' : s.speaker === 'assistant' ? 'Assistant' : 'Broker'}: ${s.content}`)
+        .join('\n')
+      const res = await fetch('/api/listings/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ mode: 'full', context: transcript }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Extraction failed')
+      const draft = (j.draft || {}) as any
+      if (Object.keys(draft).length === 0) throw new Error('Could not extract fields from this call')
+      onDraft?.(draft)
+      toast(`🎙️ Call → ${j.coverage?.filled || Object.keys(draft).length} fields filled from the phone call`, 'success')
+    } catch (e: any) {
+      toast(e.message || 'Could not use this call', 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const fmtTime = (iso?: string) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 4 }}>🎙️ Voice intake</div>
+      <div style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
+        Calls your phone agent answered — turn any transcript into the listing record with one click.
+      </div>
+      {loading ? (
+        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Loading recent calls…</div>
+      ) : calls.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+          No call transcripts yet. Point your Twilio number at <code style={{ fontSize: 11 }}>/api/voice/twilio</code> and the AI receptionist logs every call here.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {calls.map((c) => {
+            const open = expanded === c.id
+            const speakerCount = (c.transcripts || []).filter((s: any) => s.speaker === 'caller').length
+            return (
+              <div key={c.id} style={{ border: '1px solid #e7edf4', borderRadius: 10, padding: 10, background: open ? '#f7fafc' : '#fff' }}>
+                <button
+                  onClick={() => setExpanded(open ? null : c.id)}
+                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+                    <span style={{ fontSize: 15 }}>📞</span>
+                    <span style={{ fontWeight: 800, color: 'var(--navy)', flex: 1 }}>
+                      {c.caller_name || c.caller_number || 'Unknown caller'}
+                    </span>
+                    <span style={{ color: 'var(--muted)', fontSize: 11.5 }}>{fmtTime(c.started_at)}</span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 3 }}>
+                    {speakerCount} caller turn{speakerCount === 1 ? '' : 's'}
+                    {c.duration_seconds ? ` · ${Math.round(c.duration_seconds / 60)}m` : ''} {c.summary ? `· ${String(c.summary).slice(0, 70)}…` : ''}
+                  </div>
+                </button>
+                {open && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ maxHeight: 180, overflowY: 'auto', background: '#0f1023', borderRadius: 8, padding: 10, fontSize: 11.5, lineHeight: 1.6, color: 'rgba(255,255,255,0.85)', fontFamily: 'ui-monospace, monospace' }}>
+                      {(c.transcripts || []).map((s: any, i: number) => (
+                        <div key={i} style={{ marginBottom: 4 }}>
+                          <span style={{ color: s.speaker === 'caller' ? '#f5d97a' : s.speaker === 'assistant' ? '#7dd3fc' : '#94a3b8', fontWeight: 700 }}>
+                            {s.speaker === 'caller' ? 'CALLER' : s.speaker === 'assistant' ? 'AGENT' : 'BROKER'}:
+                          </span>{' '}
+                          {s.content}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => useCall(c)}
+                      disabled={busy === c.id}
+                      style={{ width: '100%', marginTop: 8, padding: '9px', borderRadius: 8, background: 'var(--navy)', color: '#fff', border: 'none', fontWeight: 800, fontSize: 12.5, cursor: busy === c.id ? 'wait' : 'pointer', opacity: busy === c.id ? 0.6 : 1 }}
+                    >
+                      {busy === c.id ? '✨ Building the record…' : '✨ Build listing from this call'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Photo AI — vision analysis of the gallery: condition, assets, price signal.
+// ---------------------------------------------------------------------------
+export function PhotoAICard({ listingId }: { listingId: string }) {
+  const toast = useToast()
+  const [running, setRunning] = useState(false)
+  const [result, setResult] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const run = async () => {
+    setRunning(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/ai/photo-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ listingId }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Photo analysis failed')
+      setResult(j.analysis)
+      toast('📸 Photo AI finished — price signal ready', 'success')
+    } catch (e: any) {
+      setError(e.message || 'Photo analysis failed')
+      toast(e.message || 'Photo analysis failed', 'error')
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  const signal = result?.priceSignal
+  const signalColor = signal === 'support' ? '#166534' : signal === 'weaken' ? '#b91c1c' : '#9a6700'
+  const signalLabel = signal === 'support' ? 'Photos SUPPORT the asking price' : signal === 'weaken' ? 'Photos WEAKEN the asking price' : 'Photos are neutral on price'
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 8 }}>📸 Photo AI</div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 10 }}>
+        Vision reads the gallery — condition, equipment, red flags — and tells you whether the photos back the asking price.
+      </div>
+      {!result && !error && (
+        <button
+          onClick={run}
+          disabled={running}
+          style={{ width: '100%', padding: '10px', borderRadius: 8, background: '#0e7490', color: '#fff', border: 'none', fontWeight: 800, fontSize: 12.5, cursor: running ? 'wait' : 'pointer', opacity: running ? 0.6 : 1 }}
+        >
+          {running ? '👁️ Reading photos…' : '👁️ Analyze gallery photos'}
+        </button>
+      )}
+      {error && (
+        <div style={{ fontSize: 12, color: '#b91c1c', marginBottom: 8 }}>{error}</div>
+      )}
+      {result && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: signalColor }}>{signalLabel}</div>
+          {result.priceSignalReason && <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{result.priceSignalReason}</div>}
+          {result.condition && (
+            <div style={{ fontSize: 12, color: 'var(--navy)', lineHeight: 1.55, background: '#f4f8fc', borderRadius: 8, padding: 10 }}>
+              <strong>Condition:</strong> {result.condition}
+            </div>
+          )}
+          {result.assets?.length > 0 && (
+            <div style={{ fontSize: 12 }}>
+              <strong style={{ color: 'var(--navy)' }}>💎 Assets visible:</strong>{' '}
+              {result.assets.map((a: string, i: number) => (
+                <span key={i} style={{ display: 'inline-block', margin: '2px 4px 2px 0', padding: '3px 8px', borderRadius: 99, background: '#e8f5ee', color: '#166534', fontSize: 11, fontWeight: 700 }}>{a}</span>
+              ))}
+            </div>
+          )}
+          {result.redFlags?.length > 0 && (
+            <div style={{ fontSize: 12, color: '#b91c1c', lineHeight: 1.55 }}>
+              <strong>⚠️ Red flags:</strong> {result.redFlags.join(' · ')}
+            </div>
+          )}
+          {result.listingBoost && (
+            <div style={{ fontSize: 12, color: '#9a6700', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 10, lineHeight: 1.5 }}>
+              <strong>🚀 Listing boost:</strong> {result.listingBoost}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+            <button onClick={run} disabled={running} style={{ flex: 1, padding: '8px', borderRadius: 8, background: 'transparent', color: 'var(--navy)', border: '1px solid #c9a84c', fontWeight: 700, fontSize: 12, cursor: running ? 'wait' : 'pointer' }}>
+              ↻ Re-analyze
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Auto-closing drive — the closing checklist with reminders
 // ---------------------------------------------------------------------------
 export function AutoClosingDriveCard() {

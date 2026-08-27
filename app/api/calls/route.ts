@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
 
   const status = req.nextUrl.searchParams.get('status') || 'all'
   const hours = Number(req.nextUrl.searchParams.get('hours') || 24 * 7)
+  const includeTranscripts = req.nextUrl.searchParams.get('includeTranscripts') === '1'
 
   let query = db
     .from('call_sessions')
@@ -61,6 +62,27 @@ export async function GET(req: NextRequest) {
       caller_name: callerName,
       caller_matched: matched || !!row.caller_name,
     })
+  }
+
+  // Voice intake: attach transcript segments when requested (studio pull).
+  if (includeTranscripts && enriched.length > 0) {
+    const ids = enriched.map((c) => c.id)
+    const { data: segs, error: segErr } = await db
+      .from('call_transcripts')
+      .select('call_session_id, sequence, speaker, content')
+      .in('call_session_id', ids)
+      .order('sequence', { ascending: true })
+    if (!segErr && segs) {
+      const byCall = new Map<string, any[]>()
+      for (const s of segs) {
+        const list = byCall.get(s.call_session_id) || []
+        list.push(s)
+        byCall.set(s.call_session_id, list)
+      }
+      for (const c of enriched) {
+        c.transcripts = byCall.get(c.id) || []
+      }
+    }
   }
 
   return NextResponse.json({ ok: true, calls: enriched })
