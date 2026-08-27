@@ -29,6 +29,7 @@ export default function BuyerCapturePrompt({ hintIndustry }: { hintIndustry?: st
   const [industries, setIndustries] = useState<string[]>(hintIndustry ? [hintIndustry] : [])
   const [budget, setBudget] = useState<number | null>(null)
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
 
@@ -69,6 +70,7 @@ export default function BuyerCapturePrompt({ hintIndustry }: { hintIndustry?: st
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: email.trim(),
+            phone: phone.trim() || null,
             criteria: {
               industries,
               max_price: budget,
@@ -162,6 +164,14 @@ export default function BuyerCapturePrompt({ hintIndustry }: { hintIndustry?: st
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email (optional — get matched listings)"
               type="email"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '11px 13px', border: '1px solid #d8d2c2', borderRadius: 8, fontSize: 13.5, outline: 'none', fontFamily: 'Inter, system-ui, sans-serif', marginBottom: 10 }}
+            />
+
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Phone (optional — brokers can call you)"
+              type="tel"
               style={{ width: '100%', boxSizing: 'border-box', padding: '11px 13px', border: '1px solid #d8d2c2', borderRadius: 8, fontSize: 13.5, outline: 'none', fontFamily: 'Inter, system-ui, sans-serif', marginBottom: 14 }}
             />
 

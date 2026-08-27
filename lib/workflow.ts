@@ -233,7 +233,21 @@ export async function fetchFinancials(listingId: string): Promise<any | null> {
 // --- Step 3: recast ---
 export async function saveRecast(listingId: string, recast: Partial<any>): Promise<boolean> {
   try {
-    const { error } = await supabase.from('listing_recasts').insert({ listing_id: listingId, ...recast, recasted_at: new Date().toISOString() })
+    // Upsert: keep ONE recast row per listing (auto-save would otherwise
+    // accumulate duplicate rows on every keystroke debounce).
+    const { data: existing } = await supabase
+      .from('listing_recasts')
+      .select('id')
+      .eq('listing_id', listingId)
+      .order('recasted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const payload = { ...recast, recasted_at: new Date().toISOString() }
+    if (existing?.id) {
+      const { error } = await supabase.from('listing_recasts').update(payload).eq('id', existing.id)
+      return !error
+    }
+    const { error } = await supabase.from('listing_recasts').insert({ listing_id: listingId, ...payload })
     return !error
   } catch { return false }
 }
@@ -405,13 +419,27 @@ export async function recordClosing(listingId: string, details: Partial<any>): P
     const { data: { user } } = await supabase.auth.getUser()
     // Live table columns: closing_date, final_purchase_price, final_terms,
     // closing_costs, net_proceeds, closed_by, created_at — NO closed_at.
-    const { error } = await supabase.from('deal_closing_details').insert({
+    // Upsert: keep ONE deal_closing_details row per listing (auto-save on the
+    // closing date/price inputs must not accumulate duplicate rows).
+    const { data: existing } = await supabase
+      .from('deal_closing_details')
+      .select('id')
+      .eq('listing_id', listingId)
+      .limit(1)
+      .maybeSingle()
+    const payload = {
       listing_id: listingId,
       closing_date: details.closing_date || null,
       final_purchase_price: details.final_purchase_price ?? null,
       closed_by: user?.id || null,
-    })
-    if (error) return false
+    }
+    if (existing?.id) {
+      const { error } = await supabase.from('deal_closing_details').update(payload).eq('id', existing.id)
+      if (error) return false
+    } else {
+      const { error } = await supabase.from('deal_closing_details').insert(payload)
+      if (error) return false
+    }
     if (agreement) {
       await supabase.from('deal_agreements').update({ status: 'closing' }).eq('id', agreement.id)
     }

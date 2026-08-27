@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
   const result = await subscribe({
     email,
     name: typeof body.name === 'string' ? body.name : null,
+    phone: typeof body.phone === 'string' && body.phone ? body.phone : null,
     criteria: body.criteria && typeof body.criteria === 'object' ? body.criteria : {},
     agencyId: typeof body.agencyId === 'string' && body.agencyId ? body.agencyId : null,
   })

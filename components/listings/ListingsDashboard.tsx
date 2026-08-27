@@ -10,13 +10,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Listing, fetchListings, updateListing, deleteListing, fmtMoney, LISTING_STATUSES } from '@/lib/listings'
+import { Listing, fetchListings, updateListing, deleteListing, restoreListing, fmtMoney, LISTING_STATUSES } from '@/lib/listings'
 import { listingImageFor } from '@/lib/stockImages'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
 import { queueAutoPosts } from '@/lib/services/social'
 import { supabase } from '@/lib/supabase/client'
 import StaleListingPanel from '@/components/listings/StaleListingPanel'
+import DeleteListingModal from '@/components/listings/DeleteListingModal'
 
 export default function ListingsDashboard() {
   const router = useRouter()
@@ -24,11 +25,14 @@ export default function ListingsDashboard() {
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [deleteTarget, setDeleteTarget] = useState<Listing | null>(null)
+  const [deleted, setDeleted] = useState<Listing[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       setListings(await fetchListings())
+      setDeleted((await fetchListings('deleted')) || [])
     } catch (e: any) {
       toast(e.message, 'error')
     } finally {
@@ -38,11 +42,12 @@ export default function ListingsDashboard() {
 
   useEffect(() => { load() }, [load])
 
-  const handleDelete = async (listing: Listing) => {
-    if (!confirm(`Delete listing "${listing.business_name}"?`)) return
+  const handleDelete = (listing: Listing) => setDeleteTarget(listing)
+
+  const handleRestore = async (listing: Listing) => {
     try {
-      await deleteListing(listing.id)
-      toast('Listing deleted', 'success')
+      await restoreListing(listing.id)
+      toast('Listing restored', 'success')
       await load()
     } catch (e: any) {
       toast(e.message, 'error')
@@ -60,8 +65,9 @@ export default function ListingsDashboard() {
   }
 
   const filtered = statusFilter === 'all' ? listings : listings.filter((l) => l.status === statusFilter)
+  const showDeleted = statusFilter === 'deleted'
   const statusColor = (s?: string | null) =>
-    s === 'active' ? '#22c55e' : s === 'under_contract' ? '#f59e0b' : s === 'sold' ? '#3b82f6' : s === 'draft' ? '#94a3b8' : '#64748b'
+    s === 'active' ? '#22c55e' : s === 'under_contract' ? '#f59e0b' : s === 'sold' ? '#3b82f6' : s === 'draft' ? '#94a3b8' : s === 'deleted' ? '#ef4444' : '#64748b'
 
   return (
     <div>
@@ -87,11 +93,43 @@ export default function ListingsDashboard() {
         {LISTING_STATUSES.map((s) => (
           <FilterPill key={s} active={statusFilter === s} onClick={() => setStatusFilter(s)}>{s.replace(/_/g, ' ')}</FilterPill>
         ))}
+        <FilterPill active={statusFilter === 'deleted'} onClick={() => setStatusFilter('deleted')}>
+          🗑 Deleted ({deleted.length})
+        </FilterPill>
       </div>
 
       {loading ? <LoadingState /> : null}
 
-      {!loading && filtered.length === 0 ? (
+      {showDeleted ? (
+        deleted.length === 0 ? (
+          <EmptyState icon="🗑" title="Trash is empty" subtitle="Deleted listings appear here with the deletion reason, and can be restored." />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {deleted.map((listing) => {
+              const meta = (listing as any).ai_metadata || {}
+              const del = meta.deletion || {}
+              const reasonLabel = String(del.reason || '—').replace(/_/g, ' ')
+              const deletedAt = del.deleted_at ? new Date(del.deleted_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''
+              return (
+                <Card key={listing.id} style={{ padding: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 15 }}>{listing.business_name || 'Unnamed listing'}</div>
+                      <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 3 }}>
+                        🗑 Deleted {deletedAt ? `· ${deletedAt}` : ''} · Reason: <strong style={{ color: '#b91c1c' }}>{reasonLabel}</strong>
+                        {del.note ? <span> — {String(del.note)}</span> : null}
+                      </div>
+                    </div>
+                    <button className="btn btn-navy" style={{ padding: '8px 14px', fontSize: 12.5, whiteSpace: 'nowrap' }} onClick={() => handleRestore(listing)}>
+                      ⤺ Restore
+                    </button>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        )
+      ) : !loading && filtered.length === 0 ? (
         <EmptyState icon="🏢" title="No listings found" subtitle="Create a listing to get started." />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
@@ -184,6 +222,16 @@ export default function ListingsDashboard() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Delete-reason modal (reason required; trash-with-restore) */}
+      {deleteTarget && (
+        <DeleteListingModal
+          listingId={deleteTarget.id}
+          businessName={deleteTarget.business_name}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={() => { setDeleteTarget(null); load() }}
+        />
       )}
     </div>
   )

@@ -141,6 +141,10 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
   // Edit mode: load the existing listing into the form.
   useEffect(() => {
     if (!editListingId) return
+    // Guard: if the form already has content (user typed / autosave created the
+    // draft this session), never clobber it with a fetch. This prevents the
+    // studio's URL-sync (onDraftCreated) from remounting the form mid-click.
+    if (form.business_name.trim()) return
     fetchListing(editListingId).then((l) => {
       if (!l) return
       const meta = (l as any).ai_metadata || {}
@@ -381,6 +385,8 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
         </div>
       </div>
 
+      {/* Container query host: the form embeds in the AI Deal Studio's narrow center column, so the grid collapses on ITS container width, not the viewport (the old fixed 230+280px columns overflowed and the right rail intercepted clicks on the submit button). */}
+      <div style={{ containerType: 'inline-size' }}>
       <div className="listing-studio-grid" style={{ display: 'grid', gridTemplateColumns: '230px minmax(0, 1fr) 280px', gap: 20, alignItems: 'start' }}>
         <aside className="card" style={{ padding: 10, position: 'sticky', top: 84 }}>
           {SECTIONS.map((item, index) => {
@@ -436,6 +442,7 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
             {['Agent completes intake', 'Broker reviews compliance', 'Seller approves public fields', 'AI matches qualified buyers', 'Approved channels publish'].map((item, index) => <div key={item} style={{ display: 'flex', gap: 9, fontSize: 12.5, lineHeight: 1.4, marginTop: 9 }}><span style={{ color: '#2563eb', fontWeight: 800 }}>{index + 1}</span><span>{item}</span></div>)}
           </div>
         </aside>
+      </div>
       </div>
 
       {matched && <MatchedBuyersModal matches={matched} listingIndustry={form.industry} onDone={finishMatching} />}

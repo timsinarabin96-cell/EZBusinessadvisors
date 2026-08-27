@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
 import { saveRecast, fetchRecast, completeStep, fetchFinancials } from '@/lib/workflow'
 import MoneyInput from '@/components/ui/MoneyInput'
+import { useStepAutoSave } from '@/components/listings/useStepAutoSave'
 
 // ---------------------------------------------------------------------------
 // Step 3 — Recast Financials: normalize owner financials with add-backs.
@@ -28,6 +29,7 @@ export default function Step3RecastFinancial({ listingId, onNext }: { listingId:
   const [busy, setBusy] = useState(false)
   const [suggesting, setSuggesting] = useState(false)
   const [suggestError, setSuggestError] = useState('')
+  const [loaded, setLoaded] = useState(false)
 
   const loadSuggestions = async () => {
     setSuggesting(true)
@@ -75,11 +77,26 @@ export default function Step3RecastFinancial({ listingId, onNext }: { listingId:
       } else if (fin) {
         setOriginalSde(fin.sde?.amount ?? ''); setOriginalEbitda(fin.ebitda?.amount ?? '')
       }
+      setLoaded(true)
     })()
   }, [listingId])
 
   const totalAddBacks = addBacks.reduce((s, b) => s + (Number(String(b.amount).replace(/[$,]/g, '')) || 0), 0)
   const sdeVal = (Number(String(originalSde).replace(/[$,]/g, '')) || 0) + totalAddBacks
+
+  // Auto-save recast as the broker types (debounced) — no step advance.
+  const recastDraft = { originalSde, originalEbitda, recastedSde, recastedEbitda, addBacks, notes }
+  const autoSaveState = useStepAutoSave(recastDraft, async (d) => {
+    const val = (s: string) => Number(String(s).replace(/[$,]/g, '')) || null
+    const backs = (d.addBacks || []).map((b) => ({ label: b.label, amount: Number(String(b.amount).replace(/[$,]/g, '')) || 0 }))
+    const total = backs.reduce((s2, b) => s2 + b.amount, 0)
+    return saveRecast(listingId, {
+      original_sde: val(d.originalSde), recasted_sde: (Number(String(d.originalSde).replace(/[$,]/g, '')) || 0) + total,
+      original_ebitda: val(d.originalEbitda), recasted_ebitda: Number(String(d.recastedEbitda).replace(/[$,]/g, '')) || null,
+      add_backs: backs,
+      notes: d.notes,
+    })
+  }, loaded)
 
   const save = async () => {
     setBusy(true)
@@ -99,7 +116,7 @@ export default function Step3RecastFinancial({ listingId, onNext }: { listingId:
 
   return (
     <StepShell step={3} title="Recast Financials" description="Normalize owner financials by adding back discretionary expenses to arrive at a sustainable SDE/EBITDA."
-      status="draft" onNext={save} nextDisabled={!sdeVal} nextLabel={busy ? 'Saving…' : 'Step 3 complete →'}>
+      status="draft" onNext={save} nextDisabled={!sdeVal} nextLabel={busy ? 'Saving…' : 'Step 3 complete →'} autoSaveState={autoSaveState}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
         <label style={stepLabel}>Original SDE<MoneyInput value={originalSde} onChange={(v) => setOriginalSde(v)} /></label>
         <label style={stepLabel}>Original EBITDA<MoneyInput value={originalEbitda} onChange={(v) => setOriginalEbitda(v)} /></label>

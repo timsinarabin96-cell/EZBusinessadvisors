@@ -457,19 +457,29 @@ function PackSection({
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {sigs.map((s) => (
-                    <span
-                      key={s.id}
-                      style={{
-                        fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
-                        background: s.status === 'signed' ? '#ecfdf5' : '#f1f5f9',
-                        color: s.status === 'signed' ? '#15803d' : '#64748b',
-                        border: `1px solid ${s.status === 'signed' ? '#bbf7d0' : '#e2e8f0'}`,
-                      }}
-                    >
-                      {s.party_name || (s.role || 'party')}{s.status === 'signed' ? ' ✓' : ''}
-                    </span>
-                  ))}
+                  {sigs.map((s, idx) => {
+                    // Human-readable slot label: party name/email when filled,
+                    // else "Seller 1" / "Buyer" style from the role key — never
+                    // raw concatenated keys.
+                    const roleLabel = (s.role || 'party')
+                      .replace(/_/g, ' ')
+                      .replace(/\b\w/g, (c) => c.toUpperCase())
+                    const sameRole = sigs.filter((x) => (x.role || 'party') === (s.role || 'party')).length
+                    const label = s.party_name || (sameRole > 1 ? `${roleLabel} ${idx + 1}` : roleLabel)
+                    return (
+                      <span
+                        key={s.id}
+                        style={{
+                          fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 99,
+                          background: s.status === 'signed' ? '#ecfdf5' : '#f1f5f9',
+                          color: s.status === 'signed' ? '#15803d' : '#64748b',
+                          border: `1px solid ${s.status === 'signed' ? '#bbf7d0' : '#e2e8f0'}`,
+                        }}
+                      >
+                        {label}{s.status === 'signed' ? ' ✓' : ''}
+                      </span>
+                    )
+                  })}
                   {sigs.some((s) => s.status === 'unsigned') && (
                     <button
                       className="btn"

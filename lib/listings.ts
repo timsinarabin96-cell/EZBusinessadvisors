@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/lib/supabase/client'
+import { authHeaders } from '@/lib/authToken'
 
 // ---------------------------------------------------------------------------
 // Listings CRUD — configured to the REAL listings schema (probed live):
@@ -96,6 +97,7 @@ export const LISTING_STATUSES = ['draft', 'active', 'pending_sale', 'under_contr
 export async function fetchListings(status?: string): Promise<Listing[]> {
   let query = supabase.from('listings').select('*')
   if (status) query = query.eq('status', status)
+  else query = query.neq('status', 'deleted') // trash lives in the Deleted tab only
   const { data, error } = await query.order('created_at', { ascending: false })
 
   if (error) {
@@ -149,14 +151,32 @@ export async function updateListing(id: string, input: ListingInput): Promise<Li
   return data as Listing
 }
 
-export async function deleteListing(id: string): Promise<void> {
+export async function deleteListing(id: string, opts?: { reason?: string; note?: string }): Promise<void> {
   // Server-side delete (service role) — works for agency admins + owners and
   // cleans up gallery storage. Client-side supabase delete was RLS-limited to
-  // the listing owner and orphaned storage files.
-  const res = await fetch(`/api/listings/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  // the listing owner and orphaned storage files. The API requires a Bearer
+  // token (authenticateProfileRequest), so auth headers are mandatory. A
+  // deletion reason is REQUIRED (400 without one).
+  const res = await fetch(`/api/listings/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ reason: opts?.reason || '', note: opts?.note || '' }),
+  })
   const data = await res.json().catch(() => ({ ok: false, error: 'Delete failed' }))
   if (!res.ok || !data.ok) {
     throw new Error(data.error || 'Failed to delete listing')
+  }
+}
+
+/** Restore a trashed (soft-deleted) listing back to its previous status. */
+export async function restoreListing(id: string): Promise<void> {
+  const res = await fetch(`/api/listings/${encodeURIComponent(id)}/restore`, {
+    method: 'POST',
+    headers: authHeaders(),
+  })
+  const data = await res.json().catch(() => ({ ok: false, error: 'Restore failed' }))
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || 'Failed to restore listing')
   }
 }
 

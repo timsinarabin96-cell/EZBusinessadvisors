@@ -12,6 +12,7 @@ import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/
 import { saveFinancials, fetchFinancials, completeStep } from '@/lib/workflow'
 import { updateListing, fetchListing } from '@/lib/listings'
 import MoneyInput from '@/components/ui/MoneyInput'
+import { useStepAutoSave } from '@/components/listings/useStepAutoSave'
 
 // ---------------------------------------------------------------------------
 // Step 2 — Financial Details (revenue, SDE, EBITDA, balance sheet inputs)
@@ -25,6 +26,7 @@ const empty = {
 export default function Step2FinancialDetails({ listingId, onNext }: { listingId: string; onNext: () => void }) {
   const [f, setF] = useState(empty)
   const [busy, setBusy] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -43,8 +45,28 @@ export default function Step2FinancialDetails({ listingId, onNext }: { listingId
         const s = (v: number | null | undefined) => (v == null ? '' : String(v))
         setF({ annualRevenue: s(listing.annual_revenue), sde: s(listing.sde), ebitda: s(listing.ebitda), askingPrice: s(listing.asking_price), inventoryValue: '', ffeValue: '', realEstateValue: '', totalAssets: '', totalLiabilities: '' })
       }
+      setLoaded(true)
     })()
   }, [listingId])
+
+  // Auto-save financials as the broker types (debounced) — no step advance.
+  const autoSaveState = useStepAutoSave(f, async (vals) => {
+    const n = (s: string) => (s ? Number(String(s).replace(/[$,]/g, '')) : undefined)
+    const fin = {
+      revenue: { annual: n(vals.annualRevenue), amount: n(vals.annualRevenue) },
+      sde: { amount: n(vals.sde) },
+      ebitda: { amount: n(vals.ebitda) },
+      inventory_value: n(vals.inventoryValue), ffe_value: n(vals.ffeValue), real_estate_value: n(vals.realEstateValue),
+      total_assets: n(vals.totalAssets), total_liabilities: n(vals.totalLiabilities),
+    }
+    const ok = await saveFinancials(listingId, fin)
+    // Mirror key fields onto the listing row so dashboards/marketplace reflect them.
+    await updateListing(listingId, {
+      annual_revenue: n(vals.annualRevenue), sde: n(vals.sde), ebitda: n(vals.ebitda),
+      asking_price: n(vals.askingPrice) as any, inventory_value: n(vals.inventoryValue) as any, ffe_value: n(vals.ffeValue) as any,
+    }).catch(() => {})
+    return ok
+  }, loaded)
 
   const num = (s: string) => (s ? Number(String(s).replace(/[$,]/g, '')) : undefined)
   const hasSde = num(f.sde) !== undefined && num(f.annualRevenue) !== undefined
@@ -78,7 +100,7 @@ export default function Step2FinancialDetails({ listingId, onNext }: { listingId
 
   return (
     <StepShell step={2} title="Financial Details" description="Enter the business's revenue, cash flow, and balance sheet figures. These drive the BOV and recast."
-      status="draft" onNext={save} nextDisabled={!hasSde} nextLabel={busy ? 'Saving…' : 'Step 2 complete →'}>
+      status="draft" onNext={save} nextDisabled={!hasSde} nextLabel={busy ? 'Saving…' : 'Step 2 complete →'} autoSaveState={autoSaveState}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }} className="wf-grid-3">
         {field('annualRevenue', 'Annual Revenue', '$')}
         {field('sde', "SDE (Seller's Discretionary Earnings)", '$')}

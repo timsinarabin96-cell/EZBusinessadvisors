@@ -13,6 +13,7 @@ import { getAgreement, recordLOI, recordPurchaseAgreement, recordClosing, fetchC
 import { fetchListing } from '@/lib/listings'
 import StatusBadge from '@/components/listings/StatusBadge'
 import MoneyInput from '@/components/ui/MoneyInput'
+import { useStepAutoSave } from '@/components/listings/useStepAutoSave'
 
 // ---------------------------------------------------------------------------
 // Step 10 — Deal Closing: LOI → Purchase Agreement → Closing.
@@ -28,14 +29,26 @@ export default function Step10DealClosing({ listingId, onNext }: { listingId: st
   const [finalPrice, setFinalPrice] = useState('')
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   const load = async () => {
     const [ag, by, cl, l] = await Promise.all([getAgreement(listingId), fetchBuyers(listingId), fetchClosingDetails(listingId), fetchListing(listingId)])
     setAgreement(ag); setBuyers(by); setClosing(cl); setStatus(l?.status || '')
     if (ag?.buyer_id) setSelectedBuyer(ag.buyer_id)
     if (cl) { setClosingDate(cl.closing_date || ''); setFinalPrice(cl.final_purchase_price ?? '') }
+    setLoaded(true)
   }
   useEffect(() => { load() }, [listingId])
+
+  // Auto-save closing date/price as the broker types (debounced) — records the
+  // closing details row WITHOUT flipping the listing to 'closing' (that only
+  // happens when the broker explicitly taps "Record closing").
+  const autoSaveState = useStepAutoSave({ closingDate, finalPrice }, async (d) => {
+    const price = Number(String(d.finalPrice).replace(/[$,]/g, '')) || null
+    // Only write when something meaningful is typed (avoid empty rows).
+    if (!d.closingDate && price == null) return true
+    return recordClosing(listingId, { closing_date: d.closingDate || null, final_purchase_price: price })
+  }, loaded)
 
   const stage = agreement?.status || (status === 'sold' ? 'closing' : 'loi')
   const stageIdx = stage === 'loi' ? 1 : stage === 'under_contract' ? 2 : 3
@@ -52,7 +65,7 @@ export default function Step10DealClosing({ listingId, onNext }: { listingId: st
 
   return (
     <StepShell step={10} title="Deal Closing" description="Advance the deal through LOI, purchase agreement, and closing. The listing status updates automatically at each stage."
-      status="draft" onNext={async () => { await completeStep(listingId, 10); onNext() }} nextLabel="Finish workflow">
+      status="draft" onNext={async () => { await completeStep(listingId, 10); onNext() }} nextLabel="Finish workflow" autoSaveState={autoSaveState}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <span style={{ fontSize: 13, color: 'var(--muted)' }}>Current listing status:</span>
         <StatusBadge status={status} />
