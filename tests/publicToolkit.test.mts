@@ -23,6 +23,9 @@ const suggestRoute = readFileSync('app/api/search/suggest/route.ts', 'utf8')
 const categoriesLib = readFileSync('lib/businessCategories.ts', 'utf8')
 const intakeRoute = readFileSync('app/api/listings/intake/route.ts', 'utf8')
 const recentViewed = readFileSync('components/public/RecentlyViewed.tsx', 'utf8')
+const buyerCapture = readFileSync('components/public/BuyerCapturePrompt.tsx', 'utf8')
+const healthScript = readFileSync('scripts/site-health.sh', 'utf8')
+const detailServerPage = readFileSync('app/(public)/marketplace/listings/[id]/page.tsx', 'utf8')
 
 test('flyer: title is white-on-navy, broker card has phone/email/website + vCard QR', () => {
   // The header band is dark navy — the title must be white so it never hides.
@@ -93,6 +96,24 @@ test('marketplace: intake accepts the studio context field (fixes Build my listi
   assert.match(intakeRoute, /notes: z\.string\(\)\.max\(8000\)\.optional\(\)/)
   assert.match(intakeRoute, /const rawNotes = \(notes \|\| context \|\| ''\)\.trim\(\)/)
   assert.match(intakeRoute, /rawNotes\.length < 20/)
+})
+
+test('marketplace: buyer capture popup asks one question and saves profile + lead', () => {
+  assert.match(buyerCapture, /What are you looking for\?/)
+  assert.match(buyerCapture, /saveBuyerProfile\(/)
+  assert.match(buyerCapture, /\/api\/public\/notify/)
+  assert.match(buyerCapture, /CAPTURE_COOLDOWN_MS/)
+  assert.match(buyerCapture, /concord-match-profile-updated/)
+  // Mounted on the listing detail page with the listing's industry as a hint.
+  assert.match(detailServerPage, /<BuyerCapturePrompt hintIndustry=\{listing\.industry\} \/>/)
+})
+
+test('marketplace: daily site health watch script checks key pages + APIs', () => {
+  assert.match(healthScript, /marketplace\/listings/)
+  assert.match(healthScript, /listing-images\/proxy/)
+  assert.match(healthScript, /search\/suggest/)
+  assert.match(healthScript, /Businesses for Sale/)
+  assert.match(healthScript, /RESULT: ALL OK/)
 })
 
 test('favorites: localStorage helpers for favorites, compare, buyer profile', () => {
