@@ -79,22 +79,21 @@ export default function AIDealStudio() {
   const lastPush = useRef('')
 
   // Session persistence — refresh returns to the same studio position.
+  // IMPORTANT: explicit deep links (?phase=…&listing=…) ALWAYS win over
+  // session state. Without this guard, a stale session (e.g. a fresh Capture
+  // visit with no listing) hijacks "Open in Deal Studio" clicks and bounces
+  // the broker to a blank new-listing form.
   useEffect(() => {
+    if (listingId || params.get('phase')) return // honor the URL the user clicked
     try {
       const saved = sessionStorage.getItem('dealstudio')
       if (saved) {
         const s = JSON.parse(saved)
         // Resume a draft listing (capture phase included) when the URL lost it.
-        if (s?.listing && s.listing !== listingId) {
+        if (s?.listing) {
           const qs = new URLSearchParams()
           qs.set('phase', s.phase === 'capture' ? 'capture' : s.phase)
           qs.set('listing', s.listing)
-          if (s.step) qs.set('step', String(s.step))
-          router.replace(`/dashboard/studio?${qs.toString()}`)
-        } else if (s?.phase && s.phase !== phase && (s.phase === 'capture' || s.listing)) {
-          const qs = new URLSearchParams()
-          qs.set('phase', s.phase)
-          if (s.listing) qs.set('listing', s.listing)
           if (s.step) qs.set('step', String(s.step))
           router.replace(`/dashboard/studio?${qs.toString()}`)
         }

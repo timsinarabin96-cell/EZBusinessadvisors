@@ -203,7 +203,7 @@ export default function ListingsDashboard() {
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                  <Link href={`/dashboard/studio?phase=verify&listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>✨ Open in Deal Studio</Link>
+                  <Link href={`/dashboard/studio?phase=${listing.status === 'draft' ? 'capture' : 'verify'}&listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>✨ Open in Deal Studio</Link>
                   <Link href={`/cim?listing=${listing.id}`} className="btn btn-ghost" style={{ padding: '8px 10px', fontSize: 12.5 }}>📑 CIM</Link>
                   <Link href={`/bov?listing=${listing.id}`} className="btn btn-ghost" style={{ padding: '8px 10px', fontSize: 12.5 }}>⚖️ BOV</Link>
                   <button className="btn btn-danger" onClick={() => handleDelete(listing)}>🗑</button>
