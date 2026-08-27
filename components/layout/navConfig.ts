@@ -55,6 +55,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/negotiation', label: 'Negotiation', icon: '🧭', minRole: 'broker', group: 'Deals & Listings', keywords: 'counter terms deal' },
   { href: '/dashboard/nda-requests', label: 'NDA Requests', icon: '🛡️', minRole: 'agent', group: 'Deals & Listings', keywords: 'non disclosure confidentiality' },
   { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings', keywords: 'escrow closing checklist' },
+  { href: '/dashboard/pipeline', label: 'Pipeline', icon: '🔄', minRole: 'agent', group: 'Deals & Listings', keywords: 'funnel buyers stages heat conversion' },
   { href: '/dashboard/comps', label: 'Comps', icon: '📊', minRole: 'broker', group: 'Deals & Listings', keywords: 'comparables sales multiples' },
   { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings', keywords: 'value worth pricing' },
   { href: '/dashboard/valuation-reports', label: 'Sellable Reports', icon: '💎', minRole: 'broker', group: 'Deals & Listings', keywords: 'valuation reports client' },

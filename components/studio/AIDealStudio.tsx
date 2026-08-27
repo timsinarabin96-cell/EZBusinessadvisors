@@ -19,6 +19,9 @@ import ListingReadinessPanel from '@/components/listings/ListingReadinessPanel'
 import PublishPanel from '@/components/listing/PublishPanel'
 import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard, CompsCard, ValuationSliderCard, BuyerLeaderboardCard, SyndicationPackCard, OfferIntelligenceCard, AutoClosingDriveCard, VoiceIntakeCard, PhotoAICard, CompetitiveBoardCard, OfferCompareCard, ClosingRunwayCard, ClosingCostCard } from '@/components/studio/StudioInsights'
 import BuyerPipelineBoard from '@/components/buyers/BuyerPipelineBoard'
+import FollowUpLadderCard from '@/components/buyers/FollowUpLadderCard'
+import PostCloseCard from '@/components/buyers/PostCloseCard'
+import DealTimelineCard from '@/components/buyers/DealTimelineCard'
 import StatusBadge from '@/components/listings/StatusBadge'
 import Step1LegalDocs from '@/components/listings/Step1LegalDocs'
 import Step2FinancialDetails from '@/components/listings/Step2FinancialDetails'
@@ -409,6 +412,9 @@ export default function AIDealStudio() {
               <AutoClosingDriveCard />
               <ClosingRunwayCard />
               <ClosingCostCard purchasePrice={listing?.asking_price} />
+              <FollowUpLadderCard />
+              <PostCloseCard />
+              <DealTimelineCard listingId={listingId} />
               <ConductorCard title="🤝 Next best action" body="Review buyer interest and NDAs first — then shortlist the primary buyer before any LOI or closing step." />
               <ConductorCard title="🏁 Closing" body="The closing step records milestones, escrow, and the success fee — everything flows to the commission tracker." />
             </>
