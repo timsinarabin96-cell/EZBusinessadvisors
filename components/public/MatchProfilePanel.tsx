@@ -97,13 +97,13 @@ export default function MatchProfilePanel({ industries }: { industries: string[]
             />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, alignSelf: 'end', paddingBottom: 4 }}>
-            <label style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 600 }}>
-              <input type="checkbox" checked={profile.absentee_preferred} onChange={(e) => setProfile({ ...profile, absentee_preferred: e.target.checked })} style={{ marginRight: 5 }} />
-              🏖️ Absentee ok
+            <label style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <input type="checkbox" checked={profile.absentee_preferred} onChange={(e) => setProfile({ ...profile, absentee_preferred: e.target.checked })} style={{ width: 15, height: 15, accentColor: '#1a1a2e', cursor: 'pointer' }} />
+              Absentee ok
             </label>
-            <label style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 600 }}>
-              <input type="checkbox" checked={profile.franchise_ok} onChange={(e) => setProfile({ ...profile, franchise_ok: e.target.checked })} style={{ marginRight: 5 }} />
-              🏷️ Franchise ok
+            <label style={{ fontSize: 13, color: '#1a1a2e', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+              <input type="checkbox" checked={profile.franchise_ok} onChange={(e) => setProfile({ ...profile, franchise_ok: e.target.checked })} style={{ width: 15, height: 15, accentColor: '#1a1a2e', cursor: 'pointer' }} />
+              Franchise ok
             </label>
           </div>
           <button onClick={save} style={{ background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 6, padding: '10px 18px', fontWeight: 800, cursor: 'pointer', alignSelf: 'end' }}>

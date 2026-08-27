@@ -170,7 +170,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
         {/* Status banner + key facts strip */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
           {listing.status === 'active' && <span style={{ background: '#1e7e34', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>● Active — taking offers</span>}
-          {listing.status === 'under_contract' && <span style={{ background: '#b45309', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>📝 Under Contract</span>}
+          {listing.status === 'under_contract' && <span style={{ background: '#b45309', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>Under Contract</span>}
           {listing.status === 'sold' && <span style={{ background: '#7b8794', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>✅ Sold</span>}
           {listing.vetted && <span style={{ background: '#0e7490', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🏅 Vetted</span>}
           {listing.sba_qualified === true && <span style={{ background: '#0e7490', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🏦 SBA Qualified</span>}
@@ -447,7 +447,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function Fact({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '14px 16px' }}>
-      <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
+      <div style={{ fontSize: 11.5, color: '#c9a84c', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 4 }}>{icon}</div>
       <div style={{ fontSize: 11.5, color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{label}</div>
       <div style={{ fontSize: 14.5, color: '#1a1a2e', fontWeight: 800, marginTop: 3 }}>{value}</div>
     </div>

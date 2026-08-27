@@ -112,7 +112,7 @@ export default function AutocompleteInput({
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#faf9f4')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <span>{type === 'location' ? '📍' : '🏷️'}</span>
+                <span style={{ width: 22, height: 22, borderRadius: 6, background: '#f4f1e8', color: '#8a6d1a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>{type === 'location' ? '⌖' : '◆'}</span>
                 <span style={{ flex: 1 }}>{s.display}</span>
                 {badge && (
                   <span style={{
