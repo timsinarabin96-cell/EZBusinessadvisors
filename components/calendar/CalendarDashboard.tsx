@@ -14,7 +14,7 @@
 // =============================================================================
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { Appointment, AppointmentType, createAppointment, fetchAppointments, updateAppointment, deleteAppointment } from '@/lib/appointments'
+import { Appointment, AppointmentType, createAppointment, fetchAppointments, updateAppointment } from '@/lib/appointments'
 import { fetchTasks, fetchDeadlines, buildTimeline, type TaskItem, type DeadlineItem } from '@/lib/calendarFeed'
 import { getStoredAccessToken } from '@/lib/authToken'
 import { getAgencyContext } from '@/lib/agencyContext'
@@ -212,7 +212,14 @@ export default function CalendarDashboard() {
     if (!window.confirm('Delete this appointment?')) return
     setError('')
     try {
-      await deleteAppointment(id)
+      // Server-side delete (service role) — client RLS delete is admin-only.
+      const token = getStoredAccessToken()
+      const res = await fetch(`/api/appointments/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: { authorization: `Bearer ${token}` },
+      })
+      const data = await res.json().catch(() => ({ ok: false, error: 'Delete failed' }))
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to delete appointment')
       if (editingId === id) setEditingId(null)
       await load()
     } catch (deleteError) {
