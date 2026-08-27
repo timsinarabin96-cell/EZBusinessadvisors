@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
+import { authHeaders } from '@/lib/authToken'
 import type { IntakeDraft } from '@/lib/listingIntakeCore'
 
 // =============================================================================
@@ -61,6 +62,7 @@ export default function StudioConcierge({
   const toast = useToast()
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pubBusy, setPubBusy] = useState(false)
   const [lastDraft, setLastDraft] = useState<IntakeDraft | null>(null)
   const [applied, setApplied] = useState(false)
 
@@ -72,7 +74,7 @@ export default function StudioConcierge({
     try {
       const res = await fetch('/api/listings/intake', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ mode: 'full', context: input }),
       })
       const j = await res.json()
@@ -88,6 +90,34 @@ export default function StudioConcierge({
       toast(e.message || 'Extraction failed', 'error')
     } finally {
       setBusy(false)
+    }
+  }
+
+  /** Draft the anonymized public positioning (title/summary/highlights) from the pasted record. */
+  const draftPublic = async () => {
+    const input = text.trim()
+    if (!input) { toast('Paste or describe the business first', 'error'); return }
+    setPubBusy(true)
+    try {
+      const res = await fetch('/api/listings/intake', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ mode: 'public', context: input }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Public draft failed')
+      const draft = (j.draft || {}) as IntakeDraft
+      if (!draft.public_title && !draft.public_summary && !draft.public_highlights) {
+        toast('Could not draft public copy — add industry, location, and a description', 'error')
+        return
+      }
+      setLastDraft(draft)
+      setApplied(false)
+      toast('Public positioning drafted — anonymous, seller-approved copy ready', 'success')
+    } catch (e: any) {
+      toast(e.message || 'Public draft failed', 'error')
+    } finally {
+      setPubBusy(false)
     }
   }
 
@@ -131,6 +161,13 @@ export default function StudioConcierge({
           >
             {busy ? '✨ Extracting…' : '✨ Build my listing'}
           </button>
+          <button
+            onClick={draftPublic}
+            disabled={pubBusy || !text.trim()}
+            style={{ padding: '11px 22px', borderRadius: 9, background: 'transparent', color: '#fff', border: '1.5px solid rgba(255,255,255,0.35)', fontWeight: 800, fontSize: 13.5, cursor: pubBusy || !text.trim() ? 'not-allowed' : 'pointer', opacity: pubBusy || !text.trim() ? 0.55 : 1 }}
+          >
+            {pubBusy ? '📣 Drafting…' : '📣 Draft public positioning'}
+          </button>
           {lastDraft && !applied && (
             <button
               onClick={apply}
@@ -143,7 +180,7 @@ export default function StudioConcierge({
             <span style={{ fontSize: 13, color: '#86efac', fontWeight: 700 }}>✓ Applied — the record is filling itself</span>
           )}
           <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>Try: {EXAMPLES[1].slice(0, 60)}…</span>
+          <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>Public copy stays anonymous — never the legal name, address, or owner.</span>
         </div>
 
         {/* Extracted-field preview chips */}
