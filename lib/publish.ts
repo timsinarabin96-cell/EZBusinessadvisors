@@ -81,17 +81,19 @@ export function listingToReadinessInput(row: any): IntelligentListingInput {
     financing_notes: '',
     commission_split_agent: typeof row.commission_split_agent === 'number' ? row.commission_split_agent : 50,
     commission_split_brokerage: typeof row.commission_split_brokerage === 'number' ? row.commission_split_brokerage : 50,
-    transition_support: '',
-    training_period_weeks: '',
-    public_title: row.public_title || '',
-    public_summary: row.public_summary || '',
-    public_highlights: row.public_highlights || '',
+    transition_support: row.transition_support || row.ai_metadata?.transition_support || '',
+    training_period_weeks: row.training_period_weeks != null ? String(row.training_period_weeks) : '',
+    public_title: row.ai_metadata?.public_title || row.public_title || '',
+    public_summary: row.ai_metadata?.public_summary || row.public_summary || '',
+    public_highlights: Array.isArray(row.ai_metadata?.public_highlights)
+      ? row.ai_metadata.public_highlights.join('\n')
+      : row.ai_metadata?.public_highlights || row.public_highlights || '',
     video_url: row.ai_metadata?.video_url || '',
     gallery_images: Array.isArray(row.image_urls) ? row.image_urls : [],
     contact_phone: row.contact_phone || '',
     confidentiality_level: row.confidentiality_level || 'anonymous',
-    show_financials: Boolean(row.show_financials),
-    seller_approval_reference: '',
+    show_financials: Boolean(row.ai_metadata?.show_financials ?? row.show_financials),
+    seller_approval_reference: row.ai_metadata?.seller_approval_reference || '',
     source: 'broker_manual',
   }
 }
@@ -228,7 +230,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
       vetted,
       published_by: actorProfileId || null,
       flagged: flagged || undefined,
-      flag_reasons: flagged ? ['low_readiness', `readiness ${readiness.score}/100`, ...(readiness.missing || [])] : null,
+      flag_reasons: flagged ? ['low_readiness', `readiness ${readiness.score}/100`, ...(readiness.missing || [])] : [],
     })
     .eq('id', listingId)
   if (error) return { ok: false, error: error.message }
