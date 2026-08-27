@@ -16,6 +16,7 @@ import WorkflowDashboard from '@/components/listings/WorkflowDashboard'
 import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
 import ListingCopilot from '@/components/listings/ListingCopilot'
 import ListingReadinessPanel from '@/components/listings/ListingReadinessPanel'
+import PublishPanel from '@/components/listing/PublishPanel'
 import StatusBadge from '@/components/listings/StatusBadge'
 import Step1LegalDocs from '@/components/listings/Step1LegalDocs'
 import Step2FinancialDetails from '@/components/listings/Step2FinancialDetails'
@@ -72,6 +73,30 @@ export default function AIDealStudio() {
   const [liveState, setLiveState] = useState<{ score: number; label: string; missing: string[]; industry: string; location: string; askingPrice: string; photoCount: number } | null>(null)
   const lastPush = useRef('')
 
+  // Session persistence — refresh returns to the same studio position.
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('dealstudio')
+      if (saved) {
+        const s = JSON.parse(saved)
+        if (s?.phase && s.phase !== phase && (s.phase === 'capture' || s.listing)) {
+          const qs = new URLSearchParams()
+          qs.set('phase', s.phase)
+          if (s.listing) qs.set('listing', s.listing)
+          if (s.step) qs.set('step', String(s.step))
+          router.replace(`/dashboard/studio?${qs.toString()}`)
+        }
+      }
+    } catch { /* non-fatal */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('dealstudio', JSON.stringify({ phase, listing: listingId || null, step: activeStep }))
+    } catch { /* non-fatal */ }
+  }, [phase, listingId, activeStep])
+
   const go = useCallback((next: string) => {
     if (next === lastPush.current) return
     lastPush.current = next
@@ -127,8 +152,36 @@ export default function AIDealStudio() {
     return d.size > 0 || phase === 'golive' || phase === 'sell'
   }, [doneSteps, phase])
 
+  const capturePct = liveState?.score ?? 0
+  const verifyPct = doneSteps.size > 0 ? Math.round((doneSteps.size / 10) * 100) : 0
+  const phasePct: Record<Phase, number> = { capture: capturePct, verify: verifyPct, golive: verifyPct >= 80 ? 100 : 60, sell: 0 }
+
   return (
     <ToastProvider>
+      {/* ══ TOP: PHASE PROGRESS BAR ══ */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '10px 16px', flexWrap: 'wrap' }}>
+        {PHASES.map((p, idx) => {
+          const active = phase === p.key
+          const done = idx < PHASES.findIndex((x) => x.key === phase)
+          const pct = phasePct[p.key]
+          return (
+            <div key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 140px', minWidth: 130 }}>
+              <span style={{ fontSize: 15 }}>{done ? '✅' : p.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, fontWeight: 800, color: active ? 'var(--navy)' : 'var(--muted)' }}>
+                  <span>{p.label}</span>
+                  {!done && <span style={{ color: active ? '#c9a84c' : '#b6bdc7' }}>{pct}%</span>}
+                </div>
+                <div style={{ height: 5, borderRadius: 99, background: '#e7edf4', overflow: 'hidden', marginTop: 4 }}>
+                  <div style={{ width: `${done ? 100 : pct}%`, height: '100%', background: done ? '#22c55e' : 'linear-gradient(90deg,#1a1a2e,#c9a84c)', borderRadius: 99, transition: 'width .3s ease' }} />
+                </div>
+              </div>
+              {idx < PHASES.length - 1 && <span style={{ color: '#d8d2c4', fontSize: 13 }}>›</span>}
+            </div>
+          )
+        })}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr) 300px', gap: 18, alignItems: 'start', padding: '8px 2px' }}>
         {/* ══ LEFT: PHASE RAIL ══ */}
         <aside style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -250,9 +303,11 @@ export default function AIDealStudio() {
               </div>
               {listingId ? (
                 <>
+                  {/* The real publish engine — readiness gate, publish + schedule, featured upsell */}
+                  <PublishPanel listingId={listingId} businessName={listing?.business_name} />
                   <ListingReadinessPanel listingId={listingId} />
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <button onClick={() => setPhase('verify', listingId, 8)} style={btnPrimary}>🌐 Publish (Step 8)</button>
+                    <button onClick={() => setPhase('verify', listingId, 8)} style={btnGhost}>📋 Back to Step 8</button>
                     <button onClick={() => setPhase('sell', listingId, 1)} style={btnGhost}>👥 Manage buyers →</button>
                   </div>
                 </>

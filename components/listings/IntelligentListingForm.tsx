@@ -60,6 +60,20 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
   const lastSaved = useRef<string>('')
   const readiness = useMemo(() => calculateListingReadiness(form), [form])
 
+  // Per-section completion — drives ✓ dots in the nav rail + the advance nudge.
+  const sectionComplete: Record<SectionId, boolean> = useMemo(() => {
+    const f = form as any
+    return {
+      identity: !!f.business_name?.trim() && !!f.industry?.trim() && !!f.location_general?.trim(),
+      financials: !!f.asking_price && (!!f.annual_revenue || !!f.sde || !!f.ebitda),
+      operations: !!f.employees_full_time || !!f.facilities_summary?.trim() || !!f.competitive_advantages?.trim(),
+      transition: !!f.reason_for_sale?.trim() && !!f.transition_support?.trim(),
+      media: (f.gallery_images?.length ?? 0) > 0 || !!f.video_url?.trim(),
+      public: !!f.public_title?.trim() && !!f.public_summary?.trim(),
+    }
+  }, [form])
+  const sectionsDone = SECTIONS.filter((s) => sectionComplete[s.id]).length
+
   // Live conductor feed: report readiness + key fields to the studio rail as
   // the broker types — the AI conductor reacts in real time.
   useEffect(() => {
@@ -292,6 +306,9 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button type="button" className="btn btn-navy" onClick={() => setShowIntake(true)} style={{ fontSize: 13 }}>✨ AI Intake</button>
             <ReadinessCard score={readiness.score} label={readiness.label} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: sectionsDone === SECTIONS.length ? '#166534' : '#64748b', background: sectionsDone === SECTIONS.length ? '#e8f7ee' : '#f1f5f9', padding: '5px 12px', borderRadius: 999 }}>
+              {sectionsDone}/{SECTIONS.length} sections ✓
+            </span>
           </div>
           <BuyerDemandPanel compact industry={form.industry || undefined} location={form.location_general || undefined} />
           <div style={{ fontSize: 12.5, fontWeight: 600, color: saveState === 'saved' ? '#16a34a' : saveState === 'error' ? '#b91c1c' : '#9a6700', minHeight: 16 }}>
@@ -307,7 +324,9 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
             return (
               <button key={item.id} type="button" onClick={() => setSection(item.id)} style={{ width: '100%', textAlign: 'left', padding: '13px 12px', marginBottom: 4, borderRadius: 8, border: active ? '1px solid rgba(37,99,235,.28)' : '1px solid transparent', background: active ? '#eff6ff' : 'transparent', cursor: 'pointer', color: active ? '#0f3460' : 'var(--text)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                  <span style={{ width: 24, height: 24, borderRadius: 999, display: 'grid', placeItems: 'center', background: active ? '#2563eb' : '#e8edf3', color: active ? '#fff' : '#52606d', fontSize: 12, fontWeight: 800 }}>{index + 1}</span>
+                  <span style={{ width: 24, height: 24, borderRadius: 999, display: 'grid', placeItems: 'center', background: sectionComplete[item.id] ? '#16a34a' : active ? '#2563eb' : '#e8edf3', color: '#fff', fontSize: 12, fontWeight: 800 }}>
+                    {sectionComplete[item.id] ? '✓' : index + 1}
+                  </span>
                   <strong>{item.label}</strong>
                 </div>
                 <div style={{ fontSize: 11.5, color: 'var(--muted)', margin: '7px 0 0 33px', lineHeight: 1.4 }}>{item.description}</div>
@@ -327,8 +346,8 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, borderTop: '1px solid var(--line)', marginTop: 28, paddingTop: 20 }}>
             <button type="button" className="btn btn-ghost" onClick={() => moveSection(section, -1, setSection)} disabled={section === SECTIONS[0].id}>Previous</button>
             {section === SECTIONS[SECTIONS.length - 1].id
-              ? <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? 'Creating trusted record…' : 'Create Draft & Start Review'}</button>
-              : <button type="button" className="btn btn-navy" onClick={() => moveSection(section, 1, setSection)}>Continue</button>}
+              ? <button type="submit" className="btn btn-primary" disabled={busy} style={{ opacity: busy ? 0.6 : 1, background: readiness.score >= 70 ? '#166534' : undefined, borderColor: readiness.score >= 70 ? '#166534' : undefined }}>{busy ? 'Creating trusted record…' : readiness.score >= 70 ? '✓ Ready — advance to Verify' : 'Create Draft & Start Review'}</button>
+              : <button type="button" className="btn btn-navy" onClick={() => moveSection(section, 1, setSection)}>{readiness.score >= 70 && sectionComplete[section] ? '✓ Next' : 'Continue'}</button>}
           </div>
         </section>
 
