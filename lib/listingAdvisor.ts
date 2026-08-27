@@ -351,25 +351,56 @@ async function polishWithAi(ctx: AdvisorContext, deterministic: AdvisorReport): 
           priority: ['must', 'should', 'nice'].includes(c?.priority) ? c.priority : 'should',
         })).filter((c: AdvisorCimItem) => c.item)
       : deterministic.cimChecklist
+
+    // Valuation: the deterministic engine is the anchor. AI numbers are only
+    // trusted when they stay within a sane envelope of the deterministic mid;
+    // otherwise keep the defensible range and surface AI reasoning as commentary.
+    const detLow = deterministic.valuation.low ?? 0
+    const detHigh = deterministic.valuation.high ?? 0
+    const detMid = deterministic.valuation.mid ?? (detLow + detHigh) / 2
+    const aiLow = typeof v.low === 'number' ? Math.round(v.low) : null
+    const aiMid = typeof v.mid === 'number' ? Math.round(v.mid) : null
+    const aiHigh = typeof v.high === 'number' ? Math.round(v.high) : null
+    const aiMidValue = aiMid ?? ((aiLow ?? 0) + (aiHigh ?? 0)) / 2
+    const inEnvelope = detMid > 0 && aiMidValue >= detMid * 0.5 && aiMidValue <= detMid * 1.8
+    const useAiValuation = (aiLow != null || aiHigh != null) && inEnvelope
+    const valuation: AdvisorValuation = useAiValuation
+      ? {
+          low: aiLow ?? deterministic.valuation.low,
+          mid: aiMid ?? deterministic.valuation.mid,
+          high: aiHigh ?? deterministic.valuation.high,
+          method: String(v.method || deterministic.valuation.method),
+          confidence: ['high', 'medium', 'low'].includes(v.confidence) ? v.confidence : deterministic.valuation.confidence,
+          reasoning: String(v.reasoning || deterministic.valuation.reasoning),
+          aiCommentary: String(v.reasoning || ''),
+        }
+      : {
+          ...deterministic.valuation,
+          aiCommentary: String(v.reasoning || ''),
+        }
+
+    // Verdict: the deterministic gap-driven score is the anchor — it is
+    // explainable ("you lose points for missing docs/lease/RE") and stable.
+    // The AI enriches reasons/blockers but can never override the math.
+    const score = deterministic.verdict.score
+    const band: AdvisorVerdict['band'] = score >= 70 ? 'Ready to list' : score >= 40 ? 'Needs work' : 'Not ready'
+    const verdictOut: AdvisorVerdict = {
+      score,
+      band,
+      worthListing: score >= 40,
+      reasons: Array.isArray(verdict.reasons) && verdict.reasons.length
+        ? verdict.reasons.map(String).slice(0, 5)
+        : deterministic.verdict.reasons,
+      blockers: Array.isArray(verdict.blockers) && verdict.blockers.length
+        ? verdict.blockers.map(String).slice(0, 6)
+        : deterministic.verdict.blockers,
+    }
+
     return {
       ...deterministic,
       questions: questions.length ? questions : deterministic.questions,
-      valuation: {
-        low: typeof v.low === 'number' ? Math.round(v.low) : deterministic.valuation.low,
-        mid: typeof v.mid === 'number' ? Math.round(v.mid) : deterministic.valuation.mid,
-        high: typeof v.high === 'number' ? Math.round(v.high) : deterministic.valuation.high,
-        method: String(v.method || deterministic.valuation.method),
-        confidence: ['high', 'medium', 'low'].includes(v.confidence) ? v.confidence : deterministic.valuation.confidence,
-        reasoning: String(v.reasoning || deterministic.valuation.reasoning),
-        aiCommentary: String(v.reasoning || ''),
-      },
-      verdict: {
-        score: typeof verdict.score === 'number' ? Math.max(0, Math.min(100, Math.round(verdict.score))) : deterministic.verdict.score,
-        band: ['Ready to list', 'Needs work', 'Not ready'].includes(verdict.band) ? verdict.band : deterministic.verdict.band,
-        worthListing: typeof verdict.worthListing === 'boolean' ? verdict.worthListing : deterministic.verdict.worthListing,
-        reasons: Array.isArray(verdict.reasons) ? verdict.reasons.map(String).slice(0, 5) : deterministic.verdict.reasons,
-        blockers: Array.isArray(verdict.blockers) ? verdict.blockers.map(String).slice(0, 6) : deterministic.verdict.blockers,
-      },
+      valuation,
+      verdict: verdictOut,
       cimChecklist: cim.length ? cim : deterministic.cimChecklist,
       model: 'ai',
     }
