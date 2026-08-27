@@ -45,8 +45,15 @@ export default function MatchedBuyersModal({ matches, listingIndustry, onDone }:
               return (
                 <div key={m.id} style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 14, background: 'var(--cream)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 15 }}>
-                      {m.email || m.phone || 'Buyer'}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 15 }}>
+                        {m.email || m.phone || 'Buyer'}
+                      </div>
+                      {m.phone && (
+                        <a href={`tel:${m.phone}`} style={{ fontSize: 13, color: '#0f3460', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                          📞 {m.phone}
+                        </a>
+                      )}
                     </div>
                     <span style={{ background: meta.color + '1a', color: meta.color, padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600 }}>
                       {meta.label}
@@ -61,6 +68,12 @@ export default function MatchedBuyersModal({ matches, listingIndustry, onDone }:
                     <div style={{ gridColumn: '1 / -1' }}><strong>Location:</strong> {m.preferred_location || '—'}</div>
                     {m.notes && <div style={{ gridColumn: '1 / -1', fontStyle: 'italic', color: 'var(--muted)' }}>{m.notes}</div>}
                   </div>
+
+                  {!m.phone && (
+                    <div style={{ marginTop: 10, fontSize: 12, color: '#9a6700', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '7px 10px' }}>
+                      ⚠️ No phone on file — ask this buyer for their number when you email them.
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                     {m.phone && (

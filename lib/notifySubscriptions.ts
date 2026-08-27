@@ -37,6 +37,7 @@ export interface NotifyCriteria {
   industries?: string[]
   max_price?: number | null
   min_sde?: number | null
+  phone?: string | null
 }
 
 export interface NotifySubscription {
@@ -83,6 +84,7 @@ export function matchesNotifyCriteria(criteria: NotifyCriteria, listing: Listing
 export async function subscribe(input: {
   email: string
   name?: string | null
+  phone?: string | null
   criteria?: NotifyCriteria
   agencyId?: string | null
 }): Promise<{ ok: boolean; error?: string; data?: NotifySubscription }> {
@@ -90,13 +92,16 @@ export async function subscribe(input: {
   if (!EMAIL_RE.test(email)) return { ok: false, error: 'A valid email is required' }
   if (!svc) return { ok: false, error: 'not configured' }
 
+  const criteria = { ...(input.criteria && typeof input.criteria === 'object' ? input.criteria : {}) }
+  if (input.phone) criteria.phone = input.phone.trim()
+
   const { data, error } = await svc
     .from('deal_notify_subscriptions')
     .insert({
       agency_id: input.agencyId || null,
       email,
       name: input.name?.trim() || null,
-      criteria: input.criteria && typeof input.criteria === 'object' ? input.criteria : {},
+      criteria,
       active: true,
     })
     .select()
@@ -119,6 +124,7 @@ async function connectLead(sub: NotifySubscription): Promise<void> {
   try {
     const criteria = sub.criteria || {}
     const industries = Array.isArray(criteria.industries) ? criteria.industries : []
+    const phone = typeof criteria.phone === 'string' && criteria.phone ? criteria.phone : null
     await notify('buyer_invite', sub.email, {
       name: sub.name || null,
       industries,
@@ -131,7 +137,7 @@ async function connectLead(sub: NotifySubscription): Promise<void> {
     await createReminder({
       agency_id: agencyId,
       title: `Follow up — new buyer lead${sub.name ? ` (${sub.name})` : ''}`,
-      notes: `${sub.email} · looking for ${industries.join(', ') || 'a business'}${criteria.max_price ? ` · up to $${Number(criteria.max_price).toLocaleString()}` : ''}`,
+      notes: `${sub.email}${phone ? ` · 📞 ${phone}` : ''} · looking for ${industries.join(', ') || 'a business'}${criteria.max_price ? ` · up to $${Number(criteria.max_price).toLocaleString()}` : ''}`,
       kind: 'follow_up',
       due_at: dueAt,
     })

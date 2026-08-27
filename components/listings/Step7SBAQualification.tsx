@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react'
 import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
 import { saveSBA, fetchSBA, completeStep } from '@/lib/workflow'
+import { useStepAutoSave } from '@/components/listings/useStepAutoSave'
 
 // ---------------------------------------------------------------------------
 // Step 7 — SBA Qualification (OPTIONAL).
@@ -21,6 +22,7 @@ export default function Step7SBAQualification({ listingId, onNext }: { listingId
   const [reason, setReason] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -30,8 +32,18 @@ export default function Step7SBAQualification({ listingId, onNext }: { listingId
         setReason(sba.sba_reason || '')
         setNotes(sba.sba_notes || '')
       }
+      setLoaded(true)
     })()
   }, [listingId])
+
+  // Auto-save SBA assessment as it changes (debounced) — no step advance.
+  const autoSaveState = useStepAutoSave({ eligible, reason, notes }, async (d) => {
+    if (d.eligible == null) return true // nothing chosen yet — don't write
+    return saveSBA(listingId, {
+      is_sba_eligible: d.eligible, sba_reason: d.reason, sba_notes: d.notes,
+      reviewed_at: new Date().toISOString(), is_optional: true,
+    })
+  }, loaded)
 
   const save = async (skip = false) => {
     setBusy(true)
@@ -56,7 +68,7 @@ export default function Step7SBAQualification({ listingId, onNext }: { listingId
   return (
     <StepShell step={7} title="SBA Qualification" description="OPTIONAL — assess whether the business qualifies for SBA 7(a)/504 financing. This step can be skipped."
       status="draft"
-      onBack={undefined} onNext={() => save(false)} nextLabel={busy ? 'Saving…' : 'Save & continue →'} nextDisabled={eligible === null}>
+      onBack={undefined} onNext={() => save(false)} nextLabel={busy ? 'Saving…' : 'Save & continue →'} nextDisabled={eligible === null} autoSaveState={autoSaveState}>
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 8 }}>Is the business SBA-eligible?</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

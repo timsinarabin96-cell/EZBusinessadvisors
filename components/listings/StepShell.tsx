@@ -29,7 +29,7 @@ export const stepBtn = (primary = true): CSSProperties => ({
 })
 
 export function StepShell({
-  step, title, description, children, status, onBack, onNext, nextDisabled, nextLabel = 'Save & continue',
+  step, title, description, children, status, onBack, onNext, nextDisabled, nextLabel = 'Save & continue', autoSaveState,
 }: {
   step: number
   title: string
@@ -40,7 +40,12 @@ export function StepShell({
   onNext?: () => void
   nextDisabled?: boolean
   nextLabel?: string
+  autoSaveState?: 'idle' | 'saving' | 'saved' | 'error'
 }) {
+  const autoSaveHint =
+    autoSaveState === 'saving' ? { text: '⏳ Auto-saving…', color: '#9a6700' } :
+    autoSaveState === 'saved' ? { text: '✓ Auto-saved', color: '#16a34a' } :
+    autoSaveState === 'error' ? { text: '⚠ Auto-save failed', color: '#b91c1c' } : null
   return (
     <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, overflow: 'hidden' }}>
       {/* Header */}
@@ -65,7 +70,11 @@ export function StepShell({
       <div style={{ padding: '14px 22px', borderTop: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', gap: 10 }}>
         {onBack ? (
           <button onClick={onBack} style={stepBtn(false)}>← Back</button>
-        ) : <span />}
+        ) : (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {autoSaveHint && <span style={{ fontSize: 12, fontWeight: 600, color: autoSaveHint.color }}>{autoSaveHint.text}</span>}
+          </span>
+        )}
         {onNext && (
           <button onClick={onNext} disabled={nextDisabled} style={{ ...stepBtn(true), opacity: nextDisabled ? 0.5 : 1, cursor: nextDisabled ? 'not-allowed' : 'pointer' }}>
             {nextLabel} →

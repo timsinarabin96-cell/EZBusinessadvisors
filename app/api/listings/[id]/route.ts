@@ -11,12 +11,20 @@ import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unautho
 
 export const runtime = 'nodejs'
 
+const DELETE_REASONS = ['duplicate', 'sold_or_withdrawn', 'seller_cancelled', 'wrong_data', 'test_listing', 'other']
+
 /**
- * DELETE /api/listings/[id] — permanently remove a listing.
- * Server-side (service role) so delete works for agency admins AND owners,
- * and so we clean up: public_listings row (cascade), gallery images from
- * storage, and the listing row itself. Previously client-side only (RLS
- * limited deletes to the listing owner, and storage files were orphaned).
+ * DELETE /api/listings/[id] — trash a listing (soft delete) with a REQUIRED
+ * reason. Permissions:
+ *   - The agent who CREATED the listing can always trash it.
+ *   - Agency owner/admin can trash it ONLY when the creator is gone
+ *     (profile deleted / inactive / agent_id unset) — otherwise creators own
+ *     their listings and no one else touches them.
+ * The listing row is kept (status='deleted') so it can be restored; the
+ * public_listings row is removed so it vanishes from the marketplace.
+ * Every deletion writes a listing_review_events entry (audit trail) that
+ * surfaces in the activity feed, plus structured metadata in ai_metadata
+ * for the broker's deletion log.
  */
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const db = createServerClient()
@@ -27,31 +35,80 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { id } = await params
   if (!id) return NextResponse.json({ ok: false, error: 'listing id required' }, { status: 400 })
 
-  // Load the listing to verify agency access + grab gallery for storage cleanup.
-  const { data: listing } = await db.from('listings').select('id, agency_id, agent_id, image_urls, gallery_json').eq('id', id).maybeSingle()
+  // Parse + validate the required reason (JSON body — no reason, no delete).
+  let reason = ''
+  let note = ''
+  try {
+    const body = await req.json().catch(() => ({}))
+    reason = String(body?.reason || '').trim()
+    note = String(body?.note || '').trim()
+  } catch {
+    /* body optional except reason */
+  }
+  if (!reason) {
+    return NextResponse.json({ ok: false, error: 'A deletion reason is required' }, { status: 400 })
+  }
+  if (!DELETE_REASONS.includes(reason)) {
+    return NextResponse.json({ ok: false, error: 'Invalid deletion reason' }, { status: 400 })
+  }
+  if (reason === 'other' && !note) {
+    return NextResponse.json({ ok: false, error: 'A note is required when reason is "Other"' }, { status: 400 })
+  }
+
+  const { data: listing } = await db.from('listings').select('id, agency_id, agent_id, business_name, status, ai_metadata').eq('id', id).maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
 
-  const canDelete = canManageAgency(auth, listing.agency_id) || listing.agent_id === auth.user.id
-  if (!canDelete) return forbiddenResponse()
-
-  // Clean up gallery images from storage (best-effort).
-  const urls: string[] = []
-  if (Array.isArray(listing.image_urls)) urls.push(...listing.image_urls)
-  if (Array.isArray(listing.gallery_json)) {
-    for (const g of listing.gallery_json as unknown[]) {
-      if (g && typeof g === 'object' && 'url' in (g as Record<string, unknown>)) {
-        urls.push(String((g as Record<string, unknown>).url))
-      }
+  // ── Permission: creator-only, with owner/admin override when creator is gone ──
+  const isCreator = listing.agent_id === auth.user.id
+  if (!isCreator) {
+    const isOwnerAdmin = canManageAgency(auth, listing.agency_id)
+    let creatorGone = true
+    if (listing.agent_id) {
+      const { data: creatorProfile } = await db
+        .from('profiles')
+        .select('id, status')
+        .eq('id', listing.agent_id)
+        .maybeSingle()
+      creatorGone = !creatorProfile || creatorProfile.status === 'inactive' || creatorProfile.status === 'locked' || creatorProfile.status === 'banned'
+    }
+    if (!isOwnerAdmin || !creatorGone) {
+      return forbiddenResponse('Only the agent who created this listing can delete it')
     }
   }
-  for (const u of urls) {
-    const path = u.split('/object/public/')[1]
-    if (path) await db.storage.from('listings').remove([path]).catch(() => {})
-  }
 
-  // Delete the listing (public_listings cascades; other FKs cascade or set null).
-  const { error } = await db.from('listings').delete().eq('id', id)
+  const now = new Date().toISOString()
+  const meta = (listing.ai_metadata || {}) as Record<string, unknown>
+
+  // Soft delete: status='deleted' + structured deletion metadata (for the
+  // broker's log + restore). Keep the row and gallery files so restore works.
+  const { error } = await db.from('listings').update({
+    status: 'deleted',
+    ai_metadata: {
+      ...meta,
+      deletion: {
+        reason,
+        note: note || null,
+        deleted_by: auth.user.id,
+        deleted_by_role: auth.profile.role,
+        deleted_at: now,
+        previous_status: listing.status || 'draft',
+      },
+    },
+  }).eq('id', id)
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true })
+  // Remove from the public marketplace feed.
+  await Promise.resolve(db.from('public_listings').delete().eq('listing_id', id).maybeSingle()).catch(() => {})
+
+  // Audit trail — surfaces in the activity feed automatically.
+  await Promise.resolve(db.from('listing_review_events').insert({
+    agency_id: listing.agency_id,
+    listing_id: id,
+    actor_id: auth.user.id,
+    from_stage: listing.status || 'draft',
+    to_stage: 'deleted',
+    notes: `${reason}${note ? ` — ${note}` : ''}`,
+  }).maybeSingle()).catch(() => {})
+
+  return NextResponse.json({ ok: true, status: 'deleted', reason, note: note || null })
 }
