@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react'
 import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
 import { fetchBuyers, addBuyer, updateBuyer, completeStep, recordLOI } from '@/lib/workflow'
+import BuyerPipelineBoard from '@/components/buyers/BuyerPipelineBoard'
 import StatusBadge from '@/components/listings/StatusBadge'
 
 // ---------------------------------------------------------------------------
@@ -54,6 +55,9 @@ export default function Step9BuyerManagement({ listingId, onNext, onAgreementCha
   return (
     <StepShell step={9} title="Buyer Management" description="Track interested buyers through NDA and financial qualification. Set a primary buyer; when they sign an LOI the listing advances to Pending Sale."
       status="draft" onNext={async () => { await completeStep(listingId, 9); onNext() }} nextLabel="Step 9 complete →">
+
+      {/* Buyer pipeline kanban — real CRM view of every buyer */}
+      <BuyerPipelineBoard listingId={listingId} />
 
       {/* Add buyer */}
       <div style={{ background: 'var(--paper)', padding: 16, borderRadius: 10, border: '1px solid var(--line)', marginBottom: 18 }}>

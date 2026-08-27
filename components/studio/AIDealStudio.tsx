@@ -17,7 +17,8 @@ import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
 import ListingCopilot from '@/components/listings/ListingCopilot'
 import ListingReadinessPanel from '@/components/listings/ListingReadinessPanel'
 import PublishPanel from '@/components/listing/PublishPanel'
-import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard, CompsCard, ValuationSliderCard, BuyerLeaderboardCard, SyndicationPackCard, OfferIntelligenceCard, AutoClosingDriveCard, VoiceIntakeCard, PhotoAICard } from '@/components/studio/StudioInsights'
+import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard, CompsCard, ValuationSliderCard, BuyerLeaderboardCard, SyndicationPackCard, OfferIntelligenceCard, AutoClosingDriveCard, VoiceIntakeCard, PhotoAICard, CompetitiveBoardCard } from '@/components/studio/StudioInsights'
+import BuyerPipelineBoard from '@/components/buyers/BuyerPipelineBoard'
 import StatusBadge from '@/components/listings/StatusBadge'
 import Step1LegalDocs from '@/components/listings/Step1LegalDocs'
 import Step2FinancialDetails from '@/components/listings/Step2FinancialDetails'
@@ -392,6 +393,7 @@ export default function AIDealStudio() {
           {phase === 'golive' && (
             <>
               <SellerApprovalCard listingId={listingId} sellerApproved={!!listing?.seller_approved_at} approvalRef={listing?.seller_approval_reference} />
+              <CompetitiveBoardCard listingId={listingId} enabled={!!listing?.competitive_board_enabled} />
               <BuyerLeaderboardCard industry={listing?.industry} />
               <SyndicationPackCard businessName={listing?.business_name} industry={listing?.industry} location={listing?.location_general} price={listing?.asking_price} summary={listing?.public_summary} />
               <DealPulseCard listingId={listingId} />

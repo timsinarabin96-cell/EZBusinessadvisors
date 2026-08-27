@@ -408,6 +408,53 @@ export function OfferIntelligenceCard({ listingId, askingPrice }: { listingId: s
 }
 
 // ---------------------------------------------------------------------------
+// Competitive board — seller-consented urgency lever (Phase A extra)
+// ---------------------------------------------------------------------------
+export function CompetitiveBoardCard({ listingId, enabled }: { listingId: string; enabled?: boolean }) {
+  const toast = useToast()
+  const [on, setOn] = useState(!!enabled)
+  const [busy, setBusy] = useState(false)
+
+  const toggle = async (next: boolean) => {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/buyers/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ action: 'competitive', listingId, enabled: next }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Failed')
+      setOn(next)
+      toast(next ? 'Competitive board ON — buyers will see live interest counts' : 'Competitive board off', 'success')
+    } catch (e: any) {
+      toast(e.message || 'Failed', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 6 }}>🏁 Competitive board</div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 10 }}>
+        With seller consent, qualified buyers see live interest counts ("N qualified buyers are reviewing this business") — classic urgency lever, no terms leaked.
+      </div>
+      <button
+        onClick={() => toggle(!on)}
+        disabled={busy}
+        style={{
+          width: '100%', padding: '10px', borderRadius: 8, border: 'none', fontWeight: 800, fontSize: 12.5, cursor: busy ? 'wait' : 'pointer',
+          background: on ? '#16a34a' : '#eef1f5', color: on ? '#fff' : 'var(--muted)',
+        }}
+      >
+        {busy ? '…' : on ? '✓ ON — urgency live (seller consented)' : 'Turn ON (seller consent required)'}
+      </button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Voice intake — pull a phone-call transcript straight into the concierge.
 // ---------------------------------------------------------------------------
 export function VoiceIntakeCard({ onDraft }: { onDraft?: (draft: any) => void }) {
