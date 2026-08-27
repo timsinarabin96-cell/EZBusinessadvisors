@@ -44,7 +44,7 @@ const SECTIONS: Array<{ id: SectionId; label: string; description: string }> = [
   { id: 'public', label: 'Public Preview', description: 'Anonymous seller-approved marketplace content' },
 ]
 
-export default function IntelligentListingForm({ listingId: editListingId, onCreated, onPhaseDone }: { listingId?: string; onCreated?: (listingId: string) => void; onPhaseDone?: () => void }) {
+export default function IntelligentListingForm({ listingId: editListingId, onCreated, onPhaseDone, externalDraft }: { listingId?: string; onCreated?: (listingId: string) => void; onPhaseDone?: () => void; externalDraft?: Record<string, string | boolean | number | null> | null }) {
   const router = useRouter()
   const toast = useToast()
   const [section, setSection] = useState<SectionId>('identity')
@@ -170,6 +170,14 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
       return next
     })
   }
+
+  // Studio Concierge: when the AI draft arrives, fill the form LIVE.
+  useEffect(() => {
+    if (externalDraft && Object.keys(externalDraft).length > 0) {
+      applyIntakeDraft(externalDraft)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalDraft])
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault()

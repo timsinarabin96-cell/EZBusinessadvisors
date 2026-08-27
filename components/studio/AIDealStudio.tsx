@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
+import StudioConcierge from '@/components/studio/StudioConcierge'
 import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
 import WorkflowDashboard from '@/components/listings/WorkflowDashboard'
 import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
@@ -67,6 +68,7 @@ export default function AIDealStudio() {
   const [listing, setListing] = useState<any>(null)
   const [workflow, setWorkflow] = useState<any>(null)
   const [loading, setLoading] = useState(phase === 'capture' ? false : true)
+  const [conciergeDraft, setConciergeDraft] = useState<Record<string, string | boolean | number | null> | null>(null)
   const lastPush = useRef('')
 
   const go = useCallback((next: string) => {
@@ -199,7 +201,10 @@ export default function AIDealStudio() {
 
           {/* ── PHASE 1: CAPTURE ── */}
           {phase === 'capture' && (
-            <IntelligentListingForm onCreated={handleCreated} />
+            <>
+              <StudioConcierge onDraft={(draft) => setConciergeDraft(draft)} />
+              <IntelligentListingForm externalDraft={conciergeDraft} onCreated={handleCreated} />
+            </>
           )}
 
           {/* ── PHASE 2: VERIFY ── */}
