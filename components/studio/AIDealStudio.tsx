@@ -69,6 +69,7 @@ export default function AIDealStudio() {
   const [workflow, setWorkflow] = useState<any>(null)
   const [loading, setLoading] = useState(phase === 'capture' ? false : true)
   const [conciergeDraft, setConciergeDraft] = useState<Record<string, string | boolean | number | null> | null>(null)
+  const [liveState, setLiveState] = useState<{ score: number; label: string; missing: string[]; industry: string; location: string; askingPrice: string; photoCount: number } | null>(null)
   const lastPush = useRef('')
 
   const go = useCallback((next: string) => {
@@ -203,7 +204,7 @@ export default function AIDealStudio() {
           {phase === 'capture' && (
             <>
               <StudioConcierge onDraft={(draft) => setConciergeDraft(draft)} />
-              <IntelligentListingForm externalDraft={conciergeDraft} onCreated={handleCreated} />
+              <IntelligentListingForm externalDraft={conciergeDraft} onCreated={handleCreated} onLiveState={setLiveState} />
             </>
           )}
 
@@ -287,9 +288,35 @@ export default function AIDealStudio() {
         <aside style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {phase === 'capture' && (
             <>
-              <ConductorCard title="✨ Next best action" body="Fill the business identity and financials first — the AI pre-fills the rest from what you enter and any uploaded P&L/tax docs." />
-              <ConductorCard title="📈 Market check" body="Once you enter an industry + asking price, the conductor shows where the price sits against the typical multiple band." />
-              <ConductorCard title="🤖 What the AI does" body={['Auto-extracts revenue / SDE / EBITDA from imported financials', 'Scores readiness live (target 70+)', 'Drafts public positioning from private details', 'Auto-generates recast → BOV → CIM → BLI after capture'].join('\n')} />
+              {/* LIVE conductor — reacts as the broker types */}
+              <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif' }}>✨ Live readiness</span>
+                  <span style={{ fontSize: 22, fontWeight: 800, color: liveState && liveState.score >= 70 ? '#166534' : liveState && liveState.score >= 40 ? '#9a6700' : '#b91c1c' }}>
+                    {liveState?.score ?? 0}
+                  </span>
+                </div>
+                <div style={{ height: 7, borderRadius: 99, background: '#e7edf4', overflow: 'hidden', marginBottom: 10 }}>
+                  <div style={{ width: `${liveState?.score ?? 0}%`, height: '100%', background: liveState && liveState.score >= 70 ? '#16a34a' : liveState && liveState.score >= 40 ? '#f59e0b' : '#ef4444', transition: 'width .3s ease' }} />
+                </div>
+                {liveState && liveState.missing.length > 0 ? (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.7 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>Next best action:</div>
+                    {liveState.missing.slice(0, 3).map((m) => <div key={m}>○ {m}</div>)}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: '#166534', fontWeight: 700 }}>✓ Ready — continue to Verify</div>
+                )}
+                {liveState?.industry && liveState.askingPrice && (
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 10, borderTop: '1px solid #edf0f3', paddingTop: 8 }}>
+                    📈 Market check armed: {liveState.industry} — price ${liveState.askingPrice} · {liveState.location || 'location TBD'}
+                  </div>
+                )}
+                {liveState && liveState.photoCount === 0 && (
+                  <div style={{ fontSize: 11.5, color: '#9a6700', marginTop: 8 }}>📷 Add photos or generate a branded cover for best buyer response.</div>
+                )}
+              </div>
+              <ConductorCard title="📝 Capture" body="Paste what you know in the concierge above — or fill the sections. The record auto-saves and flows into verification." />
             </>
           )}
 

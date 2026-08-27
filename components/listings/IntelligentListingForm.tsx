@@ -21,6 +21,7 @@ import SuggestionInput from './SuggestionInput'
 import ListingIntakeModal from './ListingIntakeModal'
 import DuplicateListingModal from './DuplicateListingModal'
 import { checkListingDuplicates } from '@/lib/listingDedup'
+import { placeholderImageFor } from '@/lib/stockImages'
 import type { ListingMatch } from '@/lib/listingDedup'
 import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
@@ -44,7 +45,7 @@ const SECTIONS: Array<{ id: SectionId; label: string; description: string }> = [
   { id: 'public', label: 'Public Preview', description: 'Anonymous seller-approved marketplace content' },
 ]
 
-export default function IntelligentListingForm({ listingId: editListingId, onCreated, onPhaseDone, externalDraft }: { listingId?: string; onCreated?: (listingId: string) => void; onPhaseDone?: () => void; externalDraft?: Record<string, string | boolean | number | null> | null }) {
+export default function IntelligentListingForm({ listingId: editListingId, onCreated, onPhaseDone, externalDraft, onLiveState }: { listingId?: string; onCreated?: (listingId: string) => void; onPhaseDone?: () => void; externalDraft?: Record<string, string | boolean | number | null> | null; onLiveState?: (s: { score: number; label: string; missing: string[]; industry: string; location: string; askingPrice: string; photoCount: number }) => void }) {
   const router = useRouter()
   const toast = useToast()
   const [section, setSection] = useState<SectionId>('identity')
@@ -58,6 +59,22 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSaved = useRef<string>('')
   const readiness = useMemo(() => calculateListingReadiness(form), [form])
+
+  // Live conductor feed: report readiness + key fields to the studio rail as
+  // the broker types — the AI conductor reacts in real time.
+  useEffect(() => {
+    if (!onLiveState) return
+    onLiveState({
+      score: readiness.score,
+      label: readiness.label,
+      missing: readiness.missing.slice(0, 6),
+      industry: form.industry || '',
+      location: form.location_general || '',
+      askingPrice: form.asking_price || '',
+      photoCount: (form.gallery_images || []).length,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readiness, form])
 
   // Edit mode: load the existing listing into the form.
   useEffect(() => {
@@ -542,6 +559,25 @@ function MediaSection({ form, setValue, listingId }: SectionProps & { listingId?
       </button>
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={(e) => upload(e.target.files)} />
     </div>
+
+    {/* One-click branded cover — instant professional look without photos. */}
+    {photoCount === 0 && (
+      <div style={{ marginBottom: 14, padding: '12px 14px', background: 'linear-gradient(135deg,#faf9f6,#f4f1e8)', border: '1px dashed #c9b98a', borderRadius: 10, fontSize: 12.5, color: '#6b5b2a' }}>
+        <div style={{ fontWeight: 800, color: '#1a1a2e', marginBottom: 4 }}>✨ No photos yet?</div>
+        <div style={{ marginBottom: 10 }}>Generate a branded cover instantly (industry icon + title + price) so the listing looks professional the moment it publishes. Replace with real photos anytime.</div>
+        <button
+          type="button"
+          onClick={() => {
+            const cover = placeholderImageFor({ title: form.business_name || form.public_title, industry: form.industry, price: form.asking_price })
+            setValue('gallery_images', [cover])
+            toast('Branded cover generated — it becomes the listing cover', 'success')
+          }}
+          style={{ padding: '8px 16px', borderRadius: 8, background: '#1a1a2e', color: '#fff', border: 'none', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
+        >
+          🎨 Generate branded cover
+        </button>
+      </div>
+    )}
 
     {/* Photo count progress — listings with 5+ photos get significantly more buyer interest. */}
     <div style={{ marginBottom: 16 }}>
