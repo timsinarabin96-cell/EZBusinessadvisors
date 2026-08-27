@@ -90,16 +90,29 @@ export function placeholderImageFor(opts: {
   return `${base}/api/listing-images/placeholder?${p.toString()}`
 }
 
+/**
+ * Route stock photos through our own domain so they always load — even when
+ * the external image CDN (images.unsplash.com) is slow or blocked on the
+ * buyer's network. Non-Unsplash URLs (user uploads) pass through untouched.
+ */
+export function proxiedStockUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (/^https:\/\/images\.unsplash\.com\//.test(url)) {
+    return `/api/listing-images/proxy?u=${encodeURIComponent(url)}`
+  }
+  return url
+}
+
 /** Full fallback chain: gallery → real industry stock photo → branded placeholder. */
 export function listingImageFor(
   gallery: string[] | null | undefined,
   industry: string | null | undefined,
   opts: { title?: string | null; price?: number | string | null; agency?: string | null; subIndustry?: string | null } = {},
 ): string | null {
-  if (gallery && gallery.length > 0 && gallery[0]) return gallery[0]
+  if (gallery && gallery.length > 0 && gallery[0]) return proxiedStockUrl(gallery[0])
   // Real photo first: sub-industry (e.g. "Bakery Cafe") → industry (e.g. "Food & Beverage") → generic.
   const stock = bestStockImage(opts.subIndustry || null, industry)
-  if (stock) return stock
+  if (stock) return proxiedStockUrl(stock)
   return placeholderImageFor({ industry, title: opts.title, price: opts.price, agency: opts.agency })
 }
 

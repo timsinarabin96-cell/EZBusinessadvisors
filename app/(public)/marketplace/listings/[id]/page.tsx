@@ -14,7 +14,7 @@ import ListingDetailInteractive from '@/components/public/ListingDetailInteracti
 import { ToastProvider } from '@/components/ui/Toast'
 import SimilarListings from '@/components/public/SimilarListings'
 import DealProfessionalsPanel from '@/components/public/DealProfessionalsPanel'
-import AgentContactCard from '@/components/public/AgentContactCard'
+import BrokerFloat from '@/components/public/BrokerFloat'
 import ListingMarketContextPanel from '@/components/public/ListingMarketContextPanel'
 import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
 import { fetchListingMarketContext } from '@/lib/listingMarketContext'
@@ -97,9 +97,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         </div>
         {listing.location_general && <p style={{ color: '#888', fontSize: 14, margin: '8px 0 0' }}>📍 {listing.location_general}</p>}
       </div>
-      <div style={{ marginBottom: 20 }}>
-        <AgentContactCard agent={meta?.agent || null} />
-      </div>
+      <BrokerFloat agent={meta?.agent || null} />
       <ListingMarketContextPanel ctx={marketCtx} />
       <ToastProvider>
         <ListingDetailInteractive listing={listing} />

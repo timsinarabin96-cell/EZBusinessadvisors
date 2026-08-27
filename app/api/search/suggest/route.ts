@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { suggestBusinessCategories, titleCaseCategory } from '@/lib/businessCategories'
 
 export const runtime = 'nodejs'
 
@@ -39,24 +40,23 @@ export async function GET(req: NextRequest) {
 
   try {
     if (type === 'category') {
+      // Raw listing-derived values are cleaned (title-cased, trimmed) and then
+      // merged with the curated business-category taxonomy so suggestions are
+      // always real categories (Retail, Restaurant…) — never junk free-text.
       const { data } = await db
         .from('listings')
         .select('industry, sub_industry, business_type')
         .eq('status', 'active')
         .limit(500)
-      const seen = new Set<string>()
-      const out: string[] = []
+      const listingValues: string[] = []
       for (const row of data || []) {
         for (const col of CATEGORY_COLS) {
-          const v = String((row as any)[col] || '').trim()
-          if (v && !seen.has(v.toLowerCase())) {
-            seen.add(v.toLowerCase())
-            out.push(v)
-          }
+          const v = titleCaseCategory(String((row as any)[col] || ''))
+          if (v) listingValues.push(v)
         }
       }
-      const filtered = q ? out.filter((v) => v.toLowerCase().includes(q)) : out
-      return NextResponse.json({ ok: true, suggestions: filtered.slice(0, limit), type: 'category' })
+      const suggestions = suggestBusinessCategories(q, listingValues)
+      return NextResponse.json({ ok: true, suggestions: suggestions.slice(0, limit), type: 'category' })
     }
 
     // ---- location: cities / counties / states from the locations table ----

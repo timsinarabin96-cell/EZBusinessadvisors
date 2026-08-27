@@ -11,6 +11,7 @@ import Link from 'next/link'
 import AgentContactCard from '@/components/public/AgentContactCard'
 import PrintFlyerButton from '@/components/public/PrintFlyerButton'
 import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
+import { proxiedStockUrl } from '@/lib/stockImages'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,7 +62,7 @@ export default async function FlyerPage({ params }: { params: Promise<{ id: stri
         {listing.gallery_urls.length > 0 && (
           <div style={{ height: 300, background: '#1a1a2e' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={listing.gallery_urls[0]} alt={listing.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={proxiedStockUrl(listing.gallery_urls[0]) ?? listing.gallery_urls[0]} alt={listing.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
         )}
 

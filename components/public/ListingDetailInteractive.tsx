@@ -33,6 +33,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
   const [watchEmail, setWatchEmail] = useState('')
   const [watchDone, setWatchDone] = useState(false)
   const [watchBusy, setWatchBusy] = useState(false)
+  const [heroFailed, setHeroFailed] = useState(false)
   const sdeMultiple = listing.sde && listing.asking_price ? listing.asking_price / listing.sde : null
 
   // Anonymous view tracking — fire-and-forget; never blocks the page.
@@ -163,6 +164,11 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
 
   const contactPhone = (listing as { contact_phone?: string | null }).contact_phone || null
   const placeholderSrc = listingImageFor(listing.gallery_urls, listing.industry, { title: listing.public_title, price: listing.asking_price ?? undefined, subIndustry: listing.sub_industry }) ?? placeholderImageFor({ title: listing.public_title, industry: listing.industry, price: listing.asking_price ?? undefined })
+  // Branded fallback lives on our own domain, so it always loads even when an
+  // external stock-photo CDN (e.g. Unsplash) is slow or blocked on the buyer's
+  // network — the hero never shows a black void.
+  const heroFallback = placeholderImageFor({ title: listing.public_title, industry: listing.industry, price: listing.asking_price ?? undefined })
+  const heroSrc = heroFailed ? heroFallback : placeholderSrc
 
   return (
     <ToastProvider>
@@ -226,10 +232,10 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
               )}
             </div>
           ) : (
-            // Auto-generated branded placeholder when the listing has no photos.
-            <div style={{ height: 420, borderRadius: 12, overflow: 'hidden', position: 'relative', background: '#1a1a2e' }}>
+            // Real industry stock photo (or branded placeholder) when the listing has no photos.
+            <div style={{ height: 420, borderRadius: 12, overflow: 'hidden', position: 'relative', background: 'linear-gradient(135deg,#1a1a2e,#0f3460)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={placeholderSrc} alt={listing.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={heroSrc} alt={listing.public_title} onError={() => setHeroFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
 

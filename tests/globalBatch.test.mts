@@ -45,6 +45,7 @@ test('global: free stock photo library covers industries with fallback', () => {
   assert.match(stock, /export function listingImageFor/)
   assert.match(stock, /export function bestStockImage/)
   assert.match(stock, /GENERIC/)
+  assert.match(stock, /export function proxiedStockUrl/)
   assert.match(stock, /images\.unsplash\.com/)
 })
 
@@ -52,7 +53,7 @@ test('global: real industry photo is preferred before the branded placeholder', 
   // listingImageFor must try a real stock photo (sub-industry → industry → generic)
   // before falling back to the branded placeholder.
   assert.match(stock, /const stock = bestStockImage\(opts\.subIndustry \|\| null, industry\)/)
-  assert.match(stock, /if \(stock\) return stock/)
+  assert.match(stock, /if \(stock\) return proxiedStockUrl\(stock\)/)
   // Fuzzy matching lets "Bakery Cafe" resolve to the 'Bakery' photo.
   assert.match(stock, /subLower\.includes\(k\) \|\| k\.includes\(subLower\)/)
   assert.match(stock, /'Bakery': \['https:\/\/images\.unsplash\.com\//)

@@ -16,6 +16,11 @@ const metaLib = readFileSync('lib/publicListingMeta.ts', 'utf8')
 const agentCard = readFileSync('components/public/AgentContactCard.tsx', 'utf8')
 const agentQr = readFileSync('components/public/AgentQrCode.tsx', 'utf8')
 const flyer = readFileSync('app/(public)/flyer/[id]/page.tsx', 'utf8')
+const detailPage = readFileSync('app/(public)/marketplace/listings/[id]/page.tsx', 'utf8')
+const brokerFloat = readFileSync('components/public/BrokerFloat.tsx', 'utf8')
+const detailInteractive = readFileSync('components/public/ListingDetailInteractive.tsx', 'utf8')
+const suggestRoute = readFileSync('app/api/search/suggest/route.ts', 'utf8')
+const categoriesLib = readFileSync('lib/businessCategories.ts', 'utf8')
 
 test('flyer: title is white-on-navy, broker card has phone/email/website + vCard QR', () => {
   // The header band is dark navy — the title must be white so it never hides.
@@ -38,6 +43,31 @@ test('flyer: title is white-on-navy, broker card has phone/email/website + vCard
   assert.match(metaLib, /agencyEmail/)
   assert.match(metaLib, /agencyWebsite/)
   assert.match(metaLib, /phone: clean\(broker\.phone\) \|\| clean\(agency\?\.phone\)/)
+})
+
+test('marketplace: broker info is a floating popup (like the AI bot), not a big inline card', () => {
+  // Detail page mounts the floating widget instead of a full-width inline card.
+  assert.match(detailPage, /<BrokerFloat agent=\{meta\?\.agent \|\| null\} \/>/)
+  assert.doesNotMatch(detailPage, /<AgentContactCard agent=/)
+  assert.match(brokerFloat, /'use client'/)
+  assert.match(brokerFloat, /position: 'fixed', bottom: 92, right: 22/)
+  assert.match(brokerFloat, /AgentContactCard agent=\{agent\} \/>/)
+})
+
+test('marketplace: listing hero never shows a black void — onError swaps to branded cover', () => {
+  assert.match(detailInteractive, /heroFailed/)
+  assert.match(detailInteractive, /onError=\{\(\) => setHeroFailed\(true\)\}/)
+  assert.match(card, /imgError/)
+  assert.match(card, /onError=\{\(\) => setImgError\(true\)\}/)
+})
+
+test('marketplace: category suggestions use the curated business taxonomy, not junk', () => {
+  assert.match(categoriesLib, /BUSINESS_CATEGORIES/)
+  assert.match(categoriesLib, /'Retail'/)
+  assert.match(categoriesLib, /export function suggestBusinessCategories/)
+  assert.match(categoriesLib, /titleCaseCategory/)
+  assert.match(suggestRoute, /suggestBusinessCategories\(q, listingValues\)/)
+  assert.match(suggestRoute, /titleCaseCategory\(String\(\(row as any\)\[col\] \|\| ''\)\)/)
 })
 
 test('favorites: localStorage helpers for favorites, compare, buyer profile', () => {
