@@ -17,7 +17,7 @@ import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
 import ListingCopilot from '@/components/listings/ListingCopilot'
 import ListingReadinessPanel from '@/components/listings/ListingReadinessPanel'
 import PublishPanel from '@/components/listing/PublishPanel'
-import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard } from '@/components/studio/StudioInsights'
+import { PipelineStatusCard, SellerApprovalCard, DealPulseCard, RiskCard, CompsCard, ValuationSliderCard, BuyerLeaderboardCard, SyndicationPackCard, OfferIntelligenceCard, AutoClosingDriveCard } from '@/components/studio/StudioInsights'
 import StatusBadge from '@/components/listings/StatusBadge'
 import Step1LegalDocs from '@/components/listings/Step1LegalDocs'
 import Step2FinancialDetails from '@/components/listings/Step2FinancialDetails'
@@ -372,6 +372,7 @@ export default function AIDealStudio() {
                   <div style={{ fontSize: 11.5, color: '#9a6700', marginTop: 8 }}>📷 Add photos or generate a branded cover for best buyer response.</div>
                 )}
               </div>
+              <CompsCard industry={liveState?.industry} askingPrice={liveState?.askingPrice} />
               <ConductorCard title="📝 Capture" body="Paste what you know in the concierge above — or fill the sections. The record auto-saves and flows into verification." />
             </>
           )}
@@ -379,6 +380,7 @@ export default function AIDealStudio() {
           {phase === 'verify' && listing && workflow && (
             <>
               <PipelineStatusCard listingId={listingId} businessName={listing?.business_name} />
+              <ValuationSliderCard industry={listing?.industry} basis={(listing?.ebitda ? 'EBITDA' : 'SDE') as 'SDE' | 'EBITDA'} baseValue={Number(listing?.ebitda || listing?.sde) || null} />
               <RiskCard listingId={listingId} />
               <WorkflowGuidance step={activeStep} stepLabel={stepMeta?.label || ''} listing={listing} workflow={workflow} doneSteps={doneSteps} />
               <ListingCopilot listingId={listingId} businessName={listing?.business_name} />
@@ -388,6 +390,8 @@ export default function AIDealStudio() {
           {phase === 'golive' && (
             <>
               <SellerApprovalCard listingId={listingId} sellerApproved={!!listing?.seller_approved_at} approvalRef={listing?.seller_approval_reference} />
+              <BuyerLeaderboardCard industry={listing?.industry} />
+              <SyndicationPackCard businessName={listing?.business_name} industry={listing?.industry} location={listing?.location_general} price={listing?.asking_price} summary={listing?.public_summary} />
               <DealPulseCard listingId={listingId} />
               <ConductorCard title="🚀 Next best action" body="Run the publish step (Step 8). It fires buyer-match alerts, seller/team emails, and the newspaper queue." />
             </>
@@ -396,6 +400,8 @@ export default function AIDealStudio() {
           {phase === 'sell' && (
             <>
               <DealPulseCard listingId={listingId} />
+              <OfferIntelligenceCard listingId={listingId} askingPrice={listing?.asking_price} />
+              <AutoClosingDriveCard />
               <ConductorCard title="🤝 Next best action" body="Review buyer interest and NDAs first — then shortlist the primary buyer before any LOI or closing step." />
               <ConductorCard title="🏁 Closing" body="The closing step records milestones, escrow, and the success fee — everything flows to the commission tracker." />
             </>

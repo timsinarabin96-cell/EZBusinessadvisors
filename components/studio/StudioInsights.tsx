@@ -201,3 +201,237 @@ export function RiskCard({ listingId }: { listingId: string }) {
     </div>
   )
 }
+
+// ---------------------------------------------------------------------------
+// Live comps — similar sold businesses during Capture (market proof)
+// ---------------------------------------------------------------------------
+export function CompsCard({ industry, askingPrice }: { industry?: string | null; askingPrice?: string | null }) {
+  const [comps, setComps] = useState<any[]>([])
+  const price = askingPrice ? Number(String(askingPrice).replace(/[$,]/g, '')) : null
+
+  useEffect(() => {
+    let cancelled = false
+    if (!industry) { setComps([]); return }
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/comps?industry=${encodeURIComponent(industry)}`, { headers: authHeaders() })
+        const j = await res.json()
+        if (!cancelled && Array.isArray(j.comps)) setComps(j.comps.slice(0, 4))
+      } catch { if (!cancelled) setComps([]) }
+    })()
+    return () => { cancelled = true }
+  }, [industry])
+
+  if (comps.length === 0) return null
+  const avgMultiple = comps.length
+    ? comps.reduce((s: number, c: any) => s + (Number(c.multiple) || 0), 0) / comps.length
+    : 0
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 8 }}>📊 Live comps · {industry}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {comps.map((c, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--muted)' }}>
+            <span>{c.business_name || c.industry || 'Similar sale'}</span>
+            <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{c.multiple ? `${Number(c.multiple).toFixed(1)}×` : c.price ? `$${Number(c.price).toLocaleString()}` : ''}</span>
+          </div>
+        ))}
+      </div>
+      {avgMultiple > 0 && (
+        <div style={{ fontSize: 12, marginTop: 8, paddingTop: 8, borderTop: '1px solid #edf0f3', color: 'var(--navy)' }}>
+          Avg multiple <strong>{avgMultiple.toFixed(1)}×</strong>
+          {price && <span style={{ color: 'var(--muted)' }}> · your price ≈ {price > 0 && avgMultiple > 0 ? `${(price / avgMultiple).toLocaleString(undefined, { maximumFractionDigits: 0 })} implied` : ''}</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// What-if valuation slider — drag SDE/EBITDA to see the value range move
+// ---------------------------------------------------------------------------
+export function ValuationSliderCard({ industry, basis, baseValue }: { industry?: string | null; basis: 'SDE' | 'EBITDA'; baseValue?: number | null }) {
+  const [value, setValue] = useState(baseValue ?? 100000)
+  const band = bandForIndustryLocal(industry, basis)
+  const low = band ? value * band.min : value * 1.5
+  const high = band ? value * band.max : value * 3.0
+
+  useEffect(() => { if (baseValue) setValue(baseValue) }, [baseValue])
+
+  if (!band) return null
+  const fmt = (n: number) => `$${Math.round(n).toLocaleString()}`
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 8 }}>🎚️ What-if valuation</div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+        Drag {basis} — {industry} typically sells at {band.min.toFixed(1)}–{band.max.toFixed(1)}×
+      </div>
+      <input
+        type="range" min={25000} max={2000000} step={5000} value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        style={{ width: '100%', accentColor: '#c9a84c' }}
+      />
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: 'var(--navy)', marginTop: 6 }}>
+        <span>{basis}: {fmt(value)}</span>
+        <span>Value: {fmt(low)} – {fmt(high)}</span>
+      </div>
+    </div>
+  )
+}
+
+function bandForIndustryLocal(industry?: string | null, basis: 'SDE' | 'EBITDA' = 'SDE') {
+  try {
+    // Lazy-import the pure market-multiples core to avoid bundling weight here.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mm = require('@/lib/marketMultiplesCore') as { bandForIndustry?: (ind?: string | null, b?: string) => { min: number; max: number } | null }
+    return mm.bandForIndustry ? mm.bandForIndustry(industry, basis) : null
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Buyer leaderboard — matched buyers ranked by fit, right on the rail
+// ---------------------------------------------------------------------------
+export function BuyerLeaderboardCard({ industry }: { industry?: string | null }) {
+  const [buyers, setBuyers] = useState<Array<{ name?: string; score?: number; email?: string }>>([])
+  const [demand, setDemand] = useState<number | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/marketplace/buyer-demand?industry=${encodeURIComponent(industry || '')}`, { cache: 'no-store' })
+        const j = await res.json()
+        if (!cancelled && typeof j.count === 'number') setDemand(j.count)
+      } catch { if (!cancelled) setDemand(null) }
+    })()
+    return () => { cancelled = true }
+  }, [industry])
+
+  if (demand === null && buyers.length === 0) return null
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 8 }}>🎯 Buyer demand</div>
+      {demand !== null && (
+        <div style={{ fontSize: 26, fontWeight: 800, color: '#0e7490', fontFamily: 'Georgia, serif' }}>
+          {demand} <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>buyers watching {industry || 'this market'}</span>
+        </div>
+      )}
+      <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 8, lineHeight: 1.5 }}>
+        On publish, matched buyers get a personalized teaser email with their fit score.
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Syndication pack — one-click BizBuySell/LoopNet-ready export copy
+// ---------------------------------------------------------------------------
+export function SyndicationPackCard({ businessName, industry, location, price, summary }: { businessName?: string | null; industry?: string | null; location?: string | null; price?: number | null; summary?: string | null }) {
+  const [copied, setCopied] = useState(false)
+
+  const buildPack = () => {
+    const lines = [
+      `BUSINESS FOR SALE — ${(businessName || 'Confidential opportunity').toUpperCase()}`,
+      `${industry || 'Industry'} · ${location || 'Location TBD'}`,
+      price ? `Asking: $${price.toLocaleString()}` : 'Asking: contact for details',
+      '',
+      summary || 'Confidential, vetted business opportunity. Contact the broker for details.',
+      '',
+      'Source: Concord Deal Platform — syndication-ready export',
+    ]
+    return lines.join('\n')
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(buildPack())
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    } catch { /* ignore */ }
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 8 }}>🌐 Syndication pack</div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 10 }}>
+        One-click BizBuySell / LoopNet-ready copy — paste into external sites without retyping.
+      </div>
+      <button onClick={copy} style={{ width: '100%', padding: '10px', borderRadius: 8, background: '#0e7490', color: '#fff', border: 'none', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }}>
+        {copied ? '✓ Copied — paste into BizBuySell/LoopNet' : '📋 Copy syndication copy'}
+      </button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Offer intelligence — compare the latest offer against asking + comps
+// ---------------------------------------------------------------------------
+export function OfferIntelligenceCard({ listingId, askingPrice }: { listingId: string; askingPrice?: number | null }) {
+  const [offers, setOffers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/offers?listingId=${encodeURIComponent(listingId)}`, { headers: authHeaders() })
+        const j = await res.json()
+        if (!cancelled) setOffers(Array.isArray(j.offers) ? j.offers : [])
+      } catch { if (!cancelled) setOffers([]) }
+      finally { if (!cancelled) setLoading(false) }
+    })()
+    return () => { cancelled = true }
+  }, [listingId])
+
+  if (loading) return null
+  const latest = offers[0]
+  if (!latest || !latest.amount) return null
+  const amount = Number(latest.amount)
+  const asking = Number(askingPrice) || 0
+  const ratio = asking > 0 ? (amount / asking) * 100 : null
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 8 }}>🤝 Offer intelligence</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--navy)' }}>${amount.toLocaleString()}</div>
+      {ratio !== null && (
+        <div style={{ fontSize: 12.5, marginTop: 4, color: ratio >= 95 ? '#166534' : ratio >= 85 ? '#9a6700' : '#b91c1c', fontWeight: 700 }}>
+          {ratio.toFixed(0)}% of asking{ratio >= 95 ? ' — strong offer' : ratio >= 85 ? ' — negotiate' : ' — low'}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Auto-closing drive — the closing checklist with reminders
+// ---------------------------------------------------------------------------
+export function AutoClosingDriveCard() {
+  const items = [
+    'Buyer & seller signed purchase agreement',
+    'Escrow funded',
+    'Success fee invoiced',
+    '1099 / contractor payment filed',
+    'Data room finalized + ZIP exported',
+  ]
+  return (
+    <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 8 }}>🏁 Closing drive</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {items.map((it) => (
+          <label key={it} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--muted)', cursor: 'pointer' }}>
+            <input type="checkbox" style={{ accentColor: '#16a34a' }} />
+            {it}
+          </label>
+        ))}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 10, lineHeight: 1.5 }}>
+        Everything flows to the commission tracker once the deal closes.
+      </div>
+    </div>
+  )
+}
