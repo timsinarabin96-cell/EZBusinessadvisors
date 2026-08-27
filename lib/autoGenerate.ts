@@ -44,7 +44,8 @@ import {
   groupUploadedDocs,
   type ExtractedFinancialRow,
 } from '@/lib/financialExtractor'
-import { FF_BUCKET, type FinancialStatus, type FinancialDoc } from '@/lib/financialFiles'
+import { FF_BUCKET } from '@/lib/storageBuckets'
+import type { FinancialStatus, FinancialDoc } from '@/lib/financialFiles'
 import { completeWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
 import type {
   PipelineStage,

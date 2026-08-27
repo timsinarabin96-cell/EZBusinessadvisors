@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
-import { FF_BUCKET } from '@/lib/financialFiles'
+import { FF_BUCKET } from '@/lib/storageBuckets'
 import { analyzeDocumentText, detectUniversalDocType } from '@/lib/ai/documentAnalyzer'
 import { extractDocumentText, isPlainTextType } from '@/lib/ai/textExtract'
 import { mergeAnalyses, type AiExtractionOutput } from '@/lib/ai/financialExtractor'

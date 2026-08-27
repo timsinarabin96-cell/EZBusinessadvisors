@@ -29,7 +29,8 @@ import type {
   UniversalDocTypeInfo,
 } from '@/lib/ai/types'
 import { UNIVERSAL_DOC_TYPE_INFO } from '@/lib/ai/types'
-import { autoTagCategory, type FinancialCategory, type FinancialDoc } from '@/lib/financialFiles'
+import { autoTagCategory, type FinancialCategory } from '@/lib/storageBuckets'
+import type { FinancialDoc } from '@/lib/financialFiles'
 
 // ---------------------------------------------------------------------------
 // 1) Universal file-type detection — ALL 15+ supported document types.

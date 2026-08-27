@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { FF_BUCKET, autoTagCategory, fileKindOf } from '@/lib/financialFiles'
+import { FF_BUCKET, autoTagCategory, fileKindOf } from '@/lib/storageBuckets'
 import { bandForIndustry } from '@/lib/marketMultiplesCore'
 
 export const runtime = 'nodejs'

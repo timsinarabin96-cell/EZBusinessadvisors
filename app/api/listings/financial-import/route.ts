@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
-import { FF_BUCKET, autoTagCategory, fileKindOf } from '@/lib/financialFiles'
+import { FF_BUCKET, autoTagCategory, fileKindOf } from '@/lib/storageBuckets'
 import { extractDocumentText } from '@/lib/ai/textExtract'
 import { analyzeDocumentText, detectUniversalDocType } from '@/lib/ai/documentAnalyzer'
 import { isDeepSeekConfigured } from '@/lib/deepseek/client'
