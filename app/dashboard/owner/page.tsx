@@ -196,16 +196,20 @@ export default function OwnerPortalPage() {
                           <div style={{ fontSize: 12.5, color: '#8a7a3a', marginTop: 4, lineHeight: 1.5 }}>
                             The AI gate needs your business to be 3+ years old with 3 years of revenue on file — no premature businesses, no scams. P&L or tax returns work as proof.
                           </div>
-                          {openForm === l.id ? (
-                            <FinancialsForm listingId={l.id} onDone={() => { setOpenForm(null); load() }} />
-                          ) : (
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                             <button
                               onClick={() => setOpenForm(l.id)}
-                              style={{ marginTop: 10, background: '#1a1a2e', color: '#c9a84c', border: 'none', padding: '9px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13 }}
+                              style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', padding: '9px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13 }}
                             >
                               Upload financials →
                             </button>
-                          )}
+                            <Link
+                              href={`/dashboard/studio?phase=verify&listing=${encodeURIComponent(l.id)}`}
+                              style={{ display: 'inline-flex', alignItems: 'center', background: '#fff', color: '#1a1a2e', border: '2px solid #1a1a2e', padding: '7px 16px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}
+                            >
+                              📝 Complete your listing (photos, details) →
+                            </Link>
+                          </div>
                         </div>
                       )}
 

@@ -44,15 +44,22 @@ export function otpMatches(phone: string, code: string, storedHash: string): boo
   return candidate.length === stored.length && timingSafeEqual(candidate, stored)
 }
 
-/** Send an SMS via Twilio (Messaging Service preferred, else from number). */
+/** Send an SMS via Twilio (Messaging Service preferred, else from number).
+ * Uses the API-key pair when present (account token may be rotated/limited). */
 export async function sendOtpSms(phone: string, code: string): Promise<{ ok: boolean; error?: string }> {
-  const sid = process.env.TWILIO_ACCOUNT_SID
+  const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
+  const apiKeySid = process.env.TWILIO_API_KEY_SID
+  const apiKeySecret = process.env.TWILIO_API_KEY_SECRET
   const messagingSid = process.env.TWILIO_MESSAGING_SERVICE_SID
   const fromNumber = process.env.TWILIO_PHONE_NUMBER
-  if (!sid || !authToken || (!messagingSid && !fromNumber)) {
+  if (!accountSid || (!authToken && !(apiKeySid && apiKeySecret)) || (!messagingSid && !fromNumber)) {
     return { ok: false, error: 'SMS is not configured' }
   }
+  // Prefer the API-key pair (account auth token may be rotated); fall back to it.
+  const basic = apiKeySid && apiKeySecret
+    ? Buffer.from(`${apiKeySid}:${apiKeySecret}`).toString('base64')
+    : Buffer.from(`${accountSid}:${authToken}`).toString('base64')
   try {
     const params = new URLSearchParams({
       To: phone,
@@ -60,10 +67,10 @@ export async function sendOtpSms(phone: string, code: string): Promise<{ ok: boo
     })
     if (messagingSid) params.set('MessagingServiceSid', messagingSid)
     else params.set('From', fromNumber as string)
-    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${Buffer.from(`${sid}:${authToken}`).toString('base64')}`,
+        Authorization: `Basic ${basic}`,
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: params.toString(),

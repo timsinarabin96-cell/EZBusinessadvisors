@@ -110,17 +110,25 @@ test.describe('agent invite flow — Harbor Acquisitions', () => {
     expect(listingId).toBeTruthy()
 
     // 5) Scope check: they cannot publish ANOTHER agent's listing (403).
+    // Fetch a real foreign listing id (any Harbor listing that is not theirs)
+    // so the scope rule is genuinely exercised — never an empty-id 400.
+    let foreignId = process.env.SEED_OTHER_LISTING_ID || ''
+    if (!foreignId) {
+      const opts = await page.request.get('/api/listings/options?agencyId=78c63194-9755-495d-b091-560d985001ef', { headers: await authHeaders(page) })
+      const oj = await opts.json().catch(() => ({}))
+      const mine = await page.request.get('/api/listings/options?mine=1', { headers: await authHeaders(page) }).then((r) => r.json().catch(() => ({})))
+      const myIds = new Set((Array.isArray(mine) ? mine : mine.options || []).map((l: any) => l.id))
+      foreignId = ((Array.isArray(oj) ? oj : oj.options || []) as any[]).find((l: any) => l.id && !myIds.has(l.id))?.id || ''
+    }
     const other = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId: process.env.SEED_OTHER_LISTING_ID || '', force: true },
+      data: { listingId: foreignId, force: true },
     })
-    if (process.env.SEED_OTHER_LISTING_ID) {
-      expect(other.status()).toBe(403)
+    if (foreignId) {
+      expect(other.status(), `expected 403 for foreign publish (got ${other.status()})`).toBe(403)
     } else {
-      // No fixture id provided: verify the scope rule against a Harbor agent's
-      // listing by fetching one via the broker session (already covered in
-      // brokerage-team.spec.ts) — here we assert the API is reachable.
-      expect(other.status() === 403 || other.status() === 404).toBeTruthy()
+      // No foreign listing available at all: API must at least be reachable.
+      expect(other.status() === 403 || other.status() === 404 || other.status() === 400).toBeTruthy()
     }
   })
 })

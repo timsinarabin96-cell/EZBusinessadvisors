@@ -58,8 +58,10 @@ export async function POST(req: NextRequest) {
 
   const sent = await sendOtpSms(phone, code)
 
-  // Non-prod fallback: surface the code so the flow can be tested without SMS.
-  const isProd = process.env.VERCEL_ENV === 'production'
+  // Dev fallback: surface the code so the flow can be tested without SMS.
+  // Require NODE_ENV=production too — a local dev box may carry a stale
+  // VERCEL_ENV=production from a copied .env.local.
+  const isProd = process.env.VERCEL_ENV === 'production' && process.env.NODE_ENV === 'production'
   if (!sent.ok && !isProd) {
     return NextResponse.json({ ok: true, devCode: code, note: 'SMS not configured in this environment — dev code returned.' })
   }
