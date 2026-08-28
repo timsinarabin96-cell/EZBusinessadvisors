@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
+import DocumentSheet, { type SheetBrand } from '@/components/portal/DocumentSheet'
 
 // =============================================================================
 // PortalAgreements — two-sided fillable agreements for portal clients.
@@ -32,6 +33,7 @@ interface PortalDocument {
   id: string
   title: string
   status: string
+  body_template?: string | null
   filled_data: Record<string, unknown>
   parties: Array<{ key: string; label: string; role: string; name: string | null; email: string | null }>
   partyKey: string | null
@@ -49,6 +51,7 @@ const ROLE_COLOR: Record<string, string> = {
 export default function PortalAgreements({ dealId, token }: { dealId: string; token: string }) {
   const toast = useToast()
   const [docs, setDocs] = useState<PortalDocument[]>([])
+  const [brand, setBrand] = useState<SheetBrand>({ agencyName: 'EZ Business Advisors', logoUrl: null })
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [signName, setSignName] = useState<Record<string, string>>({})
@@ -59,7 +62,10 @@ export default function PortalAgreements({ dealId, token }: { dealId: string; to
     try {
       const res = await fetch(`/api/portal/documents?dealId=${encodeURIComponent(dealId)}&token=${encodeURIComponent(token)}`, { cache: 'no-store' })
       const j = await res.json()
-      if (j.ok) setDocs(j.documents || [])
+      if (j.ok) {
+        setDocs(j.documents || [])
+        if (j.brand) setBrand(j.brand)
+      }
     } catch {
       // non-fatal — the section just stays empty
     } finally {
@@ -134,7 +140,12 @@ export default function PortalAgreements({ dealId, token }: { dealId: string; to
           const totalSigs = doc.signatures.length
 
           return (
-            <div key={doc.id} style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 16, background: signed ? '#f7faf6' : '#fcfbf7' }}>
+            <div key={doc.id} style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+              {/* Full branded legal document — letterhead, agreement text, signature blocks */}
+              <DocumentSheet doc={doc} brand={brand} />
+
+              {/* Fill & sign controls */}
+              <div style={{ padding: 16, borderTop: '1px solid var(--line)', background: signed ? '#f7faf6' : '#fcfbf7' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 6 }}>
                 <span style={{ fontSize: 17 }}>{signed ? '✅' : '📄'}</span>
                 <strong style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: 'var(--navy)', flex: 1 }}>{doc.title}</strong>
@@ -202,6 +213,7 @@ export default function PortalAgreements({ dealId, token }: { dealId: string; to
                   </div>
                 </>
               )}
+              </div>
             </div>
           )
         })}

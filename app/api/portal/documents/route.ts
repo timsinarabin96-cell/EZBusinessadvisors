@@ -15,6 +15,9 @@ const SVC_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SVC = SVC_URL && SVC_KEY ? createClient(SVC_URL, SVC_KEY, { auth: { persistSession: false } }) : null
 
+// Letterhead brand fallback — platform brand when the agency has no logo set.
+const DEFAULT_BRAND = { agencyName: 'EZ Business Advisors', logoUrl: null }
+
 // =============================================================================
 // /api/portal/documents — two-sided fillable agreements for portal clients.
 // -----------------------------------------------------------------------------
@@ -54,11 +57,20 @@ export async function GET(req: NextRequest) {
   // Deal → listing → documents (fillable agreements live under the listing).
   const { data: deal } = await SVC.from('deals').select('id, listing_id, title').eq('id', dealId).maybeSingle()
   const listingId = (deal as { listing_id?: string | null } | null)?.listing_id || null
-  if (!listingId) return NextResponse.json({ ok: true, client: { name: access.client_name, email: access.client_email, partyKey: null }, documents: [] })
+  if (!listingId) return NextResponse.json({ ok: true, client: { name: access.client_name, email: access.client_email, partyKey: null }, brand: DEFAULT_BRAND, documents: [] })
+
+  // Agency brand for the letterhead (logo + name). Falls back to the platform brand.
+  const { data: listingRow } = await SVC.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+  let brand: { agencyName: string; logoUrl: string | null } = DEFAULT_BRAND
+  const agencyId = (listingRow as { agency_id?: string | null } | null)?.agency_id
+  if (agencyId) {
+    const { data: ag } = await SVC.from('agencies').select('name, logo_url').eq('id', agencyId).maybeSingle()
+    if (ag) brand = { agencyName: ag.name || DEFAULT_BRAND.agencyName, logoUrl: ag.logo_url || null }
+  }
 
   const { data: docs } = await SVC
     .from('documents')
-    .select('*')
+    .select('*, document_templates(body_template, name, category)')
     .eq('listing_id', listingId)
     .in('status', ['pending_signature', 'signed'])
     .order('created_at', { ascending: true })
@@ -89,6 +101,8 @@ export async function GET(req: NextRequest) {
       title: doc.title,
       status: doc.status,
       template_id: doc.template_id,
+      template_name: (doc as any).document_templates?.name || null,
+      body_template: (doc as any).document_templates?.body_template || null,
       filled_data: doc.filled_data || {},
       parties,
       partyKey,
@@ -97,7 +111,7 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ ok: true, client: { name: clientName, email: access.client_email, partyKey: null }, documents })
+  return NextResponse.json({ ok: true, client: { name: clientName, email: access.client_email, partyKey: null }, brand, documents })
 }
 
 export async function POST(req: NextRequest) {

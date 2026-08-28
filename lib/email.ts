@@ -95,15 +95,22 @@ const esc = (s: string | number | null | undefined): string =>
 
 /** Base email shell matching the navy/gold brand. */
 function shell(title: string, body: string, cta?: { label: string; href: string }): string {
+  const logoUrl = `${APP_URL}/brand/ez-business-advisors.jpg`
   return `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f4f3ef;font-family:Arial,Helvetica,sans-serif;color:#1a2332;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3ef;padding:24px 0;">
     <tr><td align="center">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e5e2d8;">
         <tr>
-          <td style="background:linear-gradient(135deg,#0b1f3a,#14294f);padding:24px 32px;">
-            <div style="font-size:26px;font-weight:700;color:#ffffff;font-family:Georgia,serif;">CONCORD</div>
-            <div style="font-size:11px;letter-spacing:0.28em;color:#c9a84c;text-transform:uppercase;">Deal Platform</div>
+          <td style="background:linear-gradient(135deg,#0b1f3a,#14294f);padding:20px 32px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+              <td style="vertical-align:middle;">
+                <img src="${logoUrl}" alt="EZ Business Advisors" width="180" style="display:block;width:180px;max-width:180px;height:auto;border:0;"/>
+              </td>
+              <td align="right" style="vertical-align:middle;">
+                <div style="font-size:11px;letter-spacing:0.28em;color:#c9a84c;text-transform:uppercase;font-family:Georgia,serif;">Concord Deal Platform</div>
+              </td>
+            </tr></table>
           </td>
         </tr>
         <tr><td style="padding:32px;">
@@ -112,7 +119,7 @@ function shell(title: string, body: string, cta?: { label: string; href: string 
           ${cta ? `<p style="margin:24px 0 8px;"><a href="${esc(cta.href)}" style="display:inline-block;background:#c9a84c;color:#0b1f3a;text-decoration:none;font-weight:600;padding:11px 22px;border-radius:6px;">${esc(cta.label)}</a></p>` : ''}
         </td></tr>
         <tr><td style="background:#f7f6f2;padding:16px 32px;font-size:12px;color:#8a8678;border-top:1px solid #e5e2d8;">
-          You received this automated notification from CONCORD Deal Platform.
+          You received this automated notification from Concord Deal Platform.
           <br/>© ${new Date().getFullYear()} EZ Business Advisors · <a href="${esc(APP_URL)}" style="color:#c9a84c;">${esc(APP_URL)}</a>
         </td></tr>
       </table>

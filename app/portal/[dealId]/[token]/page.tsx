@@ -156,10 +156,23 @@ function PortalBody() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--paper)' }}>
       {/* Header */}
-      <header style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%)', color: '#fff', padding: '34px 24px' }}>
+      <header style={{ background: 'linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%)', color: '#fff', padding: '30px 24px' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div style={{ fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--gold-light)' }}>CONCORD Client Portal</div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 28, margin: '10px 0 6px' }}>{deal?.title || 'Your transaction'}</h1>
+          {/* Branded logo row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+            <div
+              style={{
+                width: 44, height: 44, borderRadius: 9, background: '#ffffff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)', overflow: 'hidden',
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/ez-business-advisors.jpg" alt="EZ Business Advisors" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+            </div>
+            <div style={{ fontSize: 12, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--gold-light)' }}>EZ BUSINESS ADVISORS · Client Portal</div>
+          </div>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 28, margin: '0 0 6px' }}>{deal?.title || 'Your transaction'}</h1>
           {stage && (
             <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', padding: '5px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
               Status: {stage.label}
