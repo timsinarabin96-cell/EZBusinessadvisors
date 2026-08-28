@@ -16,7 +16,7 @@ const SVC_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SVC = SVC_URL && SVC_KEY ? createClient(SVC_URL, SVC_KEY, { auth: { persistSession: false } }) : null
 
 // Letterhead brand fallback — platform brand when the agency has no logo set.
-const DEFAULT_BRAND = { agencyName: 'EZ Business Advisors', logoUrl: null }
+const DEFAULT_BRAND = { agencyName: 'EZ Business Advisors', logoUrl: null, agentName: null as string | null }
 
 // =============================================================================
 // /api/portal/documents — two-sided fillable agreements for portal clients.
@@ -61,11 +61,11 @@ export async function GET(req: NextRequest) {
 
   // Agency brand for the letterhead (logo + name). Falls back to the platform brand.
   const { data: listingRow } = await SVC.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
-  let brand: { agencyName: string; logoUrl: string | null } = DEFAULT_BRAND
+  let brand: { agencyName: string; logoUrl: string | null; agentName: string | null } = DEFAULT_BRAND
   const agencyId = (listingRow as { agency_id?: string | null } | null)?.agency_id
   if (agencyId) {
     const { data: ag } = await SVC.from('agencies').select('name, logo_url').eq('id', agencyId).maybeSingle()
-    if (ag) brand = { agencyName: ag.name || DEFAULT_BRAND.agencyName, logoUrl: ag.logo_url || null }
+    if (ag) brand = { agencyName: ag.name || DEFAULT_BRAND.agencyName, logoUrl: ag.logo_url || null, agentName: null }
   }
 
   const { data: docs } = await SVC
@@ -95,6 +95,9 @@ export async function GET(req: NextRequest) {
       .select('*')
       .eq('document_id', doc.id)
       .order('created_at', { ascending: true })
+
+    const agentParty = (doc.parties || []).find((p: any) => p.role === 'agent')
+    if (agentParty?.name && !brand.agentName) brand.agentName = String(agentParty.name)
 
     documents.push({
       id: doc.id,

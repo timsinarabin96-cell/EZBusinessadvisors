@@ -42,7 +42,11 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
   const [error, setError] = useState('')
   // Seller details collected BEFORE generating the pack so the docs render
   // filled instead of showing [seller_name] / [commission_rate] placeholders.
-  const [seller, setSeller] = useState({ name: '', email: '', phone: '', address: '', commissionRate: 10, termMonths: 12, exclusive: 'Yes' })
+  const [seller, setSeller] = useState({
+    name: '', email: '', phone: '', address: '',
+    commissionType: 'Percentage with Minimum', commissionRate: 10, commissionFlat: 50000, commissionMin: 15000,
+    termMonths: 12, protectionMonths: 24, exclusive: 'Yes',
+  })
   const [showSellerForm, setShowSellerForm] = useState(false)
   // Buyer details — collected before generating the buyer pack so the NDA,
   // Buyer Profile, and Purchase Agreement render filled instead of placeholders.
@@ -160,9 +164,24 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         seller_phone: seller.phone,
         seller_address: seller.address,
         commission_rate: seller.commissionRate ?? 10,
+        commission_type: seller.commissionType,
+        commission_flat: seller.commissionFlat ?? 0,
+        commission_min: seller.commissionMin ?? 0,
+        protection_months: seller.protectionMonths ?? 24,
         term_months: termMonths,
         exclusive,
         expiry_clause: `${termMonths} months after the Listing Date`,
+        // Rendered commission language, driven by the commission structure option.
+        commission_clause: (() => {
+          const type = seller.commissionType
+          const rate = seller.commissionRate ?? 0
+          const flat = seller.commissionFlat ?? 0
+          const min = seller.commissionMin ?? 0
+          if (type === 'Flat Fee') return `a flat fee of \$${Number(flat).toLocaleString()}`
+          if (type === 'Percentage with Minimum') return `${rate}% of the Total Sales Price, with a minimum of \$${Number(min).toLocaleString()}`
+          if (type === 'Percentage or Minimum, Whichever is Greater') return `${rate}% of the Total Sales Price, or \$${Number(min).toLocaleString()}, whichever is greater`
+          return `${rate}% of the Total Sales Price`
+        })(),
         property_included: listing.real_estate_included ? 'Yes — see Property Addendum' : 'No',
         property_address: listing.property_address || '',
         property_value: listing.property_value ?? '',
@@ -326,12 +345,39 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
               <input className="input" value={seller.address} onChange={(e) => setSeller({ ...seller, address: e.target.value })} placeholder="123 Main St, Harrisburg, PA" style={{ fontSize: 13 }} />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
-              Commission rate (%)
-              <input className="input" type="number" value={seller.commissionRate} onChange={(e) => setSeller({ ...seller, commissionRate: Number(e.target.value) })} style={{ fontSize: 13 }} />
+              Commission structure
+              <select className="input" value={seller.commissionType} onChange={(e) => setSeller({ ...seller, commissionType: e.target.value })} style={{ fontSize: 13 }}>
+                <option value="Percentage of Total Sales Price">Percentage of Total Sales Price</option>
+                <option value="Flat Fee">Flat Fee</option>
+                <option value="Percentage with Minimum">Percentage with Minimum</option>
+                <option value="Percentage or Minimum, Whichever is Greater">Percentage or Minimum, Whichever is Greater</option>
+              </select>
             </label>
+            {seller.commissionType !== 'Flat Fee' && (
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+                Commission rate (%)
+                <input className="input" type="number" value={seller.commissionRate} onChange={(e) => setSeller({ ...seller, commissionRate: Number(e.target.value) })} style={{ fontSize: 13 }} />
+              </label>
+            )}
+            {seller.commissionType === 'Flat Fee' && (
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+                Flat fee ($)
+                <input className="input" type="number" value={seller.commissionFlat} onChange={(e) => setSeller({ ...seller, commissionFlat: Number(e.target.value) })} style={{ fontSize: 13 }} />
+              </label>
+            )}
+            {(seller.commissionType === 'Percentage with Minimum' || seller.commissionType === 'Percentage or Minimum, Whichever is Greater') && (
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+                Minimum commission ($)
+                <input className="input" type="number" value={seller.commissionMin} onChange={(e) => setSeller({ ...seller, commissionMin: Number(e.target.value) })} style={{ fontSize: 13 }} />
+              </label>
+            )}
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
               Term (months)
               <input className="input" type="number" value={seller.termMonths} onChange={(e) => setSeller({ ...seller, termMonths: Number(e.target.value) })} style={{ fontSize: 13 }} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
+              Protection period (months after term)
+              <input className="input" type="number" value={seller.protectionMonths} onChange={(e) => setSeller({ ...seller, protectionMonths: Number(e.target.value) })} style={{ fontSize: 13 }} />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
               Exclusive listing?

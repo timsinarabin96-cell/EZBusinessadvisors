@@ -53,15 +53,28 @@ const TEMPLATES = [
       { key: 'business_name', label: 'Business Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
       { key: 'seller_entity', label: 'Seller Entity / Owner(s)', type: 'text', required: true, placeholder: 'e.g. John Smith & Jane Smith' },
       { key: 'entity_type', label: 'Entity Type', type: 'select', required: true, options: ['LLC', 'Corporation', 'Sole Proprietorship', 'Partnership'], placeholder: '' },
-      { key: 'asking_price', label: 'Asking Price', type: 'number', required: true, placeholder: '500000' },
-      { key: 'commission_rate', label: 'Commission Rate %', type: 'number', required: true, placeholder: '10' },
+      { key: 'asking_price', label: 'Total Sales Price', type: 'number', required: true, placeholder: '500000' },
+      { key: 'commission_type', label: 'Commission Structure', type: 'select', required: true, options: ['Percentage of Total Sales Price', 'Flat Fee', 'Percentage with Minimum', 'Percentage or Minimum, Whichever is Greater'], placeholder: '' },
+      { key: 'commission_rate', label: 'Commission Rate %', type: 'number', required: false, placeholder: '10' },
+      { key: 'commission_flat', label: 'Flat Fee ($)', type: 'number', required: false, placeholder: '50000' },
+      { key: 'commission_min', label: 'Minimum Commission ($)', type: 'number', required: false, placeholder: '15000' },
       { key: 'term_months', label: 'Term (months)', type: 'number', required: true, placeholder: '12' },
+      { key: 'protection_months', label: 'Protection Period (months after term)', type: 'number', required: false, placeholder: '24' },
       { key: 'exclusive', label: 'Exclusive', type: 'select', required: true, options: ['Yes', 'No'], placeholder: '' },
       { key: 'effective_date', label: 'Effective Date', type: 'date', required: true, placeholder: '' },
       { key: 'listing_date', label: 'Listing Date (for expiry tracking)', type: 'date', required: true, placeholder: '' },
       { key: 'agreement_year', label: 'Year (2025 / 2026 / 2027)', type: 'select', required: true, options: ['2025', '2026', '2027', '2028'], placeholder: '' },
       { key: 'agency_name', label: 'Agency Name', type: 'text', required: false, placeholder: 'Your brokerage' },
       { key: 'property_included', label: 'Real Property Included?', type: 'select', required: true, options: ['No', 'Yes — see Property Addendum'], placeholder: '' },
+      { key: 'non_compete_miles', label: 'Non-Compete (miles)', type: 'number', required: false, placeholder: '25' },
+      { key: 'non_compete_years', label: 'Non-Compete (years)', type: 'number', required: false, placeholder: '2' },
+      { key: 'training_weeks', label: 'Seller Training (weeks at no cost)', type: 'number', required: false, placeholder: '4' },
+      { key: 'inventory_included', label: 'Inventory Included ($)', type: 'number', required: false, placeholder: '0' },
+      { key: 'annual_sales', label: 'Annual Sales ($)', type: 'number', required: false, placeholder: '0' },
+      { key: 'sde', label: "Seller's Discretionary Earnings ($)", type: 'number', required: false, placeholder: '0' },
+      { key: 'down_payment', label: 'Down Payment ($)', type: 'number', required: false, placeholder: '0' },
+      { key: 'seller_note', label: 'Seller Note ($)', type: 'number', required: false, placeholder: '0' },
+      { key: 'note_interest', label: 'Note Interest (%)', type: 'number', required: false, placeholder: '6' },
     ],
     parties: [
       { key: 'agent', label: 'Broker / Agency', role: 'agent' },
@@ -74,35 +87,61 @@ const TEMPLATES = [
 
 Effective Date: {{effective_date}} · Listing Date: {{listing_date}}
 
-THIS MARKETING AGREEMENT ("Agreement") is made and entered into as of the Effective Date set forth above, by and between {{agency_name}} ("Broker") and {{seller_entity}} ("Seller"), for the {{exclusive}} right to market and sell the Business described below. The parties agree as follows:
+THIS MARKETING AGREEMENT ("Agreement") is made and entered into as of the Effective Date set forth above, by and between {{agency_name}} ("Broker") and {{seller_entity}} ("Seller"), for the {{exclusive}} right to market and sell the Business described below. In consideration of the services of Broker, Seller hereby gives Broker the full and {{exclusive}} right to sell the Business, which includes all or any portion of its assets, rights, liabilities or property, at the Total Sales Price and terms set forth below, or for any other price and terms acceptable to Seller. A sale is not guaranteed.
 
-1. ENGAGEMENT. Seller engages Broker as Seller's broker and advisor, on an {{exclusive}} basis, to market, advertise, and solicit buyers for the sale of {{business_name}} (the "Business"), a {{entity_type}}.
+====================================================
+DEAL SUMMARY
+====================================================
+Business Name: {{business_name}}
+Seller: {{seller_entity}} · Entity Type: {{entity_type}}
+Total Sales Price: \${{asking_price}}
+COMMISSION: {{commission_clause}}
+Term: {{term_months}} months (the "Term") · Protection Period: {{protection_months}} months after expiration
+Exclusive: {{exclusive}} · Real Property: {{property_included}}
+Non-Compete: {{non_compete_miles}} miles for {{non_compete_years}} years · Seller Training: {{training_weeks}} weeks at no cost
+Inventory Included: \${{inventory_included}} · Annual Sales: \${{annual_sales}} · Seller's Discretionary Earnings: \${{sde}}
+Down Payment: \${{down_payment}} · Seller Note: \${{seller_note}} at {{note_interest}}% interest
+====================================================
+
+1. ENGAGEMENT. Seller engages Broker as Seller's broker and advisor, on an {{exclusive}} basis, to market, advertise, and solicit buyers for the sale of {{business_name}} (the "Business"), a {{entity_type}}. The parties agree as follows:
 
 2. ASKING PRICE. The initial asking price for the Business shall be \${{asking_price}} (the "Asking Price"). Broker shall not advertise a price other than the Asking Price without Seller's prior written consent.
 
-3. COMMISSION. In consideration of Broker's services, Seller agrees to pay Broker a commission equal to {{commission_rate}}% of the total consideration received for the sale of the Business (including cash, notes, assumed liabilities, and any other consideration), payable at closing. Commission shall be deemed earned if, during the Term or any extension, Broker produces a ready, willing, and able buyer, or the Business is sold, transferred, or leased to any party introduced by Broker or any other party. If Seller sells the Business within {{term_months}} months after expiration of this Agreement to a buyer with whom Broker had substantive negotiations during the Term, the commission shall nevertheless be due and payable ("Protection Period").
+3. COMMISSION AND COMPENSATION. Seller shall pay to Broker, as compensation or liquidated damages, {{commission_clause}}, if any of the following occur:
+  a. Seller and Buyer consummate the sale of the Business; or
+  b. Broker procures a Prospect ready, willing and able to purchase the Business at the terms set forth above, or as amended; or
+  c. Seller sells, leases, trades or otherwise disposes of all or any part of the Business other than in the normal course of business; or
+  d. Seller withdraws the Business for sale, seeks to terminate, or terminates this Agreement prior to the end of the Term; or
+  e. Seller, through no fault of Prospect, fails or refuses to complete a sale after entering into a written agreement to do so; or
+  f. Seller sells or transfers any or all shares of stock or interest in the Business; such sale or transfer is considered a sale of the Business assets at the Total Sales Price.
 
-4. TERM. This Agreement shall commence on the Listing Date and continue for {{term_months}} months (the "Term"), unless earlier terminated in writing by mutual consent. Expiration: {{expiry_clause}}.
+4. TOTAL SALES PRICE DEFINED. "Total Sales Price" is the amount paid for the Business by the person or entity purchasing the Business ("Buyer"), including inventory and any liabilities, contingent liabilities, other obligations assumed by Buyer, consulting or management agreements, and any compensation paid.
 
-5. AUTHORITY OF BROKER. Seller authorizes Broker to: (a) advertise the Business in any media Broker deems appropriate; (b) show the Business to prospective buyers; (c) provide financial and operational information to qualified buyers who have executed a confidentiality agreement; and (d) place a "for sale" sign or listing on the premises with Seller's consent.
+5. WHEN COMMISSION IS DUE. Broker's compensation will be due and payable upon the occurrence of any item listed in Section 3, or at the Closing, whichever is first. Broker is authorized to instruct the Closing agent to pay any and all compensation due to Broker under this Agreement at the Closing.
 
-6. SELLER'S REPRESENTATIONS. Seller represents and warrants that: (a) Seller owns the Business and has full authority to sell it; (b) all financial statements and information provided to Broker are true and accurate; (c) there are no undisclosed liens, judgments, or encumbrances against the Business; (d) Seller will cooperate in good faith with Broker's marketing efforts; and (e) Seller will promptly refer all inquiries regarding the sale of the Business to Broker.
+6. PROTECTION PERIOD. Broker shall use its best efforts to procure a ready, willing and able Prospect. Seller will show the Business upon reasonable notification. If Seller, within {{protection_months}} months after the end of the Term, with any party disclosed during the Term, (1) enters into a contract, accepts a deposit, offers a purchase option, or does any act equivalent to a sale; (2) has an employment, independent contractor or consulting relationship; or (3) leases, trades or options any Business asset, then the full compensation based on the Total Sales Price shall be immediately due and payable.
 
-7. ACCESS AND COOPERATION. Seller shall provide Broker and qualified buyers with reasonable access to the Business premises, books, records, and personnel during normal business hours, and shall cooperate with reasonable buyer due diligence.
+7. SELLER'S REPRESENTATIONS AND WARRANTIES. Seller represents and warrants that: (a) Seller and the Business's operation are in full compliance with all applicable laws, rules and regulations regarding the Business, and to the best of Seller's knowledge and belief there are no matters which would adversely affect the sale; (b) all facts, figures and additional documents about the Business have been provided to Broker by Seller; and (c) Seller is not under obligation to another party (whether included in a business brokerage agreement or otherwise) which would prevent Seller from freely entering into this exclusive relationship.
 
-8. CONFIDENTIALITY. Both parties shall keep the terms of this Agreement and all non-public information concerning the other party confidential, except as required to market the Business or by law.
+8. SELLER'S COOPERATION. Seller agrees to fully cooperate with Broker, including referring immediately to Broker all inquiries regarding the sale of the Business. Seller will deliver to Broker copies of any agreement between Seller and any Prospect or potential buyer immediately, and permit Broker to be present at the Closing.
 
-9. NO OTHER BROKER. Seller agrees not to list the Business with, or authorize any other broker to sell the Business during the Term, and to refer all inquiries to Broker.
+9. ADVERTISING AND CO-BROKING. Seller understands and acknowledges that information provided by Seller may be disclosed to Prospects, Buyer and other brokers. Broker may choose to co-broke this listing and advertise at its discretion.
 
-10. INDEPENDENT CONTRACTOR. Broker is an independent contractor, not an employee, joint venturer, or agent of Seller except as expressly provided herein. Broker is not authorized to bind Seller to any contract without Seller's written consent.
+10. INFORMATION AND INDEMNIFICATION. Seller acknowledges and agrees that all information supplied to Broker pertaining to the Business will be used for promoting the Business to Prospects and that such information will be relied upon by Broker, Prospects and Buyer. Seller further acknowledges and agrees that Broker has not made, and will not make, any independent investigation of the accuracy of any information provided by Seller. Seller agrees to indemnify and hold Broker harmless against any and all claims, demands, causes of action, losses, damages, costs and expenses, including attorneys' fees and expenses incurred by Broker, regardless of whether a suit is filed, in the event that Seller breaches any warranty, representation or obligation set forth herein. Any information attached hereto and/or acknowledged by the parties shall be part of this Agreement. The Business Listing Information (BLI), Seller Interview, Resolution to Sell, Asset Analysis and Owners Benefits Worksheet shall be deemed to be a part of this Agreement.
 
-11. PROPERTY. Real property, if any, is included in the sale only as set forth in the Property Addendum, if attached. {{property_included}}.
+11. BUYER VERIFICATION. Seller agrees to independently verify the qualifications of all Prospects, and understands that Broker will not warrant Buyer's health, financial status, experience, competency, or residency.
 
-12. GOVERNING LAW. This Agreement shall be governed by and construed in accordance with the laws of the Commonwealth of Pennsylvania, and the parties consent to exclusive jurisdiction and venue in Dauphin County, Pennsylvania.
+12. GOVERNING LAW; VENUE; JURY WAIVER. This Agreement shall be governed by the laws of the State of Pennsylvania. The prevailing party in any litigation arising under this Agreement shall be entitled to recover, in addition to any other relief awarded, all of its attorneys' fees, costs, and expenses incurred at both trial and appellate levels. Each party agrees that any disputes under this Agreement shall be resolved exclusively in the state courts located in Harrisburg, Dauphin County, Pennsylvania, or the federal courts located in the Harrisburg District of Pennsylvania; and consents to and waives any objection to personal jurisdiction and venue therein. Each party waives any right to have a jury participate in the resolution of any dispute.
 
-13. ENTIRE AGREEMENT. This Agreement constitutes the entire agreement between the parties and supersedes all prior discussions, understandings, and agreements. It may be amended only in writing signed by both parties.
+13. ENTIRE AGREEMENT. This Agreement constitutes the entire agreement between the parties and supersedes all negotiations, preliminary agreements, and all prior discussions and understandings, and shall not be modified except in writing executed by the parties. Seller acknowledges that it has read, understood and received a copy of this Agreement.
 
-14. NOTICES. All notices under this Agreement shall be in writing and delivered personally or by email to the parties at their addresses set forth above.
+14. PRINCIPAL GUARANTY. Seller's principal guarantees Seller's performance under the terms of this Agreement and agrees to be jointly and severally liable to pay Broker its compensation if Seller breaches the terms of this Agreement.
+
+15. ELECTRONIC EXECUTION. Documents may be sent electronically, and such electronic copies, as well as electronic signatures, shall be treated for all purposes as (a) properly authorized and/or endorsed by the sending party; (b) "in writing" and signed; and (c) as an original document.
+
+16. INDEPENDENT CONTRACTOR; NO AGENCY. Broker is an independent contractor and not an employee, joint venturer, partner, or agent of Seller, except as expressly set forth in this Agreement. Broker is not authorized to bind Seller to any contract, agreement, or obligation without Seller's prior written consent. Nothing in this Agreement creates a partnership, joint venture, or fiduciary relationship between the parties beyond the brokerage duties expressly stated herein.
+
+17. CONFIDENTIALITY. Both parties shall keep the terms of this Agreement, and all non-public information concerning the other party and the Business, confidential, except as required to market and sell the Business or as required by law.
 
 IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date in the year {{agreement_year}}.
 
@@ -123,7 +162,12 @@ ${PA_DISCLOSURE}`,
       { key: 'seller_name', label: 'Seller Name(s)', type: 'text', required: true, placeholder: 'e.g. John Smith & Jane Smith' },
       { key: 'business_name', label: 'Business Name', type: 'text', required: true, placeholder: 'e.g. ABC Manufacturing LLC' },
       { key: 'listing_price', label: 'Listing Price', type: 'number', required: true, placeholder: '500000' },
-      { key: 'commission_rate', label: 'Commission Rate %', type: 'number', required: true, placeholder: '10' },
+      { key: 'commission_type', label: 'Commission Structure', type: 'select', required: true, options: ['Percentage of Total Sales Price', 'Flat Fee', 'Percentage with Minimum', 'Percentage or Minimum, Whichever is Greater'], placeholder: '' },
+      { key: 'commission_rate', label: 'Commission Rate %', type: 'number', required: false, placeholder: '10' },
+      { key: 'commission_flat', label: 'Flat Fee ($)', type: 'number', required: false, placeholder: '50000' },
+      { key: 'commission_min', label: 'Minimum Commission ($)', type: 'number', required: false, placeholder: '15000' },
+      { key: 'term_months', label: 'Term (months)', type: 'number', required: false, placeholder: '12' },
+      { key: 'protection_months', label: 'Protection Period (months after term)', type: 'number', required: false, placeholder: '24' },
       { key: 'effective_date', label: 'Effective Date', type: 'date', required: true, placeholder: '' },
       { key: 'listing_date', label: 'Listing Date (for expiry tracking)', type: 'date', required: true, placeholder: '' },
       { key: 'agreement_year', label: 'Year (2025 / 2026 / 2027)', type: 'select', required: true, options: ['2025', '2026', '2027', '2028'], placeholder: '' },
@@ -139,25 +183,41 @@ ${PA_DISCLOSURE}`,
 
 Effective Date: {{effective_date}} · Listing Date: {{listing_date}}
 
-THIS LISTING AGREEMENT (\"Agreement\") is entered into as of the Effective Date set forth above, by and between {{agency_name}} (\"Broker\") and the Seller(s) identified below (\"Seller\"), relating to the listing and sale of {{business_name}} (the \"Business\"). The parties agree as follows:
+THIS LISTING AGREEMENT ("Agreement") is entered into as of the Effective Date set forth above, by and between {{agency_name}} ("Broker") and the Seller(s) identified below ("Seller"), relating to the listing and sale of {{business_name}} (the "Business"). The parties agree as follows:
 
 1. APPOINTMENT. Seller hereby appoints Broker as Seller's exclusive agent for the listing and sale of the Business, and Broker accepts such appointment.
 
-2. LISTING PRICE. The initial listing price for the Business shall be \${{listing_price}} (the \"Listing Price\"). Broker shall not market the Business above or below the Listing Price without Seller's prior written consent.
+2. LISTING PRICE. The initial listing price for the Business shall be \${{listing_price}} (the "Listing Price"). Broker shall not market the Business above or below the Listing Price without Seller's prior written consent.
 
-3. COMMISSION. Seller shall pay Broker a commission of {{commission_rate}}% of the gross selling price (defined as the total consideration paid for the Business, including cash, notes, assumed debt, and other value), earned and payable at closing. The commission shall be earned if the Business is sold, or a binding agreement to sell is executed, during the Term of this Agreement, or during the Protection Period set forth in Section 4, to any buyer. If the transaction does not close due to Seller's breach, default, or refusal to proceed, the commission shall nevertheless be due and payable.
+3. COMMISSION AND COMPENSATION. Seller shall pay to Broker, as compensation or liquidated damages, {{commission_clause}}, if any of the following occur:
+  a. Seller and Buyer consummate the sale of the Business; or
+  b. Broker procures a Prospect ready, willing and able to purchase the Business at the terms set forth above, or as amended; or
+  c. Seller sells, leases, trades or otherwise disposes of all or any part of the Business other than in the normal course of business; or
+  d. Seller withdraws the Business for sale, seeks to terminate, or terminates this Agreement prior to the end of the Term; or
+  e. Seller, through no fault of Prospect, fails or refuses to complete a sale after entering into a written agreement to do so; or
+  f. Seller sells or transfers any or all shares of stock or interest in the Business; such sale or transfer is considered a sale of the Business assets at the Total Sales Price.
 
-4. TERM AND PROTECTION. This Agreement shall remain in effect for {{term_months}} months from the Listing Date (the \"Term\"). Expiration: {{expiry_clause}}. For a period of {{term_months}} months following expiration (the \"Protection Period\"), if the Business is sold to any person or entity with whom Broker or Seller had substantive negotiations during the Term, Seller shall pay Broker the commission set forth in Section 3.
+4. TOTAL SALES PRICE DEFINED. "Total Sales Price" is the amount paid for the Business by the person or entity purchasing the Business ("Buyer"), including inventory and any liabilities, contingent liabilities, other obligations assumed by Buyer, consulting or management agreements, and any compensation paid.
 
-5. BROKER'S AUTHORITY. Broker is authorized to: (a) advertise and market the Business; (b) distribute information to prospective buyers subject to confidentiality agreements; (c) qualify and pre-screen buyers; (d) coordinate showings and site visits; and (e) negotiate on Seller's behalf, subject to Seller's written approval of price and material terms.
+5. WHEN COMMISSION IS DUE. Broker's compensation will be due and payable upon the occurrence of any item listed in Section 3, or at the Closing, whichever is first. Broker is authorized to instruct the Closing agent to pay any and all compensation due to Broker under this Agreement at the Closing.
 
-6. SELLER'S OBLIGATIONS. Seller shall: (a) provide accurate financial statements and business records; (b) make the premises and records available for reasonable inspection; (c) refer all buyer inquiries to Broker; (d) not negotiate with any prospective buyer without Broker's involvement; and (e) keep Broker informed of any material changes in the Business.
+6. TERM AND PROTECTION. This Agreement shall remain in effect for {{term_months}} months from the Listing Date (the "Term"). Expiration: {{expiry_clause}}. For a period of {{protection_months}} months following expiration (the "Protection Period"), if the Business is sold, leased, traded or optioned to any person or entity with whom Broker or Seller had substantive negotiations during the Term, or with whom any employment, independent contractor or consulting relationship is formed, Seller shall pay Broker the commission set forth in Section 3, and such compensation shall be immediately due and payable.
 
-7. REPRESENTATIONS. Seller represents and warrants that Seller has the legal right and authority to sell the Business, that the Business is free of undisclosed liens and encumbrances, and that all information provided to Broker is true, accurate, and complete in all material respects.
+7. BROKER'S AUTHORITY. Broker is authorized to: (a) advertise and market the Business; (b) distribute information to prospective buyers subject to confidentiality agreements; (c) qualify and pre-screen buyers; (d) coordinate showings and site visits; (e) co-broke the listing and advertise at its discretion; and (f) negotiate on Seller's behalf, subject to Seller's written approval of price and material terms.
 
-8. GOVERNING LAW; VENUE. This Agreement shall be governed by the laws of the Commonwealth of Pennsylvania. Venue shall lie exclusively in Dauphin County, Pennsylvania.
+8. SELLER'S OBLIGATIONS. Seller shall: (a) provide accurate financial statements and business records; (b) make the premises and records available for reasonable inspection; (c) refer all buyer inquiries to Broker; (d) not negotiate with any prospective buyer without Broker's involvement; (e) deliver to Broker copies of any agreement between Seller and any Prospect immediately; (f) permit Broker to be present at the Closing; and (g) keep Broker informed of any material changes in the Business.
 
-9. ENTIRE AGREEMENT. This Agreement contains the entire understanding of the parties and may only be amended in writing signed by both parties.
+9. REPRESENTATIONS. Seller represents and warrants that Seller has the legal right and authority to sell the Business, that the Business is free of undisclosed liens and encumbrances, that all information provided to Broker is true, accurate, and complete in all material respects, and that Seller and the Business are in full compliance with all applicable laws, rules and regulations regarding the Business. Seller is not under obligation to another party which would prevent Seller from freely entering into this exclusive relationship.
+
+10. INDEMNIFICATION. Seller acknowledges that Broker has not made, and will not make, any independent investigation of the accuracy of any information provided by Seller. Seller agrees to indemnify and hold Broker harmless against any and all claims, demands, causes of action, losses, damages, costs and expenses, including attorneys' fees and expenses incurred by Broker, regardless of whether a suit is filed, in the event that Seller breaches any warranty, representation or obligation set forth herein.
+
+11. GOVERNING LAW; VENUE; JURY WAIVER. This Agreement shall be governed by the laws of the State of Pennsylvania. The prevailing party in any litigation arising under this Agreement shall be entitled to recover, in addition to any other relief awarded, all of its attorneys' fees, costs, and expenses incurred at both trial and appellate levels. Each party agrees that any disputes under this Agreement shall be resolved exclusively in the state courts located in Harrisburg, Dauphin County, Pennsylvania, or the federal courts located in the Harrisburg District of Pennsylvania; and consents to and waives any objection to personal jurisdiction and venue therein. Each party waives any right to have a jury participate in the resolution of any dispute.
+
+12. ENTIRE AGREEMENT. This Agreement contains the entire understanding of the parties and may only be amended in writing signed by both parties. Seller acknowledges that it has read, understood and received a copy of this Agreement.
+
+13. PRINCIPAL GUARANTY. Seller's principal guarantees Seller's performance under the terms of this Agreement and agrees to be jointly and severally liable to pay Broker its compensation if Seller breaches the terms of this Agreement.
+
+14. ELECTRONIC EXECUTION. Documents may be sent electronically, and such electronic copies, as well as electronic signatures, shall be treated for all purposes as (a) properly authorized and/or endorsed by the sending party; (b) "in writing" and signed; and (c) as an original document.
 
 IN WITNESS WHEREOF, the parties have executed this Agreement as of the year {{agreement_year}}.
 
@@ -168,8 +228,6 @@ SELLER(S):
 Each Owner executing below authorizes the listing and sale of {{business_name}}.
 
 ${PA_DISCLOSURE}`,
-  },
-  {
     id: 'd0c00000-0002-4000-8000-000000000002',
     name: 'LLC Resolution',
     description: 'Member resolution authorizing the sale of the company or its assets — one signature slot per member.',

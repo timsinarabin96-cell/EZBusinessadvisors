@@ -45,6 +45,20 @@ export async function POST(req: NextRequest) {
   const agencyId = doc.listings?.agency_id
   if (!agencyId || !canManageAgency(auth, agencyId)) return forbiddenResponse()
 
+  // Agency brand for the letterhead — each agency's own logo shows on its docs
+  // (white-label ready), and the preparing agent's name is printed beneath.
+  let agencyName = process.env.NEXT_PUBLIC_AGENCY_NAME || 'EZ Business Advisors'
+  let agencyLogoUrl: string | null = null
+  let agentName: string | null = null
+  try {
+    const { data: ag } = await db.from('agencies').select('name, logo_url').eq('id', agencyId).maybeSingle()
+    if (ag?.name) agencyName = ag.name
+    if (ag?.logo_url) agencyLogoUrl = ag.logo_url
+  } catch { /* fall back to defaults */ }
+  const docParties = (doc.parties || []) as Array<{ key?: string; role?: string; name?: string | null }>
+  const agentParty = docParties.find((p) => p.role === 'agent')
+  if (agentParty?.name) agentName = agentParty.name
+
   const configured = esignConfigured()
   if (!configured) {
     return NextResponse.json({ ok: false, error: 'eSign is not configured yet', code: 'ESIGN_NOT_CONFIGURED' }, { status: 503 })
@@ -71,10 +85,12 @@ export async function POST(req: NextRequest) {
     const M = 56
 
     // --- Letterhead: logo (when fetchable) + agency name + gold rule ----------
-    const agencyName = process.env.NEXT_PUBLIC_AGENCY_NAME || 'EZ Business Advisors'
     let logoBase64: string | null = null
     try {
-      const logoUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'}/brand/ez-business-advisors.jpg`
+      const logoPath = agencyLogoUrl && agencyLogoUrl.startsWith('/')
+        ? agencyLogoUrl
+        : '/brand/ez-business-advisors.jpg'
+      const logoUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'}${logoPath}`
       const res = await fetch(logoUrl, { cache: 'no-store' })
       if (res.ok) {
         const buf = Buffer.from(await res.arrayBuffer())
@@ -84,13 +100,19 @@ export async function POST(req: NextRequest) {
 
     if (logoBase64) {
       try {
-        pdf.addImage(logoBase64, 'JPEG', M, 40, 150, 50)
+        pdf.addImage(logoBase64, 'JPEG', M, 34, 165, 55)
       } catch { /* ignore malformed image */ }
     } else {
       pdf.setFont('times', 'bold')
       pdf.setFontSize(17)
       pdf.setTextColor(26, 26, 46)
       pdf.text(agencyName, M, 60)
+    }
+    if (agentName) {
+      pdf.setFont('times', 'normal')
+      pdf.setFontSize(9.5)
+      pdf.setTextColor(120, 120, 120)
+      pdf.text(`Prepared by ${agentName} · ${agencyName}`, M, 104)
     }
     // Gold rule under the letterhead
     pdf.setFillColor(201, 168, 76)
@@ -103,13 +125,66 @@ export async function POST(req: NextRequest) {
     pdf.text(pdf.splitTextToSize(doc.title || 'Document', W - M * 2), W / 2, 140, { align: 'center' })
 
     // --- Body (paragraph-aware: preserves template line breaks) ---------------
-    pdf.setFont('times', 'normal')
-    pdf.setFontSize(12)
-    pdf.setTextColor(35, 43, 58)
-    const paragraphs = text.split(/\n{2,}/).map((p) => p.replace(/\n/g, ' ').trim()).filter(Boolean)
+    const fmtMoney = (s: string) =>
+      s.replace(/\$(\d+)/g, (_, n) => '$' + Number(n).toLocaleString('en-US'))
+    // Extract the DEAL SUMMARY block (between the ==== dividers) FIRST so it is
+    // rendered as a boxed table, then the remaining paragraphs flow normally.
+    const summaryMatch = text.match(/^=+\s*DEAL SUMMARY\s*=\s*([\s\S]*?)\s*^=+$/m)
+    const summaryRows: Array<[string, string]> = []
+    let bodyText = text
+    if (summaryMatch) {
+      const block = summaryMatch[1]
+      bodyText = text.replace(summaryMatch[0], '').trim()
+      for (const line of block.split('\n')) {
+        const idx = line.indexOf(':')
+        if (idx <= 0) continue
+        const label = line.slice(0, idx).trim()
+        const value = line.slice(idx + 1).trim()
+        if (label && value) summaryRows.push([label, fmtMoney(value)])
+      }
+    }
+    const paragraphs = bodyText.split(/\n{2,}/).map((p) => p.replace(/\n/g, ' ').trim().replace(/\s{2,}/g, ' ')).filter(Boolean)
     let y = 170
+    // DEAL SUMMARY box (when present)
+    if (summaryRows.length > 0) {
+      const labelX = M + 10
+      const valueX = M + 200
+      const valueW = W - M * 2 - 210
+      const rowLines = summaryRows.map(([, value]) => pdf.splitTextToSize(value, valueW).length)
+      const totalLines = rowLines.reduce((a, b) => a + b, 0)
+      const boxH = totalLines * 15 + 26
+      if (y + boxH > H - M - 20) { pdf.addPage(); y = M + 30 }
+      pdf.setFillColor(245, 243, 236)
+      pdf.setDrawColor(201, 168, 76)
+      pdf.setLineWidth(1.2)
+      pdf.roundedRect(M, y - 14, W - M * 2, boxH, 4, 4, 'FD')
+      pdf.setFont('times', 'bold')
+      pdf.setFontSize(10.5)
+      pdf.setTextColor(26, 26, 46)
+      pdf.text('DEAL SUMMARY', labelX, y)
+      pdf.setFont('times', 'normal')
+      pdf.setFontSize(10.5)
+      y += 16
+      for (let r = 0; r < summaryRows.length; r++) {
+        const [label, value] = summaryRows[r]
+        pdf.setTextColor(26, 26, 46)
+        pdf.text(label + ':', labelX, y)
+        const isCommission = /commission/i.test(label)
+        pdf.setFont('times', isCommission ? 'bold' : 'normal')
+        pdf.setTextColor(isCommission ? 150 : 60, isCommission ? 110 : 60, isCommission ? 30 : 60)
+        const valueLines = pdf.splitTextToSize(value, valueW)
+        pdf.text(valueLines, valueX, y)
+        pdf.setFont('times', 'normal')
+        y += rowLines[r] * 15
+      }
+      y += 16
+    }
     for (const para of paragraphs) {
-      const lines = pdf.splitTextToSize(para, W - M * 2)
+      // Clause headers (1. ENGAGEMENT.) render bold navy
+      const isClause = /^\d+\.\s+[A-Z]/.test(para)
+      if (isClause) { pdf.setFont('times', 'bold'); pdf.setFontSize(12); pdf.setTextColor(26, 26, 46) }
+      else { pdf.setFont('times', 'normal'); pdf.setFontSize(12); pdf.setTextColor(35, 43, 58) }
+      const lines = pdf.splitTextToSize(fmtMoney(para), W - M * 2)
       // Keep at least 3 lines of a paragraph on the page before breaking
       if (y + lines.length * 15 + 10 > H - M - 20 && y > 200) { pdf.addPage(); y = M + 30 }
       for (const line of lines) {
@@ -118,6 +193,9 @@ export async function POST(req: NextRequest) {
         y += 15
       }
       y += 9 // paragraph gap
+      pdf.setFont('times', 'normal')
+      pdf.setFontSize(12)
+      pdf.setTextColor(35, 43, 58)
     }
 
     // --- Signature lines ------------------------------------------------------
