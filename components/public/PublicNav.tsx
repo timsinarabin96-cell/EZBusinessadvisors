@@ -32,7 +32,9 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
           {/* Boss rule: agency logos render ONLY in the CRM's documents — the
               public website never shows logo images, just the agency name. */}
           <span style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 800, color: primary, letterSpacing: 0.5 }}>{name}</span>
-          <span style={{ fontSize: 10, letterSpacing: '0.25em', color: accent, textTransform: 'uppercase' }}>Markets</span>
+          {/* Boss rule: agency domains render their own brand; the default
+              platform brand reads "DEAL PLATFORM" — one name everywhere. */}
+          <span style={{ fontSize: 10, letterSpacing: '0.25em', color: accent, textTransform: 'uppercase' }}>{brand ? 'Markets' : 'Deal Platform'}</span>
         </Link>
 
         {/* Desktop nav — hidden under 860px via .publicnav-links (an inline
