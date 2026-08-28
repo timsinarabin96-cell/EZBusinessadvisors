@@ -36,6 +36,13 @@ import {
 
 type SectionId = 'identity' | 'financials' | 'operations' | 'transition' | 'media' | 'public'
 
+// Crash-proof auto-save: the latest form snapshot lives in localStorage so a
+// closed tab / failed request / refresh never loses broker work. On next mount
+// we compare it to what was last persisted and offer a one-click Restore.
+const DRAFT_LS_KEY = 'concord-listing-draft-v1'
+
+interface DraftBackup { saved: string; form: IntelligentListingInput; at: number }
+
 const SECTIONS: Array<{ id: SectionId; label: string; description: string }> = [
   { id: 'identity', label: 'Business', description: 'Identity, industry, location, and positioning' },
   { id: 'financials', label: 'Financials', description: 'Price, earnings, assets, and financing' },
@@ -56,8 +63,11 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
   const [dupes, setDupes] = useState<ListingMatch[] | null>(null)
   const [createdListingId, setCreatedListingId] = useState<string | null>(editListingId || null)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [restoreCandidate, setRestoreCandidate] = useState<{ form: IntelligentListingInput; saved: string } | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const backupTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSaved = useRef<string>('')
+  const hydrated = useRef(false)
   const readiness = useMemo(() => calculateListingReadiness(form), [form])
 
   // Per-section completion — drives ✓ dots in the nav rail + the advance nudge.
@@ -140,7 +150,7 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
 
   // Edit mode: load the existing listing into the form.
   useEffect(() => {
-    if (!editListingId) return
+    if (!editListingId) { hydrated.current = true; return }
     // Guard: if the form already has content (user typed / autosave created the
     // draft this session), never clobber it with a fetch. This prevents the
     // studio's URL-sync (onDraftCreated) from remounting the form mid-click.
@@ -204,7 +214,8 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
         source: (l.intake_source as IntelligentListingInput['source']) || 'broker_manual',
       }))
       setSaveState('saved')
-    }).catch(() => {})
+      hydrated.current = true
+    }).catch(() => { hydrated.current = true })
   }, [editListingId])
 
   // Auto-save: debounce 1.2s after any change; create draft on first change.
@@ -226,11 +237,87 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
       }
       lastSaved.current = snapshot
       setSaveState('saved')
+      // Persisted — mark the backup as in-sync so we never offer a stale Restore.
+      writeDraftBackup(next, snapshot)
     } catch (e: any) {
       setSaveState('error')
       console.error('autosave failed', e)
     }
   }, [createdListingId])
+
+  // ── Crash-proofing ────────────────────────────────────────────────────────
+  // Write the latest snapshot to localStorage (cheap, sync). Kept separate from
+  // the server save so a closed tab / failed request never loses the work.
+  const writeDraftBackup = useCallback((f: IntelligentListingInput, savedSnapshot?: string) => {
+    try {
+      const backup: DraftBackup = {
+        saved: savedSnapshot ?? lastSaved.current,
+        form: f,
+        at: Date.now(),
+      }
+      localStorage.setItem(DRAFT_LS_KEY, JSON.stringify(backup))
+    } catch {
+      /* storage full / private mode — server autosave still covers us */
+    }
+  }, [])
+
+  // Debounced backup write on every change (500ms) — the safety net.
+  useEffect(() => {
+    if (form === EMPTY_INTELLIGENT_LISTING) return
+    if (backupTimer.current) clearTimeout(backupTimer.current)
+    backupTimer.current = setTimeout(() => writeDraftBackup(form), 500)
+    return () => { if (backupTimer.current) clearTimeout(backupTimer.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form])
+
+  // Flush the backup on tab close / background — the last-chance snapshot.
+  useEffect(() => {
+    const flush = () => writeDraftBackup(form)
+    window.addEventListener('beforeunload', flush)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush()
+    })
+    return () => {
+      window.removeEventListener('beforeunload', flush)
+      document.removeEventListener('visibilitychange', flush)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form])
+
+  // On mount: offer a Restore if the backup has unsaved changes vs. what was
+  // last persisted. Waits for edit-mode hydration so we never clobber the fetch.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!hydrated.current) return
+      try {
+        const raw = localStorage.getItem(DRAFT_LS_KEY)
+        if (!raw) return
+        const backup = JSON.parse(raw) as DraftBackup
+        if (!backup?.form || typeof backup.form !== 'object') return
+        const current = JSON.stringify(backup.form)
+        if (current === backup.saved) return // already on the server — nothing to restore
+        if (current === JSON.stringify(EMPTY_INTELLIGENT_LISTING)) return
+        setRestoreCandidate({ form: backup.form, saved: backup.saved })
+      } catch {
+        /* corrupted backup — ignore */
+      }
+    }, 900)
+    return () => clearTimeout(t)
+  }, [])
+
+  const restoreDraft = () => {
+    if (!restoreCandidate) return
+    setForm(restoreCandidate.form)
+    lastSaved.current = restoreCandidate.saved
+    setRestoreCandidate(null)
+    try { localStorage.removeItem(DRAFT_LS_KEY) } catch { /* ignore */ }
+    toast('Draft restored — review and it will auto-save again.', 'success')
+  }
+
+  const discardDraft = () => {
+    setRestoreCandidate(null)
+    try { localStorage.removeItem(DRAFT_LS_KEY) } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     if (editListingId && !createdListingId) return // still loading
@@ -367,6 +454,15 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
 
   return (
     <form onSubmit={submit}>
+      {restoreCandidate && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 18, padding: '13px 18px', borderRadius: 12, border: '1px solid #e0c37a', background: '#fffbea', fontSize: 13.5, fontWeight: 700, color: '#7a5b10' }}>
+          <span>💾 We found an unsaved draft from a previous session.</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={restoreDraft} style={{ padding: '7px 16px', borderRadius: 8, border: 'none', background: '#1a1a2e', color: '#c9a84c', fontWeight: 800, cursor: 'pointer' }}>Restore draft</button>
+            <button type="button" onClick={discardDraft} style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid #d8c48a', background: 'transparent', color: '#7a5b10', fontWeight: 700, cursor: 'pointer' }}>Discard</button>
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <div className="section-title">AI Listing Studio</div>

@@ -146,7 +146,10 @@ export function bestStockImage(subIndustry: string | null | undefined, industry:
     const k = key.toLowerCase()
     if (indLower && (indLower.includes(k) || k.includes(indLower))) return FREE_IMAGE_LIBRARY[key][0]
   }
-  return GENERIC[0] || null
+  // No industry match → branded placeholder (business name + industry + price),
+  // never the same generic photo for every listing. This is what makes each
+  // card visually distinct and on-brand (navy/gold).
+  return null
 }
 
 /** All suggested images for an industry (for the broker photo picker). */
