@@ -18,6 +18,14 @@ import { signIn } from './helpers'
 
 test.setTimeout(240_000)
 
+// Self-contained: skip cleanly (never fail) when the Supabase admin env vars
+// aren't provided — the rest of the suite still runs. CI provides these via
+// secrets; local runs pick them up from .env.local (see playwright.config).
+const hasAdminEnv = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
+)
+test.skip(!hasAdminEnv, 'owner-trust requires NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY')
+
 const OWNER_EMAIL = `trust.owner.${Date.now().toString().slice(-6)}@tenant.test`
 const OWNER_PW = 'Trust!Owner#2026#Concord'
 const BIZ_NAME = `Trust Flow Biz ${Date.now().toString().slice(-6)}`

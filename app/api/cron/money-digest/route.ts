@@ -53,12 +53,12 @@ export async function POST(req: Request) {
   // ── Activity (last 24h) ───────────────────────────────────────────────────
   const [newListings, inquiries, intakes] = await Promise.all([
     svc.from('listings').select('id', { count: 'exact', head: true }).gte('created_at', since),
-    svc.from('leads').select('id', { count: 'exact', head: true }).eq('kind', 'buyer').gte('created_at', since),
+    svc.from('buyer_leads').select('id', { count: 'exact', head: true }).gte('created_at', since),
     svc.from('seller_leads').select('id', { count: 'exact', head: true }).gte('created_at', since),
   ])
   let ndaCount = 0
   try {
-    const { count } = await svc.from('nda_signatures').select('id', { count: 'exact', head: true }).gte('signed_at', since)
+    const { count } = await svc.from('nda_requests').select('id', { count: 'exact', head: true }).gte('nda_signed_at', since)
     ndaCount = count || 0
   } catch {
     ndaCount = 0

@@ -102,18 +102,17 @@ export async function GET(req: NextRequest) {
   // 4) Data-room activity (view analytics) — best-effort.
   try {
     const { data: dr } = await db
-      .from('data_room_activity')
-      .select('action, detail, buyer_email, created_at')
-      .eq('listing_id', listingId)
-      .eq('agency_id', agencyId)
+      .from('data_room_activities')
+      .select('action, details, user_email, created_at, data_rooms!inner(listing_id)')
+      .eq('data_rooms.listing_id', listingId)
       .order('created_at', { ascending: false })
       .limit(50)
     for (const a of (dr || []) as any[]) {
       events.push({
         kind: 'data_room',
         at: a.created_at,
-        title: `📁 ${String(a.action || 'viewed')}${a.buyer_email ? ` · ${a.buyer_email}` : ''}`,
-        detail: a.detail || null,
+        title: `📁 ${String(a.action || 'viewed')}${a.user_email ? ` · ${a.user_email}` : ''}`,
+        detail: a.details || null,
       })
     }
   } catch { /* table may not exist */ }

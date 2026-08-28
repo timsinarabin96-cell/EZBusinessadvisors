@@ -82,10 +82,22 @@ test.describe('full deal lifecycle', () => {
     await page.getByRole('button', { name: /Ready — advance to Verify|Create Draft & Start Review/ }).click()
     const dupModal = page.getByRole('button', { name: 'Continue anyway — create new' })
     const matchModal = page.getByRole('button', { name: 'Continue to workflow →' })
+    // Duplicate-modal churn: the modal re-renders mid-click when many same-named
+    // test listings exist. Use force-click + retry loop (documented flake fix).
     for (let i = 0; i < 40; i++) {
       if (page.url().includes('listing=')) break
-      if (await dupModal.isVisible({ timeout: 500 }).catch(() => false)) { await dupModal.click(); break }
-      if (await matchModal.isVisible({ timeout: 500 }).catch(() => false)) { await matchModal.click(); break }
+      if (await dupModal.isVisible({ timeout: 500 }).catch(() => false)) {
+        await dupModal.click({ force: true, timeout: 3000 }).catch(() => {})
+        await page.waitForTimeout(750)
+        if (page.url().includes('listing=')) break
+        continue
+      }
+      if (await matchModal.isVisible({ timeout: 500 }).catch(() => false)) {
+        await matchModal.click({ force: true, timeout: 3000 }).catch(() => {})
+        await page.waitForTimeout(750)
+        if (page.url().includes('listing=')) break
+        continue
+      }
       await page.waitForTimeout(750)
     }
     await expect(page).toHaveURL(/\/dashboard\/studio\?.*listing=[0-9a-f-]+/, { timeout: 60_000 })

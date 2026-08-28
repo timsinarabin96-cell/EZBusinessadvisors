@@ -81,7 +81,7 @@ test('deal timeline merges pipeline events, communications, offers, data room, f
   assert.match(timelineApi, /buyer_pipeline_events/)
   assert.match(timelineApi, /communications/)
   assert.match(timelineApi, /deal_offers/)
-  assert.match(timelineApi, /data_room_activity/)
+  assert.match(timelineApi, /data_room_activities/)
   assert.match(timelineApi, /financial_documents/)
 })
 

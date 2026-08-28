@@ -211,10 +211,9 @@ export async function refreshHeat(db: SupabaseClient, agencyId: string, buyerLis
   let dataRoomViews = 0
   try {
     const { data: views } = await db
-      .from('data_room_activity')
+      .from('data_room_activities')
       .select('id')
-      .eq('agency_id', agencyId)
-      .or(`buyer_id.eq.${buyerListId},buyer_email.eq.${buyer.buyer_email || ''}`)
+      .eq('user_email', buyer.buyer_email || '')
       .limit(100)
     dataRoomViews = views?.length || 0
   } catch { /* no data_room_activity table / no rows */ }
