@@ -1,0 +1,55 @@
+name: E2E (manual / on-demand)
+
+# Runs the Playwright E2E suite against a live deployment.
+# Requires repo secrets (Settings → Secrets and variables → Actions):
+#   BASE_URL                    e.g. https://ezbusinessadvisors.vercel.app
+#   NEXT_PUBLIC_SUPABASE_URL    https://<ref>.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY   service_role key for that project
+# Trigger: Actions tab → "E2E (manual / on-demand)" → Run workflow.
+# (Also runs automatically after a production deploy if secrets exist.)
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: Playwright E2E (live site)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ secrets.BASE_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E suite
+        run: npx playwright test
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Upload trace artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
