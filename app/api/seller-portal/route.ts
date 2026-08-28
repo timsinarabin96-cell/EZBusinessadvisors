@@ -114,18 +114,26 @@ export async function GET(req: NextRequest) {
   if (listingId) {
     const { data: docs } = await db
       .from('financial_documents')
-      .select('id, file_name, file_url, fiscal_year, category, upload_source, status')
+      .select('id, file_name, file_url, storage_path, fiscal_year, category, upload_source, status')
       .eq('listing_id', listingId)
       .order('uploaded_at', { ascending: false })
       .limit(50)
-    financials.docs = ((docs || []) as any[]).map((d) => ({
-      id: d.id,
-      file_name: d.file_name,
-      file_url: d.file_url,
-      fiscal_year: d.fiscal_year ?? null,
-      category: d.category || 'other',
-      upload_source: d.upload_source || 'broker',
-      status: d.status || 'pending',
+    // SECURITY: private bucket — serve short-lived signed URLs, never public paths.
+    financials.docs = await Promise.all((((docs || []) as any[])).map(async (d) => {
+      let fileUrl = d.file_url as string | null
+      if (d.storage_path) {
+        const { data: su } = await db.storage.from('documents').createSignedUrl(d.storage_path, 3600)
+        if (su?.signedUrl) fileUrl = su.signedUrl
+      }
+      return {
+        id: d.id,
+        file_name: d.file_name,
+        file_url: fileUrl,
+        fiscal_year: d.fiscal_year ?? null,
+        category: d.category || 'other',
+        upload_source: d.upload_source || 'broker',
+        status: d.status || 'pending',
+      }
     }))
 
     // Live recast preview: approved/overridden extraction wins, else listing figures.

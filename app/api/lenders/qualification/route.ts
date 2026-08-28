@@ -67,12 +67,20 @@ export async function GET(req: NextRequest) {
       // The lender needs the actual files to qualify — return them (token-scoped).
       const { data: files } = await db
         .from('data_room_files')
-        .select('id, file_name, file_url, file_kind')
+        .select('id, file_name, file_url, storage_path, file_kind')
         .in('data_room_id', roomIds)
         .eq('is_deleted', false)
         .order('uploaded_at', { ascending: false })
         .limit(100)
-      docs = (files || []) as { id: string; file_name: string; file_url: string; file_kind: string | null }[]
+      // SECURITY: private bucket — serve short-lived signed URLs, never public paths.
+      docs = await Promise.all((((files || []) as any[])).map(async (f: any) => {
+        let fileUrl = f.file_url as string | null
+        if (f.storage_path) {
+          const { data: su } = await db.storage.from('documents').createSignedUrl(f.storage_path, 3600)
+          if (su?.signedUrl) fileUrl = su.signedUrl
+        }
+        return { id: f.id, file_name: f.file_name, file_url: fileUrl, file_kind: f.file_kind }
+      }))
     }
   } catch { /* docs are best-effort */ }
 

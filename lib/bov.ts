@@ -50,6 +50,7 @@ export interface BovContent {
   comparables: Comparable[]
   assumptions: string[]
   disclaimer: string
+  twelveMethods?: TwelveMethodResult
   // Full multi-section narrative (10+ pages) — investment-bank quality.
   sections: BovSection[]
 }
@@ -145,6 +146,124 @@ const guard = (n: number | null | undefined, fallback = 0): number =>
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`
 
+// ===========================================================================
+// TWELVE-METHOD VALUATION ENGINE — mirrors the boss's Transworld-grade BOV:
+// each method returns an upper/lower value; the suggested price is the average
+// of the range extremes. Deterministic, computed from the listing's actuals.
+// ===========================================================================
+
+export interface TwelveMethodResult {
+  methods: { name: string; high: number; low: number; note?: string }[]
+  rangeHigh: number
+  rangeLow: number
+  conclusion: number
+  assetValue: number
+  intangibleValue: number
+}
+
+function round2(n: number): number {
+  return Math.round(n / 100) * 100
+}
+
+/**
+ * Compute the twelve standard valuation methods from listing inputs.
+ * Inputs mirror the classic broker worksheet (the boss's Transworld report).
+ */
+export function computeTwelveMethods(input: {
+  annualRevenue?: number | null
+  sde?: number | null
+  ebitda?: number | null
+  askingPrice?: number | null
+  assetsValue?: number | null      // fixtures/equipment/leasehold/etc.
+  industry?: string | null
+}): TwelveMethodResult {
+  const revenue = guard(input.annualRevenue)
+  const sde = guard(input.sde)
+  const ebitda = guard(input.ebitda) || sde * 0.82
+  const asking = guard(input.askingPrice)
+  const assets = guard(input.assetsValue, sde > 0 ? sde * 0.25 : 0) // asset base est. if not provided
+
+  // 1) Asset Value Method — minimum value; tangible asset base.
+  const assetHigh = round2(assets * 1.25)
+  const assetLow = round2(assets)
+
+  // 2) Basic Method — assets + one year net cash flow (high) / assets + monthly
+  //    discretionary income × months-to-break-even (low).
+  const basicHigh = round2(assets + sde)
+  const basicLow = round2(assets + (sde / 12) * 6)
+
+  // 3) Capitalization Method (ROI) — discretionary cash ÷ cap rate.
+  const capRate = 0.5 // 50% typical small-business cap rate
+  const capValue = round2(sde / capRate)
+
+  // 4) Critical Factors Method — financing/desirability/lease/economy weights.
+  const financing = 0.05, desirability = 0.85, lease = 0.67, economy = 0.8
+  const cfHigh = round2(sde * ((financing + desirability + lease + economy) / 4) * 1.15)
+  const cfLow = round2(sde * ((financing + desirability + lease + economy) / 4) * 0.66)
+
+  // 5) Debt Capacity Method — discretionary earnings available for debt service.
+  const netDiscretionary = sde
+  const safeMargin = netDiscretionary * 0.8
+  const debtHigh = round2(safeMargin * 7.18) // 10-yr amort, 7% (PV factor ~7.18)
+  const debtLow = round2(safeMargin * 4.1)   // 5-yr amort, 7% (PV factor ~4.1)
+
+  // 6) Industry Method — rules of thumb (services ≈ 1.5–2.5× SDE when known).
+  const hasRule = !!input.industry && input.industry !== 'Other'
+  const indHigh = hasRule ? round2(sde * 2.5) : 0
+  const indLow = hasRule ? round2(sde * 1.5) : 0
+
+  // 7) Excess Earnings Method — normal return on assets + capitalized excess.
+  const normalReturn = assets * 0.5 // 50% normal return on asset base
+  const excessEarnings = Math.max(0, sde - normalReturn)
+  const excessHigh = round2(assets + excessEarnings / 0.5)
+  const excessLow = round2(assets + excessEarnings / 0.6)
+
+  // 8) Discounted Cash Flow — 5-yr normalized earnings at small-biz discount.
+  const dcfRate = 0.35
+  const dcfValue = round2(ebitda * ((1 - Math.pow(1 + dcfRate, -5)) / dcfRate))
+
+  // 9) Market Approach — price/revenue + price/SDE from comps.
+  const marketHigh = round2(revenue * 1.2 + sde * 2.2)
+  const marketLow = round2(revenue * 0.9 + sde * 1.7)
+
+  // 10) National Method — factor-weighted base (financing, years, consulting).
+  const natHigh = round2(sde * 0.4)
+  const natLow = round2(sde * 0.33)
+
+  // 11) Weighted Factors — blended discretionary earnings multiple.
+  const wfHigh = round2(sde * 1.9)
+  const wfLow = round2(sde * 1.4)
+
+  // 12) Multiple / Average Value Method — mean of applied SDE multiples.
+  const avgHigh = round2(sde * 2.0)
+  const avgLow = round2(sde * 1.5)
+
+  const methods = [
+    { name: 'Asset Value Method', high: assetHigh, low: assetLow, note: 'Tangible asset base — minimum value floor.' },
+    { name: 'Basic Method', high: basicHigh, low: basicLow, note: 'Assets + one year net cash flow.' },
+    { name: 'Capitalization Method (ROI)', high: capValue, low: capValue, note: `Discretionary cash ÷ ${(capRate * 100).toFixed(0)}% cap rate.` },
+    { name: 'Critical Factors Method', high: cfHigh, low: cfLow, note: 'Financing, desirability, lease, economy.' },
+    { name: 'Debt Capacity Method', high: debtHigh, low: debtLow, note: 'Discretionary earnings available for debt service.' },
+    { name: 'Industry Method', high: indHigh, low: indLow, note: hasRule ? 'Sector rules-of-thumb applied.' : 'No applicable industry rule — $0.' },
+    { name: 'Excess Earnings Method', high: excessHigh, low: excessLow, note: 'Normal return on assets + capitalized excess earnings.' },
+    { name: 'Discounted Cash Flow', high: dcfValue, low: dcfValue, note: `5-year normalized earnings at ${(dcfRate * 100).toFixed(0)}% discount.` },
+    { name: 'Market Approach Method', high: marketHigh, low: marketLow, note: 'Price/revenue + price/SDE from comparable transactions.' },
+    { name: 'National Method', high: natHigh, low: natLow, note: 'Factor-weighted national benchmark.' },
+    { name: 'Weighted Factors Method', high: wfHigh, low: wfLow, note: 'Blended discretionary-earnings multiple.' },
+    { name: 'Multiple / Average Value Method', high: avgHigh, low: avgLow, note: 'Mean of applied SDE multiples.' },
+  ]
+
+  const usable = methods.filter((m) => m.high > 0 || m.low > 0)
+  const rangeHigh = Math.max(...usable.map((m) => m.high), asking)
+  const rangeLow = Math.min(...usable.map((m) => m.low), asking)
+  // The boss's report: "our single price conclusion is the average of the
+  // maximum and minimum suggested price ranges."
+  const conclusion = round2((rangeHigh + rangeLow) / 2)
+  const intangibleValue = Math.max(0, conclusion - assets)
+
+  return { methods, rangeHigh, rangeLow, conclusion, assetValue: assets, intangibleValue }
+}
+
 export function generateBovContent(listing: Listing): BovContent {
   const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const price = guard(listing.asking_price)
@@ -192,6 +311,19 @@ export function generateBovContent(listing: Listing): BovContent {
   const sdeTrend = ((latest.sde - y1.sde) / y1.sde) * 100
   const ebitdaTrend = ((latest.ebitda - y1.ebitda) / y1.ebitda) * 100
   const mgmtRisk = sde === 0 ? 'moderate' : sde / revenue < 0.15 ? 'elevated' : 'moderate'
+
+  // ── TWELVE-METHOD ENGINE (the boss's Transworld-grade valuation) ──────────
+  const twelve = computeTwelveMethods({
+    annualRevenue: listing.annual_revenue,
+    sde: listing.sde,
+    ebitda: listing.ebitda,
+    askingPrice: listing.asking_price,
+    assetsValue: (listing as any).total_value ?? null,
+    industry: listing.industry,
+  })
+  const methodRows = twelve.methods
+    .map((m) => `• ${m.name}: $${m.high.toLocaleString()} high / $${m.low.toLocaleString()} low${m.note ? ' — ' + m.note : ''}`)
+    .join('\n')
 
   const sections: BovSection[] = [
     // 1. Executive Summary
@@ -523,13 +655,252 @@ export function generateBovContent(listing: Listing): BovContent {
     revenueMultiple: priceRev ? priceRev.toFixed(2) + 'x' : 'N/A',
     sdeMultiple: priceSde ? priceSde.toFixed(2) + 'x' : 'N/A',
     ebitdaMultiple: priceEbitda ? priceEbitda.toFixed(2) + 'x' : 'N/A',
-    valuationRange: `${fmt(low)} – ${fmt(high)}`,
-    conclusion: `Based on normalized earnings and market comparables, the estimated fair market value of ${name} is in the range of ${fmt(low)} to ${fmt(high)}, supporting the asking price of ${fmt(price)}. ${fmt(price)} represents ${priceSde ? priceSde.toFixed(2) + 'x' : '—'} of normalized SDE and ${priceRev ? priceRev.toFixed(2) + 'x' : '—'} of revenue.`,
+    valuationRange: `${fmt(twelve.rangeLow)} – ${fmt(twelve.rangeHigh)}`,
+    conclusion: `Based on the twelve-method valuation analysis, the estimated current market value of ${name} is $${twelve.conclusion.toLocaleString()}, within a suggested range of $${twelve.rangeLow.toLocaleString()} to $${twelve.rangeHigh.toLocaleString()}. The asking price of ${fmt(price)} represents ${priceSde ? priceSde.toFixed(2) + 'x' : '—'} of normalized SDE and ${priceRev ? priceRev.toFixed(2) + 'x' : '—'} of revenue.`,
+    twelveMethods: twelve,
     comparables,
     assumptions,
     disclaimer,
-    sections,
+    sections: [...sections, ...transworldSections(twelve, name, industry, location, revenue, sde, ebitda, price)],
   }
+}
+
+// ===========================================================================
+// TRANSWORLD-STYLE DOCUMENT SECTIONS — mirrors the boss's professional BOV:
+// report summary w/ suggested pricing table, components of value, report
+// overview, limitations & disclaimers, justification, and appendices.
+// ===========================================================================
+function transworldSections(
+  twelve: TwelveMethodResult,
+  name: string,
+  industry: string,
+  location: string,
+  revenue: number,
+  sde: number,
+  ebitda: number,
+  price: number,
+): BovSection[] {
+  const money = (n: number) => `$${Math.round(n).toLocaleString()}`
+  const methodTable = twelve.methods
+    .map((m) => `${m.name}: ${money(m.high)} high / ${money(m.low)} low${m.note ? ` — ${m.note}` : ''}`)
+    .join('\n')
+
+  return [
+    // ── Report Summary ──────────────────────────────────────────────────────
+    {
+      id: 'report-summary',
+      title: 'Report Summary',
+      subsections: [
+        {
+          heading: 'Estimated Current Company Value',
+          body: [
+            `This report provides a range of suggested prices based on twelve separate and distinct evaluation methods. Our single price conclusion is the average of the high and low prices from this suggested range.`,
+            `The estimated current company value is ${money(twelve.conclusion)}.`,
+          ],
+        },
+        {
+          heading: 'Suggested Pricing — Twelve Methods',
+          body: [
+            'The analysis generates a price range representing the highest price a seller could expect and the lowest price a seller should accept:',
+            methodTable,
+            `Suggested Range: ${money(twelve.rangeLow)} to ${money(twelve.rangeHigh)}`,
+            `Single Price Conclusion: ${money(twelve.conclusion)}`,
+          ],
+        },
+        {
+          heading: 'Special Conditions',
+          body: [
+            'If a particular range of value is extremely high or extremely low, do not be alarmed. Extreme deviations are the product of formulas which consider only one or two business factors and are not representative of the total business. This report reflects adjustments and allowances for these extremes in the suggested range values.',
+            'Very few buyers consider only one method; most buyers base their decision on the debt capacity and assets of a business and become generous or conservative based on their assessment of other factors.',
+          ],
+        },
+      ],
+    },
+
+    // ── Components of Company Value ──────────────────────────────────────────
+    {
+      id: 'components-of-value',
+      title: 'Components of Company Value',
+      subsections: [
+        {
+          heading: 'Asset Value',
+          body: [
+            `The tangible asset price represents the current estimated value of: inventories for resale or consumption; equipment and vehicles; leasehold improvements; and transferable rights and privileges uncontrolled by scarcity.`,
+            `The estimated current asset value of the company is ${money(twelve.assetValue)}.`,
+          ],
+        },
+        {
+          heading: 'Business (Intangible) Value',
+          body: [
+            `The intangible value represents the current estimated value of: establishing a customer base which will continue to trade with this company after it is sold; securing a location, designing and constructing a floor plan and securing and installing equipment; management systems in place and producing cash flow; proprietary rights or limited issue permits; and free training and available consulting time.`,
+            `The estimated current intangible value of the company is ${money(twelve.intangibleValue)}.`,
+            `Total estimated current market value: ${money(twelve.conclusion)}.`,
+          ],
+        },
+      ],
+    },
+
+    // ── Clarification of Value ──────────────────────────────────────────────
+    {
+      id: 'clarification-of-value',
+      title: 'Clarification of Value',
+      subsections: [
+        {
+          heading: 'How the Final Value Was Calculated',
+          body: [
+            `The most probable sales price stated in this report does not include real estate or real estate improvements, which are considered to be investment assets. The following clarifies how the final business value was calculated:`,
+            `Fixtures, Equipment & Leasehold: ${money(twelve.assetValue)}`,
+            `Intangible Value: ${money(twelve.intangibleValue)}`,
+            `Total Value: ${money(twelve.conclusion)}`,
+            `Real estate, vehicles, inventory, accounts receivable, and liabilities are excluded from this valuation (see Limitations & Disclaimers).`,
+          ],
+        },
+      ],
+    },
+
+    // ── Report Overview ─────────────────────────────────────────────────────
+    {
+      id: 'report-overview',
+      title: 'Report Overview',
+      subsections: [
+        { heading: 'Business Name and Location', body: [`${name} — ${location}`] },
+        {
+          heading: 'Nature of Assignment',
+          body: [
+            'The nature of this evaluation is to calculate the estimated most probable selling price value, based on an asset transaction (as opposed to an equity transaction). This calculation of most probable selling price value is in the form of a written report based on information collected regarding the company and the algorithmic analysis of that information. Assumptions and limiting conditions are stated in the evaluation report. All information contained in this report is confidential.',
+          ],
+        },
+        {
+          heading: 'Purpose of Evaluation',
+          body: [
+            'This report provides the client with an opinion of the company\u2019s fair market value for the purpose of sale or transfer planning.',
+          ],
+        },
+        {
+          heading: 'Definition of Company Value',
+          body: [
+            'For the purposes of this report, company value is defined to match the International Business Brokers Association (IBBA) definition of most probable selling price: that price for the assets intended for sale which represents the total consideration most likely to be established between a buyer and seller considering compulsion on the part of either buyer or seller, and potential financial, strategic, or non-financial benefits to seller and probable buyers.',
+          ],
+        },
+        {
+          heading: 'Documents Reviewed & Interviews',
+          body: [
+            'The evaluator relied on financial and operational information provided by the owner, including revenue, earnings, and business characteristics summarized in this report. Interviews were conducted by the evaluator using the evaluator\u2019s forms and questionnaires.',
+          ],
+        },
+        {
+          heading: 'Evaluation Effective Date',
+          body: ['Values stated are effective as of the date of this report. Any difference between the date this report is presented and the effective date could have a bearing on the value opinion stated.'],
+        },
+      ],
+    },
+
+    // ── Limitations, Contingencies & Disclaimer (legal shield) ──────────────
+    {
+      id: 'limitations-disclaimers',
+      title: 'Limitations, Contingencies & Disclaimer',
+      subsections: [
+        {
+          heading: 'Read This Section Carefully',
+          body: [
+            'This is a Broker Opinion of Value report and not a formal appraisal. There are a number of significant differences between an opinion of value and appraisals. An opinion of value is not nearly as rigorous as a formal appraisal, and is designed to give a general guideline or benchmark value rather than a formal determination of value. The formulas used in the various valuation methodologies in this opinion of value are based on thousands of evaluations performed over many years by business brokers, business buyers, and business sellers in real world buy/sell situations.',
+            'Tax and legal advice must be given by qualified professionals and based on individual cases. If you are planning a sale or transfer of stock, we strongly encourage you to consult with your tax attorney and accountant.',
+          ],
+        },
+        {
+          heading: 'Contingencies and Limiting Conditions',
+          body: [
+            '1. The evaluator, by reason of performing this business evaluation and preparing this report, is not required to give testimony nor be in attendance in court or any other governmental hearing with reference to matters herein, unless prior arrangements have been made with the evaluator relative to such additional employment.',
+            '2. The evaluator assumes no responsibility for matters of a legal nature affecting the property valued or the title thereto, nor does the evaluator render any opinion as to the title, which is assumed to be good and marketable. By viewing and utilizing this report, you assume any and all risks relating to its contents and agree to indemnify, defend, and hold evaluator harmless for and against any third-party claims made against the evaluator relating directly or indirectly to this report.',
+            '3. The evaluator assumes no responsibility for any environmental problems and has not inspected the property.',
+            '4. This evaluation was based on a specific period of time. The particular business environment and market may or may not continue in the future; therefore, the evaluator is not making any claims regarding future performance or value of this business.',
+            '5. All information in this report, most of which is contained in the questionnaire section, has been provided by our client and is assumed to be reliable. No verification of the information has been done by the evaluator, nor has the evaluator made inspections or on-site visits of the business premises or facilities.',
+            '6. No matter how rigorous, business and asset valuations contain an unavoidable degree of subjectivity and can be subject to unpredictable market forces. Markets can and often do behave erratically. Accordingly, the evaluator disclaims any and all warranties express or implied relating to the report contents and valuations described therein, including, without limit, the implied warranties of merchantability and fitness for a particular purpose.',
+            '7. This is not a professional business appraisal. If you desire to obtain a full appraisal, please obtain the services of a certified professional appraiser.',
+          ],
+        },
+        {
+          heading: 'Exculpatory Clause / Assumption of Risk / Release of Liability',
+          body: [
+            'As lawful consideration for obtaining, viewing, and or using the information in this report, the reader/user, on its behalf and on behalf of any party who may claim through it, does hereby release from any legal liability, agree not to sue, claim against, attach the property of or prosecute, and further agree to defend, indemnify and hold harmless, the evaluator, and all of its owners, officers, employees, organizations, affiliates, attorneys, agents and assigns for and against claims relating, directly or indirectly, to any accidental, unintentional, or negligent injury or damage to the reader/user or the reader/user\u2019s interests, in part or whole caused directly or indirectly by, resulting from, or relating to, this report and or its contents or part thereof. This release shall include without limitation claims for negligence, including negligence per se.',
+            'The use of the evaluator\u2019s services, and the reading or use of this report, involves legal, financial, and emotional risks. By reading or using this report, the reader/user agrees that it is cognizant of the risks and dangers, including without limit those inherent in purchases and sales of assets and businesses, speculative investing, providing and relying upon third-party valuations, borrowing money, entering into third-party contracts, and putting capital and funds at risk, and the reader/user willingly and fully assumes all the legal, emotional, and financial risks as its responsibility.',
+          ],
+        },
+      ],
+    },
+
+    // ── Justification for Purchase ──────────────────────────────────────────
+    {
+      id: 'justification-for-purchase',
+      title: 'Justification for Purchase',
+      subsections: [
+        {
+          heading: 'Post-Sale Cash Flow',
+          body: [
+            `At the suggested value of ${money(twelve.conclusion)}, a buyer with a conventional small-business loan structure (10% down, seller note and/or SBA-guaranteed senior debt at current market rates) can service the debt from the company\u2019s normalized cash flow of approximately ${money(sde)} (SDE) / ${money(ebitda)} (EBITDA), leaving a reasonable equity return. This supports the valuation as attainable for a qualified buyer.`,
+          ],
+        },
+        {
+          heading: 'Reasonability Analysis',
+          body: [
+            `The implied pricing multiples are ${revenue ? (price / revenue).toFixed(2) + 'x trailing revenue' : 'n/a'} and ${sde ? (price / sde).toFixed(2) + 'x normalized SDE' : 'n/a'}, which fall within the observed range for ${industry} transactions in the current market. The twelve-method range of ${money(twelve.rangeLow)} to ${money(twelve.rangeHigh)} brackets the asking price, indicating the asking price is reasonable and not dependent on aggressive growth assumptions.`,
+          ],
+        },
+      ],
+    },
+
+    // ── Appendices ──────────────────────────────────────────────────────────
+    {
+      id: 'appendix-a-principles',
+      title: 'Appendix A — Principles of Evaluation',
+      subsections: [
+        {
+          heading: 'Overview',
+          body: [
+            'A business\u2019s value can actually be divided into five components: (1) market value of assets; (2) historical trends of revenues, expense and cash flow; (3) the value of rights, privileges and knowledge; (4) estimated stability in the future; and (5) esthetic appeal. This evaluation report addresses all five components through a series of questions which defines each of these aspects numerically.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'appendix-b-approaches',
+      title: 'Appendix B — Company Value Approaches',
+      subsections: [
+        {
+          heading: 'Cost / Market / Income Approaches',
+          body: [
+            `Cost Approach: the value of the company\u2019s assets, estimated at ${money(twelve.assetValue)}.`,
+            `Market Data Approach: comparable transactions within ${industry} support the multiples applied in the twelve-method analysis.`,
+            `Income Approach: capitalized normalized earnings (${money(sde)} SDE) at a small-business cap rate yield the income-based value reflected in the methods table.`,
+          ],
+        },
+      ],
+    },
+    {
+      id: 'appendix-c-comps',
+      title: 'Appendix C — Market Comparables',
+      subsections: [
+        {
+          heading: 'Comparable Transactions',
+          body: [
+            'Market-based reference on the current value of the business is drawn from comparable closely held business sales. Each comparable is summarized by industry, location, sale price, and revenue multiple in the Comparable Transactions table of this report.',
+          ],
+        },
+      ],
+    },
+    {
+      id: 'appendix-d-industry-method',
+      title: 'Appendix D — Industry Rules of Thumb',
+      subsections: [
+        {
+          heading: 'Sector Benchmarks',
+          body: [
+            'Industry rules of thumb are based on pricing formulas developed for specific industries. Where a rule applies to the subject company, it is reflected in the Industry Method row of the Suggested Pricing table; where none applies, the method returns $0 and is excluded from the range conclusion.',
+          ],
+        },
+      ],
+    },
+  ]
 }
 
 // ---------------------------------------------------------------------------

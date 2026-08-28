@@ -127,7 +127,7 @@ export const OWNER_LISTING_PLANS = [
     featured: true,
   },
   {
-    id: 'professional', name: 'Renewal', price: 50, billing: 'per listing / month',
+    id: 'professional', name: 'Owner Renewal', price: 50, billing: 'per listing / month',
     description: 'Keep your listing live after the free window.',
     features: ['Listing stays live', 'Unlimited inquiries', 'Cancel anytime'],
     featured: false,
@@ -189,9 +189,24 @@ export const LISTING_UPSELL_OPTIONS: UpsellOption[] = [
 ]
 
 // ---------------------------------------------------------------------------
+// Launch Kit — the $399 bundle (valuation + featured 30d + verified revenue).
+// Value if bought separately: $447. Sold right after a listing goes live.
+// ---------------------------------------------------------------------------
+export const LAUNCH_KIT_PRICE = 399
+
+export const LAUNCH_KIT = {
+  name: 'Launch Kit',
+  price: LAUNCH_KIT_PRICE,
+  value: 447,
+  blurb: 'Valuation report + 30-day featured placement + Verified Revenue badge — the full trust & visibility launch for your listing.',
+  includes: ['📊 Broker Opinion of Value report', '⭐ 30 days featured placement', '✅ Verified Revenue badge (bank-vs-books)'],
+} as const
+
+// ---------------------------------------------------------------------------
 // Cents helpers (Stripe wants integer cents)
 // ---------------------------------------------------------------------------
 export const cents = (dollars: number): number => Math.round(dollars * 100)
+export const LAUNCH_KIT_PRICE_CENTS = cents(LAUNCH_KIT_PRICE)
 export const CRM_MONTHLY_CENTS = cents(CRM_MONTHLY)
 export const CRM_ANNUAL_CENTS = cents(CRM_ANNUAL)
 export const CRM_ENTERPRISE_MONTHLY_CENTS = cents(CRM_ENTERPRISE_MONTHLY)

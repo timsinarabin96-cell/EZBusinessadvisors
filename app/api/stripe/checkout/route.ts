@@ -10,7 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { PLANS, subscribeToTier } from '@/lib/billing'
 import { BUYER_PASS_PLANS, subscribeToBuyerPass } from '@/lib/buyerPass'
-import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, VALUATION_PRICE_CENTS } from '@/lib/pricing'
+import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, VALUATION_PRICE_CENTS, LAUNCH_KIT_PRICE_CENTS, LAUNCH_KIT } from '@/lib/pricing'
 import { FEATURED_SLOT_OPTIONS, activateFeaturedSlot } from '@/lib/featuredSlots'
 import { createCheckoutSession, stripeConfigured, demoModeAllowed, demoBlockedError } from '@/lib/stripeCheckout'
 
@@ -37,10 +37,13 @@ export async function POST(req: NextRequest) {
   const tier = String(body?.tier || '').trim()
   const product = String(body?.product || 'subscription')
 
-  // License purchases don't map to a subscription plan — skip the plan check
-  // for that product (the license branch handles its own pricing).
-  const plan = product === 'license' ? null : PLANS.find((p) => p.id === tier)
-  if (!plan && product !== 'license') {
+  // Only the subscription product maps to a CRM plan. All other products
+  // (license, buyer_pass, valuation, featured, verified_revenue,
+  // financial_intelligence) handle their own pricing in their branches — the
+  // plan check must NOT gate them (was: every non-license product 400'd
+  // with 'Unknown plan' before its branch could run).
+  const plan = product === 'subscription' ? PLANS.find((p) => p.id === tier) : null
+  if (!plan && product === 'subscription') {
     return NextResponse.json({ ok: false, error: 'Unknown plan' }, { status: 400 })
   }
 
@@ -140,6 +143,32 @@ export async function POST(req: NextRequest) {
         cancelUrl,
         customerEmail: body?.email || null,
         metadata: { kind: 'valuation' },
+      })
+      if (result.ok && result.url) {
+        return NextResponse.json({ ok: true, url: result.url, mode: 'stripe' })
+      }
+      return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
+    }
+
+    if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
+    return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
+  }
+
+  // --- Launch Kit bundle ($399: valuation + featured 30d + verified revenue) -
+  if (product === 'launch_kit') {
+    const agencyId = String(body?.agencyId || process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-8454854e731a').trim()
+    const listingId = String(body?.listingId || '').trim()
+    const successUrl = safeUrl(body?.successUrl, `${origin}/marketplace/sell?launch=success`)
+    const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/marketplace/sell`)
+
+    if (stripeConfigured()) {
+      const result = await createCheckoutSession({
+        agencyId,
+        items: [{ name: LAUNCH_KIT.name, amountCents: LAUNCH_KIT_PRICE_CENTS, description: `${LAUNCH_KIT.blurb} (value $${LAUNCH_KIT.value})` }],
+        successUrl,
+        cancelUrl,
+        customerEmail: body?.email || null,
+        metadata: { kind: 'launch_kit', listingId },
       })
       if (result.ok && result.url) {
         return NextResponse.json({ ok: true, url: result.url, mode: 'stripe' })

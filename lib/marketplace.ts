@@ -50,6 +50,7 @@ export interface PublicMarketplaceListing {
   currency_code?: string | null
   revenue_verified?: boolean
   seller_verified?: boolean
+  bov_on_file?: boolean
   vetted?: boolean
   status?: string | null
   sba_qualified?: boolean | null
@@ -98,6 +99,7 @@ interface PublicListingFeedRow {
   currency_code?: string | null
   revenue_verified?: boolean | null
   seller_verified?: boolean | null
+  bov_on_file?: boolean | null
 }
 
 export interface MarketplaceStats {
@@ -184,6 +186,7 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     currency_code: row.currency_code || 'USD',
     revenue_verified: Boolean(row.revenue_verified),
     seller_verified: Boolean(row.seller_verified),
+    bov_on_file: Boolean(row.bov_on_file),
     vetted: Boolean(row.vetted),
     status: row.status || null,
     sba_qualified: row.sba_qualified ?? null,

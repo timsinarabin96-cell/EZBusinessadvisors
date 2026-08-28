@@ -204,6 +204,15 @@ export async function finalizeValuationReport(stripeSession: string): Promise<{ 
       .update({ status: 'ready', report_url: urlData?.publicUrl || null, paid_at: new Date().toISOString() })
       .eq('id', order.id)
 
+    // BOV-on-file trust badge: a paid, ready valuation flips the public badge.
+    try {
+      await svc.from('listings').update({ bov_on_file: true }).eq('id', order.listing_id)
+      const { data: pub } = await svc.from('public_listings').select('id').eq('listing_id', order.listing_id).maybeSingle()
+      if (pub) await svc.from('public_listings').update({ bov_on_file: true }).eq('id', pub.id)
+    } catch {
+      // best-effort — the listing flag is the source of truth
+    }
+
     return { ok: true }
   } catch (e: any) {
     await svc.from('valuation_reports').update({ status: 'failed' }).eq('id', order.id)
