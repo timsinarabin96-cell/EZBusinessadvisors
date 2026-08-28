@@ -27,11 +27,12 @@ Priority labels: 🔴 Blocker / 🟠 Major / 🟡 Minor / ⚪ Cosmetic
 | Role | Email | Password |
 |---|---|---|
 | QA / EZ broker (admin) | `e2e.qa@concordplatform.dev` | `E2e!Test#2026#Concord` |
+| QA platform admin (NEW — use for Part F) | `qa.admin@concordplatform.dev` | `Qa!Admin#2026#Concord` |
 | Harbor owner | `harbor.owner@tenant.test` | `Tenant!Test#2026#Concord` |
 | Harbor broker | `harbor.broker@tenant.test` | `Tenant!Test#2026#Concord` |
 | Harbor agent | `harbor.agent@tenant.test` | `Tenant!Test#2026#Concord` |
 | Harbor buyer | `harbor.buyer@tenant.test` | `Tenant!Test#2026#Concord` |
-| Harbor seller | `harbor.seller@tenant.test` | `Tenant!Test#2026#Concord` |
+| Harbor seller (role fixed → owner) | `harbor.seller@tenant.test` | `Tenant!Test#2026#Concord` |
 
 **Payments:** Stripe TEST mode → card `4242 4242 4242 4242`, any future expiry / any CVC.
 
@@ -260,7 +261,8 @@ Priority labels: 🔴 Blocker / 🟠 Major / 🟡 Minor / ⚪ Cosmetic
 - Email verification links are real — check inbox (incl. spam).
 - Harbor tenant = multi-tenant isolation scenario (the "sold CRM" case).
 - `/dashboard/listings` index intentionally absent (use Studio); `/dashboard/agency/settings` → check correct slug.
-- `harbor.seller@tenant.test` currently has role `buyer` in DB — flagged to platform owner; if seller flows are required, use a fresh signup.
+- **NEW:** `qa.admin@concordplatform.dev` (super_admin) is for Part F admin tests; `e2e.qa` is NOT a platform admin.
+- **FIXED:** `harbor.seller@tenant.test` role is now `owner` (was `buyer`) — seller persona behaves correctly.
 - All 786 unit tests + persona E2E suites are green — this is the human polish/feel pass.
 
 ---
