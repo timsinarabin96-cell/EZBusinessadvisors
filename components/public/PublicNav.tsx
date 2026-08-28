@@ -29,12 +29,9 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
     <header style={{ position: 'sticky', top: 0, zIndex: 50, background: '#ffffff', borderBottom: '1px solid #ece8dc', boxShadow: '0 1px 8px rgba(26,26,46,0.06)' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 72 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          {brand?.logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={brand.logo} alt={name} style={{ maxHeight: 40, maxWidth: 160, objectFit: 'contain' }} />
-          ) : (
-            <span style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 800, color: primary, letterSpacing: 0.5 }}>{name}</span>
-          )}
+          {/* Boss rule: agency logos render ONLY in the CRM's documents — the
+              public website never shows logo images, just the agency name. */}
+          <span style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 800, color: primary, letterSpacing: 0.5 }}>{name}</span>
           <span style={{ fontSize: 10, letterSpacing: '0.25em', color: accent, textTransform: 'uppercase' }}>Markets</span>
         </Link>
 

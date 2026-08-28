@@ -9,8 +9,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { renderTemplateBody } from '@/lib/documentBuilder'
+import { readFile } from 'fs/promises'
+import path from 'path'
 
 export const runtime = 'nodejs'
+
+/**
+ * Per-agency document logo (CRM-side only — the public website does NOT
+ * render agency logos; the signed pack letterhead does when the agency has
+ * one on file). Falls back silently when the file is absent.
+ */
+async function loadAgencyLogo(agencyId: string, db: Awaited<ReturnType<typeof createServerClient>>): Promise<Uint8Array | null> {
+  try {
+    const { data: agency } = await db.from('agencies').select('logo_url').eq('id', agencyId).maybeSingle()
+    const logoUrl = agency?.logo_url
+    if (!logoUrl || typeof logoUrl !== 'string') return null
+    // Only local /brand/* files are trusted — never remote URLs (SSRF guard).
+    const match = logoUrl.match(/^\/brand\/([\w.-]+)$/)
+    if (!match) return null
+    const buf = await readFile(path.join(process.cwd(), 'public', 'brand', match[1]))
+    return new Uint8Array(buf)
+  } catch {
+    return null
+  }
+}
 
 /**
  * GET /api/documents/bundle?listingId=...&download=1
@@ -30,6 +52,9 @@ export async function GET(req: NextRequest) {
   const { data: listing } = await db.from('listings').select('id, agency_id, business_name').eq('id', listingId).maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
   if (!canManageAgency(authenticated, listing.agency_id)) return forbiddenResponse()
+
+  // CRM-only letterhead: agency logo on the signed-pack cover when on file.
+  const agencyLogo = await loadAgencyLogo(listing.agency_id, db)
 
   // Gather docs + their signatures + audit trail.
   const { data: docs } = await db
@@ -72,6 +97,25 @@ export async function GET(req: NextRequest) {
   doc.rect(0, 0, W, H, 'F')
   doc.setFillColor(...GOLD)
   doc.rect(0, H - 8, W, 8, 'F')
+
+  // CRM letterhead: agency logo (white on navy) when on file — drawn first,
+  // centered above the title. Never rendered on the public website.
+  if (agencyLogo) {
+    try {
+      const logo = new Image()
+      const b64 = Buffer.from(agencyLogo).toString('base64')
+      const mime = 'image/jpeg'
+      logo.src = `data:${mime};base64,${b64}`
+      await new Promise<void>((resolve) => {
+        logo.onload = () => resolve()
+        logo.onerror = () => resolve()
+      })
+      const logoW = 240
+      const logoH = (logo.height / (logo.width || 1)) * logoW
+      doc.addImage(logo, 'JPEG', (W - logoW) / 2, H - 210, logoW, logoH)
+    } catch { /* logo is decorative — never fail the export */ }
+  }
+
   doc.setTextColor(...GOLD)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12)

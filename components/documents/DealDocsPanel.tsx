@@ -22,8 +22,10 @@ import { getStoredAccessToken } from '@/lib/authToken'
 // buyer. Every doc is saved under the listing and audit-logged.
 // =============================================================================
 
-const SELLER_TEMPLATES = ['Marketing Agreement', 'Listing Agreement', 'Financial Authorization', 'Resolution', 'Property Addendum']
-const BUYER_TEMPLATES = ['NDA', 'Buyer Profile', 'Proof of Funds', 'Due Diligence', 'Purchase Agreement']
+const SELLER_TEMPLATES = ['Marketing Agreement', 'Exclusive Listing Agreement', 'Listing Agreement', 'Financial Authorization', 'Resolution', 'Seller Interview', 'Property Addendum', 'Mutual Termination', 'Listing Amendment', 'Seller Business Disclosure', 'Transition']
+const BUYER_TEMPLATES = ['NDA', 'Buyer Profile', 'Proof of Funds', 'Letter of Intent', 'Due Diligence', 'Purchase Agreement', 'Buyer Representation', 'AML', 'Tax Return']
+const COBROKER_TEMPLATES = ['Mutual NDA', 'Referral Fee']
+const STRUCTURE_TEMPLATES = ['Bill of Sale', 'Promissory Note', 'Lease Assignment', 'Earnest Money']
 
 // Match by fuzzy substring so agencies' own templates (e.g. "EZ Marketing Agreement 2026")
 // land in the right pack automatically.
@@ -187,9 +189,12 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
         property_value: listing.property_value ?? '',
         sale_type: 'Asset + Real Estate',
       }
-      // Fill template defaults for other fields.
+      // Fill template defaults for other fields (honor each field's `default`
+      // so legal docs render complete sentences — e.g. term/tail/min commission).
       for (const f of tpl.fields) {
-        if (filled[f.key] === undefined) filled[f.key] = f.type === 'select' ? (f.options?.[0] || '') : ''
+        if (filled[f.key] === undefined) {
+          filled[f.key] = f.type === 'select' ? (f.options?.[0] || '') : ((f as any).default ?? '')
+        }
       }
 
       const parties: FilledParty[] = tpl.parties.map((p) => {
@@ -286,6 +291,8 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
 
   const sellerDocs = docs.filter((d) => tplMatches(templates.find((t) => t.id === d.template_id)?.name || '', SELLER_TEMPLATES))
   const buyerDocs = docs.filter((d) => tplMatches(templates.find((t) => t.id === d.template_id)?.name || '', BUYER_TEMPLATES))
+  const cobrokerDocs = docs.filter((d) => tplMatches(templates.find((t) => t.id === d.template_id)?.name || '', COBROKER_TEMPLATES))
+  const structureDocs = docs.filter((d) => tplMatches(templates.find((t) => t.id === d.template_id)?.name || '', STRUCTURE_TEMPLATES))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -477,6 +484,42 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
             const json = await res.json().catch(() => ({ ok: false, error: 'Server error' }))
             if (!res.ok || !json.ok) throw new Error(json.error || 'Could not send for signature')
             setError('')
+            await load()
+          } catch (e) {
+            setError((e as Error).message || 'Could not send for signature')
+          }
+        }}
+      />
+
+      {/* Co-broker & referral docs */}
+      <PackSection
+        title="🤝 Co-broker & referral"
+        subtitle="Mutual NDA + co-brokerage and referral fee agreements"
+        docs={cobrokerDocs}
+        templates={templates}
+        signatures={signatures}
+        onSign={setSignTarget}
+        onSend={async (docId) => {
+          try {
+            await updateDocument(docId, { status: 'pending_signature' })
+            await load()
+          } catch (e) {
+            setError((e as Error).message || 'Could not send for signature')
+          }
+        }}
+      />
+
+      {/* Deal-structure docs */}
+      <PackSection
+        title="🏗️ Deal structure"
+        subtitle="Bill of sale, seller financing, lease assignment, earnest money"
+        docs={structureDocs}
+        templates={templates}
+        signatures={signatures}
+        onSign={setSignTarget}
+        onSend={async (docId) => {
+          try {
+            await updateDocument(docId, { status: 'pending_signature' })
             await load()
           } catch (e) {
             setError((e as Error).message || 'Could not send for signature')
