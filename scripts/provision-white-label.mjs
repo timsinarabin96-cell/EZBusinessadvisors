@@ -113,10 +113,25 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 // ---------------------------------------------------------------------------
 async function resolveOrg() {
   log('Resolving Supabase organization')
-  const orgs = await supabase('/organizations')
-  const match = orgs.find((o) => o.id === ORG || o.name === ORG)
+  let orgs = await supabase('/organizations')
+  // Fine-grained tokens may not list orgs — fall back to the org of an
+  // existing project the token CAN see (same org, by definition).
+  if (!orgs || orgs.length === 0) {
+    warn('Organizations endpoint returned empty — deriving org from an existing project')
+    const projects = await supabase('/projects?limit=1')
+    const proj = (projects || [])[0]
+    if (proj?.organization_id) {
+      orgs = [{ id: proj.organization_id, name: proj.organization_id }]
+      ok(`Derived organization from project "${proj.name}": ${proj.organization_id}`)
+    }
+  }
+  let match = (orgs || []).find((o) => o.id === ORG || o.name === ORG)
+  if (!match && !args.includes('--org')) {
+    // No --org given: use the first org the token can see (derived or listed).
+    match = (orgs || [])[0]
+  }
   if (!match) {
-    throw new Error(`Organization not found: "${ORG}". Available: ${orgs.map((o) => o.name).join(', ')}`)
+    throw new Error(`Organization not found: "${ORG}". Available: ${(orgs || []).map((o) => o.name).join(', ')}`)
   }
   ok(`Organization: ${match.name} (${match.id})`)
   return match.id
