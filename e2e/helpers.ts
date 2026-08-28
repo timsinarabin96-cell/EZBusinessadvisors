@@ -62,20 +62,30 @@ export async function authHeaders(page: Page): Promise<Record<string, string>> {
  * Returns the studio listing URL (with ?listing=) once creation lands.
  */
 export async function submitWizardAndGetListing(page: Page, maxWaitMs = 60_000): Promise<string | null> {
+  const submitBtn = page.getByRole('button', { name: /Ready — advance to Verify|Create Draft & Start Review/ })
   const dupModal = page.getByRole('button', { name: 'Continue anyway — create new' })
   const matchModal = page.getByRole('button', { name: 'Continue to workflow →' })
   const deadline = Date.now() + maxWaitMs
+  let submitClicked = false
   while (Date.now() < deadline) {
     if (page.url().includes('listing=')) {
       return new URL(page.url()).searchParams.get('listing')
     }
     if (await dupModal.isVisible({ timeout: 400 }).catch(() => false)) {
       await dupModal.click({ force: true, timeout: 4000 }).catch(() => {})
+      // The modal click triggers creation + navigation; give it a moment, then
+      // re-issue the submit click if the modal re-appeared (churn safety).
+      await page.waitForTimeout(1500)
       continue
     }
     if (await matchModal.isVisible({ timeout: 400 }).catch(() => false)) {
       await matchModal.click({ force: true, timeout: 4000 }).catch(() => {})
+      await page.waitForTimeout(1500)
       continue
+    }
+    if (!submitClicked && (await submitBtn.isVisible({ timeout: 400 }).catch(() => false))) {
+      await submitBtn.click({ force: true, timeout: 4000 }).catch(() => {})
+      submitClicked = true
     }
     await page.waitForTimeout(500)
   }

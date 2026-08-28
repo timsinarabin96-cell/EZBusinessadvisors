@@ -51,6 +51,13 @@ export interface DealProfessional {
   is_active: boolean
   is_platform_verified: boolean
   created_at: string
+  // Referral-fee contract (boss's model): lenders pay per-deal referral fees;
+  // a professional is only advertised when they agreed to pay.
+  pays_referral_fees?: boolean
+  referral_fee_pct?: number | null
+  referral_fee_terms?: string | null
+  advertised?: boolean
+  fee_agreement_at?: string | null
 }
 
 export interface ProfessionalFilters {
@@ -63,6 +70,30 @@ export interface ProfessionalFilters {
 const BASE_SELECT =
   'id, agency_id, professional_type, name, firm, title, specialty, industries, states_served, country_code, license_number, license_state, license_verified, years_experience, deals_closed, bio, rates, website, email, phone, avatar_url, is_active, is_platform_verified, created_at'
 
+// Referral-fee columns land with sql/professional_referral_fees.sql. Until that
+// migration runs, extended selects would 400 — so fetch with the extended
+// select and transparently fall back to the base select on missing columns.
+const EXTENDED_SELECT = `${BASE_SELECT}, pays_referral_fees, referral_fee_pct, referral_fee_terms, advertised, fee_agreement_at`
+
+export async function fetchProfessionalsWithFeeFields(
+  build: (select: string) => PromiseLike<{ data: any[] | null; error: any }>,
+): Promise<any[] | null> {
+  const first = await build(EXTENDED_SELECT)
+  if (!first.error) return first.data
+  if (/pays_referral_fees|advertised|fee_agreement_at/.test(String(first.error.message))) {
+    const fallback = await build(BASE_SELECT)
+    return fallback.data
+  }
+  return first.data
+}
+
+/** Await a PostgREST builder into a { data, error } shape (typed). */
+export async function resolveBuilder<T>(
+  builder: Promise<{ data: T[] | null; error: any }>,
+): Promise<{ data: T[] | null; error: any }> {
+  return builder
+}
+
 function matchesQuery(p: DealProfessional, q: string): boolean {
   const needle = q.toLowerCase()
   return (
@@ -73,16 +104,23 @@ function matchesQuery(p: DealProfessional, q: string): boolean {
   )
 }
 
-/** Public directory search — active professionals, filtered + ordered by relevance. */
+/** Public directory search — active professionals, filtered + ordered by relevance.
+ *  Once the fee schema lands, only advertised pros are public; the fallback keeps
+ *  the directory working pre-migration. */
 export async function fetchPublicProfessionals(filters: ProfessionalFilters = {}): Promise<DealProfessional[]> {
-  let query = supabase.from('deal_professionals').select(BASE_SELECT).eq('is_active', true)
-  if (filters.type && filters.type !== 'all') query = query.eq('professional_type', filters.type)
-  if (filters.state) query = query.contains('states_served', [filters.state.toUpperCase()])
-  if (filters.industry) query = query.contains('industries', [filters.industry])
-  query = query.order('is_platform_verified', { ascending: false }).order('name', { ascending: true })
-
-  const { data } = await query
+  const data = await fetchProfessionalsWithFeeFields((select) =>
+    supabase.from('deal_professionals').select(select).eq('is_active', true).then((r) => ({ data: r.data, error: r.error })),
+  )
   let rows = (data || []) as DealProfessional[]
+
+  // Post-migration: hide non-advertised professionals from the public feed.
+  if (rows.length && 'advertised' in (rows[0] as any)) {
+    rows = rows.filter((p: any) => p.advertised !== false)
+  }
+  if (filters.type && filters.type !== 'all') rows = rows.filter((p) => p.professional_type === filters.type)
+  if (filters.state) rows = rows.filter((p) => p.states_served.includes(filters.state!.toUpperCase()))
+  if (filters.industry) rows = rows.filter((p) => p.industries.includes(filters.industry!))
+  rows.sort((a, b) => Number(b.is_platform_verified) - Number(a.is_platform_verified) || a.name.localeCompare(b.name))
 
   if (filters.query?.trim()) {
     const q = filters.query.trim()
@@ -108,10 +146,9 @@ export async function fetchPublicProfessional(id: string): Promise<DealProfessio
 export async function fetchMyProfessionals(): Promise<DealProfessional[]> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
-  const { data } = await supabase
-    .from('deal_professionals')
-    .select(BASE_SELECT)
-    .order('created_at', { ascending: false })
+  const data = await fetchProfessionalsWithFeeFields((select) =>
+    supabase.from('deal_professionals').select(select).order('created_at', { ascending: false }).then((r) => ({ data: r.data, error: r.error })),
+  )
   return (data || []) as DealProfessional[]
 }
 

@@ -31,6 +31,7 @@ const EMPTY_FORM = {
   license_number: '', license_state: '', license_verified: false,
   years_experience: '', deals_closed: '', bio: '', rates: '',
   website: '', email: '', phone: '', avatar_url: '', video_url: '',
+  pays_referral_fees: false, referral_fee_pct: '', referral_fee_terms: '', advertised: false,
 }
 
 export default function ProfessionalsManagerPage() {
@@ -61,6 +62,10 @@ export default function ProfessionalsManagerPage() {
       bio: p.bio || '', rates: p.rates || '', website: p.website || '',
       email: p.email || '', phone: p.phone || '', avatar_url: p.avatar_url || '',
       video_url: '',
+      pays_referral_fees: !!p.pays_referral_fees,
+      referral_fee_pct: p.referral_fee_pct?.toString() || '',
+      referral_fee_terms: p.referral_fee_terms || '',
+      advertised: !!p.advertised,
     })
     // Load the intro video (DDL-free, stored in platform_settings).
     const token = getStoredAccessToken()
@@ -94,6 +99,10 @@ export default function ProfessionalsManagerPage() {
       email: form.email.trim() || null,
       phone: form.phone.trim() || null,
       avatar_url: form.avatar_url.trim() || null,
+      pays_referral_fees: form.pays_referral_fees,
+      referral_fee_pct: form.referral_fee_pct ? Number(form.referral_fee_pct) : null,
+      referral_fee_terms: form.referral_fee_terms.trim() || null,
+      advertised: form.advertised,
     }
     const res = editing
       ? await updateProfessional(editing.id, payload)
@@ -243,6 +252,26 @@ export default function ProfessionalsManagerPage() {
                       {p.states_served.length > 0 && ` · ${p.states_served.join(', ')}`}
                       {!p.is_active && ' · HIDDEN'}
                     </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                      {p.pays_referral_fees ? (
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: '#166534', background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: 999, padding: '3px 10px' }}>
+                          💰 Pays referral fee{p.referral_fee_pct ? ` · ${p.referral_fee_pct}%` : ''}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 999, padding: '3px 10px' }}>
+                          No referral fee
+                        </span>
+                      )}
+                      {p.advertised ? (
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: '#0e7490', background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: 999, padding: '3px 10px' }}>
+                          📢 Advertised
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#57534e', background: '#f5f5f4', border: '1px solid #e7e5e4', borderRadius: 999, padding: '3px 10px' }}>
+                          Not advertised
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <button onClick={() => toggleActive(p)} title={p.is_active ? 'Hide from directory' : 'Show in directory'} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 8, padding: '7px 10px', cursor: 'pointer', fontSize: 13 }}>{p.is_active ? '👁' : '🙈'}</button>
                   <button onClick={() => startEdit(p)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 8, padding: '7px 12px', cursor: 'pointer', fontSize: 13, color: 'var(--navy)', fontWeight: 700 }}>Edit</button>
@@ -304,6 +333,30 @@ export default function ProfessionalsManagerPage() {
                 <input type="checkbox" checked={form.license_verified} onChange={(e) => setForm({ ...form, license_verified: e.target.checked })} />
                 License verified
               </label>
+
+              {/* Referral-fee contract — boss's rule: lenders pay per-deal referral
+                  fees; a professional is only ADVERTISED when they agreed to pay. */}
+              <div style={{ borderTop: '1px solid var(--line)', marginTop: 14, paddingTop: 14 }}>
+                <div style={{ fontWeight: 800, color: 'var(--navy)', fontSize: 14, marginBottom: 4 }}>💰 Referral-fee agreement</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>
+                  Lenders typically pay the platform a referral fee per funded deal; attorneys usually don&apos;t.
+                  Only professionals with an active agreement are advertised in the public directory.
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text)', margin: '10px 0' }}>
+                  <input type="checkbox" checked={form.pays_referral_fees} onChange={(e) => setForm({ ...form, pays_referral_fees: e.target.checked, advertised: e.target.checked ? form.advertised : false })} />
+                  This professional pays the platform a referral fee per deal
+                </label>
+                {form.pays_referral_fees && (
+                  <Grid>
+                    <Field label="Referral fee % (e.g. 1 = 1% of deal/loan)"><input style={inputStyle} type="number" step="0.01" min="0" value={form.referral_fee_pct} onChange={(e) => setForm({ ...form, referral_fee_pct: e.target.value })} placeholder="1" /></Field>
+                    <Field label="Terms (e.g. 1% of funded loan, paid at close)"><input style={inputStyle} value={form.referral_fee_terms} onChange={(e) => setForm({ ...form, referral_fee_terms: e.target.value })} placeholder="1% of funded loan, paid at close" /></Field>
+                  </Grid>
+                )}
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--text)', margin: '10px 0', opacity: form.pays_referral_fees ? 1 : 0.5 }}>
+                  <input type="checkbox" checked={form.advertised} disabled={!form.pays_referral_fees} onChange={(e) => setForm({ ...form, advertised: e.target.checked })} />
+                  📢 Advertise in the public directory (requires the fee agreement)
+                </label>
+              </div>
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button type="button" onClick={() => setShowForm(false)} style={{ background: 'none', border: '1px solid var(--line)', borderRadius: 8, padding: '11px 20px', cursor: 'pointer', color: 'var(--muted)', fontWeight: 700, fontSize: 14 }}>Cancel</button>

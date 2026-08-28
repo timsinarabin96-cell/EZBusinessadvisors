@@ -34,8 +34,8 @@ export async function GET(req: NextRequest) {
   if (req.nextUrl.searchParams.get('mine') === '1') {
     const auth = await authenticateProfileRequest(req)
     if (!auth) return unauthorizedResponse()
-    const { data: profile } = await db.from('profiles').select('agency_id').eq('id', auth.user.id).maybeSingle()
-    const myAgency = profile?.agency_id || auth.memberships[0]?.agency_id || null
+    // Agency comes from the membership relation, not profiles.
+    const myAgency = auth.memberships[0]?.agency_id || null
     let q2 = db.from('deal_professionals').select(PUBLIC_SELECT)
     if (myAgency) q2 = q2.eq('agency_id', myAgency)
     const { data, error } = await q2.order('created_at', { ascending: false })
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, professionals: data })
   }
 
-  let q = db.from('deal_professionals').select(PUBLIC_SELECT).eq('is_active', true)
+  let q = db.from('deal_professionals').select(PUBLIC_SELECT).eq('is_active', true).eq('advertised', true)
   if (type && type !== 'all') q = q.eq('professional_type', type)
   if (state) q = q.contains('states_served', [state.toUpperCase()])
   if (industry) q = q.contains('industries', [industry])
@@ -73,8 +73,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'name and a valid professional_type are required' }, { status: 400 })
   }
 
-  const { data: profile } = await db.from('profiles').select('agency_id').eq('id', auth.user.id).maybeSingle()
-  const agencyId = profile?.agency_id || null
+  // Agency comes from the membership relation (profiles has no agency_id column).
+  const agencyId = auth.memberships[0]?.agency_id || null
+  const { data: existing } = await db
+    .from('deal_professionals')
+    .select('id')
+    .eq('name', String(body.name || '').trim())
+    .eq('agency_id', agencyId)
+    .maybeSingle()
+  if (existing) {
+    return NextResponse.json({ ok: true, id: existing.id, existing: true }, { status: 200 })
+  }
 
   const { data, error } = await db
     .from('deal_professionals')
