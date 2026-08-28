@@ -249,3 +249,31 @@
 - Harbor tenant = multi-tenant isolation scenario (the "sold CRM" case).
 - `/dashboard/listings` index intentionally absent (use Studio); `/dashboard/agency/settings` → check correct slug.
 - Everything automated-tested green (786 unit tests + persona e2e suites); this is the human polish/feel pass.
+
+---
+
+# 🔁 ROUND 2 — 2026-08-28 evening (post-deploy regression pass)
+
+**⚠️ IMPORTANT — USE THIS URL:** https://ezbusinessadvisors.vercel.app
+**(`ezbusinessadvisors.com` still points at an old placeholder host — do NOT test there; domain cutover pending.)**
+
+## What changed since Round 1 (focus these)
+1. **Homepage rebuilt sections** — `/` now has: FAQ accordion (6 Qs), FAQPage schema, og:image + Twitter card meta.
+   - [ ] Homepage loads at vercel.app URL, FAQ section renders + expands, no console errors
+   - [ ] View-source contains `FAQPage` JSON-LD
+2. **White-label provisioning pipeline** (backend — no UI change):
+   - Fresh tenant stacks now build complete CRMs (205 tables, 539 RLS policies) from `sql/base_schema.sql`
+   - No QA action needed unless you want to test `/admin/white-label` still renders.
+
+## Round 1 still-applicable quick pass (10 min)
+- [ ] Homepage hero + search + stats count-up
+- [ ] Marketplace listing card → detail → NDA/offer buttons
+- [ ] Login as `e2e.qa@concordplatform.dev` → dashboard loads
+- [ ] Login as `harbor.buyer@tenant.test` → tenant isolation (no EZ data)
+- [ ] Stripe test checkout (`4242 4242 4242 4242`) on any paid product → status updates
+
+## Known notes for this round
+- Phone OTP sends REAL SMS — use a real number.
+- `harbor.seller@tenant.test` currently has role `buyer` in DB (flagged — verify intent).
+- `e2e.qa@concordplatform.dev` has role `owner` (platform admin check — confirm `/admin` access).
+- All 786 unit tests + persona E2E suites green; this is the human polish pass.
