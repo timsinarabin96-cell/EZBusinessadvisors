@@ -106,7 +106,7 @@ test('OWNER: full self-service flow — profile → listing → financials → A
   await page.getByLabel('Email *').fill(OWNER_EMAIL)
   await page.getByLabel('Phone').fill(PHONE)
   await page.getByLabel('Business Name').fill(BIZ_NAME)
-  await page.getByLabel('Industry').selectOption('Business Services')
+  await page.getByLabel('Industry').selectOption('Cleaning')
   await page.getByLabel('Location (city / region)').fill('Harrisburg, PA')
   await page.getByLabel('Annual Revenue').fill('410000')
   await page.getByLabel('Thinking of Asking').fill('640000')

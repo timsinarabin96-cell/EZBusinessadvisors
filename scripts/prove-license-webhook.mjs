@@ -16,8 +16,9 @@
 import { createHmac } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 
-const STRIPE_KEY = readFileSync('.env.local', 'utf8').match(/^STRIPE_SECRET_KEY=(.+)$/m)?.[1].trim()
-const WEBHOOK_SECRET = readFileSync('.env.local', 'utf8').match(/^STRIPE_WEBHOOK_SECRET=(.+)$/m)?.[1].trim()
+const unquote = (s) => (s ?? '').trim().replace(/^"|"$/g, '')
+const STRIPE_KEY = unquote(readFileSync('.env.local', 'utf8').match(/^STRIPE_SECRET_KEY=(.+)$/m)?.[1])
+const WEBHOOK_SECRET = unquote(readFileSync('.env.local', 'utf8').match(/^STRIPE_WEBHOOK_SECRET=(.+)$/m)?.[1])
 const SITE = 'https://concord-deal-platform.vercel.app'
 const AGENCY_ID = '39a9b7da-a944-4dd1-8d4a-c03dd556eac8'
 const PROFILE_ID = '7aa89a5f-5896-4035-92bd-683af3e9135e'
@@ -73,8 +74,8 @@ console.log('✅ Webhook endpoint:', whRes.status, JSON.stringify(whBody).slice(
 
 // 4) Verify the agency is now licensed.
 const { createClient } = await import('@supabase/supabase-js')
-const url = readFileSync('.env.local', 'utf8').match(/^NEXT_PUBLIC_SUPABASE_URL=(.+)$/m)?.[1].trim()
-const serviceKey = readFileSync('.env.local', 'utf8').match(/^SUPABASE_SERVICE_ROLE_KEY=(.+)$/m)?.[1].trim()
+const url = unquote(readFileSync('.env.local', 'utf8').match(/^NEXT_PUBLIC_SUPABASE_URL=(.+)$/m)?.[1])
+const serviceKey = unquote(readFileSync('.env.local', 'utf8').match(/^SUPABASE_SERVICE_ROLE_KEY=(.+)$/m)?.[1])
 const supabase = createClient(url, serviceKey, { auth: { persistSession: false } })
 const { data: agency } = await supabase.from('agencies').select('id, name, plan_type, paid_plan_active, licensed_at').eq('id', AGENCY_ID).single()
 console.log('🏢 Agency state:', JSON.stringify(agency))

@@ -114,6 +114,7 @@ export async function createSellerListingOrder(
     .insert({
       agency_id: agencyId,
       listing_id: listing.id,
+      seller_email: draft.seller_email.trim().toLowerCase(),
       plan_code: planId,
       amount_cents: Math.round(plan.price * 100),
       status: opts.status || 'pending',
