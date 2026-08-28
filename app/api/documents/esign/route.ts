@@ -77,7 +77,13 @@ export async function POST(req: NextRequest) {
       .trim()
     // Drop a leading title line that duplicates the document title (the PDF
     // renders its own centered title block).
-    const text = raw.replace(new RegExp('^' + (doc.title || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\n*', 'i'), '').trim()
+    // Drop the title + any leading subtitle lines ((Non-Disclosure Agreement),
+    // standalone Effective Date line) that duplicate the PDF's own title block.
+    let text = raw
+      .replace(new RegExp('^' + (doc.title || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\n*', 'i'), '')
+      .replace(/^\(Non-Disclosure Agreement\)\s*\n*/i, '')
+      .replace(/^Effective Date:.*\n+/i, '')
+      .trim()
     const { default: jsPDF } = await import('jspdf')
     const pdf = new jsPDF({ unit: 'pt', format: 'letter' })
     const W = pdf.internal.pageSize.getWidth()
@@ -180,22 +186,48 @@ export async function POST(req: NextRequest) {
       y += 16
     }
     for (const para of paragraphs) {
-      // Clause headers (1. ENGAGEMENT.) render bold navy
-      const isClause = /^\d+\.\s+[A-Z]/.test(para)
-      if (isClause) { pdf.setFont('times', 'bold'); pdf.setFontSize(12); pdf.setTextColor(26, 26, 46) }
-      else { pdf.setFont('times', 'normal'); pdf.setFontSize(12); pdf.setTextColor(35, 43, 58) }
-      const lines = pdf.splitTextToSize(fmtMoney(para), W - M * 2)
-      // Keep at least 3 lines of a paragraph on the page before breaking
-      if (y + lines.length * 15 + 10 > H - M - 20 && y > 200) { pdf.addPage(); y = M + 30 }
-      for (const line of lines) {
-        if (y > H - M - 20) { pdf.addPage(); y = M + 30 }
-        pdf.text(line, M, y)
-        y += 15
+      // Clause paragraphs: heading ("1. ENGAGEMENT.") bold navy, body regular.
+      const clauseMatch = para.match(/^(\d+\.\s+[A-Z][A-Z &;,'\-]*?\.)\s*/)
+      const hasClause = !!clauseMatch
+      if (hasClause) {
+        const heading = clauseMatch![1]
+        const rest = para.slice(clauseMatch![0].length)
+        pdf.setFont('times', 'bold')
+        pdf.setFontSize(12)
+        pdf.setTextColor(26, 26, 46)
+        const headLines = pdf.splitTextToSize(heading, W - M * 2)
+        if (y + headLines.length * 15 + 10 > H - M - 20 && y > 200) { pdf.addPage(); y = M + 30 }
+        for (const line of headLines) {
+          if (y > H - M - 20) { pdf.addPage(); y = M + 30 }
+          pdf.text(line, M, y)
+          y += 15
+        }
+        if (rest.trim()) {
+          pdf.setFont('times', 'normal')
+          pdf.setFontSize(12)
+          pdf.setTextColor(35, 43, 58)
+          const bodyLines = pdf.splitTextToSize(fmtMoney(rest.trim()), W - M * 2)
+          if (y + bodyLines.length * 15 + 10 > H - M - 20 && y > 200) { pdf.addPage(); y = M + 30 }
+          for (const line of bodyLines) {
+            if (y > H - M - 20) { pdf.addPage(); y = M + 30 }
+            pdf.text(line, M, y)
+            y += 15
+          }
+        }
+        y += 9
+      } else {
+        pdf.setFont('times', 'normal')
+        pdf.setFontSize(12)
+        pdf.setTextColor(35, 43, 58)
+        const lines = pdf.splitTextToSize(fmtMoney(para), W - M * 2)
+        if (y + lines.length * 15 + 10 > H - M - 20 && y > 200) { pdf.addPage(); y = M + 30 }
+        for (const line of lines) {
+          if (y > H - M - 20) { pdf.addPage(); y = M + 30 }
+          pdf.text(line, M, y)
+          y += 15
+        }
+        y += 9
       }
-      y += 9 // paragraph gap
-      pdf.setFont('times', 'normal')
-      pdf.setFontSize(12)
-      pdf.setTextColor(35, 43, 58)
     }
 
     // --- Signature lines ------------------------------------------------------

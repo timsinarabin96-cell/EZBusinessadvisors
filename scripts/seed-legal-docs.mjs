@@ -389,55 +389,67 @@ ${PA_DISCLOSURE}`,
       { key: 'driver_license_ein', label: 'Driver License No. / EIN', type: 'text', required: false, placeholder: '' },
       { key: 'phone', label: 'Phone', type: 'text', required: false, placeholder: '(717) 555-0100' },
       { key: 'cell', label: 'Cell', type: 'text', required: false, placeholder: '' },
+      { key: 'fax', label: 'Fax', type: 'text', required: false, placeholder: '' },
       { key: 'business_listing_id', label: 'Business Listing ID No.', type: 'text', required: false, placeholder: '' },
-      { key: 'business_category', label: 'Business Category', type: 'text', required: false, placeholder: 'e.g. Manufacturing' },
+      { key: 'business_category', label: 'Business Category', type: 'text', required: false, placeholder: 'e.g. Convenience Store' },
       { key: 'effective_date', label: 'Effective Date', type: 'date', required: true, placeholder: '' },
       { key: 'agency_name', label: 'Agency Name', type: 'text', required: false, placeholder: 'EZ Business Advisors LLC' },
+      { key: 'agent_name', label: 'Broker / Agent Name', type: 'text', required: false, placeholder: 'e.g. Rabin Timsina' },
     ],
     parties: [
-      { key: 'seller', label: 'Seller', role: 'seller' },
+      { key: 'agent', label: 'Broker / Agency', role: 'agent' },
       { key: 'buyer', label: 'Prospect / Buyer', role: 'buyer' },
     ],
     body_template: `CONFIDENTIALITY, DISCLOSURE & REGISTRATION AGREEMENT
 (Non-Disclosure Agreement)
 
-{{agency_name}} acts as a Transaction Broker / Intermediary only. Not a Real Estate Broker or Real Estate Agent.
+Effective Date: {{effective_date}}
 
-This Agreement is entered into by and between {{agency_name}} of Harrisburg, Pennsylvania ("Broker") and the undersigned Prospect, effective as of {{effective_date}}.
+THIS CONFIDENTIALITY, DISCLOSURE AND REGISTRATION AGREEMENT (this "Agreement") is made by and between {{agency_name}}, with a place of business in Harrisburg, Pennsylvania ("Broker"), and the individual or entity named below (together with their agents and assigns, "Prospect"). Broker operates as a business broker and transaction intermediary only; Broker is not a real estate broker, real estate agent, attorney, accountant, or tax advisor.
 
+====================================================
 PROSPECT INFORMATION
-Prospect Full Legal Name: {{prospect_name}} · Address: {{address}}, {{city}}, {{state}} {{zip}}
-Email: {{email}} · Driver's License No. / EIN: {{driver_license_ein}}
-Phone: {{phone}} · Cell: {{cell}}
+====================================================
+Prospect Name: {{prospect_name}}
+Address: {{address}}, {{city}}, {{state}} {{zip}}
+Email: {{email}} · Driver's License / EIN: {{driver_license_ein}}
+Phone: {{phone}} · Cell: {{cell}} · Fax: {{fax}}
 Business Listing ID No.: {{business_listing_id}} · Business Category: {{business_category}}
+====================================================
 
-TERMS AND CONDITIONS
+The parties agree as follows:
 
-1. Confidential Information. Prospect acknowledges that Broker and/or Seller may disclose confidential and proprietary information concerning the Business ("Confidential Information"), including non-public financial data, customer lists, supplier relationships, operational data, and business plans, whether disclosed orally, in writing, or by any other means. Prospect shall not disclose, share, or use any Confidential Information for any purpose other than evaluating a potential acquisition, and shall not disclose Confidential Information to any third party except to attorneys, accountants, lenders, or advisors who agree in writing to maintain its confidentiality.
+1. CONFIDENTIAL INFORMATION. Prospect understands that the seller of the Business identified in the Listing (the "Seller") and the business itself (the "Business") will, through Broker as intermediary, share certain non-public information about the Business with Prospect ("Confidential Information"). This includes financial statements, tax information, customer and supplier data, employee details, pricing, business plans, intellectual property, and any other proprietary or sensitive information disclosed in any form. Prospect will use Confidential Information solely to evaluate a potential acquisition of the Business, and will not disclose it to anyone except Prospect's attorneys, accountants, lenders, and other professional advisors who agree to be bound by confidentiality obligations at least as protective as those in this Agreement. Consistent with the Pennsylvania Uniform Trade Secrets Act, 12 Pa.C.S.A. §§ 5301–5308, unauthorized use or disclosure of trade secrets is prohibited, and Prospect agrees to protect the confidentiality of all such information.
 
-2. Conduct. All communications regarding the Business Listing shall be conducted exclusively through Broker unless Broker gives prior written consent otherwise. Prospect shall not directly contact the Seller, Seller's employees, customers, suppliers, or visit the business premises without Broker's prior written permission. Broker earns its commission when: (a) Prospect is ready, willing, and able to purchase; (b) Prospect acquires any interest in the Business within the protected period; (c) Seller and Prospect enter a purchase contract; or (d) Prospect otherwise circumvents Broker's role.
+2. COMMUNICATIONS THROUGH BROKER. All inquiries, negotiations, and communications concerning the Business and its sale will be conducted through Broker. Prospect will not contact the Seller, the Seller's principals, employees, customers, suppliers, or competitors, and will not visit the Business premises, except with Broker's advance written permission. Prospect understands that Broker's compensation is protected as follows: Broker earns its commission when (a) Prospect is ready, willing, and able to purchase the Business on the listed terms or terms acceptable to Seller; (b) Prospect acquires, leases, or obtains any interest in the Business within two (2) years of the Effective Date; (c) Seller and Prospect enter into a purchase agreement; (d) Prospect, without fault of Seller, fails to complete a sale after agreeing to do so; or (e) Prospect engages in any act equivalent to a purchase, or enters into an employment, consulting, or independent contractor relationship with Seller. If Prospect circumvents Broker and acquires the Business within two (2) years, Prospect owes Broker its full commission as provided in the applicable brokerage agreement, consistent with 49 Pa. Code § 35.334. Prospect is responsible for any breach of this Agreement by its agents, representatives, or employees.
 
-3. Information. All documents and information provided to Prospect are for review purposes only and remain the property of Seller. Prospect shall independently verify all information and may not rely on Broker for legal, financial, tax, or business advice. Prospect agrees to indemnify and hold Broker harmless from claims arising from Prospect's use or reliance on information received.
+3. PROPERTY OF SELLER; INDEPENDENT VERIFICATION. All information and documents made available to Prospect remain the property of Seller and must be returned or destroyed promptly upon Broker's or Seller's written request. Broker has not verified, and does not warrant, the accuracy or completeness of any information supplied by Seller; Prospect must independently verify all information before relying on it. Consistent with 68 Pa.C.S.A. § 7304, Broker assumes no responsibility for the accuracy of the data provided. Prospect agrees to indemnify and hold harmless Broker and its agents from any claim, loss, or damage arising from Prospect's use of, or reliance on, the information disclosed.
 
-4. Seller as Third-Party Beneficiary. Seller is an intended third-party beneficiary of this Agreement and may directly enforce the confidentiality and non-contact obligations contained herein.
+4. SELLER AS THIRD-PARTY BENEFICIARY. The Seller is an intended third-party beneficiary of this Agreement and may enforce its confidentiality and non-contact provisions directly, in addition to Broker's right to enforce them.
 
-5. Representation — Transaction Broker. Broker acts solely as a transaction broker and intermediary and is NOT an exclusive agent for either Seller or Prospect, unless otherwise agreed in writing. Broker is a business broker only and is not a real estate broker or real estate agent.
+5. BROKER'S ROLE. Broker is a transaction broker under Pennsylvania law, not an exclusive agent or fiduciary of either Seller or Prospect. Broker operates as a Transaction Licensee under the Real Estate Licensing and Registration Act, 63 P.S. § 455.608, solely in connection with business brokerage activities, and does not act in a fiduciary capacity for either party.
 
-6. Advice. Prospect is strongly advised to consult with a licensed attorney, certified public accountant, and other qualified advisors before evaluating, negotiating, or completing the acquisition of any business.
+6. INDEPENDENT PROFESSIONAL ADVICE. Prospect is encouraged to obtain independent legal, accounting, tax, and other professional advice before evaluating, negotiating, or completing any acquisition. Broker has not performed an independent investigation of the information supplied by Seller and acts as a conduit of information only, consistent with 49 Pa. Code § 35.305.
 
-7. Procuring Cause. Prospect acknowledges Broker as the procuring cause of any transaction involving the Business during the term of this Agreement and any applicable protected period, to the extent established by the parties' signed agreements and applicable Pennsylvania law. For a period of two (2) years from the date of this Agreement, Prospect shall not deal directly with Seller with respect to the Business without Broker's prior written consent.
+7. PROCURING CAUSE; NON-CIRCUMVENTION. Prospect acknowledges Broker as the procuring cause of any transaction involving the Business, and agrees not to deal directly or indirectly with Seller, or Seller's agents or assigns, for a period of two (2) years from the Effective Date without Broker's written consent. If Prospect, or any person or entity introduced to the Business by Prospect, enters into a purchase agreement, management contract, lease, or other financial arrangement with Seller relating to the Business or its premises, Prospect will be liable to Broker for all damages suffered by Broker, including the full commission due under the applicable brokerage agreement. To secure Broker's compensation, Prospect grants Broker the right to record a lien against Business assets acquired in violation of this Agreement, and appoints Broker as attorney-in-fact to execute and file the documents necessary to perfect such lien, in accordance with the Pennsylvania Mechanics' Lien Law, 49 P.S. § 1101 et seq.
 
-8. Warranties. Prospect represents that all information provided is accurate and complete, that Prospect has sufficient financial capacity to evaluate and potentially complete a purchase, that Prospect has not filed for undisclosed bankruptcy, and that Prospect has not been convicted of any felony or disqualifying crime.
+8. PROSPECT REPRESENTATIONS. Prospect represents and warrants that it is not affiliated with any competitor of the Business, is not an employee of a competitor, and has no purpose other than a bona fide evaluation of a potential acquisition. Prospect further represents that it has the financial capacity to complete a purchase, has not filed for bankruptcy (unless disclosed), and has not been convicted of a felony or disqualifying crime, consistent with 18 Pa.C.S.A. § 4904.
 
-9. No Waiver. Failure by either party to enforce any term of this Agreement in any instance shall not constitute a waiver of that party's right to enforce such term in any other instance.
+9. NO WAIVER. The failure of either party to enforce any provision of this Agreement at any time will not be deemed a waiver of that provision or of the right to enforce it later.
 
-10. Governing Law; Venue. This Agreement is governed by the laws of the Commonwealth of Pennsylvania. Venue for all disputes shall lie exclusively in Dauphin County, Pennsylvania, unless otherwise required by applicable law.
+10. GOVERNING LAW; VENUE. This Agreement is governed by the laws of the Commonwealth of Pennsylvania, and the parties consent to the exclusive jurisdiction and venue of the state and federal courts serving Dauphin County, Pennsylvania, pursuant to 42 Pa.C.S.A. § 5101 et seq., for any proceeding relating to this Agreement. In the event of a breach or threatened breach of the confidentiality provisions, Seller or Broker may seek equitable relief, including injunctive relief under Pa.R.C.P. No. 1531, in addition to any other remedies available at law.
 
-11. Attorneys' Fees. The prevailing party in any dispute arising out of this Agreement is entitled to an award of its reasonable attorneys' fees and costs, to the extent permitted by law.
+11. ATTORNEY'S FEES. In any dispute arising out of or relating to this Agreement, the prevailing party will be entitled to recover its reasonable attorneys' fees, costs, and expenses, including at the trial and appellate levels, to the fullest extent permitted by law.
 
-12. Copies and Electronic Signatures. Electronic signatures and electronically transmitted copies are valid and binding to the fullest extent permitted by Pennsylvania's Electronic Transactions Act, 73 P.S. § 2260.101 et seq.
+12. ELECTRONIC EXECUTION. This Agreement may be executed electronically or in counterparts. An electronic signature or a faxed or electronically transmitted copy of this Agreement will be treated as an original and is binding to the fullest extent permitted by the Pennsylvania Uniform Electronic Transactions Act, 73 P.S. §§ 2260.101–2260.121.
 
-IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.
+
+BROKER: {{agency_name}}
+By: {{agent_name}} ____________________________  Date: ____________
+
+PROSPECT:
+By: ____________________________  Date: ____________
 
 ${PA_DISCLOSURE}`,
   },
