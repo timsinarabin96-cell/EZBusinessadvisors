@@ -31,7 +31,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { randomBytes, randomUUID } from 'node:crypto'
-import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -146,7 +146,7 @@ async function createProject(orgId, name, dbPass) {
     method: 'POST',
     body: {
       name,
-      org_id: orgId,
+      organization_id: orgId,
       db_pass: dbPass,
       region: REGION,
       plan: PLAN,
@@ -189,12 +189,19 @@ async function fetchKeys(ref) {
 // ---------------------------------------------------------------------------
 async function runSchema(ref) {
   const sqlDir = join(REPO_ROOT, 'sql')
+  // 0) COMPLETE base schema (schema-only dump of the live platform: all 190+
+  //    tables, views, functions, RLS policies). RUN_ALL.sql + deltas are
+  //    INCREMENTAL — they assume the base tables already exist. Without this
+  //    step a fresh project comes up with hundreds of broken objects.
+  const baseSchema = join(sqlDir, 'base_schema.sql')
   const runAll = join(sqlDir, 'RUN_ALL.sql')
-  const files = [runAll]
+  const files = []
+  if (existsSync(baseSchema)) files.push(baseSchema)
+  files.push(runAll)
   // Deltas = every .sql newer than RUN_ALL (incremental fixes landed after it).
   const runAllMtime = statSync(runAll).mtimeMs
   const deltas = readdirSync(sqlDir)
-    .filter((f) => f.endsWith('.sql') && f !== 'RUN_ALL.sql')
+    .filter((f) => f.endsWith('.sql') && f !== 'RUN_ALL.sql' && f !== 'base_schema.sql')
     .map((f) => join(sqlDir, f))
     .filter((f) => statSync(f).mtimeMs > runAllMtime)
     .sort()

@@ -497,6 +497,16 @@ create policy "authenticated upload docs" on storage.objects
 -- =============================================================================
 
 -- =============================================================================
+-- 0a. Default agency (tenant fallback)
+--     Trigger functions (assign_*_agency) coalesce a null agency_id to this
+--     hardcoded UUID. A fresh project has no agencies yet, so seed the row
+--     idempotently or every seed insert hits listings_agency_id_fkey.
+-- =============================================================================
+insert into public.agencies (id, name, slug)
+values ('354facdb-cce2-4eb0-a160-8454854e731a', 'Default Agency', 'default-agency')
+on conflict (id) do nothing;
+
+-- =============================================================================
 -- 0. Ensure the listing exists (idempotent — references the catalog listing).
 --    Uses the real row already in the listings table.
 -- =============================================================================
@@ -536,7 +546,7 @@ select
   coalesce(
     (select agent_id from public.listings where business_name = 'Ez Business Advisory - Deal 1' limit 1),
     (select id from public.profiles limit 1),
-    '00000000-0000-0000-0000-000000000000'
+    null
   ),
   'Summit Logistics — Regional Freight & Distribution',
   'Profitable regional 3PL with long-term client contracts',
@@ -558,7 +568,7 @@ with final_deal as (
   insert into public.deals (listing_id, status, purchase_price)
   select id, 'closed', 2350000
   from public.listings where business_name = 'Ez Business Advisory - Deal 1'
-  where not exists (select 1 from public.deals where status = 'closed')
+  and not exists (select 1 from public.deals where status = 'closed')
   returning id
 )
 select 'deal:closed' as marker, id from final_deal;
@@ -567,28 +577,28 @@ with closing_deal as (
   insert into public.deals (listing_id, status, purchase_price)
   select id, 'closing', 2450000
   from public.listings where business_name = 'Ez Business Advisory - Deal 1'
-  where not exists (select 1 from public.deals where status = 'closing')
+  and not exists (select 1 from public.deals where status = 'closing')
   returning id
 ),
 dd_deal as (
   insert into public.deals (listing_id, status, purchase_price)
   select id, 'due_diligence', 2500000
   from public.listings where business_name = 'Ez Business Advisory - Deal 1'
-  where not exists (select 1 from public.deals where status = 'due_diligence')
+  and not exists (select 1 from public.deals where status = 'due_diligence')
   returning id
 ),
 uc_deal as (
   insert into public.deals (listing_id, status, purchase_price)
   select id, 'under_contract', 2150000
   from public.listings where business_name = 'Summit Logistics — Regional Freight & Distribution'
-  where not exists (select 1 from public.deals where status = 'under_contract')
+  and not exists (select 1 from public.deals where status = 'under_contract')
   returning id
 ),
 loi_deal as (
   insert into public.deals (listing_id, status, purchase_price)
-  select id, 'loi', 2600000
+  select id, 'letter_of_intent', 2600000
   from public.listings where business_name = 'Ez Business Advisory - Deal 1'
-  where not exists (select 1 from public.deals where status = 'loi')
+  and not exists (select 1 from public.deals where status = 'letter_of_intent')
   returning id
 )
 select 'deal:multi' as marker, id from loi_deal;
@@ -846,8 +856,8 @@ where l.business_name = 'Ez Business Advisory - Deal 1' and d.status = 'closed'
 and not exists (select 1 from public.deal_documents x where x.file_name = 'Closing Statement - Final.pdf');
 
 -- Listing documents (has category column)
-insert into public.listing_documents (listing_id, file_url, category, status)
-select id, 'https://www.w3.org/WHO/TR/1999/REC-html401-19991224.pdf', 'Financial', 'active'
+insert into public.listing_documents (listing_id, file_url, category, status, party_type)
+select id, 'https://www.w3.org/WHO/TR/1999/REC-html401-19991224.pdf', 'financial_statement', 'active', 'agent'
 from public.listings where business_name = 'Ez Business Advisory - Deal 1'
 and not exists (
   select 1 from public.listing_documents x

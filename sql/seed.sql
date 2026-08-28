@@ -62,7 +62,7 @@ select
   coalesce(
     (select agent_id from public.listings where business_name = 'Ez Business Advisory - Deal 1' limit 1),
     (select id from public.profiles limit 1),
-    '00000000-0000-0000-0000-000000000000'
+    null
   ),
   'Summit Logistics — Regional Freight & Distribution',
   'Profitable regional 3PL with long-term client contracts',
@@ -112,9 +112,9 @@ uc_deal as (
 ),
 loi_deal as (
   insert into public.deals (listing_id, status, purchase_price)
-  select id, 'loi', 2600000
+  select id, 'letter_of_intent', 2600000
   from public.listings where business_name = 'Ez Business Advisory - Deal 1'
-  where not exists (select 1 from public.deals where status = 'loi')
+  where not exists (select 1 from public.deals where status = 'letter_of_intent')
   returning id
 )
 select 'deal:multi' as marker, id from loi_deal;
@@ -373,7 +373,7 @@ and not exists (select 1 from public.deal_documents x where x.file_name = 'Closi
 
 -- Listing documents (has category column)
 insert into public.listing_documents (listing_id, file_url, category, status)
-select id, 'https://www.w3.org/WHO/TR/1999/REC-html401-19991224.pdf', 'Financial', 'active'
+select id, 'https://www.w3.org/WHO/TR/1999/REC-html401-19991224.pdf', 'financial_statement', 'active'
 from public.listings where business_name = 'Ez Business Advisory - Deal 1'
 and not exists (
   select 1 from public.listing_documents x
