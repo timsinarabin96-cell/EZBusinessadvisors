@@ -20,7 +20,7 @@ import { signIn, E2E_USER } from './helpers'
 //   npx playwright test e2e/license-checkout.spec.ts
 // =============================================================================
 
-test.skip('license purchase: real test checkout → webhook → agency licensed', async ({ page }) => {
+test('license purchase: real test checkout → webhook → agency licensed', async ({ page }) => {
   test.setTimeout(120_000)
 
   // 1) Sign in as the QA agency owner.

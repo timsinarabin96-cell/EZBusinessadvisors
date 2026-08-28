@@ -63,13 +63,33 @@ test('OWNER: full self-service flow — profile → listing → financials → A
   await signIn(page, OWNER_EMAIL, OWNER_PW)
   await expect(page).toHaveURL(/dashboard/, { timeout: 20_000 })
 
-  // ── 2) Complete profile: phone OTP (dev code) + photo ────────────────────
+  // ── 2) Complete profile: phone OTP + photo ──────────────────────────────────
+  // OTP send is intercepted so the flow is deterministic on ANY environment
+  // (local dev AND live prod): we seed a real phone_verifications row with the
+  // same salted hash the server computes, then return the dev code the UI
+  // auto-fills. The CONFIRM endpoint is the REAL one — the full verify path
+  // (hash match → phone_verified_at + profile_completed_at stamp) is exercised.
   await page.goto('/dashboard/owner')
   await page.getByText(/Complete your profile/i).first().waitFor({ timeout: 20_000 })
   const phoneInput = page.locator('input[placeholder*="7175551234"]').first()
   await phoneInput.fill(PHONE)
+  const OTP_CODE = '424242'
+  await page.route('**/api/verify/phone/send', async (route) => {
+    const { createHash } = await import('node:crypto')
+    const normalized = `+${PHONE.replace(/[^\d+]/g, '')}`
+    const salt = process.env.VAPID_PRIVATE_KEY || 'concord-otp-salt'
+    const codeHash = createHash('sha256').update(`${salt}|${normalized}|${OTP_CODE}`).digest('hex')
+    const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    await fetch(`${svcUrl}/rest/v1/phone_verifications`, {
+      method: 'POST',
+      headers: { apikey: svcKey, Authorization: `Bearer ${svcKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ phone: normalized, code_hash: codeHash, expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(), attempts: 0 }),
+    })
+    await route.fulfill({ json: { ok: true, devCode: OTP_CODE, message: 'Verification code sent.' } })
+  })
   await page.getByRole('button', { name: /Send code/i }).first().click()
-  // Dev path: the send API returns the code and the UI auto-fills it.
+  // The UI auto-fills the dev code, so Verify appears enabled.
   await expect(page.getByRole('button', { name: /Verify/i }).first()).toBeVisible({ timeout: 15_000 })
   await page.getByRole('button', { name: /Verify/i }).first().click()
   // Success = the phone section disappears (only photo upload remains).

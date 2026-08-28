@@ -320,10 +320,12 @@ function SellContent() {
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  // Label wraps the control so it's properly associated (a11y: screen readers
+  // AND getByLabel both need the label linked to the input, not a sibling).
   return (
-    <div>
-      <label className="label">{label}</label>
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'stretch' }}>
+      <span className="label">{label}</span>
       {children}
-    </div>
+    </label>
   )
 }
