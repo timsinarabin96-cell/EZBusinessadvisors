@@ -736,6 +736,7 @@ Firm: ___________________________________{{LEGAL_FOOTER}}`,
       { key: 'collateral', label: 'Collateral (assets secured)', type: 'text', required: false },
     ],
     parties: [
+      { key: 'agent', label: 'Broker', role: 'agent' },
       { key: 'seller', label: 'Lender (Seller)', role: 'seller' },
       { key: 'buyer', label: 'Borrower (Buyer)', role: 'buyer' },
     ],
@@ -767,7 +768,12 @@ Date: {{note_date}}
 LENDER ({{lender_name}}):
 Signature: ______________________________
 Printed Name: {{lender_name}}
-Date: ___________________________________{{LEGAL_FOOTER}}`,
+Date: {{note_date}}
+
+WITNESSED BY (Broker):
+Signature: ______________________________
+Printed Name: __________________________
+Firm: ___________________________________{{LEGAL_FOOTER}}`,
   },
   {
     name: 'Lease Assignment & Landlord Consent',
@@ -784,6 +790,7 @@ Date: ___________________________________{{LEGAL_FOOTER}}`,
       { key: 'lease_expiration', label: 'Lease Expiration', type: 'text', required: false },
     ],
     parties: [
+      { key: 'agent', label: 'Broker', role: 'agent' },
       { key: 'seller', label: 'Tenant / Seller', role: 'seller' },
       { key: 'buyer', label: 'Buyer', role: 'buyer' },
     ],
@@ -818,7 +825,12 @@ Date: {{assignment_date}}
 ASSIGNEE ({{buyer_name}}):
 Signature: ______________________________
 Printed Name: {{buyer_name}}
-Date: ___________________________________{{LEGAL_FOOTER}}`,
+Date: {{assignment_date}}
+
+WITNESSED BY (Broker):
+Signature: ______________________________
+Printed Name: __________________________
+Firm: ___________________________________{{LEGAL_FOOTER}}`,
   },
   {
     name: 'Earnest Money Receipt & Escrow Instructions',
@@ -835,6 +847,7 @@ Date: ___________________________________{{LEGAL_FOOTER}}`,
       { key: 'release_condition', label: 'Release Condition', type: 'select', required: false, options: ['Upon execution of Purchase Agreement', 'Upon successful closing', 'Upon removal of due-diligence contingency', 'Other'] },
     ],
     parties: [
+      { key: 'agent', label: 'Broker', role: 'agent' },
       { key: 'seller', label: 'Seller', role: 'seller' },
       { key: 'buyer', label: 'Buyer', role: 'buyer' },
     ],
@@ -871,7 +884,12 @@ Date: {{deposit_date}}
 HOLDER ({{escrow_holder}}):
 Signature: ______________________________
 Printed Name: __________________________
-Date: ___________________________________{{LEGAL_FOOTER}}`,
+Date: {{deposit_date}}
+
+WITNESSED BY (Broker):
+Signature: ______________________________
+Printed Name: __________________________
+Firm: ___________________________________{{LEGAL_FOOTER}}`,
   },
   {
     name: 'Mutual Termination & Release of Listing Agreement',
