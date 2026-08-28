@@ -33,6 +33,7 @@ export interface SellerListingDraft {
   asking_price?: number | null
   annual_revenue?: number | null
   sde?: number | null
+  established_year?: number | null
   seller_email: string
   seller_name?: string | null
   seller_phone?: string | null
@@ -88,6 +89,8 @@ export async function createSellerListingOrder(
       asking_price: draft.asking_price ?? null,
       annual_revenue: draft.annual_revenue ?? null,
       sde: draft.sde ?? null,
+      established_year: draft.established_year ?? null,
+      owner_email: draft.seller_email.trim().toLowerCase(),
       status: 'draft',
       confidentiality_level: 'broker_only',
       intake_source: 'seller_self_service',

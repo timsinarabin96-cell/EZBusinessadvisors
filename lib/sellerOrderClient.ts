@@ -19,6 +19,7 @@ export interface SellerOrderPayload {
   asking_price?: number | null
   annual_revenue?: number | null
   sde?: number | null
+  established_year?: number | null
   seller_email: string
   seller_name?: string | null
   seller_phone?: string | null

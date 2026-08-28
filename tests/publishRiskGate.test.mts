@@ -21,8 +21,10 @@ test('publish.ts: auto-flags critical risk on publish', () => {
 })
 
 test('publish.ts: risk gate never hard-fails a publish', () => {
-  assert.match(publish, /risk gate is best-effort/)
+  assert.match(publish, /never hard-fail a publish/)
   assert.match(publish, /catch \{\s*risk = null/)
+  assert.match(publish, /assessLegitimacy/)
+  assert.match(publish, /from ['"]@\/lib\/listingLegitimacy['"]/)
 })
 
 test('publish.ts: returns the risk report in the publish response', () => {

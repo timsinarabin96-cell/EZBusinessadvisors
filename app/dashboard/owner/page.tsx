@@ -9,7 +9,8 @@
 
 // =============================================================================
 // /dashboard/owner — the Business Owner portal (free tier: 1 listing, no CRM).
-// Login → see my listing(s), add/refresh one, track buyer inquiries.
+// Login → see my listing(s), upload 3-year financials (Legitimacy Gate), track
+// buyer inquiries, and control listing status (sold / pause / withdraw).
 // =============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
@@ -24,6 +25,17 @@ interface OwnerListing {
   status: string
   created_at: string | null
   plan_code?: string | null
+  established_year?: number | null
+  financials_status?: string | null
+  legitimacy_verdict?: string | null
+  legitimacy_score?: number | null
+}
+
+const VERDICT_STYLE: Record<string, { bg: string; color: string; label: string }> = {
+  auto_approved: { bg: '#22c55e1a', color: '#15803d', label: '✅ AI-approved' },
+  broker_review: { bg: '#f59e0b1a', color: '#b45309', label: '👨‍💼 Broker review' },
+  pending: { bg: '#94a3b81a', color: '#64748b', label: '⏳ Needs financials' },
+  rejected: { bg: '#ef44441a', color: '#b91c1c', label: '❌ Rejected' },
 }
 
 export default function OwnerPortalPage() {
@@ -31,6 +43,8 @@ export default function OwnerPortalPage() {
   const [listings, setListings] = useState<OwnerListing[]>([])
   const [inquiries, setInquiries] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [openForm, setOpenForm] = useState<string | null>(null)
+  const [acting, setActing] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -40,7 +54,7 @@ export default function OwnerPortalPage() {
       const [ordersRes, leadsRes] = await Promise.all([
         supabase
           .from('seller_listing_orders')
-          .select('id, business_name, status, created_at, plan_code')
+          .select('id, listing_id, plan_code')
           .eq('seller_email', user.email)
           .order('created_at', { ascending: false }),
         supabase
@@ -49,7 +63,21 @@ export default function OwnerPortalPage() {
           .eq('email', user.email)
           .eq('kind', 'buyer'),
       ])
-      setListings((ordersRes.data as OwnerListing[]) || [])
+      const orders = (ordersRes.data || []) as Array<{ id: string; listing_id: string | null; plan_code: string | null }>
+      const ids = [...new Set(orders.map((o) => o.listing_id).filter(Boolean))] as string[]
+
+      // Listings owned by this email directly (newer self-service rows).
+      const ownedRes = await supabase
+        .from('listings')
+        .select('id, business_name, status, created_at, established_year, financials_status, legitimacy_verdict, legitimacy_score')
+        .or(`owner_email.eq.${user.email}` + (ids.length ? `,id.in.(${ids.join(',')})` : ''))
+        .order('created_at', { ascending: false })
+      const planByListing = new Map(orders.map((o) => [o.listing_id, o.plan_code]))
+      const rows: OwnerListing[] = ((ownedRes.data || []) as OwnerListing[]).map((l) => ({
+        ...l,
+        plan_code: planByListing.get(l.id) || 'free',
+      }))
+      setListings(rows)
       setInquiries((leadsRes.data || []).length)
     } catch { /* degrade */ } finally {
       setLoading(false)
@@ -58,13 +86,34 @@ export default function OwnerPortalPage() {
 
   useEffect(() => { load() }, [load])
 
+  const setStatus = async (listing: OwnerListing, action: 'sold' | 'pause' | 'withdraw' | 'reactivate') => {
+    setActing(listing.id)
+    try {
+      const res = await fetch(`/api/owner/listings/${listing.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (j.ok) {
+        await load()
+      } else {
+        alert(j.error || 'Could not update status')
+      }
+    } catch {
+      alert('Network error')
+    } finally {
+      setActing(null)
+    }
+  }
+
   if (loading) return <LoadingState label="Loading your portal..." />
 
   const canAdd = listings.filter((l) => l.status !== 'canceled' && l.status !== 'expired').length < 1
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%)', padding: '48px 20px' }}>
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+      <div style={{ maxWidth: 820, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 26, flexWrap: 'wrap', gap: 12 }}>
           <div>
             <div style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>CONCORD</div>
@@ -95,7 +144,7 @@ export default function OwnerPortalPage() {
               <div style={{ fontSize: 38, marginBottom: 10 }}>🏪</div>
               <div style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#1a1a2e', marginBottom: 6 }}>You haven't listed your business yet</div>
               <p style={{ fontSize: 13.5, color: '#888', margin: '0 0 18px' }}>
-                One free listing. A broker reviews it before it goes live — then qualified buyers can reach you.
+                One free listing. The AI checks it for legitimacy (3+ years in business, financials on file) before it goes live — then qualified buyers can reach you.
               </p>
               <Link href="/marketplace/sell" style={{ display: 'inline-block', background: '#1a1a2e', color: '#c9a84c', padding: '12px 26px', borderRadius: 8, textDecoration: 'none', fontWeight: 800, fontFamily: 'Georgia, serif' }}>
                 List My Business →
@@ -104,19 +153,75 @@ export default function OwnerPortalPage() {
           ) : (
             <>
               <div style={{ display: 'grid', gap: 14, marginBottom: 20 }}>
-                {listings.map((l) => (
-                  <div key={l.id} style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 12, padding: '18px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <div>
-                      <div style={{ fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif', fontSize: 16 }}>{l.business_name}</div>
-                      <div style={{ fontSize: 12.5, color: '#888', marginTop: 3 }}>
-                        {l.created_at ? `Submitted ${new Date(l.created_at).toLocaleDateString()}` : 'Submitted'} · {l.plan_code || 'free'} plan
+                {listings.map((l) => {
+                  const vs = VERDICT_STYLE[l.legitimacy_verdict || 'pending'] || VERDICT_STYLE.pending
+                  const needsFinancials = l.financials_status !== 'submitted' && l.financials_status !== 'approved'
+                  const isLive = l.status === 'active' || l.status === 'published'
+                  const canReactivate = l.status === 'draft' || l.status === 'paused'
+                  return (
+                    <div key={l.id} style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 12, padding: '18px 20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                        <div>
+                          <div style={{ fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif', fontSize: 16 }}>{l.business_name}</div>
+                          <div style={{ fontSize: 12.5, color: '#888', marginTop: 3 }}>
+                            {l.created_at ? `Submitted ${new Date(l.created_at).toLocaleDateString()}` : 'Submitted'} · {l.plan_code || 'free'} plan
+                            {l.established_year ? ` · Est. ${l.established_year}` : ''}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ background: isLive ? '#22c55e1a' : '#94a3b81a', color: isLive ? '#15803d' : '#64748b', padding: '5px 14px', borderRadius: 99, fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase' }}>
+                            {l.status}
+                          </span>
+                          <span style={{ background: vs.bg, color: vs.color, padding: '5px 14px', borderRadius: 99, fontSize: 11.5, fontWeight: 800 }}>
+                            {vs.label}{l.legitimacy_score != null ? ` (${l.legitimacy_score})` : ''}
+                          </span>
+                        </div>
                       </div>
+
+                      {needsFinancials && (
+                        <div style={{ marginTop: 14, background: '#fff8e6', border: '1px solid #e5d9a8', borderRadius: 10, padding: '14px 16px' }}>
+                          <div style={{ fontSize: 13.5, color: '#7a5f10', fontWeight: 700 }}>📊 Upload 3 years of financials to activate</div>
+                          <div style={{ fontSize: 12.5, color: '#8a7a3a', marginTop: 4, lineHeight: 1.5 }}>
+                            The AI gate needs your business to be 3+ years old with 3 years of revenue on file — no premature businesses, no scams. P&L or tax returns work as proof.
+                          </div>
+                          {openForm === l.id ? (
+                            <FinancialsForm listingId={l.id} onDone={() => { setOpenForm(null); load() }} />
+                          ) : (
+                            <button
+                              onClick={() => setOpenForm(l.id)}
+                              style={{ marginTop: 10, background: '#1a1a2e', color: '#c9a84c', border: 'none', padding: '9px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13 }}
+                            >
+                              Upload financials →
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {(isLive || canReactivate || l.status === 'sold' || l.status === 'withdrawn') && (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+                          {isLive && (
+                            <>
+                              <button onClick={() => setStatus(l, 'sold')} disabled={acting === l.id} style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', padding: '7px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12.5 }}>
+                                Mark as Sold
+                              </button>
+                              <button onClick={() => setStatus(l, 'pause')} disabled={acting === l.id} style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a', padding: '7px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12.5 }}>
+                                Pause
+                              </button>
+                              <button onClick={() => setStatus(l, 'withdraw')} disabled={acting === l.id} style={{ background: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', padding: '7px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12.5 }}>
+                                Withdraw
+                              </button>
+                            </>
+                          )}
+                          {canReactivate && (
+                            <button onClick={() => setStatus(l, 'reactivate')} disabled={acting === l.id} style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', padding: '7px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12.5 }}>
+                              Reactivate
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <span style={{ background: l.status === 'published' || l.status === 'active' ? '#22c55e1a' : l.status === 'pending' ? '#f59e0b1a' : '#94a3b81a', color: l.status === 'published' || l.status === 'active' ? '#15803d' : l.status === 'pending' ? '#b45309' : '#64748b', padding: '5px 14px', borderRadius: 99, fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase' }}>
-                      {l.status}
-                    </span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
               {!canAdd && (
                 <div style={{ fontSize: 13, color: '#888', background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '12px 16px' }}>
@@ -134,5 +239,76 @@ export default function OwnerPortalPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function FinancialsForm({ listingId, onDone }: { listingId: string; onDone: () => void }) {
+  const [establishedYear, setEstablishedYear] = useState('')
+  const [r1, setR1] = useState('')
+  const [r2, setR2] = useState('')
+  const [r3, setR3] = useState('')
+  const [files, setFiles] = useState<FileList | null>(null)
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<{ ok: boolean; message?: string; reasons?: string[] } | null>(null)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!files || files.length === 0) { alert('Please attach at least one financial document (P&L or tax return).'); return }
+    setSending(true)
+    setResult(null)
+    try {
+      const fd = new FormData()
+      fd.append('established_year', establishedYear)
+      fd.append('revenue_year_1', r1)
+      fd.append('revenue_year_2', r2)
+      fd.append('revenue_year_3', r3)
+      Array.from(files).forEach((f) => fd.append('files', f))
+      const res = await fetch(`/api/owner/listings/${listingId}/financials`, { method: 'POST', body: fd })
+      const j = await res.json().catch(() => ({}))
+      setResult({ ok: j.ok, message: j.message, reasons: j.reasons })
+      if (j.ok) setTimeout(onDone, 2500)
+    } catch {
+      setResult({ ok: false, message: 'Network error — please try again.' })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+        <label style={{ fontSize: 12, color: '#555' }}>
+          Est. year *
+          <input className="input" type="number" min={1950} max={2026} required value={establishedYear} onChange={(e) => setEstablishedYear(e.target.value)} style={{ marginTop: 4 }} />
+        </label>
+        <label style={{ fontSize: 12, color: '#555' }}>
+          Revenue 3 yrs ago *
+          <input className="input" type="number" min={1} required value={r1} onChange={(e) => setR1(e.target.value)} style={{ marginTop: 4 }} />
+        </label>
+        <label style={{ fontSize: 12, color: '#555' }}>
+          Revenue 2 yrs ago *
+          <input className="input" type="number" min={1} required value={r2} onChange={(e) => setR2(e.target.value)} style={{ marginTop: 4 }} />
+        </label>
+        <label style={{ fontSize: 12, color: '#555' }}>
+          Revenue last yr *
+          <input className="input" type="number" min={1} required value={r3} onChange={(e) => setR3(e.target.value)} style={{ marginTop: 4 }} />
+        </label>
+      </div>
+      <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.csv" onChange={(e) => setFiles(e.target.files)} style={{ fontSize: 12.5 }} />
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button type="submit" disabled={sending} style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', padding: '9px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>
+          {sending ? 'Submitting…' : 'Submit financials'}
+        </button>
+        <button type="button" onClick={onDone} style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', fontSize: 12.5 }}>Cancel</button>
+      </div>
+      {result && (
+        <div style={{ fontSize: 13, fontWeight: 700, color: result.ok ? '#15803d' : '#b91c1c' }}>
+          {result.ok ? '✅ ' : '❌ '}{result.message || (result.ok ? 'Financials recorded' : 'Failed')}
+          {result.reasons && result.reasons.length > 0 && (
+            <div style={{ fontWeight: 400, marginTop: 4 }}>{result.reasons.join(' · ')}</div>
+          )}
+        </div>
+      )}
+    </form>
   )
 }

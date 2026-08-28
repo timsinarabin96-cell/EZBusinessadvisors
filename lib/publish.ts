@@ -27,6 +27,7 @@ import { sendEmail } from '@/lib/email'
 import { recordSuccessFee } from '@/lib/successFee'
 import { matchPublicSubscriptions } from '@/lib/notifySubscriptions'
 import { assessListingRisk, type RiskReport } from '@/lib/scamDetectionCore'
+import { assessLegitimacy, type LegitimacyReport } from '@/lib/listingLegitimacy'
 import { bestStockImage } from '@/lib/stockImages'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -156,7 +157,7 @@ async function firePublishBlast(listingId: string, agencyId: string): Promise<vo
  * Returns blocked with missing items when the gate fails.
  */
 export async function publishListing(listingId: string, actorProfileId?: string, opts?: { force?: boolean }): Promise<{
-  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }; risk?: { score: number; level: string; reasons: string[] } | null; sellerApproval?: { approved: boolean; reference: string | null }
+  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }; risk?: { score: number; level: string; reasons: string[] } | null; sellerApproval?: { approved: boolean; reference: string | null }; legitimacy?: LegitimacyReport | null
 }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   const { data: listing } = await svc.from('listings').select('*').eq('id', listingId).maybeSingle()
@@ -218,6 +219,74 @@ export async function publishListing(listingId: string, actorProfileId?: string,
     return { ok: false, blocked: true, score: readiness.score, missing: readiness.missing, error: `Readiness ${readiness.score}/100 — below the ${PUBLISH_READINESS_MIN} publish threshold` }
   }
 
+  // ── LEGITIMACY GATE (AI-first anti-scam / anti-premature) ────────────────
+  // Boss's rule: "we don't want premature businesses or scam listings".
+  // Requires 3+ years in business, 3 years of financials on file, a plausible
+  // revenue trend, and a low scam-risk score. Verdicts:
+  //   auto_approved  → publish proceeds (goes active)
+  //   broker_review  → queued for human review in /dashboard/review-queue
+  //   pending        → financials missing → blocked until uploaded
+  //   rejected       → premature/scam → never goes live
+  let risk: RiskReport | null = null
+  let legitimacy: LegitimacyReport | null = null
+  try {
+    const { data: owner } = await svc.from('profiles').select('created_at').eq('id', listing.agent_id).maybeSingle()
+    risk = assessListingRisk({
+      businessName: listing.business_name,
+      headline: listing.headline,
+      description: listing.description,
+      industry: listing.industry,
+      askingPrice: listing.asking_price,
+      annualRevenue: listing.annual_revenue,
+      sde: listing.sde,
+      city: listing.city,
+      state: listing.state,
+      imageCount: Array.isArray(listing.image_urls) ? listing.image_urls.length : 0,
+      listingCreatedAt: listing.created_at,
+      publishedAt: new Date().toISOString(),
+      ownerCreatedAt: owner?.created_at || null,
+      alreadyFlagged: readiness.score < PUBLISH_READINESS_MIN,
+      flagReasons: readiness.score < PUBLISH_READINESS_MIN ? ['low_readiness'] : null,
+    })
+    legitimacy = assessLegitimacy({
+      establishedYear: listing.established_year,
+      revenueYear1: listing.revenue_year_1,
+      revenueYear2: listing.revenue_year_2,
+      revenueYear3: listing.revenue_year_3,
+      scamScore: risk.score,
+      financialsStatus: listing.financials_status,
+    })
+    await svc
+      .from('listings')
+      .update({ legitimacy_score: legitimacy.score, legitimacy_verdict: legitimacy.verdict, ai_reviewed_at: new Date().toISOString() })
+      .eq('id', listingId)
+  } catch {
+    risk = null
+    legitimacy = null // best-effort — never hard-fail a publish on a DB hiccup
+  }
+
+  if (!force && legitimacy && legitimacy.verdict !== 'auto_approved') {
+    const reasons = legitimacy.reasons
+    if (legitimacy.verdict === 'broker_review') {
+      // Human review: leave in draft, move to the broker review queue.
+      try {
+        await svc.from('listings').update({ review_stage: 'pending_review' }).eq('id', listingId)
+      } catch {
+        // best-effort — the block response below is the source of truth
+      }
+      return {
+        ok: false, blocked: true, score: readiness.score,
+        missing: [...(readiness.missing || []), ...reasons],
+        error: `Legitimacy gate: ${reasons[0]} — queued for broker review.`,
+      }
+    }
+    return {
+      ok: false, blocked: true, score: readiness.score,
+      missing: [...(readiness.missing || []), ...reasons],
+      error: `Legitimacy gate: ${reasons[0]}${legitimacy.verdict === 'pending' ? ' — upload 3 years of P&L / tax returns in your owner dashboard to activate.' : ' This listing cannot go live.'}`,
+    }
+  }
+
   // ── SELLER-APPROVAL GATE ───────────────────────────────────────────────
   // Publishing requires the seller to have ACTUALLY approved — a signed
   // seller document (via the Deal Docs portal) or a recorded approval
@@ -259,38 +328,14 @@ export async function publishListing(listingId: string, actorProfileId?: string,
   // Without this, a published listing never appears on the website.
   await syncPublicListingRow(listing, approval.approved ? approval : { approved: true, reference: 'force-publish' })
 
-  // Preventative AI risk gate: newly published listings get scored immediately;
-  // critical risk (>= 75) auto-flags them for admin review — before they can
-  // sit in the marketplace unflagged.
-  let risk: RiskReport | null = null
-  try {
-    const { data: owner } = await svc.from('profiles').select('created_at').eq('id', listing.agent_id).maybeSingle()
-    risk = assessListingRisk({
-      businessName: listing.business_name,
-      headline: listing.headline,
-      description: listing.description,
-      industry: listing.industry,
-      askingPrice: listing.asking_price,
-      annualRevenue: listing.annual_revenue,
-      sde: listing.sde,
-      city: listing.city,
-      state: listing.state,
-      imageCount: Array.isArray(listing.image_urls) ? listing.image_urls.length : 0,
-      listingCreatedAt: listing.created_at,
-      publishedAt: new Date().toISOString(),
-      ownerCreatedAt: owner?.created_at || null,
-      alreadyFlagged: Boolean(flagged),
-      flagReasons: flagged ? ['low_readiness'] : null,
-    })
-    if (risk.score >= 75 && !flagged) {
-      await svc.from('listings').update({ flagged: true, flag_reasons: [`AI: ${risk.score}/100 — ${risk.reasons.slice(0, 3).join('; ')}`] }).eq('id', listingId)
-    }
-  } catch {
-    risk = null // risk gate is best-effort — never hard-fail a publish
+  // Critical-risk listings (>= 75) get auto-flagged for admin review even on
+  // the successful path — before they can sit in the marketplace unflagged.
+  if (risk && risk.score >= 75 && !flagged) {
+    await svc.from('listings').update({ flagged: true, flag_reasons: [`AI: ${risk.score}/100 — ${risk.reasons.slice(0, 3).join('; ')}`] }).eq('id', listingId)
   }
 
   await firePublishBlast(listingId, listing.agency_id)
-  return { ok: true, published: true, score: readiness.score, flagged, compliance, risk: risk ? { score: risk.score, level: risk.level, reasons: risk.reasons } : null }
+  return { ok: true, published: true, score: readiness.score, flagged, compliance, risk: risk ? { score: risk.score, level: risk.level, reasons: risk.reasons } : null, legitimacy: legitimacy ? { verdict: legitimacy.verdict, score: legitimacy.score, reasons: legitimacy.reasons } : null }
 }
 
 /** Ensure the public feed row exists for a published listing. */
