@@ -213,6 +213,13 @@ export default function OwnerPortalPage() {
                         </div>
                       )}
 
+                      {openForm === l.id && (
+                        <FinancialsForm
+                          listingId={l.id}
+                          onDone={() => { setOpenForm(null); load() }}
+                        />
+                      )}
+
                       {(isLive || canReactivate || l.status === 'sold' || l.status === 'withdrawn') && (
                         <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
                           {isLive && (
