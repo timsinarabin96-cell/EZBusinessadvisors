@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageListing, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { publishListing, schedulePublish } from '@/lib/publish'
 import { setExpiry } from '@/lib/listingExpiry'
 
@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
   const listingId = String(body?.listingId || '')
   if (!listingId) return NextResponse.json({ ok: false, error: 'listingId required' }, { status: 400 })
 
-  const { data: listing } = await db.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+  const { data: listing } = await db.from('listings').select('agency_id, agent_id').eq('id', listingId).maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
-  if (!canManageAgency(auth, listing.agency_id)) return forbiddenResponse()
+  if (!canManageListing(auth, listing)) return forbiddenResponse()
 
   // Scheduled publish.
   if (body.scheduleAt) {

@@ -208,6 +208,8 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
   }, [editListingId])
 
   // Auto-save: debounce 1.2s after any change; create draft on first change.
+  // IMPORTANT: status/review_stage are workflow-owned — never re-send them on
+  // update, or a late auto-save would silently unpublish a live listing.
   const persist = useCallback(async (next: IntelligentListingInput) => {
     const snapshot = JSON.stringify(next)
     if (snapshot === lastSaved.current) return
@@ -215,7 +217,8 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
     try {
       const insert = { ...buildListingInsert(next), ai_readiness_score: calculateListingReadiness(next).score }
       if (createdListingId) {
-        await updateListing(createdListingId, insert)
+        const { status: _status, review_stage: _review, ...editable } = insert
+        await updateListing(createdListingId, editable)
       } else {
         const created = await createListing(insert)
         setCreatedListingId(created.id)
@@ -315,7 +318,9 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
       const insert = { ...buildListingInsert(form), ai_readiness_score: readiness.score }
       let listingId = createdListingId
       if (listingId) {
-        await updateListing(listingId, insert)
+        // Same guard as auto-save: never clobber workflow state on edit.
+        const { status: _status, review_stage: _review, ...editable } = insert
+        await updateListing(listingId, editable)
       } else {
         const listing = await createListing(insert)
         listingId = listing.id

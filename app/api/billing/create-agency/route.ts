@@ -61,6 +61,20 @@ export async function POST(req: NextRequest) {
   const name = (body.name || '').trim()
   if (!name) return NextResponse.json({ ok: false, error: 'Agency name is required' }, { status: 400 })
 
+  // Idempotency: if the caller already owns an agency, reuse it instead of
+  // creating a duplicate on every call (double-click / re-run safety).
+  if (authenticated.user.id) {
+    const { data: owned } = await db.from('agency_members')
+      .select('agency_id')
+      .eq('profile_id', authenticated.user.id)
+      .eq('is_owner', true)
+      .limit(1)
+      .maybeSingle()
+    if (owned?.agency_id) {
+      return NextResponse.json({ ok: true, agencyId: owned.agency_id, existing: true, startTrial: false })
+    }
+  }
+
   const tier = body.tier || 'free'
   const startTrial = body.startTrial !== false
   const settings = await getGlobalSettings(db)

@@ -68,6 +68,17 @@ export function canManageAgency(authenticated: AuthenticatedProfileRequest, agen
   return authenticated.memberships.some((membership) => membership.agency_id === agencyId && (membership.is_owner || membership.role === 'admin'))
 }
 
+/**
+ * Mirror of the DB policy `listings_agency_update`: any agency member may
+ * act on a listing they own, and admins/owners may act on any agency listing.
+ */
+export function canManageListing(authenticated: AuthenticatedProfileRequest, listing: { agency_id: string | null; agent_id?: string | null }) {
+  const memberOfAgency = authenticated.memberships.some((membership) => membership.agency_id === listing.agency_id)
+  if (!memberOfAgency) return false
+  if (canManageAgency(authenticated, listing.agency_id ?? '')) return true
+  return !!listing.agent_id && listing.agent_id === authenticated.user.id
+}
+
 export async function canAccessProfile(authenticated: AuthenticatedProfileRequest, profileId: string) {
   if (authenticated.user.id === profileId) return true
   const supabase = createServerClient()
