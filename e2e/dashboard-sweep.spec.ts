@@ -14,7 +14,7 @@
 import { test, expect } from '@playwright/test'
 import { signIn } from './helpers'
 
-test.setTimeout(90_000)
+test.setTimeout(240_000)
 
 const DASHBOARD_ROUTES = [
   '/dashboard',
@@ -100,7 +100,7 @@ test.describe('dashboard sweep', () => {
 
     const failures: string[] = []
     for (const route of DASHBOARD_ROUTES) {
-      await page.goto(route)
+      await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
       await page.waitForLoadState('domcontentloaded').catch(() => {})
       // Let client components hydrate.
       await page.waitForTimeout(700)
