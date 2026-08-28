@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { getStoredAccessToken } from '@/lib/authToken'
 import { CRM_MONTHLY, CRM_ENTERPRISE_MONTHLY } from '@/lib/pricing'
 import { LoadingState } from '@/components/ui'
 
@@ -98,7 +99,7 @@ export default function OwnerPortalPage() {
     try {
       const res = await fetch(`/api/owner/listings/${listing.id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { authorization: `Bearer ${getStoredAccessToken()}`, 'content-type': 'application/json' },
         body: JSON.stringify({ action }),
       })
       const j = await res.json().catch(() => ({}))
@@ -277,7 +278,7 @@ function ProfileVerification({ profile, onVerified }: { profile: { phone?: strin
   const sendCode = async () => {
     setBusy(true); setError('')
     try {
-      const res = await fetch('/api/verify/phone/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) })
+      const res = await fetch('/api/verify/phone/send', { method: 'POST', headers: { authorization: `Bearer ${getStoredAccessToken()}`, 'content-type': 'application/json' }, body: JSON.stringify({ phone }) })
       const j = await res.json().catch(() => ({}))
       if (j.ok) { setStep('code-sent'); if (j.devCode) setCode(j.devCode) }
       else setError(j.error || 'Could not send code')
@@ -287,7 +288,7 @@ function ProfileVerification({ profile, onVerified }: { profile: { phone?: strin
   const confirmCode = async () => {
     setBusy(true); setError('')
     try {
-      const res = await fetch('/api/verify/phone/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, code }) })
+      const res = await fetch('/api/verify/phone/confirm', { method: 'POST', headers: { authorization: `Bearer ${getStoredAccessToken()}`, 'content-type': 'application/json' }, body: JSON.stringify({ phone, code }) })
       const j = await res.json().catch(() => ({}))
       if (j.ok) { setStep('done'); onVerified() }
       else setError(j.error || 'Verification failed')
@@ -299,7 +300,7 @@ function ProfileVerification({ profile, onVerified }: { profile: { phone?: strin
     try {
       const fd = new FormData()
       fd.append('photo', file)
-      const res = await fetch('/api/profile/photo', { method: 'POST', body: fd })
+      const res = await fetch('/api/profile/photo', { method: 'POST', headers: { authorization: `Bearer ${getStoredAccessToken()}` }, body: fd })
       const j = await res.json().catch(() => ({}))
       if (j.ok) { setPhotoDone(true); onVerified() }
       else setError(j.error || 'Photo upload failed')
@@ -366,7 +367,7 @@ function FinancialsForm({ listingId, onDone }: { listingId: string; onDone: () =
       fd.append('revenue_year_2', r2)
       fd.append('revenue_year_3', r3)
       Array.from(files).forEach((f) => fd.append('files', f))
-      const res = await fetch(`/api/owner/listings/${listingId}/financials`, { method: 'POST', body: fd })
+      const res = await fetch(`/api/owner/listings/${listingId}/financials`, { method: 'POST', headers: { authorization: `Bearer ${getStoredAccessToken()}` }, body: fd })
       const j = await res.json().catch(() => ({}))
       setResult({ ok: j.ok, message: j.message, reasons: j.reasons })
       if (j.ok) setTimeout(onDone, 2500)

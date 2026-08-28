@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { authenticateRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 import { rateLimitAsync } from '@/lib/rateLimit'
 import { normalizePhone, generateOtp, hashOtp, sendOtpSms, OTP_TTL_MS } from '@/lib/phoneVerify'
 
@@ -27,8 +28,9 @@ export async function POST(req: NextRequest) {
   const svc = createServerClient()
   if (!svc) return NextResponse.json({ ok: false, error: 'Not configured.' }, { status: 503 })
 
-  const { data: { user } } = await svc.auth.getUser()
-  if (!user?.email) return NextResponse.json({ ok: false, error: 'Sign in required' }, { status: 401 })
+  const auth = await authenticateRequest(req)
+  if (!auth?.user) return unauthorizedResponse('Sign in required')
+  const user = auth.user
 
   let body: any
   try {

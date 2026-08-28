@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { authenticateRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 import { assessLegitimacy, type LegitimacyReport } from '@/lib/listingLegitimacy'
 import { assessListingRisk } from '@/lib/scamDetectionCore'
 
@@ -34,8 +35,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const svc = createServerClient()
   if (!svc) return NextResponse.json({ ok: false, error: 'Not configured.' }, { status: 503 })
 
-  const { data: { user } } = await svc.auth.getUser()
-  if (!user?.email) return NextResponse.json({ ok: false, error: 'Sign in required' }, { status: 401 })
+  const auth = await authenticateRequest(req)
+  if (!auth?.user?.id) return unauthorizedResponse('Sign in required')
+  const user = auth.user
 
   const { data: listing } = await svc.from('listings').select('id, owner_email, business_name, established_year, revenue_year_1, revenue_year_2, revenue_year_3, financials_status').eq('id', id).maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })

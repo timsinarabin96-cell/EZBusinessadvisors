@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { authenticateRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
 export const runtime = 'nodejs'
 
@@ -24,8 +25,9 @@ export async function POST(req: NextRequest) {
   const svc = createServerClient()
   if (!svc) return NextResponse.json({ ok: false, error: 'Not configured.' }, { status: 503 })
 
-  const { data: { user } } = await svc.auth.getUser()
-  if (!user?.id) return NextResponse.json({ ok: false, error: 'Sign in required' }, { status: 401 })
+  const auth = await authenticateRequest(req)
+  if (!auth?.user?.id) return unauthorizedResponse('Sign in required')
+  const userId = auth.user.id
 
   const form = await req.formData().catch(() => null)
   if (!form) return NextResponse.json({ ok: false, error: 'Expected multipart form data' }, { status: 400 })
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest) {
   if (!ALLOWED.has(file.type)) return NextResponse.json({ ok: false, error: 'Unsupported file type.' }, { status: 400 })
 
   const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')
-  const path = `${user.id}/avatar-${Date.now()}.${ext}`
+  const path = `${userId}/avatar-${Date.now()}.${ext}`
   const bytes = new Uint8Array(await file.arrayBuffer())
   const { error: upErr } = await svc.storage.from(BUCKET).upload(path, bytes, {
     contentType: file.type,
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
   const { error: profErr } = await svc
     .from('profiles')
     .update({ avatar_url: url, avatar_thumb_url: url, profile_completed_at: new Date().toISOString() })
-    .eq('id', user.id)
+    .eq('id', userId)
   if (profErr) return NextResponse.json({ ok: false, error: profErr.message }, { status: 500 })
 
   return NextResponse.json({ ok: true, avatarUrl: url, message: 'Profile photo updated.' })
