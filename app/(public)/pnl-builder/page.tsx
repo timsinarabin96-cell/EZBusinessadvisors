@@ -37,7 +37,7 @@ export default function PnlBuilderPage() {
           <div style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 99, background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.45)', color: '#c9a84c', fontSize: 12.5, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             📊 Free · 60 seconds · No uploads needed
           </div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 44, lineHeight: 1.14, margin: '22px 0 14px' }}>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 44, lineHeight: 1.14, margin: '22px 0 14px', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>
             What does a buyer <span style={{ color: '#c9a84c' }}>actually earn</span> from your business?
           </h1>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7, maxWidth: 580, margin: '0 auto' }}>

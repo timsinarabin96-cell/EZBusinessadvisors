@@ -37,7 +37,7 @@ export default function ValuationPage() {
           <div style={{ display: 'inline-block', padding: '7px 16px', borderRadius: 99, background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.45)', color: '#c9a84c', fontSize: 12.5, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             💎 Free · 30 seconds · No obligation
           </div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 46, lineHeight: 1.12, margin: '22px 0 14px' }}>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 46, lineHeight: 1.12, margin: '22px 0 14px', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>
             What is your business <span style={{ color: '#c9a84c' }}>really worth?</span>
           </h1>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7, maxWidth: 560, margin: '0 auto' }}>

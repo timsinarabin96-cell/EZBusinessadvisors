@@ -22,7 +22,7 @@ export default function PricingPage() {
       {/* Header */}
       <section style={{ background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%)', color: '#fff', padding: '72px 24px 56px', textAlign: 'center' }}>
         <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>Pricing</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 5vw, 44px)', margin: '12px 0 10px' }}>Simple Plans. Serious Platform.</h1>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 5vw, 44px)', margin: '12px 0 10px', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>Simple Plans. Serious Platform.</h1>
         <p style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 600, margin: '0 auto', fontSize: 15.5, lineHeight: 1.65 }}>
           Start free as a business owner. Post on our marketplace as a brokerage. Or own the entire CRM on your own domain — your brand, your API keys, your data.
         </p>

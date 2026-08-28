@@ -69,7 +69,7 @@ export default function AgencyHomePage() {
           <div style={{ color: accent, fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>
             {agency?.about ? 'Confidential Business Brokerage' : (agency?.name || 'Agency') + ' — Business Brokerage'}
           </div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 42, fontWeight: 800, margin: '18px 0', lineHeight: 1.15 }}>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 42, fontWeight: 800, margin: '18px 0', lineHeight: 1.15, color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>
             Buy or Sell a <span style={{ color: accent }}>Profitable Business</span>
           </h1>
           {agency?.about && <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, lineHeight: 1.6 }}>{agency.about}</p>}
