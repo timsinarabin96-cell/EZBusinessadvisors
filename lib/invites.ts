@@ -7,7 +7,9 @@
 
 // =============================================================================
 // Invite-link self-onboarding — professionals & brokers fill their own info.
-// The broker sends a magic link (or the person signs up from the website);
+// Agents are invited by their broker: they create their OWN login (email +
+// password) and are bound to the agency with agent-level permissions (own
+// listings only). The broker sends the link via email.
 // the invitee fills name, firm, photo, phone, etc. and it auto-saves to the
 // CRM directory, then appears on the public website. They can subscribe /
 // unsubscribe themselves anytime.
@@ -15,7 +17,7 @@
 
 import { supabase } from '@/lib/supabase/client'
 
-export type InviteTargetType = 'professional' | 'broker'
+export type InviteTargetType = 'professional' | 'broker' | 'agent'
 
 export interface InviteToken {
   id: string

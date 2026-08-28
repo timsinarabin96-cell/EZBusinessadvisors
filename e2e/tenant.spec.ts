@@ -18,7 +18,7 @@
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
-import { signIn } from './helpers'
+import { signIn, submitWizardAndGetListing } from './helpers'
 
 test.setTimeout(240_000)
 
@@ -100,16 +100,7 @@ test.describe('sold CRM → Harbor Acquisitions tenant', () => {
     )
 
     await page.getByRole('button', { name: /Ready — advance to Verify|Create Draft & Start Review/ }).click()
-    const dupModal = page.getByRole('button', { name: 'Continue anyway — create new' })
-    const matchModal = page.getByRole('button', { name: 'Continue to workflow →' })
-    for (let i = 0; i < 40; i++) {
-      if (page.url().includes('listing=')) break
-      if (await dupModal.isVisible({ timeout: 500 }).catch(() => false)) { await dupModal.click(); break }
-      if (await matchModal.isVisible({ timeout: 500 }).catch(() => false)) { await matchModal.click(); break }
-      await page.waitForTimeout(750)
-    }
-    await expect(page).toHaveURL(/\/dashboard\/studio\?.*listing=[0-9a-f-]+/, { timeout: 60_000 })
-    const listingId = new URL(page.url()).searchParams.get('listing')
+    const listingId = await submitWizardAndGetListing(page)
     expect(listingId).toBeTruthy()
 
     // Publish through the real API (force for the test identity; readiness ≥70).
@@ -119,7 +110,7 @@ test.describe('sold CRM → Harbor Acquisitions tenant', () => {
       data: { listingId, force: true },
     })
     const pubBody = await pub.json()
-    expect(pub.ok, `publish failed: ${JSON.stringify(pubBody)}`).toBeTruthy()
+    expect(pub.ok(), `publish failed: ${JSON.stringify(pubBody)}`).toBeTruthy()
     expect(pubBody.published).toBe(true)
 
     // Public marketplace: the TENANT's listing is live.

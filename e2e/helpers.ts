@@ -54,3 +54,30 @@ export async function authHeaders(page: Page): Promise<Record<string, string>> {
   const token = await getAuthToken(page)
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
+
+/**
+ * Robust duplicate-listing modal handler. The wizard's dup guard can re-render
+ * the modal while the test is clicking it (listings accumulate across runs), so
+ * we click with force + retry and never let a detached element fail the test.
+ * Returns the studio listing URL (with ?listing=) once creation lands.
+ */
+export async function submitWizardAndGetListing(page: Page, maxWaitMs = 60_000): Promise<string | null> {
+  const dupModal = page.getByRole('button', { name: 'Continue anyway — create new' })
+  const matchModal = page.getByRole('button', { name: 'Continue to workflow →' })
+  const deadline = Date.now() + maxWaitMs
+  while (Date.now() < deadline) {
+    if (page.url().includes('listing=')) {
+      return new URL(page.url()).searchParams.get('listing')
+    }
+    if (await dupModal.isVisible({ timeout: 400 }).catch(() => false)) {
+      await dupModal.click({ force: true, timeout: 4000 }).catch(() => {})
+      continue
+    }
+    if (await matchModal.isVisible({ timeout: 400 }).catch(() => false)) {
+      await matchModal.click({ force: true, timeout: 4000 }).catch(() => {})
+      continue
+    }
+    await page.waitForTimeout(500)
+  }
+  return page.url().includes('listing=') ? new URL(page.url()).searchParams.get('listing') : null
+}

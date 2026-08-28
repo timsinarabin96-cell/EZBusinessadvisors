@@ -100,7 +100,7 @@ test.describe('full deal lifecycle', () => {
       data: { listingId, force: true },
     })
     const pubBody = await pub.json()
-    expect(pub.ok, `publish failed: ${JSON.stringify(pubBody)}`).toBeTruthy()
+    expect(pub.ok(), `publish failed: ${JSON.stringify(pubBody)}`).toBeTruthy()
     expect(pubBody.published).toBe(true)
     expect(pubBody.risk).toBeTruthy()
     expect(pubBody.score).toBeGreaterThanOrEqual(70)
@@ -169,6 +169,6 @@ test.describe('full deal lifecycle', () => {
       data: { reason: 'test_listing', note: 'Lifecycle e2e cleanup' },
     })
     const delBody = await del.json().catch(() => ({}))
-    expect(del.ok || delBody.ok, `cleanup failed: ${JSON.stringify(delBody)}`).toBeTruthy()
+    expect(del.ok() || delBody.ok, `cleanup failed: ${JSON.stringify(delBody)}`).toBeTruthy()
   })
 })

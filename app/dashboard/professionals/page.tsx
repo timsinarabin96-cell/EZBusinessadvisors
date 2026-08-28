@@ -130,17 +130,22 @@ export default function ProfessionalsManagerPage() {
   const [inviteUrl, setInviteUrl] = useState('')
   const [inviting, setInviting] = useState(false)
 
-  const invite = async () => {
+  const invite = async (targetType: 'professional' | 'agent' = 'professional') => {
     setInviting(true)
     try {
       const res = await fetch('/api/invites', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetType: 'professional', email: inviteEmail.trim() || undefined }),
+        body: JSON.stringify({ targetType, email: inviteEmail.trim() || undefined }),
       })
       const j = await res.json()
       if (!j.ok) throw new Error(j.error || 'Failed to create invite')
       setInviteUrl(j.url)
-      toast(inviteEmail.trim() ? 'Invite sent — they fill in their own profile 📬' : 'Invite link created — copy & send it 🔗', 'success')
+      toast(
+        inviteEmail.trim()
+          ? (targetType === 'agent' ? 'Agent invited — they create their own login 📬' : 'Invite sent — they fill in their own profile 📬')
+          : 'Invite link created — copy & send it 🔗',
+        'success',
+      )
     } catch (err: any) {
       toast(err.message || 'Failed to create invite', 'error')
     } finally {
@@ -166,8 +171,11 @@ export default function ProfessionalsManagerPage() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => setShowInvite(true)} style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', padding: '11px 20px', borderRadius: 8, cursor: 'pointer' }}>
+            <button onClick={() => { setInviteEmail(''); setInviteUrl(''); setShowInvite(true); }} style={{ background: 'var(--navy)', color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', padding: '11px 20px', borderRadius: 8, cursor: 'pointer' }}>
               🔗 Invite via link
+            </button>
+            <button onClick={() => { setInviteEmail(''); setInviteUrl(''); invite('agent') }} disabled={inviting} style={{ background: 'transparent', color: 'var(--navy)', fontWeight: 700, fontSize: 14, border: '2px solid var(--navy)', padding: '9px 18px', borderRadius: 8, cursor: inviting ? 'wait' : 'pointer' }}>
+              👥 Invite Agent
             </button>
             <button onClick={startCreate} style={{ background: 'linear-gradient(135deg, var(--gold), var(--gold-dark))', color: 'var(--navy)', fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 14, border: 'none', padding: '11px 20px', borderRadius: 8, cursor: 'pointer' }}>
               + Add Professional
@@ -193,7 +201,7 @@ export default function ProfessionalsManagerPage() {
                 placeholder="their email (optional — we send the link)"
                 style={{ flex: '1 1 260px', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14 }}
               />
-              <button onClick={invite} disabled={inviting} style={{ background: '#0e7490', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, cursor: inviting ? 'wait' : 'pointer', fontSize: 14 }}>
+              <button onClick={() => invite('professional')} disabled={inviting} style={{ background: '#0e7490', color: '#fff', border: 'none', borderRadius: 8, padding: '11px 20px', fontWeight: 700, cursor: inviting ? 'wait' : 'pointer', fontSize: 14 }}>
                 {inviting ? 'Creating…' : 'Create invite link'}
               </button>
             </div>

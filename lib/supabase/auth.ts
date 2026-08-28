@@ -69,13 +69,24 @@ export function canManageAgency(authenticated: AuthenticatedProfileRequest, agen
 }
 
 /**
+ * Team management: owner / admin / broker (principal). The broker runs the
+ * agency's deal flow — they can invite agents, and manage any listing in
+ * their agency (mirror of the boss's own role at EZ). Agents stay scoped to
+ * their own listings only.
+ */
+export function canManageTeam(authenticated: AuthenticatedProfileRequest, agencyId: string) {
+  return authenticated.memberships.some((membership) => membership.agency_id === agencyId && (membership.is_owner || membership.role === 'admin' || membership.role === 'broker'))
+}
+
+/**
  * Mirror of the DB policy `listings_agency_update`: any agency member may
- * act on a listing they own, and admins/owners may act on any agency listing.
+ * act on a listing they own, and admins/owners/brokers may act on any agency
+ * listing (broker = the principal who runs the team).
  */
 export function canManageListing(authenticated: AuthenticatedProfileRequest, listing: { agency_id: string | null; agent_id?: string | null }) {
   const memberOfAgency = authenticated.memberships.some((membership) => membership.agency_id === listing.agency_id)
   if (!memberOfAgency) return false
-  if (canManageAgency(authenticated, listing.agency_id ?? '')) return true
+  if (canManageTeam(authenticated, listing.agency_id ?? '')) return true
   return !!listing.agent_id && listing.agent_id === authenticated.user.id
 }
 

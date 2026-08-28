@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, canManageAgency, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageTeam, unauthorizedResponse } from '@/lib/supabase/auth'
 import { createInviteToken } from '@/lib/invites'
 import { sendEmail } from '@/lib/email'
 
@@ -29,14 +29,21 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() } catch { return NextResponse.json({ ok: false, error: 'Invalid body' }, { status: 400 }) }
 
   const targetType = String(body?.targetType || 'professional')
-  if (targetType !== 'professional' && targetType !== 'broker') {
-    return NextResponse.json({ ok: false, error: 'targetType must be professional or broker' }, { status: 400 })
+  if (targetType !== 'professional' && targetType !== 'broker' && targetType !== 'agent') {
+    return NextResponse.json({ ok: false, error: 'targetType must be professional, broker, or agent' }, { status: 400 })
   }
   const agencyId = String(body?.agencyId || auth.memberships?.[0]?.agency_id || '').trim() || null
-  if (agencyId && !canManageAgency(auth, agencyId)) {
+  if (agencyId && !canManageTeam(auth, agencyId)) {
     return NextResponse.json({ ok: false, error: 'Not allowed for this agency' }, { status: 403 })
   }
   const email = String(body?.email || '').trim() || null
+
+  // Resolve agency name for the invite email (agent invites say who invited you).
+  let agencyName = 'the team'
+  if (agencyId) {
+    const { data: ag } = await db.from('agencies').select('name').eq('id', agencyId).maybeSingle()
+    if (ag?.name) agencyName = ag.name
+  }
 
   const invite = await createInviteToken({
     target_type: targetType,
@@ -52,11 +59,15 @@ export async function POST(req: NextRequest) {
 
   // Optional: email the invite directly.
   if (email) {
-    const label = targetType === 'broker' ? 'broker profile' : 'professional profile'
+    const label = targetType === 'broker' ? 'broker profile' : targetType === 'agent' ? 'your agent account' : 'professional profile'
+    const heading = targetType === 'agent' ? 'Your broker invited you to the team' : "You're invited to join our directory"
+    const body = targetType === 'agent'
+      ? `<h2>${heading}</h2><p><strong>${(auth.profile as any).full_name || 'Your broker'}</strong> invited you to join <strong>${agencyName}</strong> on Concord.</p><p>Create your own login (email + password) — you'll get access to the team CRM and your own listings.</p><p><a href="${url}" style="display:inline-block;padding:12px 22px;background:#0e7490;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">Accept invitation →</a></p><p style="font-size:12px;color:#888;">This link is unique to you and expires in 30 days.</p>`
+      : `<h2>${heading}</h2><p>Fill in your ${label} (takes 2 minutes — add your photo, contact info, and specialties) and you'll appear in our public network where buyers and brokers can reach you directly.</p><p><a href="${url}" style="display:inline-block;padding:12px 22px;background:#0e7490;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">Accept invitation →</a></p><p style="font-size:12px;color:#888;">You can unsubscribe yourself anytime from your profile.</p>`
     await sendEmail({
       to: email,
-      subject: `You're invited to join our directory`,
-      html: `<h2>You're invited 🎉</h2><p>Fill in your ${label} (takes 2 minutes — add your photo, contact info, and specialties) and you'll appear in our public network where buyers and brokers can reach you directly.</p><p><a href="${url}" style="display:inline-block;padding:12px 22px;background:#0e7490;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">Accept invitation →</a></p><p style="font-size:12px;color:#888;">You can unsubscribe yourself anytime from your profile.</p>`,
+      subject: targetType === 'agent' ? `You're invited to join ${agencyName} on Concord` : "You're invited to join our directory",
+      html: body,
       kind: 'generic',
     }).catch(() => {})
   }

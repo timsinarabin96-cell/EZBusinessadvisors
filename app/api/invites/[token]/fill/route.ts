@@ -37,6 +37,64 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   const agencyId = invite.agency_id || null
 
   try {
+    // Agent invite → create their OWN login (email + password), profile, and
+    // agency membership. The email is locked to the invite's email when set.
+    if (invite.target_type === 'agent') {
+      const name = String(data.name || '').trim()
+      const email = String(data.email || invite.email || '').trim().toLowerCase()
+      const password = String(data.password || '')
+      if (!name) return NextResponse.json({ ok: false, error: 'Full name is required' }, { status: 400 })
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ ok: false, error: 'A valid email is required' }, { status: 400 })
+      if (invite.email && invite.email.toLowerCase() !== email) {
+        return NextResponse.json({ ok: false, error: 'This invite is for a specific email — use the address it was sent to' }, { status: 400 })
+      }
+      if (password.length < 8) return NextResponse.json({ ok: false, error: 'Password must be at least 8 characters' }, { status: 400 })
+
+      // Create the auth user (service role) — email confirmed immediately so
+      // they can sign in right away.
+      const { data: created, error: createErr } = await db.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: name, invited_by: invite.created_by },
+      })
+      if (createErr) {
+        const msg = String(createErr.message || '')
+        if (/already registered|already been registered|exists/i.test(msg)) {
+          return NextResponse.json({ ok: false, error: 'That email already has an account — ask your broker to resend the invite to a different address' }, { status: 409 })
+        }
+        return NextResponse.json({ ok: false, error: createErr.message }, { status: 500 })
+      }
+      const userId = created.user.id
+
+      // Profile row (agent role) — mirrors how the broker adds a team member.
+      const { error: pErr } = await db.from('profiles').upsert({
+        id: userId,
+        email,
+        full_name: name,
+        role: 'agent',
+        status: 'active',
+        avatar_url: String(data.avatar_url || '').trim() || null,
+      }, { onConflict: 'id' })
+      if (pErr) return NextResponse.json({ ok: false, error: pErr.message }, { status: 500 })
+
+      // Agency membership — agent role, own listings only (RLS enforces).
+      if (agencyId) {
+        const { error: mErr } = await db.from('agency_members').insert({
+          agency_id: agencyId,
+          profile_id: userId,
+          role: 'agent',
+          is_owner: false,
+        })
+        if (mErr && !/duplicate|unique/i.test(String(mErr.message))) {
+          return NextResponse.json({ ok: false, error: mErr.message }, { status: 500 })
+        }
+      }
+
+      await db.from('invite_tokens').update({ status: 'filled', target_id: userId, filled_at: new Date().toISOString() }).eq('token', token)
+      return NextResponse.json({ ok: true, id: userId, targetType: 'agent' })
+    }
+
     if (invite.target_type === 'professional') {
       const { data: row, error } = await db.from('deal_professionals').insert({
         agency_id: agencyId,

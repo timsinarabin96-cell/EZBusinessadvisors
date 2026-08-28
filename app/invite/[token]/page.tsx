@@ -61,6 +61,7 @@ export default function InvitePage() {
     industries: '', states_served: 'US', license_number: '', license_state: '',
     years_experience: '', deals_closed: '', bio: '', rates: '', website: '', email: '', phone: '',
     expertise: '', markets: '', credentials: '', linkedin: '', closed_deals_count: '',
+    password: '',
   })
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
 
@@ -101,7 +102,10 @@ export default function InvitePage() {
     if (photo && !avatarUrl) { setBusy(false); return }
 
     const isBroker = invite?.target_type === 'broker'
-    const data = isBroker
+    const isAgent = invite?.target_type === 'agent'
+    const data = isAgent
+      ? { name: form.name, email: form.email || invite?.email || '', password: form.password, avatar_url: avatarUrl }
+      : isBroker
       ? {
           name: form.name, title: form.title, bio: form.bio, phone: form.phone, email: form.email,
           linkedin: form.linkedin, avatar_url: avatarUrl,
@@ -160,36 +164,50 @@ export default function InvitePage() {
 
   if (saved) {
     const isBroker = invite?.target_type === 'broker'
+    const isAgent = invite?.target_type === 'agent'
     return (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'linear-gradient(160deg,#0f3460,#1a1a2e)', padding: 24 }}>
         <div style={{ background: '#fff', borderRadius: 18, padding: '40px 36px', maxWidth: 460, textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
           <div style={{ fontSize: 46, marginBottom: 10 }}>🎉</div>
           <h1 style={{ margin: '0 0 8px', fontFamily: 'Georgia, serif', fontSize: 24, color: '#1a1a2e' }}>You&apos;re in!</h1>
           <p style={{ color: '#666', fontSize: 14.5, lineHeight: 1.6, margin: '0 0 18px' }}>
-            Your {isBroker ? 'broker profile' : 'professional profile'} was saved and {active ? 'is now visible' : 'is currently hidden'} on the website — buyers and brokers can reach you directly.
+            {isAgent
+              ? 'Your agent account is ready — sign in with the email and password you just created to open your team workspace.'
+              : `Your ${isBroker ? 'broker profile' : 'professional profile'} was saved and ${active ? 'is now visible' : 'is currently hidden'} on the website — buyers and brokers can reach you directly.`}
           </p>
           <div style={{ display: 'grid', gap: 10, marginBottom: 14 }}>
-            <button onClick={() => toggleActive(!active)} style={{ padding: '12px', borderRadius: 8, border: '1px solid #d8d4c6', background: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-              {active ? '🙈 Unsubscribe (hide my profile)' : '✅ Subscribe (show my profile)'}
-            </button>
-            <a href={isBroker ? '/marketplace/brokers' : '/marketplace/professionals'} style={{ padding: '12px', borderRadius: 8, background: '#0e7490', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
-              View the directory →
-            </a>
+            {isAgent ? (
+              <a href="/auth" style={{ padding: '12px', borderRadius: 8, background: '#0e7490', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+                Sign in to your workspace →
+              </a>
+            ) : (
+              <button onClick={() => toggleActive(!active)} style={{ padding: '12px', borderRadius: 8, border: '1px solid #d8d4c6', background: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                {active ? '🙈 Unsubscribe (hide my profile)' : '✅ Subscribe (show my profile)'}
+              </button>
+            )}
+            {!isAgent && (
+              <a href={isBroker ? '/marketplace/brokers' : '/marketplace/professionals'} style={{ padding: '12px', borderRadius: 8, background: '#0e7490', color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+                View the directory →
+              </a>
+            )}
           </div>
-          <div style={{ fontSize: 12, color: '#999' }}>You can subscribe/unsubscribe yourself anytime using this link.</div>
+          {!isAgent && <div style={{ fontSize: 12, color: '#999' }}>You can subscribe/unsubscribe yourself anytime using this link.</div>}
         </div>
       </div>
     )
   }
 
   const isBroker = invite?.target_type === 'broker'
+  const isAgent = invite?.target_type === 'agent'
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg,#f7f5ee,#e9e6da)', padding: '40px 16px' }}>
       <div style={{ maxWidth: 640, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 26 }}>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, fontWeight: 800, color: '#1a1a2e' }}>You&apos;re invited 🎉</div>
           <div style={{ color: '#666', fontSize: 14, marginTop: 6 }}>
-            {isBroker ? 'Build your public broker profile' : 'Join the professional services network'} — fill this in yourself, it takes 2 minutes.
+            {isAgent
+              ? 'Your broker invited you to the team — create your own login (takes 1 minute).'
+              : `${isBroker ? 'Build your public broker profile' : 'Join the professional services network'} — fill this in yourself, it takes 2 minutes.`}
           </div>
         </div>
 
@@ -214,6 +232,22 @@ export default function InvitePage() {
             {field('Full name', true)}
             <input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Jane Smith" style={inputStyle} required />
 
+            {isAgent ? (
+              <>
+                <div style={{ marginTop: 14 }}>
+                  {field('Email (your login)', true)}
+                  <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder={invite?.email || 'you@firm.com'} style={inputStyle} required />
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  {field('Create a password', true)}
+                  <input type="password" value={form.password} onChange={(e) => set('password', e.target.value)} placeholder="At least 8 characters" style={inputStyle} required minLength={8} />
+                </div>
+                <div style={{ marginTop: 8, fontSize: 12, color: '#999' }}>
+                  🔐 You&apos;ll sign in with this email + password. Your access is scoped to your own listings and team tools.
+                </div>
+              </>
+            ) : (
+              <>
             {!isBroker && (
               <div style={{ marginTop: 14 }}>
                 {field('Professional type', true)}
@@ -278,7 +312,11 @@ export default function InvitePage() {
               {field('Short bio')}
               <textarea value={form.bio} onChange={(e) => set('bio', e.target.value)} rows={3} placeholder="A sentence or two about your experience…" style={{ ...inputStyle, resize: 'vertical' }} />
             </div>
+              </>
+            )}
 
+            {!isAgent && (
+            <>
             {/* Subscribe toggle */}
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '18px 0', cursor: 'pointer', fontSize: 14, color: '#333' }}>
               <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} style={{ width: 16, height: 16 }} />
@@ -291,6 +329,13 @@ export default function InvitePage() {
             <div style={{ marginTop: 10, fontSize: 12, color: '#999', textAlign: 'center' }}>
               You can unsubscribe yourself anytime — no emails, no calls, no pressure.
             </div>
+            </>
+            )}
+            {isAgent && (
+              <button type="submit" disabled={busy || uploading} style={{ width: '100%', padding: '14px', borderRadius: 10, background: '#0e7490', color: '#fff', border: 'none', fontWeight: 800, fontSize: 15, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
+                {busy ? 'Creating your account…' : 'Create my account →'}
+              </button>
+            )}
           </form>
         </div>
       </div>
