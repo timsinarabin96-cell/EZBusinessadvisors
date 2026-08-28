@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   let query = db
     .from('call_sessions')
-    .select('id, provider, direction, status, caller_number, destination_number, caller_name, purpose, listing_id, deal_id, assigned_to, summary, sentiment, qualification_score, started_at, ended_at, duration_seconds, transferred_to, created_at, listings(id, business_name, listing_ref), appointments(id, title, starts_at), reminders(id, title, status)')
+    .select('id, provider, direction, status, caller_number, destination_number, caller_name, purpose, listing_id, deal_id, assigned_to, summary, sentiment, qualification_score, started_at, ended_at, duration_seconds, transferred_to, created_at, listings(id, business_name, listing_ref), appointments(id, title, starts_at)')
     .eq('agency_id', agencyId)
     .gte('started_at', new Date(Date.now() - hours * 3600000).toISOString())
     .order('started_at', { ascending: false })

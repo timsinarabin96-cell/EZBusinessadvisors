@@ -121,8 +121,10 @@ export async function fetchLeadFunnel(): Promise<FunnelPoint[]> {
 // --- Revenue / commission over time -----------------------------------------
 export async function fetchRevenueSeries(): Promise<RevenueSeries[]> {
   try {
-    // Commission rows (schedule required) — degrade if table missing.
-    const { data } = await supabase.from('commissions').select('amount, commission_amount, created_at')
+    // Commission rows from commission_records (agency-scoped). Degrade if missing.
+    const { data } = await supabase
+      .from('commission_records')
+      .select('amount, commission_pct, created_at, status')
     const rows = (data || []) as any[]
     if (rows.length === 0) {
       // Fall back to deals purchase_price as "revenue" proxy.
@@ -143,8 +145,8 @@ export async function fetchRevenueSeries(): Promise<RevenueSeries[]> {
       if (!r.created_at) continue
       const m = monthKey(r.created_at)
       byMonth[m] = byMonth[m] || { month: m, revenue: 0, commissions: 0 }
-      byMonth[m].revenue += fmt(r.amount || r.purchase_price)
-      byMonth[m].commissions += fmt(r.commission_amount)
+      byMonth[m].revenue += fmt(r.amount || 0)
+      byMonth[m].commissions += fmt((r.amount || 0) * ((r.commission_pct || 0) / 100))
     }
     return Object.values(byMonth).map((r) => ({ ...r, revenue: Math.round(r.revenue), commissions: Math.round(r.commissions) }))
       .sort((a, b) => sortMonths(a.month, b.month))
@@ -156,18 +158,20 @@ export async function fetchRevenueSeries(): Promise<RevenueSeries[]> {
 // --- Broker performance -------------------------------------------------------
 export async function fetchBrokerPerformance(): Promise<BrokerPerformance[]> {
   try {
-    // Requires commissions.agent_name. Degrade to deals grouped by agent via
-    // the commission table when available; otherwise return empty-like summary.
-    const { data } = await supabase.from('commissions').select('agent_name, amount, commission_amount, status')
+    // Requires commission_records joined to profiles for the agent name.
+    const { data } = await supabase
+      .from('commission_records')
+      .select('amount, commission_pct, status, agent_profile_id, profiles!commission_records_agent_profile_id_fkey(full_name, email)')
     const rows = (data || []) as any[]
     if (rows.length === 0) return []
     const byAgent: Record<string, BrokerPerformance> = {}
     for (const r of rows) {
-      const n = r.agent_name || 'Unassigned'
+      const prof = r.profiles || {}
+      const n = prof.full_name || prof.email || 'Unassigned'
       byAgent[n] = byAgent[n] || { name: n, deals: 0, revenue: 0, commissions: 0 }
       byAgent[n].deals += 1
-      byAgent[n].revenue += fmt(r.amount || r.purchase_price)
-      byAgent[n].commissions += fmt(r.commission_amount)
+      byAgent[n].revenue += fmt(r.amount || 0)
+      byAgent[n].commissions += fmt((r.amount || 0) * ((r.commission_pct || 0) / 100))
     }
     return Object.values(byAgent).map((a) => ({ ...a, revenue: Math.round(a.revenue), commissions: Math.round(a.commissions) }))
       .sort((a, b) => b.commissions - a.commissions)

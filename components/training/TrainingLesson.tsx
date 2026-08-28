@@ -19,6 +19,7 @@ import TrainingQuiz from './TrainingQuiz'
 import TrainingTutor from './TrainingTutor'
 import TrainingSlides from './TrainingSlides'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
+import { getBrokerId } from '@/lib/trainingBrokerId'
 
 export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: string; lessonId: string }) {
   const [lesson, setLesson] = useState<TrainingLesson | null>(null)
@@ -30,7 +31,7 @@ export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: s
 
   useEffect(() => {
     (async () => {
-      const brokerId = getBrokerId()
+      const brokerId = await getBrokerId()
       // Load the lesson (+ quiz) independently so the RLS-affected anon
       // progress fetch can't blank out the whole page when it fails.
       let l: TrainingLesson | null = null
@@ -64,7 +65,7 @@ export default function TrainingLessonView({ moduleId, lessonId }: { moduleId: s
 
   const handleQuizPass = async (score: number) => {
     try {
-      const brokerId = getBrokerId()
+      const brokerId = await getBrokerId()
       await markLessonComplete(brokerId, lesson.id, score >= 80 ? 5 : 4)
       const m = await import('@/lib/training')
       const lessons = await m.fetchLessons(lesson.module_id)
@@ -181,11 +182,3 @@ function embedVideo(url: string) {
   }
 }
 
-function getBrokerId(): string {
-  if (typeof window === 'undefined') return ''
-  const stored = window.localStorage.getItem('concord_broker_id')
-  if (stored) return stored
-  const id = 'broker-' + Math.random().toString(36).slice(2, 10)
-  window.localStorage.setItem('concord_broker_id', id)
-  return id
-}

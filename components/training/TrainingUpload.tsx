@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { fetchModules, createUpload, TrainingModule } from '@/lib/training'
 import { useToast } from '@/components/ui/Toast'
+import { getBrokerId } from '@/lib/trainingBrokerId'
 
 export default function TrainingUpload() {
   const [modules, setModules] = useState<TrainingModule[]>([])
@@ -41,7 +42,7 @@ export default function TrainingUpload() {
     if (!title.trim()) { toast('Enter a title.', 'error'); return }
     setUploading(true)
     try {
-      const brokerId = getBrokerId()
+      const brokerId = await getBrokerId()
       let url = fileUrl
       if (pickedFile) {
         const path = `training/${brokerId}/${Date.now()}_${pickedFile.name}`
@@ -115,11 +116,3 @@ export default function TrainingUpload() {
   )
 }
 
-function getBrokerId(): string {
-  if (typeof window === 'undefined') return ''
-  const stored = window.localStorage.getItem('concord_broker_id')
-  if (stored) return stored
-  const id = 'broker-' + Math.random().toString(36).slice(2, 10)
-  window.localStorage.setItem('concord_broker_id', id)
-  return id
-}

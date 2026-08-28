@@ -14,6 +14,7 @@ import {
   fetchModules, fetchProgress, fetchCertificates, fetchUploads, ensureProgramCertificate,
 } from '@/lib/training'
 import { Card, CardHeader, StatCard, LoadingState, EmptyState, Badge } from '@/components/ui'
+import { getBrokerId } from '@/lib/trainingBrokerId'
 import TrainingCertificatesSection from './TrainingCertificatesSection'
 import TrainingGamificationCard from './TrainingGamificationCard'
 import TrainingSimulator from './TrainingSimulator'
@@ -49,8 +50,8 @@ export default function TrainingDashboard() {
         return fallback
       })
       const [p, c, u] = await Promise.all([
-        safe(fetchProgress(getBrokerId()), []),
-        safe(fetchCertificates(getBrokerId()), []),
+        safe(fetchProgress(await getBrokerId()), []),
+        safe(fetchCertificates(await getBrokerId()), []),
         safe(fetchUploads(), []),
       ])
       setProgress(p)
@@ -59,7 +60,7 @@ export default function TrainingDashboard() {
 
       // Auto-issue the full CBI program certificate when all modules are
       // certified — the “Business Intermediary Course Completion” award.
-      const prog = await safe(ensureProgramCertificate(getBrokerId()), null)
+      const prog = await safe(ensureProgramCertificate(await getBrokerId()), null)
       if (prog) setProgramCert(prog)
     })()
   }, [])
@@ -225,14 +226,6 @@ function fileIcon(t: string) {
   return map[t] || '📄'
 }
 
-// NOTE: replace with real current-user profile id passed from the page for
-// multi-broker correctness. Falls back to a local-storage stub so the demo
-// renders without auth wiring.
-export function getBrokerId(): string {
-  if (typeof window === 'undefined') return ''
-  const stored = window.localStorage.getItem('concord_broker_id')
-  if (stored) return stored
-  const id = 'broker-' + Math.random().toString(36).slice(2, 10)
-  window.localStorage.setItem('concord_broker_id', id)
-  return id
-}
+// Real broker id = the signed-in user's profile id (UUID). Falls back to a
+// local-storage stub ONLY for the anonymous demo view so it renders without
+// auth wiring — never used for DB queries when signed in.
