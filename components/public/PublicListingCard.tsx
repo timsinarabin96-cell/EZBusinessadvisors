@@ -99,6 +99,7 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
             {listing.sba_qualified === false && <BadgeTone color="#64748b">Not SBA</BadgeTone>}
             {listing.seller_financing_available && <BadgeTone color="#0e7490">Financing</BadgeTone>}
             {listing.revenue_verified && <BadgeTone color="#1e7e34">Verified Revenue</BadgeTone>}
+            {listing.seller_verified && <BadgeTone color="#0e7490">🛡️ Identity Verified</BadgeTone>}
             {listing.is_absentee_owner && <BadgeTone color="#15803d">Absentee</BadgeTone>}
             {listing.is_franchise && <BadgeTone color="#7c3aed">Franchise</BadgeTone>}
             {listing.is_relocatable && <BadgeTone color="#b45309">Relocatable</BadgeTone>}

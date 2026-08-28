@@ -229,6 +229,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
   //   rejected       → premature/scam → never goes live
   let risk: RiskReport | null = null
   let legitimacy: LegitimacyReport | null = null
+  let sellerVerified = false
   try {
     const { data: owner } = await svc.from('profiles').select('created_at').eq('id', listing.agent_id).maybeSingle()
     risk = assessListingRisk({
@@ -286,6 +287,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
         error: `Identity gate: ${missing[0]}`,
       }
     }
+    sellerVerified = true
   }
 
   if (!force && legitimacy && legitimacy.verdict !== 'auto_approved') {
@@ -343,6 +345,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
       published_by: actorProfileId || null,
       flagged: flagged || undefined,
       flag_reasons: flagged ? ['low_readiness', `readiness ${readiness.score}/100`, ...(readiness.missing || [])] : [],
+      seller_verified: sellerVerified || undefined,
     })
     .eq('id', listingId)
   if (error) return { ok: false, error: error.message }
@@ -394,6 +397,7 @@ async function syncPublicListingRow(listing: any, approval?: { approved: boolean
     location_exposure: 'general',
     seller_approved_at: approval?.approved ? now : null,
     seller_approval_reference: approval?.approved ? (approval.reference || 'portal-signed') : null,
+    seller_verified: Boolean(listing.seller_verified),
   }
   const { data: existing } = await svc.from('public_listings').select('id').eq('listing_id', listing.id).maybeSingle()
   if (existing) {

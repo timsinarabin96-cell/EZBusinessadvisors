@@ -183,6 +183,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
           {listing.vetted && <span style={{ background: '#0e7490', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🏅 Vetted</span>}
           {listing.sba_qualified === true && <span style={{ background: '#0e7490', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🏦 SBA Qualified</span>}
           {listing.sba_qualified === false && <span style={{ background: '#64748b', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>Not SBA Qualified</span>}
+          {listing.seller_verified && <span style={{ background: '#0e7490', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🛡️ Identity Verified Seller</span>}
           {listing.revenue_verified && <span style={{ background: '#1e7e34', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>✅ Verified Revenue</span>}
         </div>
 

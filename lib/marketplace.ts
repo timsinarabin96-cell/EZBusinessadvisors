@@ -49,6 +49,7 @@ export interface PublicMarketplaceListing {
   country_code?: string | null
   currency_code?: string | null
   revenue_verified?: boolean
+  seller_verified?: boolean
   vetted?: boolean
   status?: string | null
   sba_qualified?: boolean | null
@@ -96,6 +97,7 @@ interface PublicListingFeedRow {
   country_code?: string | null
   currency_code?: string | null
   revenue_verified?: boolean | null
+  seller_verified?: boolean | null
 }
 
 export interface MarketplaceStats {
@@ -181,6 +183,7 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     country_code: row.country_code || null,
     currency_code: row.currency_code || 'USD',
     revenue_verified: Boolean(row.revenue_verified),
+    seller_verified: Boolean(row.seller_verified),
     vetted: Boolean(row.vetted),
     status: row.status || null,
     sba_qualified: row.sba_qualified ?? null,
