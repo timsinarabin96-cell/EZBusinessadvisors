@@ -45,6 +45,13 @@ export const metadata: Metadata = {
     type: 'website',
     url: BASE,
     siteName: 'Concord Deal Platform',
+    images: [{ url: `${BASE}/icons/icon-512.png`, width: 512, height: 512, alt: APP_NAME }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${APP_NAME} — Buy or Sell a Business`,
+    description: 'Confidential business-for-sale marketplace. Vetted listings, recast financials, broker-valued.',
+    images: [`${BASE}/icons/icon-512.png`],
   },
 }
 
@@ -66,11 +73,21 @@ export default async function HomePage() {
     url: BASE,
     description: 'Confidential business brokerage — buy or sell an established, profitable business.',
   }
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ_ITEMS.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  }
 
   return (
     <div>
       <AuthRedirect />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqLd) }} />
 
       {/* ══ HERO — premium animated band ══ */}
       <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 45%,#0f3460 100%)', color: '#fff', padding: '84px 24px 72px', position: 'relative', overflow: 'hidden' }}>
@@ -268,6 +285,27 @@ export default async function HomePage() {
         )}
       </section>
 
+      {/* ══ FAQ — SEO + buyer/seller objections ══ */}
+      <section style={{ maxWidth: 860, margin: '0 auto', padding: '56px 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>FAQ</div>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 30, color: '#1a1a2e', margin: '8px 0 0' }}>Questions, Answered</h2>
+        </div>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {FAQ_ITEMS.map((f) => (
+            <details key={f.q} style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: '18px 22px' }}>
+              <summary style={{ cursor: 'pointer', fontSize: 15.5, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif', listStyle: 'none' }}>
+                <span style={{ color: '#c9a84c', marginRight: 10 }}>▸</span>{f.q}
+              </summary>
+              <p style={{ fontSize: 14, color: '#666', lineHeight: 1.7, margin: '12px 0 0', paddingLeft: 26 }}>{f.a}</p>
+            </details>
+          ))}
+        </div>
+        <p style={{ textAlign: 'center', fontSize: 13.5, color: '#888', marginTop: 24 }}>
+          Still have questions? <Link href="/contact" style={{ color: '#c9a84c', fontWeight: 700 }}>Talk to a broker</Link> — no obligation, fully confidential.
+        </p>
+      </section>
+
       {/* ══ CTA BAND ══ */}
       <section style={{ background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%)', color: '#fff', padding: '56px 24px', textAlign: 'center' }}>
         <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 30, margin: '0 0 10px', color: '#fff' }}>Ready to Make Your Move?</h2>
@@ -381,6 +419,33 @@ function Feature({ icon, title, body }: { icon: string; title: string; body: str
 function slugify(industry: string): string {
   return industry.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
+
+const FAQ_ITEMS = [
+  {
+    q: 'How do I know a listing is legit?',
+    a: 'Every listing passes a quality and compliance review before going live. Financials are recast to true earning power, and each business carries a broker opinion of value backed by market comparables.',
+  },
+  {
+    q: 'Is my identity protected as a buyer?',
+    a: 'Yes. Listings display limited details until you complete a quick qualification and sign an NDA. Only then are confidential financials and the business name released — and only to qualified buyers.',
+  },
+  {
+    q: 'Can I sell my business confidentially?',
+    a: 'Absolutely. We market your business discreetly to pre-qualified buyers only. Your business name, location, and staff are never exposed until you approve a specific buyer.',
+  },
+  {
+    q: 'What does a free valuation include?',
+    a: 'A licensed broker reviews your revenue, profit, and industry position to give you a realistic market range — no obligation, fully confidential, usually within a few business days.',
+  },
+  {
+    q: 'How does the NDA process work?',
+    a: 'After you register and express interest in a listing, you complete a short buyer qualification and sign a digital NDA. Approval is typically quick, and then full financials unlock instantly.',
+  },
+  {
+    q: 'What kinds of businesses are listed?',
+    a: 'Established, cash-flowing small and mid-market businesses — from restaurants, HVAC, and e-commerce to manufacturing, healthcare services, and professional firms. New listings are added regularly.',
+  },
+]
 
 function MarketStat({ label, value }: { label: string; value: string }) {
   return (
