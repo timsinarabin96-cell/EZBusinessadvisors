@@ -9,10 +9,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PLANS, CRM_LICENSE } from '@/lib/billing'
 import { BUYER_PASS_PLANS } from '@/lib/buyerPass'
+import PricingTiers from '@/components/public/PricingTiers'
 
 export const metadata: Metadata = {
   title: 'Pricing — Concord Deal Platform',
-  description: 'List your business free, grow with Professional or Enterprise, or own the entire CRM platform on your own domain with your own API keys.',
+  description: 'List your business free, grow with Professional ($499) or Enterprise ($899), or own the entire CRM platform on your own domain with your own API keys.',
 }
 
 export default function PricingPage() {
@@ -27,52 +28,8 @@ export default function PricingPage() {
         </p>
       </section>
 
-      {/* Subscription tiers */}
-      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
-          {PLANS.map((plan) => (
-            <div
-              key={plan.id}
-              style={{
-                background: '#fff', borderRadius: 14,
-                border: plan.highlighted ? '2px solid #c9a84c' : '1px solid #ece8dc',
-                boxShadow: plan.highlighted ? '0 8px 40px rgba(201,168,76,0.2)' : '0 2px 12px rgba(26,26,46,0.06)',
-                padding: '30px 28px', display: 'flex', flexDirection: 'column',
-              }}
-            >
-              {plan.highlighted && (
-                <div style={{ background: 'linear-gradient(90deg,#c9a84c,#e6ce8c)', color: '#1a1a2e', textAlign: 'center', padding: '6px', fontSize: 12, fontWeight: 800, letterSpacing: 1, borderRadius: 6, marginBottom: 14 }}>MOST POPULAR</div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 26 }}>{plan.icon}</span>
-                <span style={{ fontSize: 20, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>{plan.name}</span>
-              </div>
-              <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>{plan.tagline}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 14 }}>
-                <span style={{ fontSize: 38, fontWeight: 800, color: '#c9a84c', fontFamily: 'Georgia, serif' }}>${plan.monthly}</span>
-                <span style={{ color: '#888', fontSize: 14 }}>{plan.monthly === 0 ? 'free' : '/ month'}</span>
-              </div>
-              <ul style={{ flex: 1, padding: '18px 0 0', margin: 0, listStyle: 'none' }}>
-                {plan.features.map((f) => (
-                  <li key={f} style={{ padding: '7px 0', fontSize: 13.5, color: '#555', display: 'flex', gap: 8 }}>
-                    <span style={{ color: '#c9a84c' }}>✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={plan.monthly === 0 ? '/auth/signup' : '/auth/signup'}
-                style={{
-                  display: 'block', textAlign: 'center', marginTop: 20, padding: '13px', borderRadius: 8, textDecoration: 'none',
-                  background: plan.highlighted ? '#1a1a2e' : '#fff', color: plan.highlighted ? '#c9a84c' : '#1a1a2e',
-                  border: plan.highlighted ? 'none' : '2px solid #1a1a2e', fontWeight: 800, fontFamily: 'Georgia, serif',
-                }}
-              >
-                {plan.cta}
-              </Link>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Subscription tiers — tiered pricing (monthly/annual toggle, limits) */}
+      <PricingTiers plans={PLANS} />
 
       {/* AI Match Pass — buyers */}
       <section id="match-pass" style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px' }}>

@@ -20,21 +20,24 @@ export interface Plan {
   id: string
   name: string
   monthly: number
+  annual: number
   icon: string
   tagline: string
   features: string[]
   cta: string
   highlighted?: boolean
+  listings?: number // active marketplace listings included in the tier
+  seats?: number    // agent seats included in the tier
 }
 
 // Backward-compatible re-export — ALL prices now live in lib/pricing.ts so
 // the $499/mo CRM price can never drift between surfaces.
-export const PLANS: Plan[] = CRM_PLANS.map(({ id, name, monthly, icon, tagline, features, cta, highlighted }) => ({
-  id, name, monthly, icon, tagline, features, cta, highlighted,
+export const PLANS: Plan[] = CRM_PLANS.map(({ id, name, monthly, annual, icon, tagline, features, cta, highlighted, listings, seats }) => ({
+  id, name, monthly, annual, icon, tagline, features, cta, highlighted, listings, seats,
 }))
 
 export { CRM_LICENSE, OWNER_LISTING_PLANS }
-export { CRM_MONTHLY, CRM_ANNUAL, LICENSE_SETUP_FEE, LICENSE_MONTHLY } from '@/lib/pricing'
+export { CRM_MONTHLY, CRM_ANNUAL, CRM_ENTERPRISE_MONTHLY, CRM_ENTERPRISE_ANNUAL, LICENSE_SETUP_FEE, LICENSE_MONTHLY } from '@/lib/pricing'
 
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled'
 

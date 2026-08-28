@@ -12,12 +12,13 @@
 // license page, pricing page, upsell panels) imports from here. If a price
 // changes, it changes in ONE file — drift is impossible.
 //
-// 2026-08-26 consolidation: CRM monthly is now $499.00 everywhere.
-//   * Professional: $499/mo (annual $4,790 — 2 months free)
-//   * Enterprise:   $499/mo (annual $4,790) — same price, more seats/limits
+// 2026-08-28 tiered pricing (boss: "build the tiered pricing page"):
+//   * Professional: $499/mo (annual $4,790 — 2 months free) · 10 listings · 5 seats
+//   * Enterprise:   $899/mo (annual $8,630 — 2 months free) · 25 listings · 15 seats
 //   * License:      $4,999 one-time setup + $499/mo platform fee
 //   * Buyer Pass:   $49/$99 — SEPARATE product (buyers, not brokerages);
 //     kept distinct so it never reads as the CRM price.
+// Every billing surface imports these constants — change prices HERE only.
 // =============================================================================
 
 export interface PricePlan {
@@ -30,6 +31,8 @@ export interface PricePlan {
   features: string[]
   cta: string
   highlighted?: boolean
+  listings?: number // active marketplace listings included in the tier
+  seats?: number    // agent seats included in the tier
 }
 
 // ---------------------------------------------------------------------------
@@ -37,6 +40,8 @@ export interface PricePlan {
 // ---------------------------------------------------------------------------
 export const CRM_MONTHLY = 499
 export const CRM_ANNUAL = 4790 // 20% off ≈ 2 months free
+export const CRM_ENTERPRISE_MONTHLY = 899
+export const CRM_ENTERPRISE_ANNUAL = 8630 // 20% off ≈ 2 months free
 
 export const CRM_PLANS: PricePlan[] = [
   {
@@ -62,9 +67,9 @@ export const CRM_PLANS: PricePlan[] = [
     icon: '💼',
     tagline: 'For brokerages posting on our marketplace',
     highlighted: true,
+    listings: 10,
+    seats: 5,
     features: [
-      '10 active listings on our site',
-      '5 agent seats',
       'Deal pipeline (1 board)',
       'Lead management',
       'CIM & BOV generation',
@@ -75,14 +80,15 @@ export const CRM_PLANS: PricePlan[] = [
   {
     id: 'enterprise',
     name: 'Enterprise',
-    monthly: CRM_MONTHLY,
-    annual: CRM_ANNUAL,
+    monthly: CRM_ENTERPRISE_MONTHLY,
+    annual: CRM_ENTERPRISE_ANNUAL,
     icon: '🏛️',
     tagline: 'For larger teams and agencies',
+    listings: 25,
+    seats: 15,
     features: [
-      '20 active listings on our site',
-      '10 agent seats',
       'Everything in Professional',
+      'Multi-board deal pipeline',
       'Financial recasting engine',
       'Priority support',
     ],
@@ -186,6 +192,8 @@ export const LISTING_UPSELL_OPTIONS: UpsellOption[] = [
 export const cents = (dollars: number): number => Math.round(dollars * 100)
 export const CRM_MONTHLY_CENTS = cents(CRM_MONTHLY)
 export const CRM_ANNUAL_CENTS = cents(CRM_ANNUAL)
+export const CRM_ENTERPRISE_MONTHLY_CENTS = cents(CRM_ENTERPRISE_MONTHLY)
+export const CRM_ENTERPRISE_ANNUAL_CENTS = cents(CRM_ENTERPRISE_ANNUAL)
 export const LICENSE_SETUP_CENTS = cents(LICENSE_SETUP_FEE)
 export const LICENSE_MONTHLY_CENTS = cents(LICENSE_MONTHLY)
 export const FINANCIAL_INTELLIGENCE_CENTS = cents(FINANCIAL_INTELLIGENCE_MONTHLY)
