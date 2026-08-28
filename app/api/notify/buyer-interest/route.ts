@@ -46,12 +46,20 @@ export async function POST(req: NextRequest) {
     // 1) Listing → agency + broker.
     const { data: listing } = await db
       .from('listings')
-      .select('agency_id, agent_id, business_name')
+      .select('agency_id, agent_id, business_name, owner_email')
       .eq('id', listingId)
       .maybeSingle()
     if (!listing) return NextResponse.json({ ok: true })
 
     const notifyTargets: string[] = []
+
+    // 1b) The SELLER (owner self-service listings) — they must hear about
+    //     buyer interest the moment it happens.
+    if (listing.owner_email) notifyTargets.push(listing.owner_email)
+    if (!listing.owner_email) {
+      const { data: ord } = await db.from('seller_listing_orders').select('seller_email').eq('listing_id', listingId).maybeSingle()
+      if (ord?.seller_email) notifyTargets.push(ord.seller_email)
+    }
 
     // 2) Agency admins/owners.
     if (listing.agency_id) {
@@ -78,6 +86,9 @@ export async function POST(req: NextRequest) {
         const { data: bp } = await db.from('profiles').select('email').eq('id', broker.profile_id).maybeSingle()
         if (bp?.email && !notifyTargets.includes(bp.email)) notifyTargets.push(bp.email)
       }
+
+      // Dedupe (owner email may coincide with an agency member email).
+      notifyTargets.splice(0, notifyTargets.length, ...new Set(notifyTargets))
     }
 
     if (!notifyTargets.length) return NextResponse.json({ ok: true })

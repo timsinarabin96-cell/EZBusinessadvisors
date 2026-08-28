@@ -265,6 +265,29 @@ export async function publishListing(listingId: string, actorProfileId?: string,
     legitimacy = null // best-effort — never hard-fail a publish on a DB hiccup
   }
 
+  // ── OWNER IDENTITY GATE (legal shield) ───────────────────────────────────
+  // Owner self-service listings require a verified profile: phone verified,
+  // profile photo, and the seller attestation on the listing. This is the
+  // anti-fake-account layer — no verified identity, no live listing.
+  if (listing.owner_email && !force) {
+    const { data: ownerProfile } = await svc
+      .from('profiles')
+      .select('email, phone_verified_at, avatar_url')
+      .eq('email', listing.owner_email)
+      .maybeSingle()
+    const missing: string[] = []
+    if (!ownerProfile?.phone_verified_at) missing.push('Verify your phone number (Owner Portal → Complete your profile)')
+    if (!ownerProfile?.avatar_url) missing.push('Upload a profile photo (Owner Portal → Complete your profile)')
+    if (!listing.attestation_accepted_at) missing.push('Accept the listing terms & risk disclosure (seller attestation)')
+    if (missing.length) {
+      return {
+        ok: false, blocked: true, score: readiness.score,
+        missing: [...(readiness.missing || []), ...missing],
+        error: `Identity gate: ${missing[0]}`,
+      }
+    }
+  }
+
   if (!force && legitimacy && legitimacy.verdict !== 'auto_approved') {
     const reasons = legitimacy.reasons
     if (legitimacy.verdict === 'broker_review') {

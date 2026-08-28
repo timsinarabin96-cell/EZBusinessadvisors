@@ -23,6 +23,7 @@ export interface SellerOrderPayload {
   seller_email: string
   seller_name?: string | null
   seller_phone?: string | null
+  attestation?: boolean
   provider?: string
   providerSessionId?: string
 }

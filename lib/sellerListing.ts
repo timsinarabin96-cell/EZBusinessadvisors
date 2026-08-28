@@ -37,6 +37,7 @@ export interface SellerListingDraft {
   seller_email: string
   seller_name?: string | null
   seller_phone?: string | null
+  attestation?: boolean
 }
 
 export interface OrderResult {
@@ -91,6 +92,11 @@ export async function createSellerListingOrder(
       sde: draft.sde ?? null,
       established_year: draft.established_year ?? null,
       owner_email: draft.seller_email.trim().toLowerCase(),
+      contact_phone: draft.seller_phone?.trim() || null,
+      attestation_accepted_at: draft.attestation ? new Date().toISOString() : null,
+      attestation_text: draft.attestation
+        ? 'I confirm I own or am authorized to sell this business. I understand listings publish at my own risk, Concord recommends engaging a licensed broker, and I accept the Terms & risk disclosure.'
+        : null,
       status: 'draft',
       confidentiality_level: 'broker_only',
       intake_source: 'seller_self_service',

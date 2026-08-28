@@ -35,6 +35,7 @@ const sellerOrderSchema = z.object({
   seller_email: z.string().email().max(200),
   seller_name: z.string().max(200).optional().nullable(),
   seller_phone: z.string().max(50).optional().nullable(),
+  attestation: z.boolean().optional(),
   provider: z.string().max(40).optional(),
   providerSessionId: z.string().max(200).optional(),
 })
@@ -76,6 +77,11 @@ export async function POST(req: NextRequest) {
     return fail(validationErrorJson(parsed.error).error, 422, { detail: validationErrorJson(parsed.error).detail })
   }
 
+  // Legal shield (boss): no listing without the seller's own-risk attestation.
+  if (parsed.data.attestation !== true) {
+    return fail('You must accept the listing terms & risk disclosure to continue.', 422, { code: 'ATTESTATION_REQUIRED' })
+  }
+
   const agencyId = await resolveListingAgency(parsed.data.agencySlug || undefined)
   if (!agencyId) {
     return fail('No receiving brokerage is configured yet.', 503, {
@@ -95,6 +101,7 @@ export async function POST(req: NextRequest) {
     seller_email: parsed.data.seller_email,
     seller_name: parsed.data.seller_name ?? null,
     seller_phone: parsed.data.seller_phone ?? null,
+    attestation: parsed.data.attestation === true,
   }, {
     provider: parsed.data.provider,
     providerSessionId: parsed.data.providerSessionId,

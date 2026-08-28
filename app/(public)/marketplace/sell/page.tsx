@@ -30,6 +30,7 @@ function SellContent() {
   const toast = useToast()
   const [form, setForm] = useState({ name: '', email: '', phone: '', businessName: '', industry: '', location: '', timeframe: '', employees: '', annualRevenue: '', askingPrice: '', message: '' })
   const [planId, setPlanId] = useState<string | null>('free') // listing-first: Owner free plan is preselected
+  const [attestation, setAttestation] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [valuationBuying, setValuationBuying] = useState(false)
   const [done, setDone] = useState(false)
@@ -67,6 +68,7 @@ function SellContent() {
     // Seller picked a paid listing plan → create a real listing order
     // (draft in broker review queue). Otherwise fall back to a lead.
     if (planId) {
+      if (!attestation) { toast('You must accept the listing terms & risk disclosure to continue.', 'error'); setSubmitting(false); return }
       const res = await submitSellerListingOrder({
         planId: planId as 'free' | 'professional' | 'enterprise',
         business_name: form.businessName || 'Untitled business',
@@ -76,6 +78,7 @@ function SellContent() {
         seller_name: form.name,
         seller_phone: form.phone || null,
         description: form.message || null,
+        attestation: true,
       })
       setSubmitting(false)
       if (res.ok) {
@@ -196,6 +199,12 @@ function SellContent() {
             <Field label="Thinking of Asking"><input className="input" inputMode="decimal" value={form.askingPrice} onChange={(e) => setForm({ ...form, askingPrice: formatWithCommas(e.target.value) })} placeholder="e.g. 1,200,000" /></Field>
           </div>
           <Field label="Anything else?"><textarea className="textarea" rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} /></Field>
+          <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#666', lineHeight: 1.5, background: '#faf9f4', border: attestation ? '1px solid #c9a84c' : '1px solid #ece8dc', borderRadius: 8, padding: '10px 12px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={attestation} onChange={(e) => setAttestation(e.target.checked)} style={{ marginTop: 2 }} required />
+            <span>
+              I confirm I own or am authorized to sell this business. I understand listings publish at <strong>my own risk</strong>, Concord recommends engaging a <strong>licensed broker</strong>, and I accept the <a href="/terms" target="_blank" style={{ color: '#c9a84c' }}>Terms &amp; risk disclosure</a>.
+            </span>
+          </label>
           <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: 6 }}>
             {submitting ? 'Sending...' : planId === 'free' ? 'Submit My Free Listing' : 'Submit Listing Order'}
           </button>

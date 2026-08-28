@@ -45,13 +45,14 @@ export default function OwnerPortalPage() {
   const [loading, setLoading] = useState(true)
   const [openForm, setOpenForm] = useState<string | null>(null)
   const [acting, setActing] = useState<string | null>(null)
+  const [profile, setProfile] = useState<{ phone?: string | null; phone_verified_at?: string | null; avatar_url?: string | null } | null>(null)
 
   const load = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user?.email) return
       setEmail(user.email)
-      const [ordersRes, leadsRes] = await Promise.all([
+      const [ordersRes, leadsRes, profileRes] = await Promise.all([
         supabase
           .from('seller_listing_orders')
           .select('id, listing_id, plan_code')
@@ -62,8 +63,14 @@ export default function OwnerPortalPage() {
           .select('id')
           .eq('email', user.email)
           .eq('kind', 'buyer'),
+        supabase
+          .from('profiles')
+          .select('phone, phone_verified_at, avatar_url')
+          .eq('id', user.id)
+          .maybeSingle(),
       ])
       const orders = (ordersRes.data || []) as Array<{ id: string; listing_id: string | null; plan_code: string | null }>
+      setProfile((profileRes.data as { phone?: string | null; phone_verified_at?: string | null; avatar_url?: string | null } | null) || null)
       const ids = [...new Set(orders.map((o) => o.listing_id).filter(Boolean))] as string[]
 
       // Listings owned by this email directly (newer self-service rows).
@@ -132,6 +139,10 @@ export default function OwnerPortalPage() {
           <p style={{ margin: '0 0 22px', fontSize: 13.5, color: '#888' }}>
             Signed in as <strong>{email}</strong> · Free plan: 1 listing, no CRM. Buyers contact you confidentially through the marketplace.
           </p>
+
+          {profile && (
+            <ProfileVerification profile={profile} onVerified={() => load()} />
+          )}
 
           {inquiries > 0 && (
             <div style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13.5, color: '#7a5f10' }}>
@@ -237,6 +248,98 @@ export default function OwnerPortalPage() {
         <div style={{ textAlign: 'center', marginTop: 18, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
           Questions? <a href="mailto:info@ezbusinessadvisors.com" style={{ color: '#c9a84c' }}>info@ezbusinessadvisors.com</a>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ProfileVerification({ profile, onVerified }: { profile: { phone?: string | null; phone_verified_at?: string | null; avatar_url?: string | null }; onVerified: () => void }) {
+  const [phone, setPhone] = useState('')
+  const [code, setCode] = useState('')
+  const [step, setStep] = useState<'idle' | 'code-sent' | 'done'>('idle')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoDone, setPhotoDone] = useState(false)
+
+  const phoneVerified = Boolean(profile.phone_verified_at)
+  const hasPhoto = Boolean(profile.avatar_url)
+  const complete = phoneVerified && hasPhoto
+
+  if (complete) {
+    return (
+      <div style={{ background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#15803d', fontWeight: 700 }}>
+        🛡️ Identity verified — phone confirmed{profile.phone ? ` (${profile.phone})` : ''} + profile photo on file. Your listings are eligible to go live.
+      </div>
+    )
+  }
+
+  const sendCode = async () => {
+    setBusy(true); setError('')
+    try {
+      const res = await fetch('/api/verify/phone/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone }) })
+      const j = await res.json().catch(() => ({}))
+      if (j.ok) { setStep('code-sent'); if (j.devCode) setCode(j.devCode) }
+      else setError(j.error || 'Could not send code')
+    } catch { setError('Network error') } finally { setBusy(false) }
+  }
+
+  const confirmCode = async () => {
+    setBusy(true); setError('')
+    try {
+      const res = await fetch('/api/verify/phone/confirm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, code }) })
+      const j = await res.json().catch(() => ({}))
+      if (j.ok) { setStep('done'); onVerified() }
+      else setError(j.error || 'Verification failed')
+    } catch { setError('Network error') } finally { setBusy(false) }
+  }
+
+  const uploadPhoto = async (file: File) => {
+    setPhotoBusy(true); setError('')
+    try {
+      const fd = new FormData()
+      fd.append('photo', file)
+      const res = await fetch('/api/profile/photo', { method: 'POST', body: fd })
+      const j = await res.json().catch(() => ({}))
+      if (j.ok) { setPhotoDone(true); onVerified() }
+      else setError(j.error || 'Photo upload failed')
+    } catch { setError('Network error') } finally { setPhotoBusy(false) }
+  }
+
+  return (
+    <div style={{ background: '#fff8e6', border: '1px solid #e5d9a8', borderRadius: 10, padding: '16px 18px', marginBottom: 20 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: '#7a5f10', marginBottom: 4 }}>🛡️ Complete your profile to activate listings</div>
+      <div style={{ fontSize: 12.5, color: '#8a7a3a', marginBottom: 12, lineHeight: 1.5 }}>
+        Verified identity keeps fake sellers off the marketplace — that's what protects you and buyers. Phone + photo are required before any listing goes live.
+      </div>
+      <div style={{ display: 'grid', gap: 12 }}>
+        {!phoneVerified && (
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#555' }}>📱 Verify your phone number</div>
+            {step === 'idle' ? (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input className="input" placeholder="e.g. 7175551234" value={phone} onChange={(e) => setPhone(e.target.value)} style={{ flex: 1, minWidth: 160 }} />
+                <button onClick={sendCode} disabled={busy || !phone} style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', padding: '9px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>{busy ? 'Sending…' : 'Send code'}</button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input className="input" placeholder="6-digit code" value={code} onChange={(e) => setCode(e.target.value)} style={{ flex: 1, minWidth: 140 }} />
+                <button onClick={confirmCode} disabled={busy || !code} style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', padding: '9px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>{busy ? 'Verifying…' : 'Verify'}</button>
+              </div>
+            )}
+          </div>
+        )}
+        {!hasPhoto && (
+          <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#555' }}>📷 Upload a profile photo</div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f) }} style={{ fontSize: 12.5 }} />
+              {photoBusy && <span style={{ fontSize: 12.5, color: '#888' }}>Uploading…</span>}
+              {photoDone && <span style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>✅ Uploaded</span>}
+            </div>
+          </div>
+        )}
+        {error && <div style={{ fontSize: 12.5, color: '#b91c1c', fontWeight: 700 }}>{error}</div>}
       </div>
     </div>
   )
