@@ -261,6 +261,30 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
     }
   }, [])
 
+  // Manual save: flush any pending debounce and persist right now (slow
+  // connections, "Save now" button, or just peace of mind).
+  const saveNow = useCallback(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    if (backupTimer.current) clearTimeout(backupTimer.current)
+    if (form === EMPTY_INTELLIGENT_LISTING) return
+    await persist(form)
+  }, [form, persist])
+
+  // Live save status in the browser tab title — brokers on another tab can
+  // see "Saving…" / "✓ Saved" / "⚠ Unsaved" at a glance.
+  const baseTitle = editListingId ? 'Edit Listing' : 'New Listing'
+  useEffect(() => {
+    const status =
+      saveState === 'saving' ? '⏳ Saving…' :
+      saveState === 'error' ? '⚠ Save failed' :
+      saveState === 'saved' ? '✓ Saved' :
+      restoreCandidate ? '💾 Unsaved draft' :
+      ''
+    document.title = status ? `${status} · ${baseTitle} · Concord` : `${baseTitle} · Concord`
+    return () => { document.title = 'Concord Deal Platform' }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveState, restoreCandidate])
+
   // Debounced backup write on every change (500ms) — the safety net.
   useEffect(() => {
     if (form === EMPTY_INTELLIGENT_LISTING) return
@@ -480,8 +504,13 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
             </span>
           </div>
           <BuyerDemandPanel compact industry={form.industry || undefined} location={form.location_general || undefined} />
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: saveState === 'saved' ? '#16a34a' : saveState === 'error' ? '#b91c1c' : '#9a6700', minHeight: 16 }}>
-            {saveState === 'saving' ? '⏳ Saving…' : saveState === 'saved' ? (editListingId ? '✓ Changes saved' : '✓ Draft auto-saved') : saveState === 'error' ? '⚠ Save failed — check connection' : ''}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: saveState === 'saved' ? '#16a34a' : saveState === 'error' ? '#b91c1c' : '#9a6700', minHeight: 16 }}>
+              {saveState === 'saving' ? '⏳ Saving…' : saveState === 'saved' ? (editListingId ? '✓ Changes saved' : '✓ Draft auto-saved') : saveState === 'error' ? '⚠ Save failed — check connection' : (restoreCandidate ? '💾 Unsaved draft' : '')}
+            </div>
+            <button type="button" onClick={() => saveNow()} disabled={saveState === 'saving' || busy} title="Save now — handy on slow connections" style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #c9a84c', background: '#fffdf7', color: '#1a1a2e', fontSize: 12, fontWeight: 800, cursor: saveState === 'saving' || busy ? 'wait' : 'pointer', opacity: saveState === 'saving' || busy ? 0.6 : 1 }}>
+              {saveState === 'saving' ? 'Saving…' : '💾 Save now'}
+            </button>
           </div>
         </div>
       </div>
