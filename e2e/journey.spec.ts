@@ -103,9 +103,10 @@ test.describe('full journey', () => {
     await contactForm.getByRole('button', { name: 'Submit Request' }).click()
     await expect(page.getByText(/broker will contact you/i).first()).toBeVisible({ timeout: 20_000 })
 
-    // 6. Cleanup: remove the test listing (server-side delete).
+    // 6. Cleanup: remove the test listing (server-side delete — reason required).
     const del = await page.request.delete(`/api/listings/${listingId}`, {
       headers: await authHeaders(page),
+      data: { reason: 'test_listing', note: 'Journey e2e cleanup' },
     })
     const delBody = await del.json().catch(() => ({}))
     expect(del.ok || delBody.ok, `cleanup failed: ${JSON.stringify(delBody)}`).toBeTruthy()
