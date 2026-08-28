@@ -141,6 +141,8 @@ export const FINANCIAL_INTELLIGENCE_MONTHLY = 100   // the $100/mo upsell
 
 export const VERIFIED_REVENUE_PRICE = 199            // one-time bank-vs-books badge
 
+export const VALUATION_PRICE = 99                     // one-time professional valuation report (owner upsell)
+
 // Upsell options — sold to FREE owner listings. Kept separate from
 // OWNER_LISTING_PLANS (which drives the sell-page order flow) so the upsell
 // panel can grow without touching the listing-order zod enum.
@@ -198,3 +200,4 @@ export const LICENSE_SETUP_CENTS = cents(LICENSE_SETUP_FEE)
 export const LICENSE_MONTHLY_CENTS = cents(LICENSE_MONTHLY)
 export const FINANCIAL_INTELLIGENCE_CENTS = cents(FINANCIAL_INTELLIGENCE_MONTHLY)
 export const VERIFIED_REVENUE_PRICE_CENTS = cents(VERIFIED_REVENUE_PRICE)
+export const VALUATION_PRICE_CENTS = cents(VALUATION_PRICE)

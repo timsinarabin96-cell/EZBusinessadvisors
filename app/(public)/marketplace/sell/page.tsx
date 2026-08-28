@@ -15,6 +15,7 @@ import InstantValuation from '@/components/public/InstantValuation'
 import SponsoredSlotInline from '@/components/public/SponsoredSlotInline'
 import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
+import { VALUATION_PRICE } from '@/lib/pricing'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 export default function SellPage() {
@@ -28,10 +29,36 @@ export default function SellPage() {
 function SellContent() {
   const toast = useToast()
   const [form, setForm] = useState({ name: '', email: '', phone: '', businessName: '', industry: '', location: '', timeframe: '', employees: '', annualRevenue: '', askingPrice: '', message: '' })
-  const [planId, setPlanId] = useState<string | null>(null)
+  const [planId, setPlanId] = useState<string | null>('free') // listing-first: Owner free plan is preselected
   const [submitting, setSubmitting] = useState(false)
+  const [valuationBuying, setValuationBuying] = useState(false)
   const [done, setDone] = useState(false)
   const [portalUrl, setPortalUrl] = useState('')
+
+  const buyValuation = async () => {
+    setValuationBuying(true)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: 'valuation',
+          email: form.email || undefined,
+          successUrl: `${window.location.origin}/marketplace/sell?valuation=success`,
+        }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (j.ok && j.url) {
+        window.location.href = j.url
+      } else {
+        toast(j.error || 'Checkout failed', 'error')
+        setValuationBuying(false)
+      }
+    } catch {
+      toast('Network error — please try again.', 'error')
+      setValuationBuying(false)
+    }
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,11 +142,10 @@ function SellContent() {
       <div>
         <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Sell Your Business</div>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, color: '#1a1a2e', margin: '12px 0 16px', lineHeight: 1.15 }}>
-          Get a Confidential <span style={{ color: '#c9a84c' }}>Business Valuation</span> — Free
+          List Your Business <span style={{ color: '#c9a84c' }}>— Free</span>
         </h1>
         <p style={{ color: '#666', fontSize: 16, lineHeight: 1.7, marginBottom: 28 }}>
-          Discover what your business is truly worth. Our brokers prepare a professional valuation and, when you're ready,
-          market your business confidentially to qualified buyers.
+          Post one confidential listing at no cost. A broker reviews it before anything goes live — then qualified buyers can reach you. Prefer a broker-grade valuation first? Get one for ${VALUATION_PRICE} below.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -150,7 +176,7 @@ function SellContent() {
 
       {/* RIGHT form */}
       <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 32, boxShadow: '0 8px 40px rgba(26,26,46,0.1)', position: 'sticky', top: 88 }}>
-        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 4px' }}>{planId ? 'List Your Business' : 'Request a Free Valuation'}</h2>
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 4px' }}>List Your Business</h2>
         <p style={{ fontSize: 13, color: '#888', margin: '0 0 20px' }}>{planId ? `Selected plan: ${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.name} — ${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.price === 0 ? 'free' : '$' + OWNER_LISTING_PLANS.find((p) => p.id === planId)?.price + ' ' + OWNER_LISTING_PLANS.find((p) => p.id === planId)?.billing}. A broker reviews before anything goes live.` : '100% confidential. No obligation.'}</p>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Field label="Full Name *"><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></Field>
@@ -171,12 +197,25 @@ function SellContent() {
           </div>
           <Field label="Anything else?"><textarea className="textarea" rows={3} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} /></Field>
           <button type="submit" className="btn btn-primary" disabled={submitting} style={{ marginTop: 6 }}>
-            {submitting ? 'Sending...' : 'Request Confidential Valuation'}
+            {submitting ? 'Sending...' : planId === 'free' ? 'Submit My Free Listing' : 'Submit Listing Order'}
           </button>
           <div style={{ fontSize: 11, color: '#aaa', textAlign: 'center' }}>
             By submitting, you agree to our privacy policy. Your information is kept strictly confidential.
           </div>
         </form>
+
+        {/* 💎 $99 Valuation upsell — optional add-on, never a gate */}
+        <div style={{ marginTop: 20, background: 'linear-gradient(135deg,#fff8e6,#fdf3d0)', border: '2px solid #c9a84c', borderRadius: 14, padding: 22, textAlign: 'center' }}>
+          <div style={{ fontSize: 26 }}>💎</div>
+          <div style={{ fontWeight: 800, fontFamily: 'Georgia, serif', color: '#1a1a2e', margin: '6px 0 2px' }}>Professional Valuation Report</div>
+          <div style={{ fontSize: 13, color: '#1a1a2e', marginBottom: 4 }}>Broker-grade value opinion — <strong>${VALUATION_PRICE} one-time</strong></div>
+          <div style={{ fontSize: 12.5, color: '#666', lineHeight: 1.5, marginBottom: 12 }}>
+            SDE/EBITDA multiples, market comparables, and a realistic price range — before you commit to selling.
+          </div>
+          <button type="button" className="btn btn-primary" onClick={buyValuation} disabled={valuationBuying} style={{ width: '100%', justifyContent: 'center' }}>
+            {valuationBuying ? 'Opening checkout…' : `Get My Valuation — $${VALUATION_PRICE}`}
+          </button>
+        </div>
       </div>
     </div>
 

@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import { CRM_MONTHLY, CRM_ENTERPRISE_MONTHLY } from '@/lib/pricing'
 import { LoadingState } from '@/components/ui'
 
 interface OwnerListing {
@@ -120,8 +121,8 @@ export default function OwnerPortalPage() {
               {!canAdd && (
                 <div style={{ fontSize: 13, color: '#888', background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '12px 16px' }}>
                   ℹ️ Your free plan includes 1 listing. Want more?{' '}
-                  <Link href="/billing" style={{ color: '#1a1a2e', fontWeight: 700 }}>Upgrade to Professional ($49/mo — 10 listings)</Link> or{' '}
-                  <Link href="/marketplace/sell" style={{ color: '#1a1a2e', fontWeight: 700 }}>Enterprise ($99/mo — 20 listings)</Link>.
+                  <Link href="/pricing" style={{ color: '#1a1a2e', fontWeight: 700 }}>Professional (${CRM_MONTHLY}/mo — 10 listings · 5 seats)</Link> or{' '}
+                  <Link href="/pricing" style={{ color: '#1a1a2e', fontWeight: 700 }}>Enterprise (${CRM_ENTERPRISE_MONTHLY}/mo — 25 listings · 15 seats)</Link>.
                 </div>
               )}
             </>

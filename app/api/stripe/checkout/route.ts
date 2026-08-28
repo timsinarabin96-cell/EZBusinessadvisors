@@ -10,7 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { PLANS, subscribeToTier } from '@/lib/billing'
 import { BUYER_PASS_PLANS, subscribeToBuyerPass } from '@/lib/buyerPass'
-import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS } from '@/lib/pricing'
+import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, VALUATION_PRICE_CENTS } from '@/lib/pricing'
 import { FEATURED_SLOT_OPTIONS, activateFeaturedSlot } from '@/lib/featuredSlots'
 import { createCheckoutSession, stripeConfigured, demoModeAllowed, demoBlockedError } from '@/lib/stripeCheckout'
 
@@ -122,6 +122,32 @@ export async function POST(req: NextRequest) {
     if (db) {
       await db.from('public_listings').update({ revenue_verified: true }).eq('listing_id', listingId)
     }
+    return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
+  }
+
+  // --- Professional Valuation Report ($99 one-time owner upsell) ------------
+  if (product === 'valuation') {
+    const agencyId = String(body?.agencyId || process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-8454854e731a').trim()
+    const successUrl = safeUrl(body?.successUrl, `${origin}/marketplace/sell?valuation=success`)
+    const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/marketplace/sell`)
+    const amount = VALUATION_PRICE_CENTS
+
+    if (stripeConfigured()) {
+      const result = await createCheckoutSession({
+        agencyId,
+        items: [{ name: 'Professional Business Valuation', amountCents: amount, description: 'Broker-grade valuation report (SDE/EBITDA multiples + comparables)' }],
+        successUrl,
+        cancelUrl,
+        customerEmail: body?.email || null,
+        metadata: { kind: 'valuation' },
+      })
+      if (result.ok && result.url) {
+        return NextResponse.json({ ok: true, url: result.url, mode: 'stripe' })
+      }
+      return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
+    }
+
+    if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
     return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
   }
 

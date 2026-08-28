@@ -81,6 +81,7 @@ export async function createSellerListingOrder(
     .insert({
       agency_id: agencyId,
       business_name: draft.business_name.trim().slice(0, 200),
+      headline: draft.business_name.trim().slice(0, 120),
       industry: draft.industry?.trim().slice(0, 100) || null,
       location_general: draft.location_general?.trim().slice(0, 200) || null,
       description: draft.description?.trim().slice(0, 4000) || null,
