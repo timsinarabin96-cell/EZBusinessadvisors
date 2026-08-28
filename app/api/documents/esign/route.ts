@@ -114,12 +114,12 @@ export async function POST(req: NextRequest) {
       pdf.setTextColor(26, 26, 46)
       pdf.text(agencyName, M, 60)
     }
-    if (agentName) {
-      pdf.setFont('times', 'normal')
-      pdf.setFontSize(9.5)
-      pdf.setTextColor(120, 120, 120)
-      pdf.text(`Prepared by ${agentName} · ${agencyName}`, M, 104)
-    }
+    // Agency-only prepared-by line — agents identify themselves in the
+    // signature block at the bottom, not on the letterhead.
+    pdf.setFont('times', 'normal')
+    pdf.setFontSize(9.5)
+    pdf.setTextColor(120, 120, 120)
+    pdf.text(`Prepared by ${agencyName}`, M, 104)
     // Gold rule under the letterhead
     pdf.setFillColor(201, 168, 76)
     pdf.rect(M, 108, W - M * 2, 3, 'F')
@@ -231,7 +231,9 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Signature lines ------------------------------------------------------
-    const parties = (doc.parties || []) as Array<{ key?: string; label?: string; role?: string; name?: string | null }>
+    // Agents put their full name + contact info here (bottom of the document);
+    // the letterhead stays pure agency brand.
+    const parties = (doc.parties || []) as Array<{ key?: string; label?: string; role?: string; name?: string | null; email?: string | null }>
     if (parties.length > 0) {
       const blockNeeds = 24 + 26 + parties.length * 34 + 20
       // Keep the whole signature block together on one page.
@@ -251,9 +253,16 @@ export async function POST(req: NextRequest) {
         pdf.text(p.label || p.role || 'Party', M, y)
         pdf.setTextColor(70, 70, 70)
         const shown = p.name && p.name.trim() ? p.name : 'Signed'
-        // Truncate long names so the underline stays on the line.
         const clipped = pdf.splitTextToSize(shown, lineLen - 10).join(' ')
         pdf.text(clipped, nameX, y - 6)
+        // Contact info under the agent's name (email), truncated to the line.
+        const info = p.email && p.email.trim() ? p.email : ''
+        if (info) {
+          pdf.setFontSize(9)
+          pdf.setTextColor(138, 134, 120)
+          pdf.text(pdf.splitTextToSize(info, lineLen - 10).join(' '), nameX, y + 10)
+          pdf.setFontSize(11)
+        }
         // Actual underline beneath the name — consistent for every row.
         pdf.setDrawColor(120, 120, 120)
         pdf.setLineWidth(0.8)

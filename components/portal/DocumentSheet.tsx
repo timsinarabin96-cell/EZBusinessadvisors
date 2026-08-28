@@ -162,11 +162,9 @@ export default function DocumentSheet({
         <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: 0, lineHeight: 1.25 }}>
           {doc.title}
         </h2>
-        {brand.agentName && (
-          <div style={{ fontSize: 12, color: '#8a8678', marginTop: 8 }}>
-            Prepared by <strong style={{ color: '#1a1a2e' }}>{brand.agentName}</strong> · {brand.agencyName}
-          </div>
-        )}
+        <div style={{ fontSize: 12, color: '#8a8678', marginTop: 8 }}>
+          Prepared by <strong style={{ color: '#1a1a2e' }}>{brand.agencyName}</strong>
+        </div>
         <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <span
             style={{
@@ -226,6 +224,9 @@ export default function DocumentSheet({
                     {signed
                       ? (sig?.party_name || p.name || 'Signed party')
                       : (p.name || 'Awaiting signature')}
+                    {p.email && (
+                      <span style={{ color: '#8a8678', fontSize: 12 }}> · {p.email}</span>
+                    )}
                     {signed && sig?.signed_at && (
                       <span style={{ color: '#8a8678', fontSize: 12 }}> — signed {fmtDate(sig.signed_at)}</span>
                     )}
