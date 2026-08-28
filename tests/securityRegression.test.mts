@@ -144,7 +144,7 @@ test('security: no table is left without row level security', async () => {
   if (readFileSync(tokenFile, 'utf8').trim()) {
     try {
       const query = "select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relrowsecurity=false and c.relname not in ('_prisma_migrations') order by c.relname;"
-      const res = await fetch('https://api.supabase.com/v1/projects/urwnucdjmoavbdddrhsh/database/query', {
+      const res = await fetch('https://api.supabase.com/v1/projects/ytcvlvisufxmmzeblmwx/database/query', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${readFileSync(tokenFile, 'utf8').trim()}`,
