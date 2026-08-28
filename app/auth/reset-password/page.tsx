@@ -109,6 +109,8 @@ function ResetPasswordForm() {
                   <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>New password</label>
                   <input
                     type="password"
+                    name="new-password"
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 8 characters"
@@ -122,6 +124,8 @@ function ResetPasswordForm() {
                   <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px' }}>Confirm password</label>
                   <input
                     type="password"
+                    name="confirm-password"
+                    autoComplete="new-password"
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Re-enter your new password"

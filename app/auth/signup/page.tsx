@@ -154,15 +154,15 @@ export default function SignupPage() {
           <form onSubmit={handleSignUp}>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#555', marginBottom: 5 }}>Full name</label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" style={inputStyle} required />
+              <input type="text" name="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" style={inputStyle} required />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#555', marginBottom: 5 }}>Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} required />
+              <input type="email" name="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" style={inputStyle} required />
             </div>
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#555', marginBottom: 5 }}>Password</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters, letter + number" style={inputStyle} required minLength={8} />
+              <input type="password" name="new-password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters, letter + number" style={inputStyle} required minLength={8} />
               <div style={{ fontSize: 11.5, color: '#888', marginTop: 5 }}>Strong password required: 8+ characters with a letter and a number. Email verification is mandatory for every account.</div>
             </div>
             <button type="submit" disabled={loading} style={{ width: '100%', padding: '13px', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', background: loading ? '#aaa' : '#1a1a2e', color: '#c9a84c', border: 'none', fontSize: 15, fontWeight: 800, fontFamily: 'Georgia, serif' }}>

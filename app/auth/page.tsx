@@ -180,6 +180,8 @@ export default function AuthPage() {
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#555', marginBottom: 5 }}>Email</label>
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="username"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@company.com"
@@ -191,6 +193,8 @@ export default function AuthPage() {
                   <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#555', marginBottom: 5 }}>Password</label>
                   <input
                     type="password"
+                    name="password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
@@ -199,7 +203,11 @@ export default function AuthPage() {
                     minLength={8}
                   />
                 </div>
-                <div style={{ textAlign: 'right', marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#555', cursor: 'pointer' }}>
+                    <input type="checkbox" defaultChecked style={{ accentColor: '#c9a84c' }} />
+                    Keep me signed in
+                  </label>
                   <Link href="/auth/forgot-password" style={{ fontSize: 12.5, color: '#1a1a2e', textDecoration: 'underline' }}>Forgot password?</Link>
                 </div>
                 <button
