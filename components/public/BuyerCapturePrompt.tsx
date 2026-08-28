@@ -88,16 +88,19 @@ export default function BuyerCapturePrompt({ hintIndustry }: { hintIndustry?: st
 
   if (!visible) return null
 
+  // Non-blocking card (bottom-right) — previously a full-screen fixed overlay
+  // (inset:0, zIndex:9995) that covered the whole page and swallowed clicks on
+  // the contact form / submit buttons. Buyers could not submit inquiries while
+  // it was up. Now it floats in a corner and never intercepts page clicks.
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9995, background: 'rgba(26,26,46,0.55)', display: 'grid', placeItems: 'center', padding: 20 }}>
-      <div style={{ background: '#fff', borderRadius: 18, maxWidth: 420, width: '100%', padding: '24px 22px', boxShadow: '0 24px 70px rgba(16,42,67,0.35)', position: 'relative' }}>
-        <button
-          onClick={() => { try { localStorage.setItem(CAPTURE_KEY, String(Date.now())) } catch { /* ignore */ } setVisible(false) }}
-          aria-label="Dismiss"
-          style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999', lineHeight: 1 }}
-        >
-          ✕
-        </button>
+    <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 900, width: 'min(400px, calc(100vw - 32px))', background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(16,42,67,0.28)', padding: '20px 20px 18px', border: '1px solid #ece8dc' }}>
+      <button
+        onClick={() => { try { localStorage.setItem(CAPTURE_KEY, String(Date.now())) } catch { /* ignore */ } setVisible(false) }}
+        aria-label="Dismiss"
+        style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#999', lineHeight: 1 }}
+      >
+        ✕
+      </button>
 
         {done ? (
           <div style={{ textAlign: 'center', padding: '14px 0' }}>
@@ -185,7 +188,6 @@ export default function BuyerCapturePrompt({ hintIndustry }: { hintIndustry?: st
             <div style={{ fontSize: 11, color: '#aaa', textAlign: 'center', marginTop: 10 }}>No spam — we email your invite + matching listings only.</div>
           </>
         )}
-      </div>
     </div>
   )
 }
