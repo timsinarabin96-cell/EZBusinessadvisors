@@ -7244,6 +7244,12 @@ ALTER TABLE ONLY public.sba_qualifications
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
 
+-- Migration-tracking table: runner-only (postgres). No RLS + full anon/auth
+-- grants would let anyone read/delete migration history and cause schema
+-- drift. Lock it down so fresh stacks are born correct.
+ALTER TABLE public.schema_migrations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.schema_migrations FROM anon, authenticated;
+
 
 --
 -- Name: search_log search_log_pkey; Type: CONSTRAINT; Schema: public; Owner: -

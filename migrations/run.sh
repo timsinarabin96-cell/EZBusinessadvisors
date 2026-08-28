@@ -35,7 +35,9 @@ create table if not exists public.schema_migrations (
   version    text primary key,
   applied_at timestamptz not null default now(),
   source     text
-);" >/dev/null 2>&1 || true
+);
+alter table public.schema_migrations enable row level security;
+revoke all on public.schema_migrations from anon, authenticated;" >/dev/null 2>&1 || true
 
 applied=$("${PSQL[@]}" -tAc "select version from public.schema_migrations order by version;" 2>/dev/null | sort)
 pending=()
