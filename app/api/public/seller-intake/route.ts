@@ -41,8 +41,9 @@ const AGENCY_ID = process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-
  * clean error, never a 500 HTML.
  */
 export async function POST(req: NextRequest) {
-  // Anti-spam: 5 seller-intake submissions per IP per hour.
-  if (!(await rateLimitAsync(clientIp(req), { limit: 5, windowMs: 60 * 60 * 1000 }))) {
+  // Anti-spam: 20 seller-intake submissions per IP per hour (raised from 5 —
+  // a real marketing push trips 5/hr; captcha on the form is the next layer).
+  if (!(await rateLimitAsync(clientIp(req), { limit: 20, windowMs: 60 * 60 * 1000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many submissions. Try again later.' }, { status: 429 })
   }
 

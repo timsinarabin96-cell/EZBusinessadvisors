@@ -34,6 +34,8 @@ import { createServerClient } from '@/lib/supabase/server'
 import type { Listing } from '@/lib/listings'
 import { recastFinancials, type RecastResult, type RecastInput, type YearFinancials } from '@/lib/recast'
 import { generateBovContent } from '@/lib/bov'
+import { enrichBovWithClaude } from '@/lib/bovClaude'
+import type { AgentContextPayload } from '@/types/ai'
 import { generateCimContent } from '@/lib/cim'
 import { generateBliContent } from '@/lib/bli'
 import { exportRecastToPdf, exportBovToPdf, exportCimToPdf, exportBliToPdf } from '@/lib/pdfExport'
@@ -357,9 +359,26 @@ export async function runAutoGeneration(input: {
     notes.push(`Recast failed: ${e?.message || 'unknown'}`)
   }
 
-  // 6) BOV
+  // 6) BOV — 12-method engine + full-Claude narrative enrichment (best-effort).
   try {
-    const bov = generateBovContent(L)
+    let bov = generateBovContent(L)
+    const bovFacts: AgentContextPayload = {
+      kind: 'listing',
+      entityId: L.id,
+      text: [
+        `Business: ${L.business_name || 'Subject Business'}`,
+        `Industry: ${L.industry || 'n/a'}`,
+        `Location: ${L.location_general || 'n/a'}`,
+        `Revenue: $${L.annual_revenue || 0}`,
+        `SDE: $${L.sde || 0}`,
+        `EBITDA: $${L.ebitda || 0}`,
+        `Asking price: $${L.asking_price || 0}`,
+        `Valuation range: ${bov.valuationRange}`,
+        `Conclusion: ${bov.conclusion}`,
+        `Comparables: ${bov.comparables.map((c) => `${c.business} (${c.multiple}x revenue)`).join('; ')}`,
+      ].join('\n'),
+    }
+    bov = await enrichBovWithClaude(bov, bovFacts)
     const bytes = await exportBovToPdf(bov, { returnBytes: true, agency, assets })
     if (bytes) {
       const art = await saveGeneratedDoc({

@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!pro) return { title: 'Professional Not Found', robots: { index: false } }
   const label = PROFESSIONAL_LABELS[pro.professional_type as keyof typeof PROFESSIONAL_LABELS] || 'Deal Professional'
   return {
-    title: `${pro.name} — ${label} | Concord Markets`,
+    title: `${pro.name} — ${label} | Concord Deal Platform`,
     description: pro.bio?.slice(0, 155) || `${label} serving business buyers and sellers.`,
     alternates: { canonical: `${BASE}/marketplace/professionals/${pro.id}` },
   }

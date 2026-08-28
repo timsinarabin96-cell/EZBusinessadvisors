@@ -15,7 +15,7 @@ import InstantValuation from '@/components/public/InstantValuation'
 import SponsoredSlotInline from '@/components/public/SponsoredSlotInline'
 import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
-import { VALUATION_PRICE } from '@/lib/pricing'
+import { VALUATION_PRICE, LAUNCH_KIT_PRICE, LAUNCH_KIT } from '@/lib/pricing'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 
 export default function SellPage() {
@@ -33,6 +33,7 @@ function SellContent() {
   const [attestation, setAttestation] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [valuationBuying, setValuationBuying] = useState(false)
+  const [launchBuying, setLaunchBuying] = useState(false)
   const [done, setDone] = useState(false)
   const [portalUrl, setPortalUrl] = useState('')
 
@@ -58,6 +59,31 @@ function SellContent() {
     } catch {
       toast('Network error — please try again.', 'error')
       setValuationBuying(false)
+    }
+  }
+
+  const buyLaunchKit = async () => {
+    setLaunchBuying(true)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: 'launch_kit',
+          email: form.email || undefined,
+          successUrl: `${window.location.origin}/marketplace/sell?launch=success`,
+        }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (j.ok && j.url) {
+        window.location.href = j.url
+      } else {
+        toast(j.error || 'Checkout failed', 'error')
+        setLaunchBuying(false)
+      }
+    } catch {
+      toast('Network error — please try again.', 'error')
+      setLaunchBuying(false)
     }
   }
 
@@ -132,6 +158,29 @@ function SellContent() {
             <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 8 }}>Save this link — it is your private access (also emailed to you).</div>
           </div>
         )}
+
+        {/* 🎁 Launch Kit upsell — the money magnet, right at peak excitement */}
+        <div style={{ marginTop: 24, background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', borderRadius: 14, padding: 26, color: '#fff', textAlign: 'left' }}>
+          <div style={{ fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c9a84c', fontWeight: 800 }}>While you're here</div>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 800, margin: '6px 0 4px' }}>🎁 Launch Kit — ${LAUNCH_KIT_PRICE} <span style={{ fontSize: 13, fontWeight: 400, color: '#9fb3c8', textDecoration: 'line-through' }}>${LAUNCH_KIT.value} value</span></div>
+          <div style={{ fontSize: 13, color: '#cbdbe7', lineHeight: 1.6, marginBottom: 12 }}>
+            {LAUNCH_KIT.blurb}
+          </div>
+          <div style={{ display: 'grid', gap: 6, marginBottom: 16 }}>
+            {LAUNCH_KIT.includes.map((inc) => (
+              <div key={inc} style={{ fontSize: 13, color: '#e2edf5' }}>✓ {inc}</div>
+            ))}
+          </div>
+          <button
+            onClick={buyLaunchKit}
+            disabled={launchBuying}
+            style={{ width: '100%', background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 8, padding: '13px', fontWeight: 800, fontFamily: 'Georgia, serif', cursor: 'pointer', fontSize: 15 }}
+          >
+            {launchBuying ? 'Opening checkout…' : `Launch my listing — $${LAUNCH_KIT_PRICE}`}
+          </button>
+          <div style={{ fontSize: 11.5, color: '#8ba3b8', textAlign: 'center', marginTop: 10 }}>30-day money-back guarantee · One-time payment · Instant activation</div>
+        </div>
+
         <Link href="/" style={{ display: 'inline-block', marginTop: 24, color: '#c9a84c', fontWeight: 700, fontFamily: 'Georgia, serif' }}>← Back to home</Link>
       </div>
     )
