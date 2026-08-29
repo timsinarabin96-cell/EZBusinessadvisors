@@ -15,7 +15,6 @@
 // =============================================================================
 
 import { useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 
 interface VaultEntry {
   id: string
@@ -28,7 +27,7 @@ interface VaultEntry {
   updated_at: string
 }
 
-export default function PasswordsPage() {
+export function PasswordVaultPanel() {
   const [entries, setEntries] = useState<VaultEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -132,7 +131,7 @@ export default function PasswordsPage() {
   }
 
   return (
-    <AppShell active="Password Vault">
+    <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 22 }}>
           <div>
@@ -210,7 +209,7 @@ export default function PasswordsPage() {
           </div>
         )}
       </div>
-    </AppShell>
+    </div>
   )
 }
 

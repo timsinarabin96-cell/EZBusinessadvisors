@@ -35,7 +35,6 @@ const DASHBOARD_ROUTES = [
   '/dashboard/financial-files',
   '/dashboard/off-market',
   '/dashboard/owner',
-  '/dashboard/passwords',
   '/dashboard/portal',
   '/dashboard/reports',
   '/dashboard/profile',

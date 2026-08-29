@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/agencySecurity.ts', 'utf8')
 const route = readFileSync('app/api/agency/security/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/security/page.tsx', 'utf8')
+const page = readFileSync('components/admin/SecurityPanel.tsx', 'utf8')
 
 test('security: agency lib reads and sets require_2fa', () => {
   assert.match(lib, /export async function getRequire2fa/)

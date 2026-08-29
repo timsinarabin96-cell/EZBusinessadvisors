@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/stripeCheckout.ts', 'utf8')
 const route = readFileSync('app/api/billing/checkout/route.ts', 'utf8')
-const security = readFileSync('app/dashboard/security/page.tsx', 'utf8')
+const security = readFileSync('components/admin/SecurityPanel.tsx', 'utf8')
 
 test('stripe: checkout session builder is code-complete and gated', () => {
   assert.match(lib, /export function stripeConfigured\(\)/)

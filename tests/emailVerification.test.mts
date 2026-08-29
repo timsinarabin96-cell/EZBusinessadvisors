@@ -6,7 +6,7 @@ const lib = readFileSync('lib/emailVerification.ts', 'utf8')
 const authPage = readFileSync('app/auth/page.tsx', 'utf8')
 const signupPage = readFileSync('app/auth/signup/page.tsx', 'utf8')
 const serverAuth = readFileSync('lib/supabase/auth.ts', 'utf8')
-const securityPage = readFileSync('app/dashboard/security/page.tsx', 'utf8')
+const securityPage = readFileSync('components/admin/SecurityPanel.tsx', 'utf8')
 
 const { isEmailConfirmed, verificationState, passwordIssue } = await import('../lib/emailVerification.ts')
 

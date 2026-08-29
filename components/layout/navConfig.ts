@@ -72,8 +72,8 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/finance', label: 'Finance', icon: '💰', minRole: 'admin', group: 'Admin', keywords: 'commissions payouts splits expenses ledger costs' },
   { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️', minRole: 'admin', group: 'Admin', keywords: 'moderation approval' },
   { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰', minRole: 'broker', group: 'Admin', keywords: 'import export csv' },
-  { href: '/dashboard/security', label: 'Security', icon: '🛂', minRole: 'admin', group: 'Admin', keywords: '2fa login access' },
-  { href: '/dashboard/passwords', label: 'Password Vault', icon: '🔑', minRole: 'agent', group: 'Admin', keywords: 'credentials secrets' },
+  { href: '/dashboard/security', label: 'Security', icon: '🛂', minRole: 'admin', group: 'Admin', keywords: '2fa login access password vault credentials secrets' },
+
   { href: '/agencies', label: 'Agency Admin', icon: '🏛️', minRole: 'admin', group: 'Admin', keywords: 'agency manage' },
   { href: '/billing', label: 'Billing', icon: '💳', minRole: 'admin', group: 'Admin', keywords: 'invoice payment plan' },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙️', minRole: 'admin', group: 'Admin', keywords: 'preferences profile' },
