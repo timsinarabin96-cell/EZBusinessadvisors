@@ -34,8 +34,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋', minRole: 'agent', group: 'Overview', keywords: 'log audit trail notifications alerts bell digests' },
 
   // ── AI AUTOPILOT (one cockpit, tabs per tool) ────────────
-  { href: '/dashboard/ai', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot', core: true, keywords: 'ai automation workflow cockpit' },
-  { href: '/dashboard/intelligence', label: 'Intelligence Network', icon: '◇', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai insights network' },
+  { href: '/dashboard/ai', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot', core: true, keywords: 'ai automation workflow cockpit intelligence network trust evidence engagement' },
   // ── DEALS & LISTINGS ──────────────────────────────────────
   { href: '/pipeline', label: 'Deal Pipeline', icon: '🔄', minRole: 'broker', group: 'Deals & Listings', core: true, keywords: 'kanban stages deals funnel buyers conversion' },
   { href: '/listings', label: 'Listings', icon: '🏢', minRole: 'agent', group: 'Deals & Listings', core: true, keywords: 'businesses inventory' },

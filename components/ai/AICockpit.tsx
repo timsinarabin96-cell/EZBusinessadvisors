@@ -20,6 +20,7 @@ import CallSummariesPanel from '@/components/ai/panels/CallSummariesPanel'
 import DataRoomQaPanel from '@/components/ai/panels/DataRoomQaPanel'
 import VisitorIntentPanel from '@/components/ai/panels/VisitorIntentPanel'
 import RedFlagsPanel from '@/components/ai/panels/RedFlagsPanel'
+import DealIntelligenceDashboard from '@/components/intelligence/DealIntelligenceDashboard'
 
 interface Tab {
   key: string
@@ -37,6 +38,7 @@ const TABS: Tab[] = [
   { key: 'qa', label: 'Data Room Q&A', icon: '💬', hint: 'Ask anything about a room', Component: () => <DataRoomQaPanel /> },
   { key: 'intent', label: 'Visitor Intent', icon: '👀', hint: 'Anonymous buyer journeys', Component: () => <VisitorIntentPanel /> },
   { key: 'flags', label: 'Red Flags', icon: '🔎', hint: 'Financial forensics', Component: () => <RedFlagsPanel /> },
+  { key: 'intelligence', label: 'Intelligence', icon: '◇', hint: 'Trust, evidence & engagement', Component: () => <DealIntelligenceDashboard /> },
 ]
 
 function initialTab(): string {
