@@ -78,11 +78,18 @@ export async function resolveSigningToken(token: string): Promise<{ ok: boolean;
   if (link.status === 'expired' || (link.expires_at && new Date(link.expires_at) < new Date())) {
     return { ok: false, error: 'Link expired — ask the broker for a new one.' }
   }
-  const { data: doc } = await db.from('documents').select('id, title, body_template, content, filled_data, parties, status').eq('id', link.document_id).maybeSingle()
+  const { data: doc } = await db.from('documents').select('id, title, template_id, filled_data, parties, status').eq('id', link.document_id).maybeSingle()
   if (!doc) return { ok: false, error: 'Document not found' }
+  // The document body lives on the TEMPLATE (via template_id), not on the
+  // documents row — fetch it so the sign page can render the filled text.
+  let body = ''
+  if (doc.template_id) {
+    const { data: tpl } = await db.from('document_templates').select('body_template').eq('id', doc.template_id).maybeSingle()
+    body = tpl?.body_template || ''
+  }
   const parties = (doc.parties || []) as SigningParty[]
   const party = parties.find((p) => p.key === link.party_key) || { key: link.party_key, label: 'Signer', role: 'custom' }
-  return { ok: true, link, document: doc as DocumentRow, party }
+  return { ok: true, link, document: { ...doc, body_template: body } as DocumentRow, party }
 }
 
 /** Mark a party's link signed (draw/type signature). */

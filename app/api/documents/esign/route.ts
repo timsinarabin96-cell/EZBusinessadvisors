@@ -40,8 +40,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { data: doc } = await db.from('documents').select('*, listings(agency_id)').eq('id', documentId).maybeSingle()
+  const { data: doc } = await db.from('documents').select('*, listings(agency_id), document_templates(body_template)').eq('id', documentId).maybeSingle()
   if (!doc) return NextResponse.json({ ok: false, error: 'document not found' }, { status: 404 })
+  // The document body lives on the TEMPLATE (template_id), not on the
+  // documents row — the joined body_template powers the PDF render below.
+  if (doc.document_templates?.body_template) {
+    doc.body_template = doc.document_templates.body_template
+  }
   const agencyId = doc.listings?.agency_id
   if (!agencyId || !canManageAgency(auth, agencyId)) return forbiddenResponse()
 
