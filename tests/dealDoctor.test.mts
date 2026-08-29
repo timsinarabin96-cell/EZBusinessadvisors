@@ -76,9 +76,10 @@ test('deal-doctor: dashboard page renders scores, bands, actions, stat cards', (
   assert.match(page, /Avg close score/)
 })
 
-test('deal-doctor: dashboard nav includes Deal Doctor', () => {
-  assert.match(shell, /dashboard\/ai\?tab=doctor/)
-  assert.match(shell, /'Deal Doctor'/)
+test('deal-doctor: AI cockpit exposes Deal Doctor tab', () => {
+  const cockpit = readFileSync('components/ai/AICockpit.tsx', 'utf8')
+  assert.match(cockpit, /key: 'doctor'/)
+  assert.match(cockpit, /Deal Doctor/)
 })
 
 test('deal-doctor: band labels and colors exported', () => {

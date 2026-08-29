@@ -113,7 +113,8 @@ test('red-flags: dashboard page renders scan rows, stat cards, flag cards', () =
   assert.match(page, /Need verification/)
 })
 
-test('red-flags: dashboard nav includes Red Flags', () => {
-  assert.match(shell, /dashboard\/ai\?tab=flags/)
-  assert.match(shell, /'Red Flags'/)
+test('red-flags: AI cockpit exposes Red Flags tab', () => {
+  const cockpit = readFileSync('components/ai/AICockpit.tsx', 'utf8')
+  assert.match(cockpit, /key: 'flags'/)
+  assert.match(cockpit, /Red Flags/)
 })

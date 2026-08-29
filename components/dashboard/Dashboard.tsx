@@ -154,8 +154,8 @@ export default function Dashboard() {
                 { href: '/listings', label: '+ New Listing', icon: '🏢' },
                 { href: '/pipeline', label: '+ New Deal', icon: '🤝' },
                 { href: '/leads', label: '+ Add Lead', icon: '🎯' },
-                { href: '/cim', label: 'Generate CIM', icon: '📑' },
-                { href: '/bov', label: 'Generate BOV', icon: '⚖️' },
+                { href: '/dashboard/reports', label: 'Generate CIM', icon: '📑' },
+                { href: '/dashboard/reports', label: 'Generate BOV', icon: '⚖️' },
                 { href: '/documents', label: 'Upload Document', icon: '📁' },
               ].map((a) => (
                 <Link key={a.href} href={a.href} style={{

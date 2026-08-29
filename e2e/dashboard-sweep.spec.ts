@@ -38,6 +38,7 @@ const DASHBOARD_ROUTES = [
   '/dashboard/owner',
   '/dashboard/passwords',
   '/dashboard/portal',
+  '/dashboard/reports',
   '/dashboard/professionals',
   '/dashboard/profile',
   '/dashboard/referrals',
@@ -57,10 +58,7 @@ const DASHBOARD_ROUTES = [
   '/pipeline',
   '/listings',
   '/documents',
-  '/recast',
   '/billing',
-  '/bov',
-  '/cim',
 ]
 
 // Error-boundary / crash signatures that mean a page is NOT working.

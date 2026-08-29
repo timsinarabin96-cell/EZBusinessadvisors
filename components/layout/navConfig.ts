@@ -35,12 +35,6 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️', minRole: 'agent', group: 'Overview', keywords: 'alerts bell' },
   // ── AI AUTOPILOT (one cockpit, tabs per tool) ────────────
   { href: '/dashboard/ai', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot', core: true, keywords: 'ai automation workflow cockpit' },
-  { href: '/dashboard/ai?tab=doctor', label: 'Deal Doctor', icon: '🩺', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai health check diagnosis' },
-  { href: '/dashboard/ai?tab=twin', label: 'Deal Twin', icon: '💠', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai simulation twin' },
-  { href: '/dashboard/ai?tab=summaries', label: 'Call Summaries', icon: '🎧', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai notes transcript calls' },
-  { href: '/dashboard/ai?tab=qa', label: 'Data Room Q&A', icon: '💬', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai questions answers diligence' },
-  { href: '/dashboard/ai?tab=intent', label: 'Visitor Intent', icon: '👀', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai behavior tracking buyers' },
-  { href: '/dashboard/ai?tab=flags', label: 'Red Flags', icon: '🔎', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai risk warning fraud' },
   { href: '/dashboard/intelligence', label: 'Intelligence Network', icon: '◇', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai insights network' },
   // ── DEALS & LISTINGS ──────────────────────────────────────
   { href: '/pipeline', label: 'Deal Pipeline', icon: '🔄', minRole: 'broker', group: 'Deals & Listings', core: true, keywords: 'kanban stages deals funnel buyers conversion' },
@@ -66,11 +60,8 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/referrals', label: 'Referrals', icon: '🎁', minRole: 'broker', group: 'Clients & Docs', keywords: 'refer partner' },
   { href: '/dashboard/search', label: 'Search', icon: '🔍', minRole: 'agent', group: 'Clients & Docs', keywords: 'find global' },
   { href: '/documents', label: 'Documents', icon: '📁', minRole: 'agent', group: 'Clients & Docs', core: true, keywords: 'files folder' },
-  { href: '/due-diligence', label: 'Due Diligence', icon: '🔍', minRole: 'broker', group: 'Clients & Docs', keywords: 'dd checklist review' },
+  { href: '/dashboard/reports', label: 'Reports & Diligence', icon: '📑', minRole: 'broker', group: 'Clients & Docs', keywords: 'recast adjusted earnings sde cim confidential information memorandum bov broker opinion value due diligence checklist review' },
   { href: '/dashboard/financial-files', label: 'Financial Files', icon: '🗂️', minRole: 'broker', group: 'Clients & Docs', keywords: 'financials statements tax' },
-  { href: '/recast', label: 'Financial Recast', icon: '📊', minRole: 'broker', group: 'Clients & Docs', keywords: 'recast adjusted earnings sde' },
-  { href: '/cim', label: 'CIM Generator', icon: '📑', minRole: 'broker', group: 'Clients & Docs', keywords: 'confidential information memorandum offering' },
-  { href: '/bov', label: 'BOV Generator', icon: '⚖️', minRole: 'broker', group: 'Clients & Docs', keywords: 'broker opinion value' },
   // ── MARKETING & GROWTH ────────────────────────────────────
   { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️', minRole: 'broker', group: 'Marketing & Growth', core: true, keywords: 'campaigns ads social facebook instagram newspaper blog nurture drips syndication email templates store' },
   // ── TEAM & OFFICE ─────────────────────────────────────────

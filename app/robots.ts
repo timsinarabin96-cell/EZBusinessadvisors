@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
           '/dashboard/',        // broker-only
           '/admin/',            // platform admin
           '/pipeline', '/leads', '/listings', '/documents', '/recast',
-          '/cim', '/bov', '/due-diligence', '/agencies', '/billing',
+          '/dashboard/reports', '/agencies', '/billing',
           '/sync', '/share/',   // token-gated CIM shares (unless listed)
         ],
       },

@@ -75,9 +75,8 @@ const secureMiddleware = createSecureMiddleware(SECURITY_CONFIG)
 
 // Routes that require an authenticated broker (public marketplace is open)
 const PROTECTED_PREFIXES = [
-  '/dashboard', '/pipeline', '/listings', '/recast', '/cim', '/bov',
-  '/leads', '/documents', '/due-diligence', '/agencies', '/sync', '/billing',
-  '/training', '/agents',
+  '/dashboard', '/pipeline', '/listings', '/leads', '/documents',
+  '/agencies', '/sync', '/billing', '/training', '/agents',
 ]
 
 // The apex/main domains (no agency subdomain).

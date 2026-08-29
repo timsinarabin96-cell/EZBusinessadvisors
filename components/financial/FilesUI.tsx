@@ -186,8 +186,8 @@ export interface WorkflowAction {
 
 export const WORKFLOW_ACTIONS: WorkflowAction[] = [
   { key: 'recast', label: 'Run Recast', icon: '🔄', desc: 'Recast financials from uploaded docs', href: '/recast', color: '#a8872f' },
-  { key: 'bov', label: 'Generate BOV', icon: '⚖️', desc: 'Broker Opinion of Value', href: '/bov', color: '#0f3460' },
-  { key: 'cim', label: 'Generate CIM', icon: '📑', desc: 'Confidential Information Memorandum', href: '/cim', color: '#1a3a8f' },
+  { key: 'bov', label: 'Generate BOV', icon: '⚖️', desc: 'Broker Opinion of Value', href: '/dashboard/reports', color: '#0f3460' },
+  { key: 'cim', label: 'Generate CIM', icon: '📑', desc: 'Confidential Information Memorandum', href: '/dashboard/reports', color: '#1a3a8f' },
   { key: 'bli', label: 'Generate BLI', icon: '📋', desc: 'Business Listing Information', href: '/dashboard/listings/new', color: '#0e7490' },
   { key: 'sba', label: 'SBA Qualification', icon: '💰', desc: 'Check SBA eligibility', href: '/recast', color: '#16a34a' },
   { key: 'dash', label: 'Financial Dashboard', icon: '📈', desc: 'All financial metrics', href: '/dashboard/financial-files', color: '#dc2626' },

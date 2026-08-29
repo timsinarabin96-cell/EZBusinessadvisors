@@ -61,9 +61,10 @@ test('visitor-intent: dashboard page renders stats, hot list, per-listing rows',
   assert.match(page, /s\.viewsLast7d/)
 })
 
-test('visitor-intent: dashboard nav includes Visitor Intent', () => {
-  assert.match(shell, /dashboard\/ai\?tab=intent/)
-  assert.match(shell, /'Visitor Intent'/)
+test('visitor-intent: AI cockpit exposes Visitor Intent tab', () => {
+  const cockpit = readFileSync('components/ai/AICockpit.tsx', 'utf8')
+  assert.match(cockpit, /key: 'intent'/)
+  assert.match(cockpit, /Visitor Intent/)
 })
 
 // --- New (audit A2): per-visitor path tracking + intent score → lead linkage ---
