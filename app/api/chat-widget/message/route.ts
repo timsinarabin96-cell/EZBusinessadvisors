@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createServerClient } from '@/lib/supabase/server'
-import {rateLimitAsync } from '@/lib/rateLimit'
+import { rateLimitAsync } from '@/lib/rateLimit'
+import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
 
 export const runtime = 'nodejs'
 
@@ -97,7 +98,6 @@ export async function POST(req: NextRequest) {
   // stored in the same thread so the widget's existing /api/chat-widget/poll
   // picks it up unchanged.
   try {
-    const { chatWithDeepSeek, isDeepSeekConfigured } = await import('@/lib/deepseek/client')
     if (isDeepSeekConfigured()) {
       const isCrm = mode === 'crm'
       const system = isCrm
