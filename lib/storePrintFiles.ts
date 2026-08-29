@@ -205,12 +205,12 @@ function hexToRgb(hex: string): ReturnType<typeof rgb> {
 
 // -----------------------------------------------------------------------------
 // Upload helper — generate + upload the print-ready PDF for a paid store order.
-// Reuses the public financial_docs bucket (already public-read for PDF links).
-// Returns the public URL or null on failure (order still succeeds without it).
+// Uses the dedicated PUBLIC bucket (store_print_files) so suppliers can
+// download the artwork without auth. Returns the public URL or null on failure.
 // -----------------------------------------------------------------------------
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-const PRINT_BUCKET = 'financial_docs'
+const PRINT_BUCKET = 'store_print_files'
 
 /** Generate + upload the print-ready PDF. Returns { url } or { error }. */
 export async function createAndUploadPrintFile(input: PrintFileInput): Promise<{ url?: string; error?: string }> {
