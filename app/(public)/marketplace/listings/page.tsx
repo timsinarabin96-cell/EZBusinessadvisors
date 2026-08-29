@@ -11,6 +11,7 @@ import { Suspense } from 'react'
 import { fetchAllIndustries, fetchFeaturedListings, fetchMarketplaceStats, searchPublicListings } from '@/lib/marketplace'
 import { getPublicAgencyContext } from '@/lib/publicAgency'
 import SearchListingsClient from '@/components/public/SearchListingsClient'
+import BuyerCapturePrompt from '@/components/public/BuyerCapturePrompt'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 import { SponsoredSlot } from '@/components/public/SponsoredSlot'
 import { LoadingState } from '@/components/ui'
@@ -102,6 +103,7 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
       <Suspense fallback={<LoadingState label="Loading listings..." />}>
         <SearchListingsClient initialResults={results} initialIndustries={industries} initialStats={stats} agencyScope={scope} />
       </Suspense>
+      <BuyerCapturePrompt hintIndustry={str(sp.industry) || null} />
       <SponsoredSlot slotKey="marketplace_bottom" />
     </>
   )
