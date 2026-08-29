@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/watchlist.ts', 'utf8')
 const route = readFileSync('app/api/marketplace/watchlist/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/watchlist/page.tsx', 'utf8')
+const page = readFileSync('components/search/DealAlertsPanel.tsx', 'utf8')
 const schema = readFileSync('sql/watchlist_schema.sql', 'utf8')
 const email = readFileSync('lib/email.ts', 'utf8')
 const review = readFileSync('app/api/listings/review/route.ts', 'utf8')

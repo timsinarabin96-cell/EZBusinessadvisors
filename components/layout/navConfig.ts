@@ -54,9 +54,8 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/expiry', label: 'Listing Expiry', icon: '⏳', minRole: 'broker', group: 'Deals & Listings', keywords: 'expiring renewals' },
   // ── CLIENTS & DOCS ────────────────────────────────────────
   { href: '/dashboard/portal', label: 'Client Portal', icon: '👥', minRole: 'broker', group: 'Clients & Docs', keywords: 'client access login' },
-  { href: '/dashboard/watchlist', label: 'Deal Alerts', icon: '🔔', minRole: 'agent', group: 'Clients & Docs', keywords: 'watch saved alerts' },
   { href: '/dashboard/network', label: 'Network', icon: '🤝', minRole: 'broker', group: 'Clients & Docs', keywords: 'professionals attorneys cpas lenders referrals refer partner' },
-  { href: '/dashboard/search', label: 'Search', icon: '🔍', minRole: 'agent', group: 'Clients & Docs', keywords: 'find global' },
+  { href: '/dashboard/search', label: 'Search', icon: '🔍', minRole: 'agent', group: 'Clients & Docs', keywords: 'find global deal alerts watchlist saved searches' },
   { href: '/documents', label: 'Documents', icon: '📁', minRole: 'agent', group: 'Clients & Docs', core: true, keywords: 'files folder' },
   { href: '/dashboard/reports', label: 'Reports & Diligence', icon: '📑', minRole: 'broker', group: 'Clients & Docs', keywords: 'recast adjusted earnings sde cim confidential information memorandum bov broker opinion value due diligence checklist review' },
   { href: '/dashboard/financial-files', label: 'Financial Files', icon: '🗂️', minRole: 'broker', group: 'Clients & Docs', keywords: 'financials statements tax' },

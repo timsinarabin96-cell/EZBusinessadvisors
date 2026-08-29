@@ -48,7 +48,6 @@ const DASHBOARD_ROUTES = [
   '/dashboard/training',
   '/dashboard/team',
   '/dashboard/valuation',
-  '/dashboard/watchlist',
   // Top-level CRM pages
   '/leads',
   '/pipeline',

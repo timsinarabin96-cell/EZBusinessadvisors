@@ -42,7 +42,7 @@ const money = (n: number | null | undefined) => (n != null ? '$' + Math.round(n)
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
-export default function WatchlistPage() {
+export function DealAlertsPanel() {
   const router = useRouter()
   const [searches, setSearches] = useState<Search[]>([])
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
