@@ -76,6 +76,9 @@ export default function AIDealStudio() {
   const [workflow, setWorkflow] = useState<any>(null)
   const [loading, setLoading] = useState(phase === 'capture' ? false : true)
   const [conciergeDraft, setConciergeDraft] = useState<Record<string, string | boolean | number | null> | null>(null)
+  // Manual mode: skip the AI concierge, go straight to the listing flow.
+  // Legal documents (listing agreement, disclosures) are uploaded manually in Step 1.
+  const [bypassAI, setBypassAI] = useState(false)
   const [liveState, setLiveState] = useState<{ score: number; label: string; missing: string[]; industry: string; location: string; askingPrice: string; photoCount: number } | null>(null)
   const lastPush = useRef('')
 
@@ -308,10 +311,29 @@ export default function AIDealStudio() {
           {/* ── PHASE 1: CAPTURE ── */}
           {phase === 'capture' && (
             <>
-              <StudioConcierge onDraft={(draft) => setConciergeDraft(draft)} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--navy)', fontFamily: 'Georgia, serif' }}>
+                    {bypassAI ? '✍️ Manual intake — listing flow' : '✨ AI-assisted intake'}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
+                    {bypassAI
+                      ? 'You skipped the AI concierge. Fill the form below — legal documents (listing agreement, disclosures) are uploaded in Step 1 of verification.'
+                      : 'The concierge gathers documents, financials, and a quick valuation — then the official part (listing agreement → sign) starts.'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setBypassAI((b) => !b)}
+                  style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid #c9a84c', background: bypassAI ? 'var(--navy)' : '#fff', color: bypassAI ? '#c9a84c' : 'var(--navy)', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }}
+                >
+                  {bypassAI ? '↩️ Back to AI assistance' : '⚡ Skip AI — go straight to listing flow'}
+                </button>
+              </div>
+
+              {!bypassAI && <StudioConcierge listingId={listingId || null} onDraft={(draft) => setConciergeDraft(draft)} />}
               <IntelligentListingForm
                 listingId={listingId || undefined}
-                externalDraft={conciergeDraft}
+                externalDraft={bypassAI ? null : conciergeDraft}
                 onCreated={handleCreated}
                 onDraftCreated={(id) => { if (!listingId) setPhase('capture', id, 1) }}
                 onLiveState={setLiveState}

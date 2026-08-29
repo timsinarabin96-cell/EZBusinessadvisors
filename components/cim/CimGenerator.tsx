@@ -15,17 +15,23 @@ import { exportCimToPdf } from '@/lib/pdfExport'
 import { fetchUserAgencyContext } from '@/lib/agencies'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState } from '@/components/ui'
+import { authHeaders } from '@/lib/authToken'
 
 export default function CimGenerator() {
   const toast = useToast()
   const searchParams = useSearchParams()
   const [listings, setListings] = useState<Listing[]>([])
   const [selectedId, setSelectedId] = useState('')
+  const [currentVersionId, setCurrentVersionId] = useState('')
   const [content, setContent] = useState<CimContent | null>(null)
   const [versions, setVersions] = useState<CimVersion[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [agency, setAgency] = useState<{ name: string; phone?: string | null; email?: string | null } | null>(null)
+  // ── Share to NDA-signed buyers ──
+  const [shareOpen, setShareOpen] = useState(false)
+  const [ndaBuyers, setNdaBuyers] = useState<Array<{ email: string; name: string | null; signed_at: string | null }>>([])
+  const [shareBusy, setShareBusy] = useState(false)
 
   useEffect(() => {
     fetchUserAgencyContext().then((ctx) => setAgency(ctx.agency ? { name: ctx.agency.name, phone: ctx.agency.phone, email: ctx.agency.email } : null)).catch(() => setAgency(null))
@@ -78,6 +84,7 @@ export default function CimGenerator() {
     if (!content || !selectedId) return
     try {
       const v = await saveCimVersion(selectedId, content, 'draft')
+      setCurrentVersionId(v?.id || '')
       setVersions((prev) => [v, ...prev])
       toast('CIM version saved', 'success')
     } catch (e: any) {
@@ -126,17 +133,112 @@ export default function CimGenerator() {
             <button className="btn btn-navy" onClick={() => exportCimToPdf(content, { agency })}>⬇️ Export PDF</button>
             <button className="btn btn-ghost" onClick={async () => {
               try {
-                const link = `${window.location.origin}/share/cim/${selectedId}`
+                const cimId = currentVersionId || versions[0]?.id
+                if (!cimId) { toast('Save the CIM first, then share it', 'error'); return }
+                const link = `${window.location.origin}/share/cim/${cimId}`
                 if (navigator.clipboard) await navigator.clipboard.writeText(link)
                 toast('Share link copied to clipboard', 'success')
               } catch { toast('Could not copy link', 'error') }
             }}>🔗 Copy Share Link</button>
+            <button className="btn btn-navy" onClick={async () => {
+              const cimId = currentVersionId || versions[0]?.id
+              if (!cimId) { toast('Save the CIM first, then share it', 'error'); return }
+              setShareOpen((o) => !o)
+              if (!shareOpen) {
+                setShareBusy(true)
+                try {
+                  const res = await fetch('/api/share/cim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                    body: JSON.stringify({ cimId, listingId: selectedId }),
+                  })
+                  const j = await res.json().catch(() => ({ ok: false, buyers: [] }))
+                  setNdaBuyers(j.buyers || [])
+                  if (!res.ok) toast(j.error || 'Could not load NDA-signed buyers', 'error')
+                } catch (e: any) {
+                  toast(e.message || 'Could not load buyers', 'error')
+                } finally {
+                  setShareBusy(false)
+                }
+              }
+            }}>📤 Share to buyer</button>
             <span style={{ fontSize: 13, color: 'var(--muted)' }}>Generated {content.generatedAt}</span>
             <div style={{ flex: 1 }} />
             {versions.length > 0 && (
               <span className="section-title">Version {versions[0].version} · {versions.length} total</span>
             )}
           </div>
+
+          {/* Share to NDA-signed buyers */}
+          {shareOpen && (
+            <div style={{ marginBottom: 20, padding: 18, border: '1px solid rgba(201,168,76,0.5)', borderRadius: 12, background: '#fffdf7' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)', marginBottom: 4 }}>📤 Share CIM — NDA-signed buyers only</div>
+              <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--muted)' }}>
+                These buyers signed the NDA for this listing — they can open the CIM. Anyone else sees the locked gate.
+              </p>
+              {shareBusy ? <LoadingState label="Loading NDA-signed buyers..." /> : ndaBuyers.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--muted)', padding: '10px 0' }}>
+                  No NDA-signed buyers yet. Send the NDA from the buyer lead (Leads → Send NDA), then share the CIM once they sign.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {ndaBuyers.map((b) => (
+                    <div key={b.email} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 8, background: '#fff', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 160 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{b.name || 'Buyer'}</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)' }}>{b.email} · signed {b.signed_at ? new Date(b.signed_at).toLocaleDateString() : ''}</div>
+                      </div>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '7px 12px', fontSize: 12 }}
+                        onClick={async () => {
+                          const cimId = currentVersionId || versions[0]?.id
+                          if (!cimId) return
+                          try {
+                            const res = await fetch('/api/share/cim', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                              body: JSON.stringify({ cimId, listingId: selectedId, buyerEmail: b.email }),
+                            })
+                            const j = await res.json().catch(() => ({ ok: false }))
+                            if (!res.ok || !j.ok) { toast(j.error || 'Could not share', 'error'); return }
+                            if (navigator.clipboard) await navigator.clipboard.writeText(j.link)
+                            toast('Personalized CIM link copied — it opens straight to this buyer', 'success')
+                          } catch (e: any) {
+                            toast(e.message || 'Could not share', 'error')
+                          }
+                        }}
+                      >
+                        🔗 Copy link
+                      </button>
+                      <button
+                        className="btn btn-navy"
+                        style={{ padding: '7px 12px', fontSize: 12 }}
+                        onClick={async () => {
+                          const cimId = currentVersionId || versions[0]?.id
+                          if (!cimId) return
+                          try {
+                            const res = await fetch('/api/share/cim', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                              body: JSON.stringify({ cimId, listingId: selectedId, buyerEmail: b.email, sendEmail: true }),
+                            })
+                            const j = await res.json().catch(() => ({ ok: false }))
+                            if (!res.ok || !j.ok) { toast(j.error || 'Could not email', 'error'); return }
+                            toast(`CIM emailed to ${b.email}`, 'success')
+                          } catch (e: any) {
+                            toast(e.message || 'Could not email', 'error')
+                          }
+                        }}
+                      >
+                        📧 Email CIM
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Print-styled preview */}
           <div style={{ maxWidth: 820, margin: '0 auto' }}>

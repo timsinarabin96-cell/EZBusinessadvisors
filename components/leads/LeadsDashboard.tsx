@@ -150,6 +150,31 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
     }
   }
 
+  // --- One-click NDA: send to buyer, then broker counter-signs ----------
+  const [ndaSending, setNdaSending] = useState<string | null>(null)
+  const [ndaSent, setNdaSent] = useState<Record<string, string>>({})
+
+  const handleSendNda = async (lead: UnifiedLead) => {
+    if (lead.kind !== 'buyer' || !lead.email) return
+    setNdaSending(lead.id)
+    try {
+      const token = getStoredAccessToken()
+      const res = await fetch('/api/nda/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ leadId: lead.id }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Could not send NDA')
+      setNdaSent((p) => ({ ...p, [lead.id]: j.documentId }))
+      toast(j.message || `NDA sent to ${lead.email}`, 'success')
+    } catch (e: any) {
+      toast(e.message || 'Could not send NDA', 'error')
+    } finally {
+      setNdaSending(null)
+    }
+  }
+
   // --- Lead hygiene: duplicates + cross-kind matches + sources ----------
   const dupGroups = useMemo(() => findDuplicateGroups(leads), [leads])
   const crossPairs = useMemo(
@@ -365,9 +390,18 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
                       </a>
                     </>
                   )}
+                  {lead.kind === 'buyer' && lead.email && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleSendNda(lead) }}
+                      disabled={ndaSending === lead.id}
+                      style={{ flex: lead.phone ? 0.7 : 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: ndaSent[lead.id] ? '#f0fdf4' : '#fff7ed', color: ndaSent[lead.id] ? '#15803d' : '#92400e', border: ndaSent[lead.id] ? '1px solid #bbf7d0' : '1px solid #fed7aa', cursor: ndaSending === lead.id ? 'wait' : 'pointer' }}
+                    >
+                      {ndaSending === lead.id ? '⏳ Sending…' : ndaSent[lead.id] ? '✅ NDA sent' : '📄 Send NDA'}
+                    </button>
+                  )}
                   <button
                     onClick={(e) => { e.stopPropagation(); setProfileLead(lead) }}
-                    style={{ flex: lead.phone ? 0.7 : 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#fff7ed', color: '#92400e', border: '1px solid #fed7aa', cursor: 'pointer', fontFamily: 'Georgia, serif' }}
+                    style={{ flex: lead.phone || (lead.kind === 'buyer' && lead.email) ? 0.7 : 1, textAlign: 'center', padding: '7px 10px', borderRadius: 8, fontSize: 12.5, fontWeight: 700, background: '#fff7ed', color: '#92400e', border: '1px solid #fed7aa', cursor: 'pointer', fontFamily: 'Georgia, serif' }}
                   >
                     👤 Profile
                   </button>

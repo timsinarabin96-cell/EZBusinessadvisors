@@ -55,6 +55,7 @@ export interface UnifiedLead {
   status: string
   created_at?: string | null
   source?: string | null
+  listing_id?: string | null
   // Buyer-lead enrichment (financials + desired business type)
   desired_business_type?: string | null
   budget_range?: string | null
@@ -92,7 +93,7 @@ export async function fetchAllLeads(): Promise<UnifiedLead[]> {
       rows.push({
         kind: 'buyer', id: r.id, business_name: null, email: r.email,
         phone: r.phone, status: r.status || 'new', created_at: r.created_at,
-        source: r.source || null,
+        source: r.source || null, listing_id: r.listing_id || null,
       })
     }
   }

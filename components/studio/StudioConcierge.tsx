@@ -11,6 +11,13 @@ import { useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { authHeaders } from '@/lib/authToken'
 import type { IntakeDraft } from '@/lib/listingIntakeCore'
+import { SELLER_FORM_SCHEMAS } from '@/lib/sellerFormSchemas'
+import { computeValuation } from '@/lib/valuation'
+import { supabase } from '@/lib/supabase/client'
+import { uploadListingDocument } from '@/lib/workflow'
+
+const fmtMoney = (n: number | null | undefined) =>
+  n == null || isNaN(n) ? '—' : '$' + Math.round(n).toLocaleString('en-US')
 
 // =============================================================================
 // StudioConcierge — the conversation-first capture layer (AI Interviewer).
@@ -71,9 +78,12 @@ const INTERVIEW_QUESTIONS: Array<{ field: string; ask: string }> = [
 
 export default function StudioConcierge({
   onDraft,
+  listingId,
 }: {
   /** Receives the extracted draft; the studio applies it to the live form. */
   onDraft: (draft: IntakeDraft) => void
+  /** Optional listing id — enables financial upload straight to the deal record. */
+  listingId?: string | null
 }) {
   const toast = useToast()
   const [text, setText] = useState('')
@@ -84,6 +94,47 @@ export default function StudioConcierge({
   const [question, setQuestion] = useState<{ field: string; ask: string } | null>(null)
   const [answer, setAnswer] = useState('')
   const [qaCount, setQaCount] = useState(0)
+
+  // ── Seller document checklist (gathered BEFORE the listing is taken) ──
+  const docSchema = SELLER_FORM_SCHEMAS.doc_checklist
+  const [docs, setDocs] = useState<Record<string, boolean>>({})
+  const docTotal = docSchema.sections.reduce((n, s) => n + s.fields.length, 0)
+  const docChecked = docSchema.sections.reduce((n, s) => n + s.fields.filter((f) => docs[f.key]).length, 0)
+  const toggleDoc = (key: string) => setDocs((p) => ({ ...p, [key]: !p[key] }))
+
+  // ── Financial upload → quick valuation ────────────────────────────────
+  const [uploading, setUploading] = useState(false)
+  const [uploaded, setUploaded] = useState<Array<{ name: string; url: string }>>([])
+  const [sde, setSde] = useState('')
+  const [revenue, setRevenue] = useState('')
+  const [ebitda, setEbitda] = useState('')
+  const [industry, setIndustry] = useState('')
+  const estimate = computeValuation({
+    business_name: null,
+    sde: sde ? Number(sde) : null,
+    annual_revenue: revenue ? Number(revenue) : null,
+    ebitda: ebitda ? Number(ebitda) : null,
+    industry: industry || null,
+    asking_price: null,
+  })
+
+  const uploadFinancial = async (f: File) => {
+    if (!listingId) { toast('Save the deal record first, then upload financials here.', 'info'); return }
+    setUploading(true)
+    try {
+      const path = `listing-docs/${listingId}/financials/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const { error: upErr } = await supabase.storage.from('documents').upload(path, f)
+      if (upErr) { toast('Upload failed — check the documents bucket', 'error'); return }
+      const url = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl
+      await uploadListingDocument(listingId, { document_type: 'financial_proof', file_name: f.name, file_url: url, party_type: 'seller' })
+      setUploaded((p) => [{ name: f.name, url }, ...p])
+      toast(`Financial doc uploaded — ${f.name}`, 'success')
+    } catch (e: any) {
+      toast(e.message || 'Upload failed', 'error')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const hasField = (draft: IntakeDraft | null, field: string) => {
     const v = draft?.[field]
@@ -203,6 +254,62 @@ export default function StudioConcierge({
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.72)', lineHeight: 1.6, maxWidth: 640, margin: '0 0 14px' }}>
           Paste what you know — call notes, a voicemail transcript, a P&L summary, or plain sentences. I&apos;ll ask for anything I&apos;m missing, one question at a time.
         </p>
+
+        {/* Seller document checklist — gathered before the listing is taken */}
+        <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 800, color: '#fff' }}>📋 Seller document checklist</div>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: docChecked === docTotal ? '#4ade80' : '#f5d97a' }}>
+              {docChecked}/{docTotal} collected
+            </span>
+          </div>
+          {docSchema.sections.map((section) => (
+            <div key={section.title} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 5 }}>{section.title}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 4 }}>
+                {section.fields.map((f) => (
+                  <label key={f.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 12, color: 'rgba(255,255,255,0.82)', cursor: 'pointer', lineHeight: 1.35 }}>
+                    <input type="checkbox" checked={!!docs[f.key]} onChange={() => toggleDoc(f.key)} style={{ marginTop: 2, accentColor: '#c9a84c' }} />
+                    <span>{f.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Financial upload + quick valuation — "your business is worth this much" */}
+        <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: '#fff', marginBottom: 8 }}>💵 Financials → quick valuation</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+            <label style={{ padding: '9px 16px', borderRadius: 8, background: 'rgba(201,168,76,0.16)', border: '1px solid rgba(201,168,76,0.5)', color: '#f5d97a', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+              {uploading ? '⏳ Uploading…' : '📤 Upload financials (P&L, tax returns)'}
+              <input type="file" style={{ display: 'none' }} accept=".pdf,.xls,.xlsx,.csv,.jpg,.png" onChange={async (e) => { const f = e.target.files?.[0]; if (f) await uploadFinancial(f); e.target.value = '' }} />
+            </label>
+            {!listingId && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Save the deal record first to attach uploads.</span>}
+          </div>
+          {uploaded.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+              {uploaded.map((u) => (
+                <a key={u.url} href={u.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#7dd3fc', fontWeight: 600 }}>📎 {u.name} ↗</a>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+            <input value={sde} onChange={(e) => setSde(e.target.value)} placeholder="SDE" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
+            <input value={revenue} onChange={(e) => setRevenue(e.target.value)} placeholder="Annual revenue" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
+            <input value={ebitda} onChange={(e) => setEbitda(e.target.value)} placeholder="EBITDA (opt.)" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
+            <input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Industry (opt.)" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} />
+          </div>
+          {estimate ? (
+            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(201,168,76,0.14)', border: '1px solid rgba(201,168,76,0.45)' }}>
+              <div style={{ fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', fontWeight: 800 }}>Estimated value — "your business is worth"</div>
+              <div style={{ fontSize: 21, fontWeight: 800, color: '#f5d97a', fontFamily: 'Georgia, serif' }}>{fmtMoney(estimate.estimate_min)} – {fmtMoney(estimate.estimate_max)}</div>
+            </div>
+          ) : (
+            <div style={{ marginTop: 8, fontSize: 11.5, color: 'rgba(255,255,255,0.45)' }}>Enter SDE or revenue for an instant range to share with the seller.</div>
+          )}
+        </div>
 
         {/* Interview Q&A — one question at a time, like a human broker */}
         {question ? (

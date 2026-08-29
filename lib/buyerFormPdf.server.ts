@@ -29,6 +29,9 @@ async function loadTemplate(fileName: string): Promise<Uint8Array> {
 export async function generateNdaProfilePdf(input: {
   listingId: string
   businessCategory: string | null
+  businessName?: string | null
+  listingLocation?: string | null
+  listingRef?: string | null
   ndaFormData: FormValues
   buyerProfile: FormValues
   signerName: string
@@ -41,7 +44,7 @@ export async function generateNdaProfilePdf(input: {
 
   return composeFilledPdf(
     [
-      { template: NDA_TEMPLATE, templateBytes: ndaBytes, values: { ...input.ndaFormData, _business_category: input.businessCategory || '—' } },
+      { template: NDA_TEMPLATE, templateBytes: ndaBytes, values: { ...input.ndaFormData, _listing_id: input.listingRef || input.listingId || '—', _business_category: input.businessCategory || '—', _business_name: input.businessName || '', _listing_location: input.listingLocation || '' } },
       { template: BUYER_PROFILE_TEMPLATE, templateBytes: profileBytes, values: input.buyerProfile },
     ],
     { signerName: input.signerName, signedAt: input.signedAt },

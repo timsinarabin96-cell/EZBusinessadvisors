@@ -19,6 +19,11 @@ import type { SellerFormType } from '@/lib/sellerFormSchemas'
 export const NDA_TEMPLATE: OverlayTemplate = {
   name: 'Confidentiality, Disclosure & Commission Protection Agreement',
   fields: [
+    // Listing identification — the NDA is for ONE specific business.
+    { key: '_listing_id', page: 0, x: 105, y: 212.4, fontSize: 10 },
+    { key: '_business_category', page: 0, x: 232, y: 212.4, fontSize: 10 },
+    { key: '_business_name', page: 0, x: 105, y: 190, fontSize: 10 },
+    { key: '_listing_location', page: 0, x: 320, y: 190, fontSize: 10 },
     { key: 'prospect_full_legal_name', page: 0, x: 178, y: 446.7, fontSize: 10 },
     // Address / City / State / ZIP row — one shared line beneath the header labels
     { key: 'address', page: 0, x: 75, y: 402, fontSize: 9.5 },
@@ -32,7 +37,6 @@ export const NDA_TEMPLATE: OverlayTemplate = {
     { key: 'phone', page: 0, x: 75, y: 260, fontSize: 9.5 },
     { key: 'cell', page: 0, x: 175, y: 260, fontSize: 9.5 },
     { key: 'fax', page: 0, x: 350, y: 260, fontSize: 9.5 },
-    { key: '_business_category', page: 0, x: 232, y: 212.4, fontSize: 10 },
   ],
   signature: {
     page: 3,

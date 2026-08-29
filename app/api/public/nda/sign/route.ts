@@ -71,7 +71,14 @@ export async function POST(req: NextRequest) {
   if (listingErr || !listingRow) {
     return NextResponse.json({ ok: false, error: 'Listing not found.' }, { status: 404 })
   }
-  const listing = { id: listingRow.listing_id, business_name: listingRow.public_title, industry: listingRow.industry }
+  const listing = {
+    id: listingRow.listing_id,
+    business_name: listingRow.public_title || listingRow.business_name || null,
+    industry: listingRow.industry,
+    public_title: listingRow.public_title || null,
+    location_general: listingRow.location_general || null,
+    listing_ref: (listingRow as any)?.listing_ref || null,
+  }
 
   const token = crypto.randomBytes(32).toString('hex')
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null
@@ -88,7 +95,12 @@ export async function POST(req: NextRequest) {
   let pdfPath: string | null = null
   try {
     const bytes = await generateNdaProfilePdf({
-      listingId, businessCategory: listing.industry, ndaFormData, buyerProfile, signerName: name, signedAt,
+      listingId,
+      businessCategory: listing.industry,
+      businessName: listing.public_title || listing.business_name || null,
+      listingLocation: listing.location_general || null,
+      listingRef: (listing as any)?.listing_ref || null,
+      ndaFormData, buyerProfile, signerName: name, signedAt,
     })
 
     const path = `nda-forms/${listingId}/${Date.now()}-${email.replace(/[^a-zA-Z0-9._-]/g, '_')}.pdf`

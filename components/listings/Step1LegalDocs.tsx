@@ -12,6 +12,11 @@ import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/
 import { uploadListingDocument, fetchListingDocuments, completeStep } from '@/lib/workflow'
 import { supabase } from '@/lib/supabase/client'
 import DealDocsPanel from '@/components/documents/DealDocsPanel'
+import { computeValuation } from '@/lib/valuation'
+import { getStoredAccessToken } from '@/lib/authToken'
+
+const fmtMoney = (n: number | null | undefined) =>
+  n == null || isNaN(n) ? '—' : '$' + Math.round(n).toLocaleString('en-US')
 
 // ---------------------------------------------------------------------------
 // Step 1 — Legal Docs (listing agreement + disclosures)
@@ -46,11 +51,144 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
 
   const markComplete = async () => { await completeStep(listingId, 1); onNext() }
 
+  // ── Listing agreement eSign (gate): send to seller, track status ──────
+  const [sellerEmail, setSellerEmail] = useState('')
+  const [laStatus, setLaStatus] = useState<'none' | 'pending' | 'signed'>('none')
+  const [laSending, setLaSending] = useState(false)
+  const [laDocId, setLaDocId] = useState<string | null>(null)
+
+  const loadLa = async () => {
+    try {
+      const token = getStoredAccessToken()
+      const res = await fetch(`/api/listing-agreement/list`, { headers: { authorization: `Bearer ${token}` } })
+      const j = await res.json().catch(() => ({}))
+      const mine = (j.agreements || []).filter((a: any) => a.listing_id === listingId)
+      if (mine.length > 0) {
+        const a = mine[0]
+        setLaDocId(a.id)
+        setLaStatus(a.fully_signed ? 'signed' : 'pending')
+        setSellerEmail(a.seller_email || '')
+      } else {
+        setLaStatus('none')
+      }
+    } catch { /* best-effort */ }
+  }
+  useEffect(() => { loadLa() }, [listingId])
+
+  const sendLa = async () => {
+    if (!sellerEmail.trim()) { alert('Enter the seller\'s email first'); return }
+    setLaSending(true)
+    try {
+      const token = getStoredAccessToken()
+      const res = await fetch('/api/listing-agreement/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ listingId, sellerEmail: sellerEmail.trim() }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Could not send')
+      setLaDocId(j.documentId)
+      setLaStatus('pending')
+      alert('Listing agreement sent — the seller signs by email, then you approve it from the Listing Agreements page.')
+    } catch (e: any) {
+      alert(e.message || 'Could not send listing agreement')
+    } finally {
+      setLaSending(false)
+    }
+  }
+
+  // ── Valuation: "your business is worth this much" ─────────────────────
+  const [sde, setSde] = useState('')
+  const [revenue, setRevenue] = useState('')
+  const [ebitda, setEbitda] = useState('')
+  const [industry, setIndustry] = useState('')
+  const estimate = computeValuation({
+    business_name: null,
+    sde: sde ? Number(sde) : null,
+    annual_revenue: revenue ? Number(revenue) : null,
+    ebitda: ebitda ? Number(ebitda) : null,
+    industry: industry || null,
+    asking_price: null,
+  })
+
   return (
     <StepShell
-      step={1} title="Legal Documents" description="Upload the signed listing agreement and any disclosures to authorize the engagement."
+      step={1} title="Legal Documents" description="The signed listing agreement authorizes the engagement — nothing goes live without it."
       status="draft" onNext={markComplete} nextDisabled={!ready} nextLabel="Step 1 complete →"
     >
+      {/* Listing agreement eSign gate */}
+      <div style={{ marginBottom: 24, padding: 18, border: '1px solid rgba(201,168,76,0.5)', borderRadius: 12, background: '#fffdf7' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>📋 Exclusive Listing Agreement (required — the gate)</div>
+        <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--muted)' }}>
+          No listing goes live without a signed listing agreement. Send it to the seller — they sign by email, then you approve.
+        </p>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input value={sellerEmail} onChange={(e) => setSellerEmail(e.target.value)} placeholder="Seller email" style={{ ...stepField, flex: 1, minWidth: 200 }} />
+          <button
+            onClick={sendLa}
+            disabled={laSending || laStatus !== 'none'}
+            style={{
+              ...stepBtn(true),
+              opacity: laStatus !== 'none' ? 0.55 : 1,
+              cursor: laStatus !== 'none' || laSending ? 'not-allowed' : 'pointer',
+              border: 'none',
+            }}
+          >
+            {laSending ? 'Sending…' : laStatus === 'pending' ? '⏳ Sent — awaiting seller' : laStatus === 'signed' ? '✅ Signed' : '✉️ Send agreement to seller'}
+          </button>
+        </div>
+        {laStatus === 'pending' && (
+          <div style={{ marginTop: 10, fontSize: 13, color: '#92400e' }}>
+            ⏳ Seller hasn't signed yet. You can keep filling the listing — it just can't go live until they do. When they sign, approve it from the{' '}
+            <a href="/dashboard/listing-agreements" style={{ color: 'var(--navy)', fontWeight: 700 }}>Listing Agreements page</a>.
+          </div>
+        )}
+        {laStatus === 'signed' && (
+          <div style={{ marginTop: 10, fontSize: 13, color: '#16a34a', fontWeight: 600 }}>✅ Listing agreement fully signed — this listing is authorized to go live.</div>
+        )}
+      </div>
+
+      {/* Valuation — tell the seller what the business is worth */}
+      <div style={{ marginBottom: 24, padding: 18, border: '1px solid var(--line)', borderRadius: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>💎 Business worth (valuation range)</div>
+        <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--muted)' }}>
+          Enter the basics to show the seller what the business is worth before setting the asking price.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+          <div>
+            <label style={stepLabel}>SDE (seller's discretionary earnings)</label>
+            <input value={sde} onChange={(e) => setSde(e.target.value)} placeholder="e.g. 120000" style={stepField} inputMode="numeric" />
+          </div>
+          <div>
+            <label style={stepLabel}>Annual revenue</label>
+            <input value={revenue} onChange={(e) => setRevenue(e.target.value)} placeholder="e.g. 500000" style={stepField} inputMode="numeric" />
+          </div>
+          <div>
+            <label style={stepLabel}>EBITDA (optional)</label>
+            <input value={ebitda} onChange={(e) => setEbitda(e.target.value)} placeholder="e.g. 80000" style={stepField} inputMode="numeric" />
+          </div>
+          <div>
+            <label style={stepLabel}>Industry (optional)</label>
+            <input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="e.g. Home Health" style={stepField} />
+          </div>
+        </div>
+        {estimate ? (
+          <div style={{ marginTop: 14, padding: '12px 16px', borderRadius: 10, background: 'var(--navy)', color: '#fff' }}>
+            <div style={{ fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
+              Estimated value range
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold)', fontFamily: 'Georgia, serif' }}>
+              {fmtMoney(estimate.estimate_min)} – {fmtMoney(estimate.estimate_max)}
+            </div>
+            <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
+              {estimate.method || 'Blend of earnings multiple + revenue cross-check'}
+            </div>
+          </div>
+        ) : (
+          <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--muted)' }}>Enter SDE or revenue to see the estimated range.</div>
+        )}
+      </div>
+
       {/* Signed listing agreement */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>Listing agreement (required)</div>

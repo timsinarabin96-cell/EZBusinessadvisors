@@ -9,45 +9,95 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase/client'
-import { CimContent, CimVersion } from '@/lib/cim'
+import { CimContent } from '@/lib/cim'
 import { LoadingState } from '@/components/ui'
 
-/** Public CIM share view — a broker can send this link to a prospective buyer. */
+/** Public CIM share view — gated: only NDA-signed buyers (or the broker) can open it. */
 export default function ShareCimPage() {
   const params = useParams()
   const cimId = String(params?.id || '')
   const [content, setContent] = useState<CimContent | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [email, setEmail] = useState('')
+  const [checking, setChecking] = useState(false)
+
+  const checkAccess = async (em?: string) => {
+    const target = (em ?? email).trim().toLowerCase()
+    setChecking(true)
+    setError('')
+    try {
+      const res = await fetch('/api/share/cim-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cimId, email: target }),
+      })
+      const j = await res.json().catch(() => ({ ok: false, error: 'Server error' }))
+      if (!res.ok || !j.ok) {
+        setError(j.error || 'Access denied')
+        setLoading(false)
+        return
+      }
+      setContent(j.cim?.content_json || null)
+    } catch (e: any) {
+      setError(e.message || 'Could not verify access')
+    } finally {
+      setChecking(false)
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('cim_versions')
-          .select('*')
-          .eq('id', cimId)
-          .single()
-        if (error) throw new Error(error.message)
-        const v = data as CimVersion
-        setContent(v.content_json)
-      } catch (e: any) {
-        setError(e.message || 'CIM not found or share link is invalid.')
-      } finally {
-        setLoading(false)
-      }
-    })()
+    // Pre-fill from ?email= (personalized broker link) and auto-verify.
+    const q = new URLSearchParams(window.location.search)
+    const e = q.get('email')
+    if (e) {
+      setEmail(e)
+      checkAccess(e)
+    } else {
+      setLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cimId])
 
   if (loading) return <LoadingState label="Loading shared CIM..." />
+
   if (error || !content) {
     return (
       <div style={{ minHeight: '100vh', background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', padding: 40 }}>
-        <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center', maxWidth: 520 }}>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: 40, color: '#c9a84c' }}>CONCORD</div>
-          <div style={{ marginTop: 12, color: 'rgba(255,255,255,0.7)' }}>⚠️ {error || 'This shared document is unavailable.'}</div>
-          <div style={{ marginTop: 20, color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>Please contact your broker for access.</div>
+          <div style={{ marginTop: 18, fontSize: 16, color: 'rgba(255,255,255,0.9)', lineHeight: 1.6 }}>
+            🔒 Confidential — NDA required
+          </div>
+          <div style={{ marginTop: 8, fontSize: 13.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+            This CIM is only shared with buyers who have signed the NDA for this deal.
+            Enter the email you used when signing.
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'center' }}>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && checkAccess()}
+              placeholder="you@email.com"
+              style={{ flex: 1, maxWidth: 300, padding: '12px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 14, fontFamily: 'inherit' }}
+            />
+            <button
+              onClick={() => checkAccess()}
+              disabled={checking || !email.trim()}
+              style={{ padding: '12px 24px', borderRadius: 8, background: '#c9a84c', color: '#0f1023', border: 'none', fontWeight: 800, fontSize: 13.5, cursor: checking || !email.trim() ? 'not-allowed' : 'pointer', opacity: checking || !email.trim() ? 0.55 : 1 }}
+            >
+              {checking ? 'Verifying…' : 'View CIM'}
+            </button>
+          </div>
+          {error && (
+            <div style={{ marginTop: 16, fontSize: 13, color: '#fca5a5', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
+              {error}
+            </div>
+          )}
+          <div style={{ marginTop: 22, color: 'rgba(255,255,255,0.45)', fontSize: 12.5, lineHeight: 1.6 }}>
+            Haven&apos;t signed yet? Your broker emails the NDA — once you sign, this CIM unlocks automatically.
+          </div>
         </div>
       </div>
     )

@@ -55,6 +55,8 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/offer-lab', label: 'Offer Lab', icon: '🧪', minRole: 'broker', group: 'Deals & Listings', keywords: 'offers terms structure' },
   { href: '/dashboard/negotiation', label: 'Negotiation', icon: '🧭', minRole: 'broker', group: 'Deals & Listings', keywords: 'counter terms deal' },
   { href: '/dashboard/nda-requests', label: 'NDA Requests', icon: '🛡️', minRole: 'agent', group: 'Deals & Listings', keywords: 'non disclosure confidentiality' },
+  { href: '/dashboard/nda', label: 'NDAs', icon: '📄', minRole: 'agent', group: 'Deals & Listings', keywords: 'non disclosure nda sign confidentiality buyer qualify' },
+  { href: '/dashboard/listing-agreements', label: 'Listing Agreements', icon: '📋', minRole: 'agent', group: 'Deals & Listings', keywords: 'listing agreement exclusive sign seller publish gate' },
   { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings', keywords: 'escrow closing checklist' },
   { href: '/dashboard/pipeline', label: 'Pipeline', icon: '🔄', minRole: 'agent', group: 'Deals & Listings', keywords: 'funnel buyers stages heat conversion' },
   { href: '/dashboard/comps', label: 'Comps', icon: '📊', minRole: 'broker', group: 'Deals & Listings', keywords: 'comparables sales multiples' },

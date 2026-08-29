@@ -112,12 +112,16 @@ export async function completeSigning(
   if (upErr) return { ok: false, allSigned: false, error: upErr.message }
 
   // Record the signature in the document_signatures table (audit trail).
+  // Role is derived from the party (seller/buyer/broker) so publish gates
+  // (sellerApprovalState) can find the seller's signed agreement.
+  const partyKey = link.party_key
+  const sigRole = partyKey === 'seller' || partyKey === 'buyer' || partyKey === 'broker' ? partyKey : 'custom'
   await db.from('document_signatures').upsert({
     document_id: link.document_id,
-    party_key: link.party_key,
+    party_key: partyKey,
     party_name: signature.name,
     party_email: link.party_email,
-    role: 'custom',
+    role: sigRole,
     status: 'signed',
     signature_data: { mode: signature.mode, dataUrl: signature.dataUrl || null, signedAt: new Date().toISOString() },
     signed_at: new Date().toISOString(),
