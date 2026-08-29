@@ -16,6 +16,7 @@ import { computeValuation } from '@/lib/valuation'
 import { formatMoneyInput, parseMoneyInput, moneyChange } from '@/lib/moneyInput'
 import { supabase } from '@/lib/supabase/client'
 import { uploadListingDocument, fetchListingDocuments } from '@/lib/workflow'
+import { ADD_BACK_CATEGORIES, type AddBackCategory } from '@/lib/recast'
 
 const fmtMoney = (n: number | null | undefined) =>
   n == null || isNaN(n) ? '—' : '$' + Math.round(n).toLocaleString('en-US')
@@ -120,6 +121,17 @@ export default function StudioConcierge({
   const [revenue, setRevenue] = useState('')
   const [ebitda, setEbitda] = useState('')
   const [industry, setIndustry] = useState('')
+  // Live-agent recast state
+  const [agentStatus, setAgentStatus] = useState<string | null>(null)
+  const [baseSde, setBaseSde] = useState<number | null>(null)
+  const [baseRevenue, setBaseRevenue] = useState<number | null>(null)
+  const [baseEbitda, setBaseEbitda] = useState<number | null>(null)
+  const [addbacks, setAddbacks] = useState<Array<{ category: AddBackCategory; label: string; checked: boolean; amount: string }>>(
+    ADD_BACK_CATEGORIES.map((c) => ({ category: c.id, label: c.label, checked: c.defaultChecked, amount: '' })),
+  )
+  const [recastResult, setRecastResult] = useState<{ sde: number; ebitda: number | null; revenue: number | null; totalAddBacks: number } | null>(null)
+  const [savedDoc, setSavedDoc] = useState<{ url: string; fileName: string } | null>(null)
+  const [savingRecast, setSavingRecast] = useState(false)
   const estimate = computeValuation({
     business_name: null,
     sde: parseMoneyInput(sde),
@@ -169,10 +181,93 @@ export default function StudioConcierge({
       const row = await uploadListingDocument(targetListingId, { document_type: 'financial_proof', file_name: f.name, file_url: url, party_type: 'seller' })
       setUploaded((p) => [{ id: String(row?.id || ''), name: f.name, url }, ...p])
       toast(`Financial doc uploaded — ${f.name}`, 'success')
+
+      // ── Live agent: read the doc and auto-fill the quick valuation ──
+      setAgentStatus('📖 Reading your financials…')
+      try {
+        const fd = new FormData()
+        fd.append('file', f)
+        if (targetListingId) fd.append('listingId', targetListingId)
+        const impRes = await fetch('/api/listings/financial-import', {
+          method: 'POST',
+          headers: authHeaders(), // no Content-Type — FormData sets it
+          body: fd,
+        })
+        const imp = await impRes.json().catch(() => ({}))
+        const fin = imp?.financials || null
+        if (imp?.ok && fin) {
+          const rev = fin.revenueTotal ?? fin.latestYearRevenue ?? null
+          if (fin.sde != null) { setSde(String(fin.sde)); setBaseSde(Number(fin.sde)) }
+          if (rev != null) { setRevenue(String(rev)); setBaseRevenue(Number(rev)) }
+          if (fin.ebitda != null) { setEbitda(String(fin.ebitda)); setBaseEbitda(Number(fin.ebitda)) }
+          const parts = [
+            fin.sde != null ? `SDE ${fmtMoney(Number(fin.sde))}` : '',
+            rev != null ? `Revenue ${fmtMoney(Number(rev))}` : '',
+            fin.ebitda != null ? `EBITDA ${fmtMoney(Number(fin.ebitda))}` : '',
+          ].filter(Boolean)
+          setAgentStatus(`✅ Read ${f.name} — ${parts.join(' · ') || 'no numbers found'}. Review add-backs below, then Save recast.`)
+        } else {
+          setAgentStatus('⚠️ Uploaded, but I could not read numbers from this file. Enter them manually below, or try a cleaner P&L/CSV.')
+        }
+      } catch {
+        setAgentStatus('⚠️ Uploaded — auto-read failed. Enter numbers manually below.')
+      }
     } catch (e: any) {
       toast(e.message || 'Upload failed', 'error')
     } finally {
       setUploading(false)
+    }
+  }
+
+  /** Recast: base (extracted/manual) + checked add-backs → accurate SDE/EBITDA. */
+  const applyRecast = () => {
+    const total = addbacks.filter((a) => a.checked).reduce((sum, a) => sum + (parseMoneyInput(a.amount) || 0), 0)
+    const sdeBase = parseMoneyInput(sde)
+    const ebitdaBase = parseMoneyInput(ebitda)
+    setRecastResult({
+      sde: (sdeBase ?? 0) + total,
+      ebitda: ebitdaBase != null ? ebitdaBase + total : null,
+      revenue: parseMoneyInput(revenue),
+      totalAddBacks: total,
+    })
+    // Push the recast numbers into the quick valuation (deal record side).
+    setSde(String((sdeBase ?? 0) + total))
+    if (ebitdaBase != null) setEbitda(String(ebitdaBase + total))
+    setAgentStatus(`🔁 Recast done — +${fmtMoney(total)} add-backs applied. SDE now ${fmtMoney((sdeBase ?? 0) + total)}. Save the recast doc below.`)
+  }
+
+  /** Save the recast PDF to the deal's financial folder + record it. */
+  const saveRecast = async () => {
+    if (!recastResult) { toast('Apply add-backs first, then save', 'error'); return }
+    const dealId = listingId || null
+    if (!dealId) { toast('Save the deal record first (or upload once so a draft deal is created)', 'error'); return }
+    setSavingRecast(true)
+    try {
+      const res = await fetch('/api/listings/recast-save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({
+          listingId: dealId,
+          businessName: 'Untitled deal',
+          year: new Date().getFullYear(),
+          revenue: recastResult.revenue,
+          sde: recastResult.sde,
+          ebitda: recastResult.ebitda,
+          baseSde: baseSde ?? parseMoneyInput(sde),
+          baseEbitda: baseEbitda ?? parseMoneyInput(ebitda),
+          addBacks: addbacks.filter((a) => a.checked && parseMoneyInput(a.amount)).map((a) => ({ label: a.label, amount: parseMoneyInput(a.amount) })),
+          totalAddBacks: recastResult.totalAddBacks,
+        }),
+      })
+      const j = await res.json().catch(() => ({ ok: false }))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Save failed')
+      setSavedDoc({ url: j.url, fileName: j.fileName })
+      setAgentStatus(`✅ Recast saved to the financial folder (${j.fileName}) — ${fmtMoney(recastResult.sde)} SDE.`)
+      toast('Recast document saved ✓', 'success')
+    } catch (e: any) {
+      toast(e.message || 'Save failed', 'error')
+    } finally {
+      setSavingRecast(false)
     }
   }
 
@@ -375,6 +470,14 @@ export default function StudioConcierge({
             </label>
             {!listingId && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Uploads attach to a new draft deal automatically.</span>}
           </div>
+
+          {/* Live-agent status line */}
+          {agentStatus && (
+            <div style={{ marginBottom: 10, padding: '8px 12px', borderRadius: 8, background: 'rgba(125,211,252,0.1)', border: '1px solid rgba(125,211,252,0.3)', fontSize: 12, color: '#bae6fd', fontWeight: 600 }}>
+              {agentStatus}
+            </div>
+          )}
+
           {uploaded.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
               {uploaded.map((u) => (
@@ -397,6 +500,47 @@ export default function StudioConcierge({
             <input value={formatMoneyInput(ebitda)} onChange={moneyChange(setEbitda)} placeholder="EBITDA (opt.)" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
             <input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Industry (opt.)" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} />
           </div>
+
+          {/* Add-back checklist (one-time expenses → accurate SDE/EBITDA) */}
+          {(sde || revenue || baseSde != null) && (
+            <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#f5d97a', marginBottom: 4 }}>🔁 One-time expenses & add-backs</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 8 }}>Tick what applies and enter the amounts — these raise SDE/EBITDA to the true broker number.</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 6 }}>
+                {addbacks.map((ab) => (
+                  <label key={ab.category} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'rgba(255,255,255,0.85)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={ab.checked} onChange={() => setAddbacks((p) => p.map((x) => x.category === ab.category ? { ...x, checked: !x.checked } : x))} style={{ accentColor: '#c9a84c' }} />
+                    <span style={{ flex: 1 }}>{ab.label}</span>
+                    <input value={formatMoneyInput(ab.amount)} onChange={moneyChange((v) => setAddbacks((p) => p.map((x) => x.category === ab.category ? { ...x, amount: v } : x)))} placeholder="0" style={{ width: 84, padding: '4px 6px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.07)', color: '#fff', fontSize: 11.5 }} inputMode="numeric" />
+                  </label>
+                ))}
+              </div>
+              <button onClick={applyRecast} style={{ marginTop: 8, padding: '7px 14px', borderRadius: 8, background: '#c9a84c', color: '#0f1023', border: 'none', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+                🔁 Apply add-backs & recast
+              </button>
+            </div>
+          )}
+
+          {/* Recast result + save to financial folder */}
+          {recastResult && (
+            <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(201,168,76,0.14)', border: '1px solid rgba(201,168,76,0.45)' }}>
+              <div style={{ fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', fontWeight: 800 }}>Recast result (accurate numbers)</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#f5d97a', fontFamily: 'Georgia, serif', marginTop: 2 }}>
+                SDE {fmtMoney(recastResult.sde)}{recastResult.ebitda != null ? ` · EBITDA ${fmtMoney(recastResult.ebitda)}` : ''}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>+{fmtMoney(recastResult.totalAddBacks)} add-backs applied</div>
+              {savedDoc ? (
+                <a href={savedDoc.url} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, padding: '8px 14px', borderRadius: 8, background: '#16a34a', color: '#fff', fontWeight: 800, fontSize: 12, textDecoration: 'none' }}>
+                  📄 Recast saved — open {savedDoc.fileName} ↗
+                </a>
+              ) : (
+                <button onClick={saveRecast} disabled={savingRecast} style={{ marginTop: 8, padding: '8px 14px', borderRadius: 8, background: savingRecast ? '#999' : '#16a34a', color: '#fff', border: 'none', fontWeight: 800, fontSize: 12, cursor: savingRecast ? 'wait' : 'pointer' }}>
+                  {savingRecast ? 'Saving…' : '💾 Save recast to financial folder'}
+                </button>
+              )}
+            </div>
+          )}
+
           {estimate ? (
             <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(201,168,76,0.14)', border: '1px solid rgba(201,168,76,0.45)' }}>
               <div style={{ fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', fontWeight: 800 }}>Estimated value — "your business is worth"</div>
