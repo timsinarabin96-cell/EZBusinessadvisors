@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateDigestForAgency } from '@/lib/dealDigest'
+import { assertDigestDelivery } from '@/lib/emailQueue'
 
 export const runtime = 'nodejs'
 
@@ -35,5 +36,9 @@ export async function POST(req: Request) {
     const summary = await generateDigestForAgency(agency.id)
     results.push({ agencyId: agency.id, ...summary })
   }
-  return NextResponse.json({ ok: true, agencies: results.length, results })
+
+  // Delivery assertion — if any digest mail silently queued (provider down /
+  // config missing), the boss gets an alert instead of an invisible failure.
+  const delivery = await assertDigestDelivery('weekly digest')
+  return NextResponse.json({ ok: true, agencies: results.length, results, delivery })
 }
