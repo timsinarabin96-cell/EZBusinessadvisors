@@ -104,8 +104,11 @@ test('marketplace: buyer capture popup asks one question and saves profile + lea
   assert.match(buyerCapture, /\/api\/public\/notify/)
   assert.match(buyerCapture, /CAPTURE_COOLDOWN_MS/)
   assert.match(buyerCapture, /concord-match-profile-updated/)
-  // Mounted on the listing detail page with the listing's industry as a hint.
-  assert.match(detailServerPage, /<BuyerCapturePrompt hintIndustry=\{listing\.industry\} \/>/)
+  // Mounted on the marketplace GRID page (not the detail page — the floating
+  // card must never cover the listing detail CTA). Industry hint from the
+  // active industry filter when present.
+  assert.match(listingsPage, /<BuyerCapturePrompt hintIndustry=\{str\(sp\.industry\) \|\| null\} \/>/)
+  assert.doesNotMatch(detailServerPage, /<BuyerCapturePrompt/)
 })
 
 test('marketplace: daily site health watch script checks key pages + APIs', () => {

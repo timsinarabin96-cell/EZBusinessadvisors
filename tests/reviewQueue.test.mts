@@ -26,10 +26,13 @@ test('trigger insert is idempotent per buyer+listing', () => {
   assert.match(sql, /on conflict \(buyer_profile_id, listing_id\) do update/)
 })
 
-test('review route requires agency management rights', () => {
-  assert.match(route, /canManageAgency/)
+test('review route allows owner/admin/broker (brokers run the review queue)', () => {
+  assert.match(route, /canManageListing/)
   assert.match(route, /forbiddenResponse/)
   assert.match(route, /authenticateProfileRequest/)
+  // Brokers must be able to approve listings — gating was canManageAgency
+  // (owner/admin only), which 403'd the principal broker on their own queue.
+  assert.doesNotMatch(route, /canManageAgency\(authenticated, listing\.agency_id\)\) return forbiddenResponse/)
 })
 
 test('review route supports approve/reject/request_changes', () => {
