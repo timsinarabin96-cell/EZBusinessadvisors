@@ -303,7 +303,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: `order insert failed: ${orderErr.message}` }, { status: 500 })
     }
 
-    // Auto-send the work order to the configured supplier (fire-and-forget).
+    // Auto-send the work order to the right supplier (fire-and-forget).
+    // Product-level supplier (4over / Printify / GotPrint) routes automatically.
     const { dispatchStoreWorkOrder } = await import('@/lib/storeWorkOrder')
     await dispatchStoreWorkOrder({
       orderId: orderRow.id,
@@ -311,6 +312,7 @@ export async function POST(req: NextRequest) {
       productName,
       quantity,
       unitCost,
+      supplier: product?.supplier || null,
       shipping: ship,
       customerEmail: email,
     }).catch(() => {})

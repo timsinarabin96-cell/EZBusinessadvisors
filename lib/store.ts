@@ -31,6 +31,7 @@ export interface StoreProduct {
   description: string | null
   cost_price: number | null
   sell_price: number | null
+  supplier: string | null
   image_url: string | null
   is_active: boolean | null
   sort_order: number | null

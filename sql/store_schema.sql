@@ -23,6 +23,7 @@ create table if not exists public.store_products (
   description    text,
   cost_price     numeric(10,2) not null default 0,   -- what the supplier charges the owner
   sell_price     numeric(10,2) not null default 0,   -- what the ordering broker pays
+  supplier       text,                           -- 4over (paper) | Printify (apparel/promo) | GotPrint (backup)
   image_url      text,
   is_active      boolean not null default true,
   sort_order     int not null default 0,

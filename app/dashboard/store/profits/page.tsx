@@ -66,36 +66,46 @@ function Profits() {
         <StatCard label="Your Profit" value={fmt$(stats.profit)} sub={`${marginPct}% margin`} color="#16a34a" highlight />
       </div>
 
-      <div style={{ marginTop: 18, background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 20 }}>🖨️</div>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>Supplier for work orders</div>
-          <div style={{ fontSize: 11.5, color: '#999' }}>Every paid order emails a work order here automatically (GotPrint, 4over, or any print shop inbox).</div>
+      <div style={{ marginTop: 18, background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 20 }}>🖨️</div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>Auto-routed suppliers (picked for you)</div>
+            <div style={{ fontSize: 11.5, color: '#999', marginTop: 2 }}>Work orders send to the right print shop automatically per product.</div>
+          </div>
         </div>
-        <input
-          type="email"
-          placeholder="supplier@printshop.com"
-          value={supplierEmail}
-          onChange={(e) => setSupplierEmail(e.target.value)}
-          style={{ padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 13, width: 220 }}
-        />
-        <button
-          onClick={async () => {
-            setSavingSupplier(true)
-            const res = await fetch('/api/store/settings', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ supplier_email: supplierEmail }),
-            }).then((r) => r.json()).catch(() => ({ ok: false, error: 'Network error' }))
-            setSavingSupplier(false)
-            if (!res.ok) alert(res.error || 'Failed to save supplier')
-            else alert('✅ Supplier saved — work orders will now auto-send to ' + res.supplier_email)
-          }}
-          disabled={savingSupplier}
-          style={{ background: savingSupplier ? '#999' : '#1a1a2e', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-        >
-          {savingSupplier ? 'Saving…' : 'Save Supplier'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', background: '#f4f1e8', border: '1px solid #ece8dc', borderRadius: 8, padding: '6px 12px' }}>📄 Paper → <b style={{ color: '#1d4ed8' }}>4over</b> (trade wholesale)</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', background: '#eef7f1', border: '1px solid #d5eade', borderRadius: 8, padding: '6px 12px' }}>👕 Apparel/Promo → <b style={{ color: '#1e7e34' }}>Printify</b> (POD + API)</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#1a1a2e', background: '#fdf6ec', border: '1px solid #f0dfc2', borderRadius: 8, padding: '6px 12px' }}>⚡ Backup → <b style={{ color: '#8a6d1a' }}>GotPrint</b></span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 12, borderTop: '1px solid #f2efe6', paddingTop: 12 }}>
+          <div style={{ fontSize: 12, color: '#999', flex: 1, minWidth: 180 }}>Optional override — send all work orders to one inbox instead:</div>
+          <input
+            type="email"
+            placeholder="supplier@printshop.com"
+            value={supplierEmail}
+            onChange={(e) => setSupplierEmail(e.target.value)}
+            style={{ padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 13, width: 220 }}
+          />
+          <button
+            onClick={async () => {
+              setSavingSupplier(true)
+              const res = await fetch('/api/store/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ supplier_email: supplierEmail }),
+              }).then((r) => r.json()).catch(() => ({ ok: false, error: 'Network error' }))
+              setSavingSupplier(false)
+              if (!res.ok) alert(res.error || 'Failed to save supplier')
+              else alert('✅ Override saved — work orders will auto-send to ' + res.supplier_email)
+            }}
+            disabled={savingSupplier}
+            style={{ background: savingSupplier ? '#999' : '#1a1a2e', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          >
+            {savingSupplier ? 'Saving…' : 'Save Override'}
+          </button>
+        </div>
       </div>
 
       {stats.byCategory.length > 0 && (

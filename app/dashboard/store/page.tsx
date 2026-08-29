@@ -107,7 +107,14 @@ function Storefront() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
           {visible.map((p) => (
             <div key={p.id} style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontSize: 30 }}>{catIcon(p.category)}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontSize: 30 }}>{catIcon(p.category)}</div>
+                {p.supplier && (
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: '#1d4ed8', background: '#eef2f9', padding: '3px 8px', borderRadius: 999 }}>
+                    {p.supplier === 'Printify' ? '🖨️ Printify' : p.supplier === '4over' ? '⚡ 4over' : p.supplier}
+                  </span>
+                )}
+              </div>
               <div style={{ fontSize: 14.5, fontWeight: 700, color: '#1a1a2e', lineHeight: 1.3 }}>{p.name}</div>
               <div style={{ fontSize: 12, color: '#999', lineHeight: 1.45, flex: 1 }}>{p.description}</div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>

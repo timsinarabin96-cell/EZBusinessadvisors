@@ -27,16 +27,35 @@ export interface WorkOrderInput {
   productName: string
   quantity: number
   unitCost: number
+  supplier?: string | null
   shipping: { name: string; line1: string; line2?: string; city: string; state: string; zip: string }
   customerEmail?: string
 }
 
+// Supplier routing — the owner picks these once; work orders auto-route.
+// Paper products → 4over (trade wholesale). Apparel/promo → Printify (POD API).
+// GotPrint is the small-run backup. Order emails are per-supplier.
+export const SUPPLIER_ORDER_EMAILS: Record<string, string> = {
+  '4over': 'cs@4over.com',
+  'Printify': 'support@printify.com',
+  'GotPrint': 'orders@gotprint.com',
+}
+
+export const SUPPLIER_PORTALS: Record<string, string> = {
+  '4over': 'https://www.4over.com',
+  'Printify': 'https://printify.com',
+  'GotPrint': 'https://www.gotprint.com',
+}
+
 /** Render the supplier-facing work order email (branded, print-spec style). */
 export function renderWorkOrderHtml(input: WorkOrderInput): string {
-  const { productName, quantity, unitCost, shipping, workOrderRef } = input
+  const { productName, quantity, unitCost, shipping, workOrderRef, supplier } = input
   const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
   const money = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const shipLine = [shipping.line1, shipping.line2, `${shipping.city}, ${shipping.state} ${shipping.zip}`].filter(Boolean).map(esc).join('<br/>')
+  const supplierLine = supplier
+    ? `<tr><td style="padding:6px 0;color:#888;width:40%">Supplier</td><td style="padding:6px 0;font-weight:700">${esc(supplier)}${SUPPLIER_PORTALS[supplier] ? ` — <a href="${esc(SUPPLIER_PORTALS[supplier])}" style="color:#c9a84c">portal</a>` : ''}</td></tr>`
+    : ''
 
   return (
     `<div style="max-width:620px;margin:0 auto;padding:24px 16px;font-family:Arial,Helvetica,sans-serif">` +
@@ -49,6 +68,7 @@ export function renderWorkOrderHtml(input: WorkOrderInput): string {
     `<div style="font-size:20px;font-weight:800;color:#1a1a2e;font-family:Georgia,serif;margin:4px 0 16px">${esc(workOrderRef)}</div>` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#2a2a2a">` +
     `<tr><td style="padding:6px 0;color:#888;width:40%">Product</td><td style="padding:6px 0;font-weight:700">${esc(productName)}</td></tr>` +
+    supplierLine +
     `<tr><td style="padding:6px 0;color:#888">Quantity</td><td style="padding:6px 0;font-weight:700">${quantity}</td></tr>` +
     `<tr><td style="padding:6px 0;color:#888">Unit price</td><td style="padding:6px 0;font-weight:700">${money(unitCost)}</td></tr>` +
     `<tr><td style="padding:6px 0;color:#888">Total</td><td style="padding:6px 0;font-weight:700">${money(unitCost * quantity)}</td></tr>` +
@@ -63,29 +83,36 @@ export function renderWorkOrderHtml(input: WorkOrderInput): string {
 }
 
 /**
- * Dispatch the work order to the configured supplier email. Falls back to the
- * platform owner's email when no supplier is configured yet (so nothing is
- * ever lost silently). Returns { ok, supplier }.
+ * Dispatch the work order to the right supplier. Routing priority:
+ *   1. product-level supplier (4over / Printify / GotPrint) → its order email
+ *   2. store_settings.supplier_email (manual override)
+ *   3. owner email fallback (nothing is ever lost silently)
+ * Returns { ok, supplier }.
  */
 export async function dispatchStoreWorkOrder(input: WorkOrderInput): Promise<{ ok: boolean; supplier: string | null }> {
-  let supplier: string | null = null
+  let configuredEmail: string | null = null
   try {
     if (SUPABASE_URL && SERVICE_KEY) {
       const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
       const { data } = await svc.from('store_settings').select('value').eq('key', 'supplier_email').maybeSingle()
-      if (data?.value) supplier = String(data.value)
+      if (data?.value) configuredEmail = String(data.value)
     }
   } catch { /* settings lookup is best-effort */ }
 
-  const to = supplier || process.env.STORE_OWNER_EMAIL || 'rtimsina@ezbusinessadvisors.com'
+  const supplierName = input.supplier || null
+  const to =
+    (supplierName && SUPPLIER_ORDER_EMAILS[supplierName]) ||
+    configuredEmail ||
+    process.env.STORE_OWNER_EMAIL ||
+    'rtimsina@ezbusinessadvisors.com'
   const html = renderWorkOrderHtml(input)
 
   const res = await sendEmail({
     to,
-    subject: `WORK ORDER ${input.workOrderRef} — ${input.productName} × ${input.quantity}`,
+    subject: `WORK ORDER ${input.workOrderRef} — ${input.productName} × ${input.quantity}${supplierName ? ` (${supplierName})` : ''}`,
     html,
     kind: 'generic',
-    meta: { store_work_order: true, order_id: input.orderId, work_order_ref: input.workOrderRef },
+    meta: { store_work_order: true, order_id: input.orderId, work_order_ref: input.workOrderRef, supplier: supplierName },
   })
-  return { ok: res.ok, supplier }
+  return { ok: res.ok, supplier: supplierName }
 }
