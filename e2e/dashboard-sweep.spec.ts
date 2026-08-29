@@ -33,7 +33,6 @@ const DASHBOARD_ROUTES = [
   '/dashboard/expiry',
   '/dashboard/finance',
   '/dashboard/financial-files',
-  '/dashboard/notifications',
   '/dashboard/off-market',
   '/dashboard/owner',
   '/dashboard/passwords',

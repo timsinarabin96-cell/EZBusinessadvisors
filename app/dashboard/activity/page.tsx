@@ -7,115 +7,52 @@
 
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import { LoadingState } from '@/components/ui'
-import { getAgencyContext } from '@/lib/agencyContext'
-import { getStoredAccessToken } from '@/lib/authToken'
+import { ActivityPanel } from '@/components/overview/ActivityPanel'
+import { NotificationsPanel } from '@/components/overview/NotificationsPanel'
 
-interface ActivityItem {
-  id: string
-  kind: string
-  title: string
-  detail: string
-  createdAt: string
-  listingName?: string | null
-  actor?: string | null
-}
+// =============================================================================
+// Activity & Alerts — one hub for staying on top of the business: the event
+// log (Activity Feed) and notifications / digest controls (Notifications).
+// Previously two separate pages.
+// =============================================================================
 
-const KIND_ICONS: Record<string, string> = {
-  review: '🗂️',
-  'data-room': '📁',
-  match: '🎯',
-  nda: '🛡️',
-  milestone: '🏁',
-}
+const TABS = [
+  { key: 'activity', label: '📋 Activity', hint: 'Event log & audit trail' },
+  { key: 'alerts', label: '🛎️ Alerts', hint: 'Notifications & digests' },
+] as const
 
-const fmtTime = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
+type TabKey = (typeof TABS)[number]['key']
 
 export default function ActivityPage() {
-  return (
-    <AppShell active="Activity Feed">
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-        <ActivityFeed />
-      </div>
-    </AppShell>
-  )
-}
-
-function ActivityFeed() {
-  const [items, setItems] = useState<ActivityItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [kindFilter, setKindFilter] = useState('all')
-
-  const load = useCallback(async () => {
-    const ctx = await getAgencyContext()
-    if (!ctx) { setLoading(false); return }
-    const token = getStoredAccessToken()
-    const res = await fetch(`/api/activity?agencyId=${ctx.agencyId}`, { headers: { authorization: `Bearer ${token}` } })
-    const data = await res.json().catch(() => ({}))
-    setItems(data.items || [])
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  if (loading) return <LoadingState />
-
-  const kinds = Array.from(new Set(items.map((i) => i.kind).filter(Boolean))) as string[]
-  const visible = kindFilter === 'all' ? items : items.filter((i) => i.kind === kindFilter)
+  const [tab, setTab] = useState<TabKey>('activity')
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">📋 Activity Feed</h1>
-        <p className="text-gray-500 text-sm mt-1">Every deal action across reviews, data rooms, matches, NDAs, and closing milestones.</p>
-      </div>
-
-      {/* Entity filter chips */}
-      {kinds.length > 1 && (
-        <div className="mb-4 flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setKindFilter('all')}
-            className={`text-xs px-3 py-1.5 rounded-full border font-medium ${kindFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-          >
-            All
-          </button>
-          {kinds.map((k) => (
+    <AppShell active="Activity & Alerts">
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 18px 60px' }}>
+        {/* Tab bar */}
+        <div className="flex flex-col md:flex-row gap-2 mb-4 bg-white rounded-xl border border-gray-200 p-2">
+          {TABS.map((t) => (
             <button
-              key={k}
-              onClick={() => setKindFilter(kindFilter === k ? 'all' : k)}
-              className={`text-xs px-3 py-1.5 rounded-full border font-medium ${kindFilter === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className="flex-1 text-left px-4 py-3 rounded-lg transition-colors"
+              style={{
+                background: tab === t.key ? '#1a1a2e' : 'transparent',
+                color: tab === t.key ? '#fff' : 'var(--navy)',
+                cursor: 'pointer',
+              }}
             >
-              {KIND_ICONS[k] || '•'} {k}
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{t.label}</div>
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{t.hint}</div>
             </button>
           ))}
         </div>
-      )}
 
-      {visible.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">No activity{items.length ? ' matches this filter' : ' yet'}.</div>
-      ) : (
-        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-          {visible.map((item) => (
-            <div key={item.id} className="p-4 flex items-start gap-3">
-              <span className="text-xl shrink-0">{KIND_ICONS[item.kind] || '•'}</span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium">{item.title}</p>
-                <p className="text-xs text-gray-500">
-                  {item.listingName && <span className="font-medium text-gray-700">{item.listingName} · </span>}
-                  {item.detail}
-                </p>
-              </div>
-              <span className="ml-auto text-xs text-gray-400 shrink-0">{fmtTime(item.createdAt)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+        {tab === 'activity' && <ActivityPanel />}
+        {tab === 'alerts' && <NotificationsPanel />}
+      </div>
+    </AppShell>
   )
 }

@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/activityFeed.ts', 'utf8')
 const route = readFileSync('app/api/activity/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/activity/page.tsx', 'utf8')
+const page = readFileSync('components/overview/ActivityPanel.tsx', 'utf8')
 
 test('activity: feed merges reviews, data rooms, matches, NDAs, milestones', () => {
   assert.match(lib, /export async function fetchActivityFeed/)

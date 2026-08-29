@@ -5,7 +5,7 @@ import test from 'node:test'
 const schema = readFileSync('sql/notifications_schema.sql', 'utf8')
 const lib = readFileSync('lib/notifications.ts', 'utf8')
 const route = readFileSync('app/api/notifications/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/notifications/page.tsx', 'utf8')
+const page = readFileSync('components/overview/NotificationsPanel.tsx', 'utf8')
 
 test('notifications: schema is idempotent, agency-scoped, RLS-on', () => {
   assert.match(schema, /create table if not exists public\.app_notifications/)

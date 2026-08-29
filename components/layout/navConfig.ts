@@ -31,8 +31,8 @@ export const NAV: NavItem[] = [
   // ── OVERVIEW ──────────────────────────────────────────────
   { href: '/dashboard', label: 'Dashboard', icon: '📊', minRole: 'agent', group: 'Overview', core: true, keywords: 'home home' },
   { href: '/dashboard/command-center', label: 'Command Center', icon: '🎛️', minRole: 'broker', group: 'Overview', core: true, keywords: 'cockpit hub today performance kpi goals targets analytics stats metrics charts leaderboard' },
-  { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋', minRole: 'agent', group: 'Overview', keywords: 'log audit trail' },
-  { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️', minRole: 'agent', group: 'Overview', keywords: 'alerts bell' },
+  { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋', minRole: 'agent', group: 'Overview', keywords: 'log audit trail notifications alerts bell digests' },
+
   // ── AI AUTOPILOT (one cockpit, tabs per tool) ────────────
   { href: '/dashboard/ai', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot', core: true, keywords: 'ai automation workflow cockpit' },
   { href: '/dashboard/intelligence', label: 'Intelligence Network', icon: '◇', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai insights network' },

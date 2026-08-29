@@ -8,7 +8,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
@@ -37,17 +36,7 @@ const KIND_ICONS: Record<string, string> = {
 const fmtTime = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
 
-export default function NotificationsPage() {
-  return (
-    <AppShell active="Notifications">
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-        <Notifications />
-      </div>
-    </AppShell>
-  )
-}
-
-function Notifications() {
+export function NotificationsPanel() {
   const [items, setItems] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(true)
   const [kindFilter, setKindFilter] = useState('all')
