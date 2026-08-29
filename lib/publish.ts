@@ -132,19 +132,23 @@ async function firePublishBlast(listingId: string, agencyId: string): Promise<vo
       // Notify agency team (in-app).
       await notifyMatch(agencyId, listing.business_name || 'New listing', 100, `/dashboard/listings/${listingId}/edit`)
       // Email seller + agency admins.
+      const recipientEmails = new Set<string>()
+      // The actual seller (owner self-service) gets the go-live news directly.
+      const ownerEmail = (listing as { owner_email?: string | null }).owner_email || null
+      if (ownerEmail) recipientEmails.add(ownerEmail)
       const { data: members } = await svc!.from('agency_members').select('profile_id, role, is_owner').eq('agency_id', agencyId)
       const ids = (members || []).filter((m) => m.is_owner || m.role === 'admin').map((m) => m.profile_id)
       if (ids.length) {
         const { data: profiles } = await svc!.from('profiles').select('email').in('id', ids)
-        const emails = (profiles || []).map((p) => p.email).filter(Boolean) as string[]
-        for (const to of emails) {
-          await sendEmail({
-            to,
-            subject: `🚀 ${listing.business_name || 'A listing'} is live on the marketplace`,
-            html: `<h2>Your listing is live 🔥</h2><p><strong>${listing.business_name || 'Your listing'}</strong> is now public on the Concord marketplace. Buyer-match alerts have been fired.</p>`,
-            kind: 'deal_notification',
-          }).catch(() => {})
-        }
+        for (const p of profiles || []) if (p.email) recipientEmails.add(p.email)
+      }
+      for (const to of recipientEmails) {
+        await sendEmail({
+          to,
+          subject: `🚀 ${listing.business_name || 'A listing'} is live on the marketplace`,
+          html: `<h2>Your listing is live 🔥</h2><p><strong>${listing.business_name || 'Your listing'}</strong> is now public on the Concord marketplace. Buyer-match alerts have been fired.</p>`,
+          kind: 'deal_notification',
+        }).catch(() => {})
       }
       // Other-source syndication is manual (agent-driven); no auto-push.
       // Agent may export/publish to external sites themselves.

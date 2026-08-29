@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email'
+import { sendSms } from '@/lib/phoneVerify'
 import {rateLimitAsync, clientIp } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     // 1) Listing → agency + broker.
     const { data: listing } = await db
       .from('listings')
-      .select('agency_id, agent_id, business_name, owner_email')
+      .select('agency_id, agent_id, business_name, owner_email, contact_phone')
       .eq('id', listingId)
       .maybeSingle()
     if (!listing) return NextResponse.json({ ok: true })
@@ -108,6 +109,19 @@ export async function POST(req: NextRequest) {
     `
     for (const to of notifyTargets) {
       await sendEmail({ to, subject, html, kind: 'lead_assignment' }).catch(() => {})
+    }
+
+    // 4b) SMS the SELLER directly when the listing carries a contact phone —
+    //     buyers are mobile; the seller hears about interest the moment it
+    //     happens even if they're away from email.
+    const sellerPhone = (listing as { contact_phone?: string | null }).contact_phone || null
+    if (sellerPhone) {
+      const smsBody =
+        `🔥 New buyer interest on ${listing.business_name || 'your listing'}: ${buyerName}` +
+        (buyerPhone ? ` (${buyerPhone})` : '') +
+        (buyerEmail ? ` — ${buyerEmail}` : '') +
+        '. A Concord broker will follow up; you can also reply to this text.'
+      await sendSms(sellerPhone, smsBody).catch(() => {})
     }
 
     // 5) Auto-follow-up: confirm to the buyer + tell them what to prepare.

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageListing, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { runWatchlistMatching } from '@/lib/watchlist'
+import { sendEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'listingId and a valid action are required' }, { status: 400 })
   }
 
-  const { data: listing } = await db.from('listings').select('id, agency_id, agent_id, status').eq('id', listingId).maybeSingle()
+  const { data: listing } = await db.from('listings').select('id, agency_id, agent_id, status, business_name, owner_email').eq('id', listingId).maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'listing not found' }, { status: 404 })
   // Brokers (not just owner/admin) review and approve their agency's listings.
   if (!canManageListing(authenticated, { agency_id: listing.agency_id, agent_id: listing.agent_id ?? null })) return forbiddenResponse()
@@ -83,6 +84,30 @@ export async function POST(req: NextRequest) {
     to_stage: patch.review_stage as string,
     notes: notes || null,
   }).maybeSingle()
+
+  // Notify the SELLER of their listing's review outcome — they submitted it
+  // through the public form and deserve to know what happens next.
+  const sellerEmail = (listing as { owner_email?: string | null }).owner_email || null
+  if (sellerEmail) {
+    const statusLine =
+      action === 'approve'
+        ? 'Your listing has been approved by our review team — it will go live shortly.'
+        : action === 'reject'
+          ? 'Unfortunately your listing was not approved. Our team will reach out to explain why and what can be improved.'
+          : 'Our team requested a few changes to your listing before it can go live. Check your email / portal for details, or contact your broker.'
+    const subject =
+      action === 'approve'
+        ? `✅ Approved: ${listing.business_name || 'your listing'}`
+        : action === 'reject'
+          ? `ℹ️ Update: ${listing.business_name || 'your listing'}`
+          : `✏️ Action needed: ${listing.business_name || 'your listing'}`
+    await sendEmail({
+      to: sellerEmail,
+      subject,
+      html: `<h2 style="margin:0 0 12px;font-family:Georgia,serif;">${subject}</h2><p>${statusLine}</p>${notes ? `<p style="color:#555;">Reviewer note: ${notes}</p>` : ''}<p style="margin-top:18px;font-size:13px;color:#888;">— Your Concord broker</p>`,
+      kind: 'generic',
+    }).catch(() => {})
+  }
 
   return NextResponse.json({ ok: true, action, listing_id: listingId })
 }
