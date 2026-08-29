@@ -82,7 +82,7 @@ export async function fireDealRadar(
       .in('id', ids)
 
     const buyerById = new Map((buyers || []).map((b) => [b.id, b]))
-    const listingUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'}/marketplace/listings/${listingId}`
+    const listingUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'}/marketplace/listings/${listingId}`
 
     // 4) Alert each opted-in buyer + mark notified.
     for (const m of top) {

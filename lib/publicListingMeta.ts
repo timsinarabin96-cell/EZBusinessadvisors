@@ -130,7 +130,7 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
           : agency.domain
             ? `https://${agency.domain}`
             : agency.slug
-              ? `https://${agency.slug}.concord.ezbusinessadvisors.com`
+              ? `https://${agency.slug}.ezbusinessadvisors.vercel.app`
               : null
         : null
       return {

@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const stats = await fetchMarketplaceStats(null)
 
   const db = createServerClient()
-  let contactEmail = process.env.ADVERTISING_EMAIL || 'advertising@concord.ezbusinessadvisors.com'
+  let contactEmail = process.env.ADVERTISING_EMAIL || 'advertising@ezbusinessadvisors.vercel.app'
   let contactPhone: string | undefined
   if (db) {
     const { data } = await db.from('agencies').select('name, contact_email, phone').limit(1).maybeSingle()

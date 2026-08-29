@@ -8,7 +8,7 @@
 import type { MetadataRoute } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
 
 const STATIC: MetadataRoute.Sitemap = [
   { url: `${BASE}/`, changeFrequency: 'weekly', priority: 1.0 },

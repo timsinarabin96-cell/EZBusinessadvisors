@@ -8,7 +8,7 @@
 import type { Metadata } from 'next'
 import ContactForm from '@/components/public/ContactForm'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
 
 export const metadata: Metadata = {
   title: 'Contact Us',

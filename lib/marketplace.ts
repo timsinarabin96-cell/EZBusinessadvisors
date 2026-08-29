@@ -373,9 +373,9 @@ export async function fetchPublicBrokers(): Promise<PublicBroker[]> {
 export async function fetchCertifiedProfileIds(): Promise<Set<string>> {
   const { data } = await supabase
     .from('certified_brokers')
-    .select('profile_id')
+    .select('broker_id')
     .limit(500)
-  return new Set((data || []).map((r: any) => r.profile_id).filter(Boolean))
+  return new Set((data || []).map((r: any) => r.broker_id).filter(Boolean))
 }
 
 /** Fetch one public broker profile by its public id (broker_profiles.id). */

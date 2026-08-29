@@ -22,7 +22,7 @@ import { safeJsonLd } from '@/lib/safeJsonLd'
 
 export const dynamic = 'force-dynamic'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concord.ezbusinessadvisors.com'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
 
 async function getListing(identifier: string): Promise<PublicMarketplaceListing | null> {
   const client = createServerClient()
