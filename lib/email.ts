@@ -44,6 +44,34 @@ const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
 const FROM = process.env.SMTP_FROM || 'CONCORD Deal Platform <no-reply@ezbusinessadvisors.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
 
+// Event emails that are now consolidated into the HOURLY DIGEST
+// (/api/cron/hourly-digest). When HOURY_DIGEST_ONLY=true (default), these
+// kinds are recorded in the email queue for history but NOT delivered — the
+// digest reports them once per hour with full detail instead of spamming.
+// Transactional/security mail (password resets, sign-in alerts, booking
+// confirmations, portal invites, certificates) always delivers.
+const HOURLY_DIGEST_ONLY = process.env.HOURLY_DIGEST_ONLY !== 'false'
+const DIGESTED_KINDS = new Set<EmailKind>([
+  'deal_notification',
+  'match_alert',
+  'nda_request_received',
+  'nda_access_granted',
+  'nda_access_rejected',
+  'loi_generated',
+  'lead_assignment',
+  'document_upload',
+  'social_post_success',
+  'social_post_failure',
+  'due_diligence_reminder',
+  'renewal_proposal',
+  'renewal_renewed',
+  'captains_brief',
+  'daily_brief',
+  'data_room_change',
+  'buyer_invite',
+  'training_certificate',
+])
+
 // --- Types ------------------------------------------------------------------
 export type EmailKind =
   | 'deal_notification'
@@ -85,6 +113,7 @@ export interface EmailResult {
   ok: boolean
   queued: boolean
   reason?: string
+  digested?: boolean
 }
 
 // --- Tiny HTML helpers ------------------------------------------------------
@@ -564,6 +593,29 @@ export async function notify(
   to: string,
   payload: Record<string, any>,
 ): Promise<EmailResult> {
+  // Digest consolidation: noisy event emails are recorded for history but not
+  // delivered when the hourly digest is the single channel. Security and
+  // transactional mail (password reset, sign-in, booking, portal invite,
+  // certificate) still goes out immediately.
+  if (HOURLY_DIGEST_ONLY && DIGESTED_KINDS.has(kind)) {
+    try {
+      if (svc) {
+        await ensureEmailTables()
+        await svc.from('email_emails').insert({
+          email_to: to,
+          subject: `[digested] ${emailTemplates.generic({ title: kind, message: '' }).subject || kind}`,
+          html: `<p>Suppressed per-event email (${kind}) — reported in the hourly digest instead.</p>`,
+          text: `Suppressed per-event email (${kind}) — reported in the hourly digest instead.`,
+          kind,
+          meta: { ...payload, digested: true },
+          status: 'digested',
+          created_at: new Date().toISOString(),
+        })
+      }
+    } catch { /* history write is best-effort */ }
+    return { ok: true, queued: false, digested: true }
+  }
+
   let built: { subject: string; html: string }
   switch (kind) {
     case 'deal_notification': built = emailTemplates.dealNotification(payload); break

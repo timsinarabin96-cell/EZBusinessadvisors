@@ -13,10 +13,6 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/digest",
-      "schedule": "0 8 * * 1"
-    },
-    {
       "path": "/api/cron/expiry",
       "schedule": "0 7 * * *"
     },
@@ -25,16 +21,8 @@
       "schedule": "0 10 * * *"
     },
     {
-      "path": "/api/cron/briefing",
-      "schedule": "0 6 * * *"
-    },
-    {
       "path": "/api/cron/provider-costs",
       "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/money-digest",
-      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/health-check",
@@ -43,6 +31,10 @@
     {
       "path": "/api/cron/flush-email-queue",
       "schedule": "5 8 * * 1"
+    },
+    {
+      "path": "/api/cron/hourly-digest",
+      "schedule": "0 * * * *"
     }
   ]
 }
