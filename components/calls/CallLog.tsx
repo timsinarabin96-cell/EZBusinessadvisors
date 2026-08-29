@@ -58,12 +58,13 @@ export default function CallLog() {
   const [calls, setCalls] = useState<CallRow[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
+  const [mineOnly, setMineOnly] = useState(false)
   const [agencyId, setAgencyId] = useState('')
 
-  const load = useCallback(async (agency: string, status: string) => {
+  const load = useCallback(async (agency: string, status: string, mine: boolean) => {
     setLoading(true)
     const token = getStoredAccessToken()
-    const res = await fetch(`/api/calls?agencyId=${agency}&status=${status}&hours=${24 * 7}`, {
+    const res = await fetch(`/api/calls?agencyId=${agency}&status=${status}&hours=${24 * 7}${mine ? '&mine=1' : ''}`, {
       headers: { authorization: `Bearer ${token}` },
     })
     const data = await res.json().catch(() => ({}))
@@ -76,14 +77,20 @@ export default function CallLog() {
       const ctx = await getAgencyContext()
       if (!ctx) { setLoading(false); return }
       setAgencyId(ctx.agencyId)
-      await load(ctx.agencyId, filter)
+      await load(ctx.agencyId, filter, mineOnly)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const changeFilter = async (status: string) => {
     setFilter(status)
-    if (agencyId) await load(agencyId, status)
+    if (agencyId) await load(agencyId, status, mineOnly)
+  }
+
+  const toggleMine = async () => {
+    const next = !mineOnly
+    setMineOnly(next)
+    if (agencyId) await load(agencyId, filter, next)
   }
 
   const statusBadge = (c: CallRow) => {
@@ -126,6 +133,17 @@ export default function CallLog() {
             {s === 'all' ? 'All calls' : s.replace('_', ' ')}
           </button>
         ))}
+        <button
+          onClick={toggleMine}
+          style={{
+            padding: '7px 15px', borderRadius: 999, border: '1px solid var(--line)', cursor: 'pointer',
+            fontSize: 13, fontWeight: 700, fontFamily: 'Georgia, serif', marginLeft: 4,
+            background: mineOnly ? '#0e7490' : '#fff',
+            color: mineOnly ? '#fff' : '#0e7490',
+          }}
+        >
+          {mineOnly ? '✓ My calls only' : 'My calls'}
+        </button>
       </div>
 
       {loading ? <LoadingState /> : calls.length === 0 ? (

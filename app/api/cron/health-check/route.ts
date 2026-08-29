@@ -62,6 +62,19 @@ export async function POST(req: Request) {
     checks.push({ name: 'stripe webhook', ok: false, detail: e?.message?.slice(0, 80) })
   }
 
+  // 4) Placeholder-image route — the [SENSITIVE]-URL incident broke every
+  //    listing image silently; catch regressions before buyers see them.
+  try {
+    const r = await fetch(`${APP_URL}/api/listing-images/placeholder?title=Health+Check&industry=Business+Services`, {
+      signal: AbortSignal.timeout(15_000),
+    })
+    const ct = r.headers.get('content-type') || ''
+    const okImage = r.ok && (ct.includes('image') || ct.includes('svg'))
+    checks.push({ name: 'placeholder image', ok: okImage, detail: `${r.status} ${ct.slice(0, 24)}` })
+  } catch (e: any) {
+    checks.push({ name: 'placeholder image', ok: false, detail: e?.message?.slice(0, 80) })
+  }
+
   const failed = checks.filter((c) => !c.ok)
   if (failed.length) {
     const lines = [

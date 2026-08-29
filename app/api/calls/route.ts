@@ -33,6 +33,8 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get('status') || 'all'
   const hours = Number(req.nextUrl.searchParams.get('hours') || 24 * 7)
   const includeTranscripts = req.nextUrl.searchParams.get('includeTranscripts') === '1'
+  // "My calls" filter — agents see only the calls assigned to them.
+  const mineOnly = req.nextUrl.searchParams.get('mine') === '1'
 
   let query = db
     .from('call_sessions')
@@ -43,6 +45,7 @@ export async function GET(req: NextRequest) {
     .limit(200)
 
   if (status !== 'all') query = query.eq('status', status)
+  if (mineOnly) query = query.eq('assigned_to', auth.user.id)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
