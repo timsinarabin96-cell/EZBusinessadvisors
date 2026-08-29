@@ -373,7 +373,7 @@ export default function StudioConcierge({
               {uploading ? '⏳ Uploading…' : '📤 Upload financials (P&L, tax returns)'}
               <input type="file" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files?.[0]; if (f) await uploadFinancial(f); e.target.value = '' }} />
             </label>
-            {!listingId && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Save the deal record first to attach uploads.</span>}
+            {!listingId && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>Uploads attach to a new draft deal automatically.</span>}
           </div>
           {uploaded.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
