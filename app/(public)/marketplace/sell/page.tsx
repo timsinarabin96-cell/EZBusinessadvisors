@@ -98,6 +98,8 @@ function SellContent() {
       const res = await submitSellerListingOrder({
         planId: planId as 'free' | 'professional' | 'enterprise',
         business_name: form.businessName || 'Untitled business',
+        industry: form.industry || null,
+        location_general: form.location || null,
         annual_revenue: form.annualRevenue ? Number(form.annualRevenue.replace(/[$,]/g, '')) : null,
         asking_price: form.askingPrice ? Number(form.askingPrice.replace(/[$,]/g, '')) : null,
         seller_email: form.email,
