@@ -137,7 +137,9 @@ export default function SearchListingsClient({ initialResults, initialIndustries
         <div>
           <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Business Marketplace</div>
           <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: '8px 0 0' }}>
-            {stats ? `${stats.totalListings} Businesses for Sale` : 'Businesses for Sale'}
+            {q || industry || location || maxPrice || maxRevenue || maxSdeMultiple || absenteeOnly || franchiseOnly || financingAvailable || sbaOnly || status || minEmployees || minPriceParam
+              ? `${results.length} result${results.length !== 1 ? 's' : ''}${q ? ` for “${q}”` : ''}`
+              : stats ? `${stats.totalListings} Businesses for Sale` : 'Businesses for Sale'}
           </h1>
         </div>
         <Link href="/marketplace/sell" style={{ color: '#c9a84c', textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'Georgia, serif' }}>→ Seller? List your business</Link>

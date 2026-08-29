@@ -48,6 +48,8 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
   const agency = await getPublicAgencyContext()
   const scope = agency?.scope || null
 
+  const hasActiveSearch = Boolean(str(sp.q) || str(sp.industry) || str(sp.location) || str(sp.minPrice) || str(sp.maxPrice) || str(sp.maxRevenue) || str(sp.maxSdeMultiple) || bool(sp.absenteeOnly) || bool(sp.franchiseOnly) || bool(sp.financingAvailable) || bool(sp.sbaOnly) || str(sp.status) || str(sp.minEmployees) || str(sp.sortBy))
+
   const [results, industries, stats, spotlight] = await Promise.all([
     searchPublicListings({
       query: str(sp.q) || undefined,
@@ -74,7 +76,7 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
     <>
       <SponsoredSlot slotKey="marketplace_top" />
       <SoldCompsTicker limit={8} />
-      {spotlight.length > 0 && (
+      {!hasActiveSearch && spotlight.length > 0 && (
         <section style={{ background: '#fff', borderBottom: '1px solid #ece8dc', padding: '22px 24px' }}>
           <div style={{ maxWidth: 1180, margin: '0 auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
