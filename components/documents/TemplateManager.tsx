@@ -10,6 +10,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { fetchTemplates, type DocumentTemplate, type TemplateField, type TemplateParty, type FieldType } from '@/lib/documentBuilder'
+import { getAgencyContext } from '@/lib/agencyContext'
+import AiTemplateImport from '@/components/documents/AiTemplateImport'
 
 // =============================================================================
 // Template Manager — agency-owned legal document templates.
@@ -42,17 +44,21 @@ export default function TemplateManager() {
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<DocumentTemplate | null>(null)
   const [me, setMe] = useState<string | null>(null)
+  const [agencyId, setAgencyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const [tpls, user] = await Promise.all([
-        fetchTemplates(false),
+      const [user, ctx] = await Promise.all([
         supabase.auth.getUser(),
+        getAgencyContext(),
       ])
-      setTemplates(tpls)
+      const agency = ctx?.agencyId ?? null
       setMe(user.data.user?.id ?? null)
+      setAgencyId(agency)
+      const tpls = await fetchTemplates(false, agency)
+      setTemplates(tpls)
     } catch (e) {
       setError((e as Error).message || 'Failed to load templates')
     } finally {
@@ -62,8 +68,11 @@ export default function TemplateManager() {
 
   useEffect(() => { load() }, [load])
 
-  const isMine = (t: DocumentTemplate) => t.created_by != null && t.created_by === me
-
+  // Agency templates are manageable by ANY member of the owning agency
+  // (white-label: the sold CRM's team owns their docs, not just the uploader).
+  const isMine = (t: DocumentTemplate) =>
+    (t.created_by != null && t.created_by === me) ||
+    (!!agencyId && (t as any).agency_id === agencyId)
   const save = async (tpl: DocumentTemplate) => {
     setError('')
     try {
@@ -132,6 +141,9 @@ export default function TemplateManager() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* AI import — upload YOUR original document and AI makes it fillable. */}
+      <AiTemplateImport agencyId={agencyId} onSaved={load} />
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 20, fontFamily: 'Georgia, serif', color: 'var(--navy)' }}>🗂️ Legal Template Manager</h2>

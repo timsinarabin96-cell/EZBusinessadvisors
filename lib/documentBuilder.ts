@@ -85,10 +85,17 @@ export interface DocumentSignature {
 
 // --- Templates --------------------------------------------------------------
 
-export async function fetchTemplates(activeOnly = true): Promise<DocumentTemplate[]> {
+export async function fetchTemplates(activeOnly = true, agencyId?: string | null): Promise<DocumentTemplate[]> {
   let q = supabase.from('document_templates').select('*')
   if (activeOnly) q = q.eq('is_active', true)
-  const { data, error } = await q.order('name', { ascending: true })
+  // Agency scope: the agency's own templates first, then platform defaults
+  // (agency_id IS NULL). When no agencyId is passed, platform defaults only.
+  if (agencyId) {
+    q = q.or(`agency_id.eq.${agencyId},agency_id.is.null`)
+  } else {
+    q = q.is('agency_id', null)
+  }
+  const { data, error } = await q.order('agency_id', { ascending: false, nullsFirst: false }).order('name', { ascending: true })
   if (error) throw new Error(error.message || 'Failed to load templates')
   return (data as DocumentTemplate[]) || []
 }
