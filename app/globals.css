@@ -567,11 +567,17 @@ h1, h2, h3, h4 {
 
 /* Grid children must be allowed to shrink below their content's min-content
    width — otherwise a wide inner element (badges, long titles) forces the
-   track wider than the viewport and the page scrolls sideways on mobile. */
-div[style*="display: grid"], section[style*="display: grid"] {
+   track wider than the viewport and the page scrolls sideways on mobile.
+   Note: React renders inline styles without spaces (display:grid), so match
+   both spaced and unspaced forms. */
+div[style*="display:grid"], div[style*="display: grid"],
+section[style*="display:grid"], section[style*="display: grid"],
+main[style*="display:grid"], main[style*="display: grid"] {
   min-width: 0;
 }
-div[style*="display: grid"] > * , section[style*="display: grid"] > * {
+div[style*="display:grid"] > *, div[style*="display: grid"] > *,
+section[style*="display:grid"] > *, section[style*="display: grid"] > *,
+main[style*="display:grid"] > *, main[style*="display: grid"] > * {
   min-width: 0;
 }
 
