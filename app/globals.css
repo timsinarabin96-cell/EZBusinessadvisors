@@ -560,7 +560,7 @@ h1, h2, h3, h4 {
 
 .publicnav-links { display: flex; }
 .publicnav-toggle { display: none; }
-@media (max-width: 860px) {
+@media (max-width: 1180px) {
   .publicnav-links { display: none; }
   .publicnav-toggle { display: inline-flex !important; }
 }

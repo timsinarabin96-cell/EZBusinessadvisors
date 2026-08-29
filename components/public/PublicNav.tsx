@@ -39,24 +39,19 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
 
         {/* Desktop nav — hidden under 860px via .publicnav-links (an inline
             display:none can't be overridden by a media query, so visibility
-            for both this and the toggle button below is CSS-class driven). */}
-        <nav className="publicnav-links" style={{ gap: 28, alignItems: 'center' }}>
+            for both this and the toggle button below is CSS-class driven).
+            Kept to the core links so the row never overflows at common
+            widths; the full link set lives in the hamburger menu. */}
+        <nav className="publicnav-links" style={{ gap: 20, alignItems: 'center' }}>
           <NavLink href="/marketplace/listings">Buy a Business</NavLink>
           <NavLink href="/marketplace/sell">Sell a Business</NavLink>
           <NavLink href="/brokerai">BrokerAI</NavLink>
           <NavLink href="/marketplace/brokers">Our Brokers</NavLink>
           <NavLink href="/marketplace/financing">Financing</NavLink>
-          <NavLink href="/marketplace/qualify">Pre-Qualify</NavLink>
-          <NavLink href="/marketplace/professionals">Professionals</NavLink>
-          <NavLink href="/marketplace/comps">Sale Comps</NavLink>
-          <NavLink href="/marketplace/sold">Recently Sold</NavLink>
-          <NavLink href="/marketplace/favorites">♥ Saved</NavLink>
-          <NavLink href="/marketplace/compare">⚖ Compare</NavLink>
           <NavLink href="/about">About</NavLink>
-          <NavLink href="/contact">Contact</NavLink>
           <Link
             href="/auth"
-            style={{ background: '#1a1a2e', color: '#fff', padding: '10px 22px', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'Georgia, serif' }}
+            style={{ background: '#1a1a2e', color: '#fff', padding: '10px 20px', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'Georgia, serif', whiteSpace: 'nowrap' }}
           >
             Broker Login
           </Link>

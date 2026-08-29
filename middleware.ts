@@ -55,13 +55,20 @@ const SECURITY_CONFIG: Partial<WebSecureConfig> = {
   referrerPolicy: { enabled: true, policy: 'strict-origin-when-cross-origin' },
   permissionsPolicy: {
     enabled: true,
+    // NOTE: spec requires quoted values — `camera=(self)` (or "self"); bare
+    // `self` is INVALID and browsers log a parse error on every page.
     features: {
-      camera: 'self',
-      microphone: 'self',
-      geolocation: 'self',
-      payment: 'self',
+      camera: '(self)',
+      microphone: '(self)',
+      geolocation: '(self)',
+      payment: '(self)',
       usb: '()',
       'interest-cohort': '()',
+      vr: '(none)',
+      magnetometer: '(none)',
+      gyroscope: '(none)',
+      speaker: '(none)',
+      vibrate: '(none)',
     },
   },
   crossOriginOpenerPolicy: { enabled: true, policy: 'same-origin-allow-popups' },
