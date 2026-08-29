@@ -54,25 +54,46 @@ test('license purchase: real test checkout → webhook → agency licensed', asy
     if (!val) await emailBox.fill('e2e.qa@concordplatform.dev')
   }
 
-  // Card fields live in titled iframes on modern Stripe checkout.
-  const cardFrame = page.frameLocator('iframe[title="Secure card number input frame"]')
-  const expiryFrame = page.frameLocator('iframe[title="Secure expiration date input frame"]')
-  const cvcFrame = page.frameLocator('iframe[title="Secure CVC input frame"]')
+  // Card fields: the CURRENT Stripe checkout renders them inline in the main
+  // frame (older versions used titled iframes). Try inline first; expand the
+  // Card accordion via the radio when collapsed (accordion button is often
+  // outside the viewport — the radio check is the reliable expander).
+  const cardNumber = page.getByRole('textbox', { name: /card number/i }).first()
+  const cardExpiry = page.getByRole('textbox', { name: /expiration/i }).first()
+  const cardCvc = page.getByRole('textbox', { name: /^cvc$/i }).first()
 
-  // If the card form is already open, the iframe exists without any click.
-  // Only click the accordion when the iframe is NOT yet present (Stripe shows
-  // Apple Pay / Link / Cash App first and collapses card behind "Pay with card").
-  const cardInput = cardFrame.locator('input[name="cardnumber"]')
   try {
-    await cardInput.waitFor({ timeout: 8_000 })
+    await cardNumber.waitFor({ timeout: 8_000 })
   } catch {
+    // Collapsed — expand via the Card radio (robust), with accordion click
+    // attempts as best-effort extra.
+    const cardRadio = page.getByRole('radio', { name: /card/i }).first()
+    if (await cardRadio.count()) {
+      await cardRadio.check({ force: true }).catch(() => {})
+    }
+    const accordion = page.getByTestId('card-accordion-item-button').first()
+    if (await accordion.count()) {
+      await accordion.click({ force: true }).catch(() => {})
+    }
     const payWithCard = page.getByRole('button', { name: /pay with card/i }).first()
-    if (await payWithCard.count()) await payWithCard.click({ force: true })
-    await cardInput.waitFor({ timeout: 25_000 })
+    if (await payWithCard.count()) {
+      await payWithCard.click({ force: true }).catch(() => {})
+    }
+    await cardNumber.waitFor({ timeout: 25_000 })
   }
-  await cardInput.fill('4242 4242 4242 4242')
-  await expiryFrame.locator('input[name="exp-date"]').fill('12/34')
-  await cvcFrame.locator('input[name="cvc"]').fill('424')
+  await cardNumber.fill('4242 4242 4242 4242')
+  await cardExpiry.fill('12/34')
+  await cardCvc.fill('424')
+
+  // Cardholder name + ZIP are required on current inline checkout.
+  const cardName = page.getByRole('textbox', { name: /cardholder name/i }).first()
+  if (await cardName.count()) {
+    await cardName.fill('E2E QA Buyer')
+  }
+  const zipBox = page.getByRole('textbox', { name: /zip/i }).first()
+  if (await zipBox.count()) {
+    await zipBox.fill('42424')
+  }
 
   // Postal code frame (optional on some checkout versions).
   const zipFrame = page.frameLocator('iframe[title="Secure postal code input frame"]')
