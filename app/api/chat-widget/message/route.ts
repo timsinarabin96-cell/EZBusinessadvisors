@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
   // Now the assistant answers here, in-process, via DeepSeek, and the reply is
   // stored in the same thread so the widget's existing /api/chat-widget/poll
   // picks it up unchanged.
+  let aiError: string | null = null
   try {
     if (isDeepSeekConfigured()) {
       const isCrm = mode === 'crm'
@@ -117,8 +118,9 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     // Reply is optional — widget falls back to "a broker will get back to you".
-    console.error('[chat-widget] AI reply failed:', e instanceof Error ? e.message : String(e))
+    aiError = e instanceof Error ? e.message : String(e)
+    console.error('[chat-widget] AI reply failed:', aiError)
   }
 
-  return NextResponse.json({ ok: true, sessionId, dbSessionId, _debug: { deepseekSet: Boolean(process.env.DEEPSEEK_API_KEY), deepseekLen: (process.env.DEEPSEEK_API_KEY || '').length } })
+  return NextResponse.json({ ok: true, sessionId, dbSessionId, _debug: { deepseekSet: Boolean(process.env.DEEPSEEK_API_KEY), deepseekLen: (process.env.DEEPSEEK_API_KEY || '').length, aiError } })
 }
