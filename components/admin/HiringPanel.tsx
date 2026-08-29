@@ -12,9 +12,8 @@
 // =============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 
 interface HiringPackage {
   id: string
@@ -39,19 +38,7 @@ interface Application {
   hiring_packages: { name: string; commission_split: number | string } | null
 }
 
-export default function HiringPage() {
-  return (
-    <AppShell active="Hiring">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <HiringDashboard />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function HiringDashboard() {
+export function HiringPanel() {
   const toast = useToast()
   const [packages, setPackages] = useState<HiringPackage[]>([])
   const [apps, setApps] = useState<Application[]>([])

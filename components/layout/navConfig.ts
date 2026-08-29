@@ -81,8 +81,7 @@ export const NAV: NavItem[] = [
 
   { href: '/dashboard/training', label: 'Training', icon: '🎓', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'courses cbi learn' },
   { href: '/dashboard/agents', label: 'AI Agents', icon: '🤖', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai agents assistant chat lead training document support' },
-  { href: '/dashboard/hiring', label: 'Hiring', icon: '🤝', minRole: 'admin', group: 'Team & Office', keywords: 'recruiting jobs' },
-  { href: '/dashboard/onboarding', label: 'Onboarding', icon: '🚀', minRole: 'admin', group: 'Team & Office', keywords: 'new hire setup' },
+  { href: '/dashboard/team', label: 'Team', icon: '🤝', minRole: 'admin', group: 'Team & Office', keywords: 'hiring recruiting jobs offer letters onboarding new hire setup checklist' },
   // ── ADMIN ─────────────────────────────────────────────────
   { href: '/dashboard/finance', label: 'Finance', icon: '💰', minRole: 'admin', group: 'Admin', keywords: 'commissions payouts splits expenses ledger costs' },
   { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️', minRole: 'admin', group: 'Admin', keywords: 'moderation approval' },

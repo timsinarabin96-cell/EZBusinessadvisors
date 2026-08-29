@@ -34,7 +34,6 @@ const DASHBOARD_ROUTES = [
   '/dashboard/financial-files',
   '/dashboard/notifications',
   '/dashboard/off-market',
-  '/dashboard/onboarding',
   '/dashboard/owner',
   '/dashboard/passwords',
   '/dashboard/portal',
@@ -49,6 +48,7 @@ const DASHBOARD_ROUTES = [
   '/dashboard/studio',
   '/dashboard/tools',
   '/dashboard/training',
+  '/dashboard/team',
   '/dashboard/valuation',
   '/dashboard/watchlist',
   // Top-level CRM pages

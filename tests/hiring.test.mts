@@ -7,7 +7,7 @@ const route = readFileSync('app/api/hiring/route.ts', 'utf8')
 const reviewRoute = readFileSync('app/api/hiring/review/route.ts', 'utf8')
 const applicationsRoute = readFileSync('app/api/hiring/applications/route.ts', 'utf8')
 const packagesRoute = readFileSync('app/api/hiring/packages/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/hiring/page.tsx', 'utf8')
+const page = readFileSync('components/admin/HiringPanel.tsx', 'utf8')
 const sql = readFileSync('sql/hiring_packages_schema.sql', 'utf8')
 
 test('hiring packages define role, split, training, certification', () => {
@@ -48,5 +48,5 @@ test('hiring dashboard is wired into nav', () => {
   assert.match(page, /Agent Hiring/)
   assert.match(page, /Submit Application/)
   const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
-  assert.match(shell, /dashboard\/hiring/)
+  assert.match(shell, /dashboard\/team/)
 })
