@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageListing, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { matchCaller } from '@/lib/callerMatch'
 
 export const runtime = 'nodejs'
@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
 
   const agencyId = req.nextUrl.searchParams.get('agencyId') || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
-  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
+  // Any agency member may view their agency's call log (agents log calls
+  // against their own listings); owner/admin/broker have full team access.
+  const memberOfAgency = auth.memberships.some((m) => m.agency_id === agencyId)
+  if (!memberOfAgency) return forbiddenResponse()
 
   const status = req.nextUrl.searchParams.get('status') || 'all'
   const hours = Number(req.nextUrl.searchParams.get('hours') || 24 * 7)
