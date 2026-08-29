@@ -8,9 +8,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import {
   fetchMyProfessionals, createProfessional, updateProfessional, deleteProfessional,
   PROFESSIONAL_LABELS, PROFESSIONAL_TYPES,
@@ -34,7 +33,7 @@ const EMPTY_FORM = {
   pays_referral_fees: false, referral_fee_pct: '', referral_fee_terms: '', advertised: false,
 }
 
-export default function ProfessionalsManagerPage() {
+export function ProfessionalsPanel() {
   const toast = useToast()
   const [pros, setPros] = useState<DealProfessional[]>([])
   const [loading, setLoading] = useState(true)
@@ -169,9 +168,7 @@ export default function ProfessionalsManagerPage() {
   }
 
   return (
-    <ToastProvider>
-      <AppShell active="Professional Network">
-      <div style={{ maxWidth: 980, margin: '0 auto', padding: '20px 16px 60px' }}>
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: '20px 16px 60px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: 'var(--navy)', margin: 0 }}>Professional Network</h1>
@@ -368,8 +365,6 @@ export default function ProfessionalsManagerPage() {
           </div>
         )}
       </div>
-    </AppShell>
-    </ToastProvider>
   )
 }
 

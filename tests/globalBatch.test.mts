@@ -148,7 +148,7 @@ test('global: lead marketplace has per-lead pricing tiers + platform fee', () =>
   assert.match(lib, /tier: 'standard' \| 'premium' \| 'elite'/)
   const route = readFileSync('app/api/lead-marketplace/route.ts', 'utf8')
   assert.match(route, /tier: body\?\.tier/)
-  const page = readFileSync('app/dashboard/lead-marketplace/page.tsx', 'utf8')
+  const page = readFileSync('components/network/LeadMarketplacePanel.tsx', 'utf8')
   assert.match(page, /LEAD_TIERS\.map/)
   assert.match(page, /selectedTier/)
 })

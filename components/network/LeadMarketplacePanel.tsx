@@ -8,11 +8,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { useToast } from '@/components/ui/Toast'
 import { LEAD_TIERS, type LeadTier } from '@/lib/leadMarketplace'
 
 interface MarketLead {
@@ -62,19 +61,7 @@ function TierBadge({ tier }: { tier?: string | null }) {
   )
 }
 
-export default function LeadMarketplacePage() {
-  return (
-    <AppShell active="Lead Marketplace">
-      <ToastProvider>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <LeadMarketplaceApp />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function LeadMarketplaceApp() {
+export function LeadMarketplacePanel() {
   const toast = useToast()
   const [agencyId, setAgencyId] = useState('')
   const [tab, setTab] = useState<'browse' | 'mine' | 'purchases'>('browse')

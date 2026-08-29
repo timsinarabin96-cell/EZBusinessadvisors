@@ -5,7 +5,7 @@ import test from 'node:test'
 const schema = readFileSync('sql/referrals_schema.sql', 'utf8')
 const lib = readFileSync('lib/referrals.ts', 'utf8')
 const route = readFileSync('app/api/referrals/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/referrals/page.tsx', 'utf8')
+const page = readFileSync('components/network/ReferralsPanel.tsx', 'utf8')
 
 test('referrals: schema is idempotent, agency-scoped, and RLS-on', () => {
   assert.match(schema, /create table if not exists public\.referrals/)
@@ -66,8 +66,6 @@ test('referrals: API wires the lib list/create/update functions', () => {
 
 test('referrals: dashboard page renders form + list with status pills and advance buttons', () => {
   assert.match(page, /'use client'/)
-  assert.match(page, /<AppShell active="Referrals">/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext\(\)/)
   assert.match(page, /Log a new referral/)

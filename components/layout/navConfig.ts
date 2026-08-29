@@ -48,7 +48,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings', keywords: 'escrow closing checklist' },
 
   { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings', keywords: 'value worth pricing comps comparables multiples sellable reports client' },
-  { href: '/dashboard/lead-marketplace', label: 'Lead Marketplace', icon: '🤝', minRole: 'broker', group: 'Deals & Listings', keywords: 'buy leads network' },
+
   { href: '/dashboard/off-market', label: 'Off-Market Room', icon: '🔐', minRole: 'agent', group: 'Deals & Listings', keywords: 'private deals verified buyers exclusive' },
 
   { href: '/dashboard/listing-advisor', label: 'Listing Advisor', icon: '🩺', minRole: 'broker', group: 'Deals & Listings', keywords: 'advisor worth value listable cim questions seller readiness funnel blockers prepare' },
@@ -56,8 +56,7 @@ export const NAV: NavItem[] = [
   // ── CLIENTS & DOCS ────────────────────────────────────────
   { href: '/dashboard/portal', label: 'Client Portal', icon: '👥', minRole: 'broker', group: 'Clients & Docs', keywords: 'client access login' },
   { href: '/dashboard/watchlist', label: 'Deal Alerts', icon: '🔔', minRole: 'agent', group: 'Clients & Docs', keywords: 'watch saved alerts' },
-  { href: '/dashboard/professionals', label: 'Professional Network', icon: '🤝', minRole: 'broker', group: 'Clients & Docs', keywords: 'attorneys cpas lenders' },
-  { href: '/dashboard/referrals', label: 'Referrals', icon: '🎁', minRole: 'broker', group: 'Clients & Docs', keywords: 'refer partner' },
+  { href: '/dashboard/network', label: 'Network', icon: '🤝', minRole: 'broker', group: 'Clients & Docs', keywords: 'professionals attorneys cpas lenders referrals refer partner' },
   { href: '/dashboard/search', label: 'Search', icon: '🔍', minRole: 'agent', group: 'Clients & Docs', keywords: 'find global' },
   { href: '/documents', label: 'Documents', icon: '📁', minRole: 'agent', group: 'Clients & Docs', core: true, keywords: 'files folder' },
   { href: '/dashboard/reports', label: 'Reports & Diligence', icon: '📑', minRole: 'broker', group: 'Clients & Docs', keywords: 'recast adjusted earnings sde cim confidential information memorandum bov broker opinion value due diligence checklist review' },
