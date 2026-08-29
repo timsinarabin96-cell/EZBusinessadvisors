@@ -8,6 +8,7 @@
 'use client'
 
 import { useState } from 'react'
+import AutocompleteInput from '@/components/public/AutocompleteInput'
 import Link from 'next/link'
 import { capturePublicLead } from '@/lib/marketplace'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
@@ -78,7 +79,7 @@ function BuyContent() {
             <Field label="Minimum purchase price"><input className="input" inputMode="decimal" value={form.minBudget} onChange={(event) => setForm({ ...form, minBudget: formatWithCommas(event.target.value) })} placeholder="e.g. 250,000" /></Field>
             <Field label="Maximum purchase price"><input className="input" inputMode="decimal" value={form.maxBudget} onChange={(event) => setForm({ ...form, maxBudget: formatWithCommas(event.target.value) })} placeholder="e.g. 2,000,000" /></Field>
             <Field label="Target industries" span><input className="input" value={form.industries} onChange={(event) => setForm({ ...form, industries: event.target.value })} placeholder="HVAC, manufacturing, home care, B2B services" /></Field>
-            <Field label="Target geography" span><input className="input" value={form.locations} onChange={(event) => setForm({ ...form, locations: event.target.value })} placeholder="Philadelphia metro, Eastern PA, relocatable" /></Field>
+            <Field label="Target geography" span><AutocompleteInput type="location" value={form.locations} onChange={(v) => setForm({ ...form, locations: v })} placeholder="Type a city — e.g. Harrisburg" /></Field>
             <Field label="Financing plan"><select className="select" value={form.financing} onChange={(event) => setForm({ ...form, financing: event.target.value })}><option value="">Select…</option><option>SBA loan</option><option>Cash</option><option>Conventional loan</option><option>Seller financing</option><option>Investor / partner capital</option></select></Field>
             <Field label="Preferred owner involvement"><select className="select" value={form.ownerInvolvement} onChange={(event) => setForm({ ...form, ownerInvolvement: event.target.value })}><option value="">Select…</option><option>Owner-operated</option><option>Manager-run</option><option>Semi-absentee</option><option>Passive / strategic</option></select></Field>
             <Field label="Acquisition timeline"><select className="select" value={form.timeline} onChange={(event) => setForm({ ...form, timeline: event.target.value })}><option value="">Select…</option><option>0-3 months</option><option>3-6 months</option><option>6-12 months</option><option>12+ months</option></select></Field>

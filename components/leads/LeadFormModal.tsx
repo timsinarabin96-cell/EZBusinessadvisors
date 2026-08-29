@@ -11,6 +11,7 @@ import { useState } from 'react'
 import { LeadKind, LeadStatus, UnifiedLead, LEAD_STATUSES, BUSINESS_TYPES } from '@/lib/leads2'
 import { createBuyerLead, updateBuyerLead } from '@/lib/leads2'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
+import SuggestionInput from '@/components/listings/SuggestionInput'
 
 interface BuyerInput {
   desired_business_type?: string; budget_range?: string; funds_available?: number
@@ -208,7 +209,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
 
               <div style={{ marginBottom: 16 }}>
                 <label className="label">Preferred location (optional)</label>
-                <input className="input" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Central PA, York, Harrisburg" />
+                <SuggestionInput type="location" value={location} onChange={setLocation} placeholder="Type a city — e.g. Harrisburg" />
               </div>
 
               <div style={{ marginBottom: 20 }}>

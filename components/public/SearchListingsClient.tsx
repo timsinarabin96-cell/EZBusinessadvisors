@@ -254,7 +254,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       ) : (
         <>
           <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>{results.length} result{results.length !== 1 ? 's' : ''}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
             {results.map((l) => <PublicListingCard key={l.id} listing={l} />)}
           </div>
         </>

@@ -17,6 +17,7 @@ import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
 import { VALUATION_PRICE, LAUNCH_KIT_PRICE, LAUNCH_KIT } from '@/lib/pricing'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
+import AutocompleteInput from '@/components/public/AutocompleteInput'
 
 export default function SellPage() {
   return (
@@ -241,7 +242,7 @@ function SellContent() {
             <Field label="Industry"><select className="select" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })}><option value="">Select industry…</option>{['Home Care', 'Restaurant', 'Retail', 'Auto Repair', 'Cleaning', 'Landscaping', 'Construction', 'Manufacturing', 'Distribution', 'Healthcare', 'Salon / Barbershop', 'Laundromat', 'Car Wash', 'Self Storage', 'Trucking / Logistics', 'Pet Services', 'Childcare', 'Gas Station / C-Store', 'Fitness / Gym', 'E-commerce', 'Software / IT', 'Staffing', 'Insurance', 'Other'].map((i) => <option key={i} value={i}>{i}</option>)}</select></Field>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Location (city / region)"><input className="input" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. Harrisburg, PA" /></Field>
+            <Field label="Location (city / region)"><AutocompleteInput type="location" value={form.location} onChange={(v) => setForm({ ...form, location: v })} placeholder="Type a city — e.g. Harrisburg" /></Field>
             <Field label="Timeline to sell"><select className="select" value={form.timeframe} onChange={(e) => setForm({ ...form, timeframe: e.target.value })}><option value="">Select…</option><option value="ASAP">ASAP</option><option value="3-6 months">3–6 months</option><option value="6-12 months">6–12 months</option><option value="1-2 years">1–2 years</option><option value="Not sure yet">Not sure yet</option></select></Field>
           </div>
           <Field label="Employees"><input className="input" inputMode="numeric" value={form.employees} onChange={(e) => setForm({ ...form, employees: e.target.value })} placeholder="Full-time count, e.g. 12" /></Field>

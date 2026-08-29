@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { Listing, LISTING_STATUSES } from '@/lib/listings'
 import MoneyInput from '@/components/ui/MoneyInput'
+import SuggestionInput from './SuggestionInput'
 
 interface ListingFormModalProps {
   listing: Listing | null
@@ -137,7 +138,7 @@ export default function ListingFormModal({ listing, onClose, onSubmit }: Listing
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div>
               <label className="label">Location</label>
-              <input className="input" value={form.location_general} onChange={(e) => set('location_general', e.target.value)} placeholder="e.g. Charlotte, NC" />
+              <SuggestionInput type="location" value={form.location_general} onChange={(v) => set('location_general', v)} placeholder="Type a city — e.g. Charlotte" />
             </div>
             <div>
               <label className="label">Status</label>

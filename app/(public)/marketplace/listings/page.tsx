@@ -86,9 +86,9 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
               <span style={{ flex: 1, height: 1, background: '#ece8dc' }} />
               <Link href="/marketplace/listings" style={{ fontSize: 12.5, color: '#c9a84c', fontWeight: 800, textDecoration: 'none' }}>All listings →</Link>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(230px, 100%), 1fr))', gap: 14 }}>
               {spotlight.map((l) => (
-                <Link key={l.id} href={`/marketplace/listings/${l.slug || l.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 12, alignItems: 'center', background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: 10, transition: 'box-shadow .15s ease' }}>
+                <Link key={l.id} href={`/marketplace/listings/${l.slug || l.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 12, alignItems: 'center', background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: 10, minWidth: 0, transition: 'box-shadow .15s ease' }}>
                   <div style={{ width: 64, height: 48, borderRadius: 8, overflow: 'hidden', background: '#1a1a2e', flex: '0 0 64px', position: 'relative' }}>
                     {(() => { const img = listingImageFor(l.gallery_urls, l.industry, { title: l.public_title, price: l.asking_price ?? undefined, subIndustry: l.sub_industry }); return img ? <img src={img} alt={l.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 20, color: 'rgba(201,168,76,0.6)', fontWeight: 800 }}>{(l.industry || 'B').slice(0, 1).toUpperCase()}</div> })()}
                   </div>

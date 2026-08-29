@@ -8,6 +8,7 @@
 'use client'
 
 import { useState } from 'react'
+import AutocompleteInput from '@/components/public/AutocompleteInput'
 
 /**
  * Free valuation lead magnet — homepage seller capture. Posts to
@@ -78,7 +79,7 @@ export default function ValuationLeadForm() {
           <option value="$1M – $5M">$1M – $5M</option>
           <option value="$5M+">$5M+</option>
         </select>
-        <input value={form.location_general} onChange={(e) => setForm({ ...form, location_general: e.target.value })} placeholder="City, State" style={inputStyle} />
+        <AutocompleteInput type="location" value={form.location_general} onChange={(v) => setForm({ ...form, location_general: v })} placeholder="Type a city — e.g. Harrisburg" style={inputStyle} />
       </div>
       {error && <div style={{ color: '#b91c1c', fontSize: 12 }}>{error}</div>}
       <button type="submit" disabled={busy} style={{ background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 6, padding: '13px 20px', fontWeight: 800, cursor: busy ? 'wait' : 'pointer', fontFamily: 'Georgia, serif', fontSize: 15 }}>
