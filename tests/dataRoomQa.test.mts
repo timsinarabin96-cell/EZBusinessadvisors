@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/dataRoomQa.ts', 'utf8')
 const route = readFileSync('app/api/intelligence/data-room-qa/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/data-room-qa/page.tsx', 'utf8')
+const page = readFileSync('components/ai/panels/DataRoomQaPanel.tsx', 'utf8')
 const schema = readFileSync('sql/data_room_qa_schema.sql', 'utf8')
 
 test('dataRoomQa: service client uses the service-role key and never throws on config gaps', () => {
@@ -70,8 +70,6 @@ test('dataRoomQa: API supports GET (list + data-room picker) and POST ask with a
 })
 
 test('dataRoomQa: dashboard page has room picker, question input, and answer display', () => {
-  assert.match(page, /AppShell active="Data Room Q&A"/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext/)
   assert.match(page, /getStoredAccessToken/)

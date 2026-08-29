@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/dealTwin.ts', 'utf8')
 const route = readFileSync('app/api/intelligence/deal-twin/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/deal-twin/page.tsx', 'utf8')
+const page = readFileSync('components/ai/panels/DealTwinPanel.tsx', 'utf8')
 const schema = readFileSync('sql/deal_twin_schema.sql', 'utf8')
 
 test('deal twin: svc client uses supabase-js with the service key, no redacted chars', () => {
@@ -69,8 +69,6 @@ test('deal twin: API supports GET and POST with the auth broker', () => {
 })
 
 test('deal twin: dashboard page has picker, score, risk flags, component bars', () => {
-  assert.match(page, /AppShell active="Deal Twin"/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext/)
   assert.match(page, /api\/listings\/options/)

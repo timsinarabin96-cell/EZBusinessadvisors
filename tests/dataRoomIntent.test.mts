@@ -5,7 +5,7 @@ import test from 'node:test'
 const lib = readFileSync('lib/dataRoomIntent.ts', 'utf8')
 const logRoute = readFileSync('app/api/data-rooms/view-log/route.ts', 'utf8')
 const intentRoute = readFileSync('app/api/data-rooms/intent/route.ts', 'utf8')
-const qaPage = readFileSync('app/dashboard/data-room-qa/page.tsx', 'utf8')
+const qaPage = readFileSync('components/ai/panels/DataRoomQaPanel.tsx', 'utf8')
 
 // ---------------------------------------------------------------------------
 // Structure: lib + routes

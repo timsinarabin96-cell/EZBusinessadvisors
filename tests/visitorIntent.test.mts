@@ -5,7 +5,7 @@ import test from 'node:test'
 const schema = readFileSync('sql/visitorIntent_schema.sql', 'utf8')
 const lib = readFileSync('lib/visitorIntent.ts', 'utf8')
 const api = readFileSync('app/api/track-view/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/visitor-intent/page.tsx', 'utf8')
+const page = readFileSync('components/ai/panels/VisitorIntentPanel.tsx', 'utf8')
 const interactive = readFileSync('components/public/ListingDetailInteractive.tsx', 'utf8')
 const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
@@ -59,7 +59,6 @@ test('visitor-intent: dashboard page renders stats, hot list, per-listing rows',
   assert.match(page, /s\.uniqueVisitors/)
   assert.match(page, /s\.repeatViewers/)
   assert.match(page, /s\.viewsLast7d/)
-  assert.match(page, /AppShell active="Visitor Intent"/)
 })
 
 test('visitor-intent: dashboard nav includes Visitor Intent', () => {

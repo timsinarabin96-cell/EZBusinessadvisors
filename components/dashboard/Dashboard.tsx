@@ -65,7 +65,7 @@ export default function Dashboard() {
       </header>
 
       {/* Deal Autopilot — front door */}
-      <Link href="/dashboard/autopilot" style={{ textDecoration: 'none' }}>
+      <Link href="/dashboard/ai?tab=autopilot" style={{ textDecoration: 'none' }}>
         <div style={{ marginBottom: 24, padding: '18px 22px', borderRadius: 12, background: 'linear-gradient(120deg, var(--navy) 0%, var(--navy-2) 100%)', border: '1px solid rgba(201,168,76,0.35)', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', transition: 'transform .15s, box-shadow .15s' }}>
           <div style={{ fontSize: 34 }}>✨</div>
           <div style={{ flex: 1, minWidth: 220 }}>

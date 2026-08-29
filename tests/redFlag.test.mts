@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const core = readFileSync('lib/redFlagCore.ts', 'utf8')
 const lib = readFileSync('lib/redFlag.ts', 'utf8')
-const page = readFileSync('app/dashboard/red-flags/page.tsx', 'utf8')
+const page = readFileSync('components/ai/panels/RedFlagsPanel.tsx', 'utf8')
 const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 const { analyzeRedFlags } = await import('../lib/redFlagCore.ts')
@@ -111,7 +111,6 @@ test('red-flags: dashboard page renders scan rows, stat cards, flag cards', () =
   assert.match(page, /f\.severity/)
   assert.match(page, /f\.title/)
   assert.match(page, /Need verification/)
-  assert.match(page, /AppShell active="Red Flags"/)
 })
 
 test('red-flags: dashboard nav includes Red Flags', () => {

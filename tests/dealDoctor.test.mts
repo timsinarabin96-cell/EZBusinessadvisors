@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/dealDoctor.ts', 'utf8')
 const core = readFileSync('lib/dealDoctorCore.ts', 'utf8')
-const page = readFileSync('app/dashboard/deal-doctor/page.tsx', 'utf8')
+const page = readFileSync('components/ai/panels/DealDoctorPanel.tsx', 'utf8')
 const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 // Import the pure scorer directly (dependency-free core — no path aliases).
@@ -74,7 +74,6 @@ test('deal-doctor: dashboard page renders scores, bands, actions, stat cards', (
   assert.match(page, /d\.action/)
   assert.match(page, /d\.factors/)
   assert.match(page, /Avg close score/)
-  assert.match(page, /AppShell active="Deal Doctor"/)
 })
 
 test('deal-doctor: dashboard nav includes Deal Doctor', () => {

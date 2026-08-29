@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/callSummaries.ts', 'utf8')
 const route = readFileSync('app/api/intelligence/call-summaries/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/call-summaries/page.tsx', 'utf8')
+const page = readFileSync('components/ai/panels/CallSummariesPanel.tsx', 'utf8')
 const schema = readFileSync('sql/call_summaries_schema.sql', 'utf8')
 
 test('call summaries: engine reads the real voice tables and never throws', () => {
@@ -66,8 +66,6 @@ test('call summaries: API supports GET list and POST summarize with auth broker'
 })
 
 test('call summaries: dashboard page lists summaries and generates', () => {
-  assert.match(page, /AppShell active="Call Summaries"/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext/)
   assert.match(page, /api\/intelligence\/call-summaries/)
