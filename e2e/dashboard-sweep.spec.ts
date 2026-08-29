@@ -45,7 +45,6 @@ const DASHBOARD_ROUTES = [
   '/dashboard/review-queue',
   '/dashboard/search',
   '/dashboard/security',
-  '/dashboard/seller-leads',
   '/dashboard/settings',
   '/dashboard/studio',
   '/dashboard/tools',

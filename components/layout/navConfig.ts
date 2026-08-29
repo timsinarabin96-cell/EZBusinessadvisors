@@ -41,8 +41,8 @@ export const NAV: NavItem[] = [
   { href: '/listings', label: 'Listings', icon: '🏢', minRole: 'agent', group: 'Deals & Listings', core: true, keywords: 'businesses inventory' },
   { href: '/dashboard/studio', label: 'Deal Studio', icon: '✨', minRole: 'agent', group: 'Deals & Listings', core: true, keywords: 'ai studio listing capture verify publish sell' },
   { href: '/dashboard/listings/new', label: 'New Listing', icon: '➕', minRole: 'agent', group: 'Deals & Listings', core: true, keywords: 'create wizard add' },
-  { href: '/leads', label: 'Lead Management', icon: '🎯', minRole: 'agent', group: 'Deals & Listings', core: true, keywords: 'buyers contacts prospects' },
-  { href: '/dashboard/seller-leads', label: 'Seller Leads', icon: '🏷️', minRole: 'agent', group: 'Deals & Listings', keywords: 'sellers prospects' },
+  { href: '/leads', label: 'Lead Management', icon: '🎯', minRole: 'agent', group: 'Deals & Listings', core: true, keywords: 'buyers contacts prospects sellers outreach' },
+
   { href: '/dashboard/deal-terms', label: 'Deal Terms', icon: '🤝', minRole: 'broker', group: 'Deals & Listings', keywords: 'offer lab loi negotiation letter of intent terms structure counter' },
   { href: '/dashboard/deal-docs', label: 'Deal Docs', icon: '📄', minRole: 'agent', group: 'Deals & Listings', keywords: 'nda non disclosure confidentiality buyer qualify listing agreement exclusive sign approve requests' },
   { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings', keywords: 'escrow closing checklist' },
