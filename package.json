@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:full": "playwright test e2e/full-role.spec.ts e2e/journey.spec.ts e2e/lifecycle.spec.ts",
+    "test:buyer": "playwright test e2e/full-role.spec.ts --grep buyer"
   },
   "keywords": [],
   "author": "",
