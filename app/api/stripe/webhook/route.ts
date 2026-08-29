@@ -303,6 +303,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: `order insert failed: ${orderErr.message}` }, { status: 500 })
     }
 
+    // Auto-generate the print-ready PDF (artwork the supplier can actually print)
+    // and save its URL on the order. Failure never blocks the order itself.
+    let printFileUrl: string | null = null
+    try {
+      const { createAndUploadPrintFile } = await import('@/lib/storePrintFiles')
+      const { url } = await createAndUploadPrintFile({
+        orderId: orderRow.id,
+        workOrderRef,
+        productName,
+        category: String(product?.category || 'flyers'),
+        quantity,
+        shipTo: ship,
+        businessName: productName,
+        headline: 'Confidential Business Opportunity',
+        contact: { name: 'EZ Business Advisors', phone: '', email: email || '', website: 'ezbusinessadvisors.com' },
+        brand: { name: 'CONCORD Deal Platform' },
+      })
+      printFileUrl = url || null
+      if (printFileUrl) {
+        await db.from('store_orders').update({ print_file_url: printFileUrl }).eq('id', orderRow.id)
+      }
+    } catch { /* print file is best-effort */ }
+
     // Auto-send the work order to the right supplier (fire-and-forget).
     // Product-level supplier (4over / Printify / GotPrint) routes automatically.
     const { dispatchStoreWorkOrder } = await import('@/lib/storeWorkOrder')
@@ -313,6 +336,7 @@ export async function POST(req: NextRequest) {
       quantity,
       unitCost,
       supplier: product?.supplier || null,
+      printFileUrl,
       shipping: ship,
       customerEmail: email,
     }).catch(() => {})

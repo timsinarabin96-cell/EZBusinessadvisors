@@ -28,6 +28,7 @@ export interface WorkOrderInput {
   quantity: number
   unitCost: number
   supplier?: string | null
+  printFileUrl?: string | null
   shipping: { name: string; line1: string; line2?: string; city: string; state: string; zip: string }
   customerEmail?: string
 }
@@ -49,7 +50,7 @@ export const SUPPLIER_PORTALS: Record<string, string> = {
 
 /** Render the supplier-facing work order email (branded, print-spec style). */
 export function renderWorkOrderHtml(input: WorkOrderInput): string {
-  const { productName, quantity, unitCost, shipping, workOrderRef, supplier } = input
+  const { productName, quantity, unitCost, shipping, workOrderRef, supplier, printFileUrl } = input
   const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
   const money = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const shipLine = [shipping.line1, shipping.line2, `${shipping.city}, ${shipping.state} ${shipping.zip}`].filter(Boolean).map(esc).join('<br/>')
@@ -74,6 +75,12 @@ export function renderWorkOrderHtml(input: WorkOrderInput): string {
     `<tr><td style="padding:6px 0;color:#888">Total</td><td style="padding:6px 0;font-weight:700">${money(unitCost * quantity)}</td></tr>` +
     `</table>` +
     `<div style="border-top:1px solid #e5e0d3;margin:14px 0"></div>` +
+    (printFileUrl
+      ? `<div style="background:#eef7f1;border:1px solid #d5eade;border-radius:8px;padding:12px 14px;margin-bottom:14px">` +
+        `<div style="font-size:12px;color:#1e7e34;font-weight:700">📎 Print-ready artwork is attached — download and print:</div>` +
+        `<a href="${esc(printFileUrl)}" style="display:inline-block;margin-top:6px;background:#16a34a;color:#fff;text-decoration:none;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:700">Download print-ready PDF</a>` +
+        `</div>`
+      : '') +
     `<div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Ship To</div>` +
     `<div style="font-size:14px;color:#2a2a2a;line-height:1.6">${shipLine}</div>` +
     `</div>` +

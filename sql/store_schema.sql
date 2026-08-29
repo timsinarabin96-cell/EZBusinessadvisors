@@ -47,6 +47,7 @@ create table if not exists public.store_orders (
   status              text not null default 'paid',       -- paid | work_order_sent | processing | shipped | delivered | cancelled
   work_order_ref      text,
   tracking_number     text,
+  print_file_url      text,
   stripe_session_id   text,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now()
