@@ -10,7 +10,9 @@ import { z } from 'zod'
 import { createSellerListingOrder, resolveListingAgency } from '@/lib/sellerListing'
 import { validationErrorJson } from '@/lib/friendlyValidation'
 import { createNotification } from '@/lib/notifications'
-import {rateLimitAsync } from '@/lib/rateLimit'
+import { createServerClient } from '@/lib/supabase/server'
+import { notify } from '@/lib/email'
+import { rateLimitAsync } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -18,6 +20,15 @@ const clientIp = (req: NextRequest) =>
   req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
   req.headers.get('x-real-ip') ||
   'unknown'
+
+/** Cryptographically-random portal token (URL-safe, unguessable). */
+function generatePortalToken(): string {
+  const bytes = new Uint8Array(18)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
 
 const MAX_BODY_BYTES = 32 * 1024
 
@@ -113,6 +124,28 @@ export async function POST(req: NextRequest) {
       code: 'ORDER_FAILED',
     })
   }
+
+  // Seller tracking: give the seller a private portal token + email them the
+  // link so they can follow their listing (status, financials upload, docs)
+  // instead of being left blind after the thank-you screen.
+  const portalToken = generatePortalToken()
+  const listingId = (result.listing as { id?: string } | undefined)?.id
+  if (listingId) {
+    const db = createServerClient()
+    if (db) {
+      await db.from('listings').update({ portal_token: portalToken }).eq('id', listingId).maybeSingle()
+    }
+  }
+  const portalUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'}/seller/${portalToken}`
+  await notify('generic', parsed.data.seller_email, {
+    title: `Your listing request — track it anytime: ${parsed.data.business_name}`,
+    message: [
+      `Hi ${esc(parsed.data.seller_name || 'there')},`,
+      'Thank you for listing your business with Concord. A broker is reviewing your submission and will reach out to confirm details.',
+      `🔐 Track your listing anytime in your private portal: <a href="${esc(portalUrl)}">${esc(portalUrl)}</a>`,
+      '— Your Concord broker',
+    ].filter(Boolean).join('<br/>'),
+  }).catch(() => {})
 
   // Alert brokers: a paid listing order landed in the review queue.
   await createNotification({

@@ -35,8 +35,14 @@ async function resolveListingByToken(db: ReturnType<typeof createServerClient>, 
     .select('id, business_name, industry, location_general, status, source, created_at, converted_listing_id')
     .eq('portal_token', token)
     .maybeSingle()
-  if (!lead) return null
-  let listingId: string | null = (lead as { converted_listing_id?: string | null }).converted_listing_id || null
+
+  // A token may belong to a LISTING directly (seller-order path — free/paid
+  // plans create a listing + order, no lead row). Never return null just
+  // because there is no lead: check the listing token too.
+  let listingId: string | null = null
+  if (lead) {
+    listingId = (lead as { converted_listing_id?: string | null }).converted_listing_id || null
+  }
   if (!listingId) {
     const { data: byToken } = await db
       .from('listings')
@@ -45,7 +51,8 @@ async function resolveListingByToken(db: ReturnType<typeof createServerClient>, 
       .maybeSingle()
     listingId = (byToken as { id?: string } | null)?.id || null
   }
-  return { lead, listingId }
+  if (!lead && !listingId) return null
+  return { lead: lead || null, listingId }
 }
 
 export async function GET(req: NextRequest) {
