@@ -491,25 +491,33 @@ Broker: {{broker_name}} ({{agency_name}}) — this LOI has been facilitated thro
     category: 'Seller Pack',
     fields: [
       { key: 'business_name', label: 'Business Name', type: 'text', required: true },
-      { key: 'legal_entity', label: 'Legal Entity Name', type: 'text', required: false },
+      { key: 'legal_entity', label: 'Seller (Corporate Name)', type: 'text', required: true },
       { key: 'business_address', label: 'Business Address', type: 'text', required: false },
       { key: 'city', label: 'City', type: 'text', required: false },
       { key: 'state', label: 'State', type: 'text', required: false },
       { key: 'zip', label: 'ZIP', type: 'text', required: false },
-      { key: 'owner_names', label: 'Owner(s) / Principal(s)', type: 'text', required: true },
-      { key: 'asking_price', label: 'Asking Price ($)', type: 'number', required: true },
-      { key: 'annual_sales', label: 'Annual Sales ($)', type: 'number', required: false },
-      { key: 'sde', label: 'SDE / Owner Benefit ($)', type: 'number', required: false },
-      { key: 'ebitda', label: 'EBITDA ($)', type: 'number', required: false },
+      { key: 'owner_names', label: 'Principal Name', type: 'text', required: true },
+      { key: 'cell_phone', label: 'Cell Phone', type: 'text', required: false },
+      { key: 'private_email', label: 'Private Email', type: 'text', required: false },
+      { key: 'non_compete_radius', label: 'Non-Compete Radius (miles)', type: 'number', required: false, default: 30 },
+      { key: 'non_compete_years', label: 'Non-Compete Term (years)', type: 'number', required: false, default: 3 },
+      { key: 'training_weeks', label: 'Training Period (weeks)', type: 'number', required: false, default: 2 },
       { key: 'inventory_value', label: 'Inventory Included ($)', type: 'number', required: false },
       { key: 'ffe_value', label: 'FF&E Included ($)', type: 'number', required: false },
-      { key: 'real_estate', label: 'Real Estate Included', type: 'select', required: false, options: ['Yes', 'No', 'Not Applicable'] },
-      { key: 'commission_rate', label: 'Commission Rate (%)', type: 'number', required: true, default: 10 },
+      { key: 'leasehold_value', label: 'Leasehold Improvements Included ($)', type: 'number', required: false },
+      { key: 'annual_sales', label: 'Annual Sales ($)', type: 'number', required: false },
+      { key: 'sde', label: 'Seller\'s Discretionary Earnings ($)', type: 'number', required: false },
+      { key: 'asking_price', label: 'Total Sales Price ($)', type: 'number', required: true },
+      { key: 'down_payment', label: 'Down Payment ($)', type: 'number', required: false },
+      { key: 'seller_note', label: 'Seller Note ($)', type: 'number', required: false },
+      { key: 'interest_rate', label: 'Note Interest Rate (%)', type: 'number', required: false },
+      { key: 'monthly_payment', label: 'Note Monthly Payment ($)', type: 'number', required: false },
+      { key: 'note_months', label: 'Note Term (months)', type: 'number', required: false },
+      { key: 'additional_provisions', label: 'Additional Provisions', type: 'textarea', required: false },
+      { key: 'commission_rate', label: 'Commission Rate (%)', type: 'number', required: true, default: 6 },
       { key: 'minimum_commission', label: 'Minimum Commission ($)', type: 'number', required: false, default: 10000 },
-      { key: 'term_months', label: 'Listing Term (months)', type: 'number', required: false, default: 6 },
-      { key: 'tail_period', label: 'Tail / Protection (months)', type: 'number', required: false, default: 12 },
-      { key: 'non_compete_radius', label: 'Non-Compete Radius (miles)', type: 'number', required: false, default: 30 },
-      { key: 'training_weeks', label: 'Training Period (weeks)', type: 'number', required: false, default: 2 },
+      { key: 'term_months', label: 'Listing Term (months)', type: 'number', required: false, default: 12 },
+      { key: 'tail_months', label: 'Tail / Protection (months)', type: 'number', required: false, default: 24 },
       { key: 'agreement_date', label: 'Date', type: 'date', required: true },
       { key: 'agency_name', label: 'Brokerage Name', type: 'text', required: true },
       { key: 'broker_name', label: 'Broker Name', type: 'text', required: true },
@@ -522,49 +530,72 @@ Broker: {{broker_name}} ({{agency_name}}) — this LOI has been facilitated thro
 
 MARKETING AGREEMENT
 
-This Marketing Agreement (this "Agreement") is entered into on {{agreement_date}} (the "Effective Date"), by and between {{owner_names}} ("Seller"), owner of {{business_name}} ({{legal_entity}}) located at {{business_address}}, {{city}}, {{state}} {{zip}} (the "Business"), and {{broker_name}} of {{agency_name}} ("Broker").
-
-DEAL TERMS AT A GLANCE
-
-Asking Price: \${{asking_price}}
-Annual Sales: \${{annual_sales}}
-SDE / Owner Benefit: \${{sde}}
-EBITDA: \${{ebitda}}
+==== DEAL SUMMARY ====
+Business Name: {{business_name}}
+Seller (Corporate Name): {{legal_entity}}
+Business Address: {{business_address}}
+City / State / ZIP: {{city}}, {{state}} {{zip}}
+Principal Name: {{owner_names}}
+Cell Phone: {{cell_phone}}
+Private Email: {{private_email}}
+Non-Compete: {{non_compete_radius}} miles for {{non_compete_years}} years
+Training at No Cost: {{training_weeks}} weeks
 Inventory Included: \${{inventory_value}}
 FF&E Included: \${{ffe_value}}
-Real Estate Included: {{real_estate}}
+Leasehold Improvements Included: \${{leasehold_value}}
+Annual Sales: \${{annual_sales}}
+Seller\'s Discretionary Earnings: \${{sde}} (owner will prove)
+Total Sales Price: \${{asking_price}}
+Down Payment: \${{down_payment}}
+Seller Note: \${{seller_note}} at {{interest_rate}}% interest in payments of \${{monthly_payment}} per month payable over {{note_months}} months
+====
 
-TERMS OF ENGAGEMENT
+This Marketing Agreement (this \"Agreement\") is entered into as of {{agreement_date}} (the \"Effective Date\"), by and between {{legal_entity}} (\"Seller\"), owner of the business known as {{business_name}} (the \"Business\") located at {{business_address}}, {{city}}, {{state}} {{zip}}, and {{broker_name}} of {{agency_name}} (\"Broker\").
 
 1. EXCLUSIVE RIGHT TO MARKET. Seller grants Broker the exclusive right to market, advertise, and solicit purchasers for the Business during the Term, and to negotiate on Seller's behalf.
 
-2. COMMISSION. In consideration of Broker's services, Seller agrees to pay Broker a commission of {{commission_rate}}% of the final purchase price, payable at closing, and in no event less than \${{minimum_commission}}. The Commission is earned if the Business is sold, transferred, or otherwise disposed of during the Term or within {{tail_period}} months thereafter (the "Tail Period") to any purchaser introduced by Broker.
+2. TERM. This Agreement shall continue for {{term_months}} months (the \"Term\") commencing on the Effective Date, and shall continue thereafter until terminated in writing by either party.
 
-3. LISTING TERM. This Agreement shall remain in effect for {{term_months}} months from the Effective Date (the "Term").
+3. MARKETING. Broker shall use commercially reasonable efforts to market the Business, including listing on business-for-sale platforms, advertising, and co-brokering with other business brokers.
 
-4. NON-CIRCUMVENTION. Seller shall route all inquiries through Broker and shall not circumvent Broker by dealing directly with any purchaser introduced by Broker.
+4. COMMISSION. Seller shall pay to Broker, as compensation or liquidated damages, {{commission_rate}}% of the Total Sales Price, with a minimum of \${{minimum_commission}}, if any of the following occur: (a) the Business is sold, transferred, or otherwise disposed of; (b) Broker procures a Prospect ready, willing, and able to purchase the Business on terms acceptable to Seller; (c) Seller sells, leases, trades, or otherwise disposes of the Business or any part thereof; (d) Seller withdraws the Business from sale or terminates this Agreement; (e) Seller fails or refuses to complete a sale after entering into an agreement to do so; or (f) Seller sells or transfers any stock or ownership interest in the Business.
 
-5. SELLER REPRESENTATIONS. Seller represents that all information provided is true and correct, that Seller has full authority to sell the Business, and that Seller will promptly notify Broker of any material change. Seller agrees to provide financial statements, tax returns, and other documentation reasonably requested for due diligence.
+5. SELLER REPRESENTATIONS. Seller represents that all information provided to Broker is true and correct, that Seller has full authority to sell the Business, and that Seller will promptly notify Broker of any material change. Seller agrees to provide financial statements, tax returns, and other documentation reasonably requested for due diligence, and to prove Seller's Discretionary Earnings upon request.
 
-6. COOPERATION. Seller agrees to make the Business available for inspection by qualified purchasers and to cooperate with Broker's marketing efforts, including providing a training period of {{training_weeks}} weeks to the purchaser after closing.
+6. TAIL. If within {{tail_months}} months after the expiration or termination of this Agreement, Seller sells, transfers, or otherwise disposes of the Business to any Prospect who was introduced to the Business by Broker during the Term, Seller shall pay Broker the full commission set forth in paragraph 4.
 
-7. NON-COMPETE. Seller agrees not to compete with the Business within a radius of {{non_compete_radius}} miles for a reasonable period after closing, as further set forth in the purchase agreement.
+7. NON-COMPETE. Seller agrees not to compete with the Business within a radius of {{non_compete_radius}} miles for a period of {{non_compete_years}} years following the sale of the Business. Seller will train the purchaser at no cost for {{training_weeks}} weeks after closing.
 
-8. INDEMNIFICATION. Seller indemnifies Broker against claims arising from Seller's misrepresentations or breach of this Agreement, except to the extent caused by Broker's gross negligence or willful misconduct.
+8. COOPERATION WITH BROKER. Seller agrees to make the Business available for inspection by qualified purchasers, to cooperate with Broker's marketing efforts, and to refer all inquiries concerning the Business to Broker. All communications with prospects shall be conducted solely through Broker.
 
-9. GOVERNING LAW. This Agreement is governed by the laws of the state in which the Business is located.
+9. DISCLOSURE / CO-BROKERAGE. Seller authorizes Broker to disclose information concerning the Business to qualified prospects who have executed a confidentiality agreement. Broker may co-broke the listing with other business brokers and split the commission as Broker determines.
+
+10. INDEMNIFICATION. Seller indemnifies and holds Broker harmless from any claims, losses, damages, costs, and attorneys' fees arising from false, incomplete, or misleading information supplied by Seller, or from Seller's breach of any obligation under this Agreement. Seller agrees to provide all documentation needed to prepare the Business Listing Information (BLI).
+
+11. BUYER QUALIFICATION. Broker shall qualify all prospects as to financial capability and seriousness before disclosing confidential information, and shall present only qualified prospects to Seller.
+
+12. GOVERNING LAW; VENUE; JURY WAIVER. This Agreement shall be governed by the laws of the State of Pennsylvania. The parties consent to the exclusive venue of the county in which the Business is located for all proceedings relating to this Agreement, and each party waives trial by jury.
+
+13. ENTIRE AGREEMENT. This Agreement contains the entire understanding of the parties and supersedes all prior discussions and representations. It may be amended only in a written instrument executed by both parties.
+
+14. PERSONAL GUARANTEE. If Seller is an entity, the principals of Seller signing this Agreement personally guarantee Seller's performance of its obligations hereunder.
+
+15. ELECTRONIC SIGNATURES. Electronic signatures and electronic delivery shall be as valid and binding as original signatures and delivery, to the fullest extent permitted by the Pennsylvania Electronic Transactions Act, 73 P.S. § 2260.101 et seq.
 
 IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.
 
-SELLER:
-Signature: ______________________________
-Printed Name: {{owner_names}}
-Date: {{agreement_date}}
-
 BROKER ({{agency_name}}):
-Signature: ______________________________
-Printed Name: {{broker_name}}
-Date: ___________________________________{{LEGAL_FOOTER}}`,
+By: ______________________________ (Agent Signature)
+Agent's Name: {{broker_name}}
+Approved By: ______________________________
+Managing Partner / Principal Broker
+
+SELLER ({{legal_entity}}):
+PRINT SELLER (CORPORATE NAME): {{legal_entity}}
+By: ______________________________  Its Title: ______________________________
+Signature of Seller's Principal, Individually: ______________________________
+Printed Name: {{owner_names}}
+Date: {{agreement_date}}{{LEGAL_FOOTER}}`,
   },
   {
     name: 'Mutual NDA & Co-Brokerage Agreement',
@@ -1445,70 +1476,165 @@ Date: ___________________________________{{LEGAL_FOOTER}}`,
     category: 'Buyer Pack',
     fields: [
       { key: 'business_name', label: 'Business Name', type: 'text', required: true },
-      { key: 'buyer_name', label: 'Buyer Legal Name', type: 'text', required: true },
-      { key: 'buyer_entity_type', label: 'Buyer Entity Type', type: 'select', required: true, options: ['Individual', 'Corporation', 'LLC', 'Partnership', 'Trust', 'Other'] },
-      { key: 'seller_name', label: 'Seller Legal Name', type: 'text', required: true },
-      { key: 'purchase_price', label: 'Purchase Price ($)', type: 'number', required: true },
-      { key: 'deposit_amount', label: 'Earnest Money Deposit ($)', type: 'number', required: true },
+      { key: 'business_address', label: 'Business Address (Premises)', type: 'text', required: false },
+      { key: 'seller_name', label: 'Seller Name', type: 'text', required: true },
+      { key: 'seller_entity', label: 'Seller Corporate Name (e.g. Glamour Threading LLC)', type: 'text', required: false },
+      { key: 'seller_address', label: 'Seller Address', type: 'text', required: false },
+      { key: 'seller_phone', label: 'Seller Mobile Phone', type: 'text', required: false },
+      { key: 'buyer_name', label: 'Purchaser Name', type: 'text', required: true },
+      { key: 'buyer_address', label: 'Purchaser Address', type: 'text', required: false },
+      { key: 'buyer_phone', label: 'Purchaser Mobile Phone', type: 'text', required: false },
+      { key: 'total_purchase_price', label: 'Total Purchase Price ($)', type: 'number', required: true },
+      { key: 'deposit_amount', label: 'Good Faith Deposit to Broker Escrow ($)', type: 'number', required: true },
+      { key: 'additional_deposit', label: 'Additional Deposit ($)', type: 'number', required: false },
+      { key: 'cash_at_closing', label: 'Cash / Certified Check at Closing ($)', type: 'number', required: false },
+      { key: 'note_amount', label: 'Promissory Note Amount ($)', type: 'number', required: false },
+      { key: 'note_interest_rate', label: 'Note Interest Rate (%)', type: 'number', required: false },
+      { key: 'note_monthly_payment', label: 'Note Monthly Payment ($)', type: 'number', required: false },
       { key: 'closing_date', label: 'Target Closing Date', type: 'date', required: true },
-      { key: 'due_diligence_days', label: 'Due Diligence Period (days)', type: 'number', required: true, default: 30 },
-      { key: 'financing_terms', label: 'Financing Terms', type: 'textarea', required: false, placeholder: 'e.g. Seller financing of $100,000 at 8% over 3 years' },
-      { key: 'included_assets', label: 'Included Assets Summary', type: 'textarea', required: false, placeholder: 'e.g. Equipment, inventory, goodwill, client list, trade name, lease assignment' },
-      { key: 'excluded_assets', label: 'Excluded Assets (if any)', type: 'textarea', required: false, placeholder: 'e.g. Cash, accounts receivable, real estate (unless included)' },
+      { key: 'due_diligence_days', label: 'Due Diligence Period (days)', type: 'number', required: true, default: 10 },
+      { key: 'lease_contingency', label: 'Lease Contingency', type: 'select', required: false, options: ['Assignment of existing lease', 'New lease with landlord', 'Both (either consent or new lease)'] },
+      { key: 'inventory_amount', label: 'Inventory at Wholesale Cost ($)', type: 'number', required: false },
+      { key: 'non_compete_months', label: 'Non-Compete Term (months)', type: 'number', required: false, default: 12 },
+      { key: 'non_compete_radius', label: 'Non-Compete Radius (miles)', type: 'number', required: false, default: 30 },
+      { key: 'training_days', label: 'Management Assistance / Training (days)', type: 'number', required: false, default: 5 },
+      { key: 'liabilities_assumed', label: 'Liabilities Assumed (list A/B/C)', type: 'textarea', required: false, placeholder: 'e.g. A: equipment lease; B: none; C: none' },
+      { key: 'holdback_amount', label: 'Closing Holdback ($)', type: 'number', required: false, default: 10000 },
+      { key: 'holdback_days', label: 'Holdback Period (days)', type: 'number', required: false, default: 10 },
+      { key: 'contract_review_days', label: 'Attorney Review Period (days)', type: 'number', required: false, default: 5 },
+      { key: 'offer_expiry_date', label: 'Offer Expiration Date', type: 'date', required: true },
       { key: 'agency_name', label: 'Brokerage Name', type: 'text', required: true },
       { key: 'broker_name', label: 'Broker Name', type: 'text', required: true },
     ],
     parties: [
       { key: 'agent', label: 'Broker', role: 'agent' },
-      { key: 'buyer', label: 'Buyer', role: 'buyer' },
+      { key: 'buyer', label: 'Purchaser', role: 'buyer' },
       { key: 'seller', label: 'Seller', role: 'seller' },
     ],
     body_template: `{{title}}
 
-OFFER TO PURCHASE & ACCEPTANCE
+BUSINESS SALE OFFER AND ACCEPTANCE AGREEMENT
 
-This Offer to Purchase (this "Offer") is made as of {{closing_date}} by {{buyer_name}}, a {{buyer_entity_type}} ("Buyer"), to {{seller_name}} ("Seller"), for the purchase of the business known as {{business_name}} (the "Business"), brokered by {{broker_name}} of {{agency_name}} ("Broker").
+THIS AGREEMENT is made and entered into by and between:
 
-1. PURCHASE PRICE. Buyer offers to purchase the Business for the total purchase price of \${{purchase_price}} (the "Purchase Price"), payable in cash and/or other agreed terms as set forth in this Offer.
+SELLER: {{seller_name}} of {{seller_entity}}
+Address: {{seller_address}}
+Mobile Phone: {{seller_phone}}
 
-2. EARNEST MONEY. Concurrently with the execution of this Offer, Buyer shall deposit earnest money of \${{deposit_amount}} (the "Deposit") to be held in escrow in accordance with the escrow instructions. The Deposit shall be credited toward the Purchase Price at closing and shall be refundable only as expressly provided herein.
+And
 
-3. DUE DILIGENCE. Buyer shall have a due diligence period of {{due_diligence_days}} days from the Effective Date (the "Due Diligence Period") to review the Business\'s financial records, contracts, leases, permits, and operations, and to secure financing. Buyer may terminate this Offer for any reason during the Due Diligence Period by written notice, in which case the Deposit shall be returned in full.
+PURCHASER: {{buyer_name}}
+Address: {{buyer_address}}
+Mobile Phone: {{buyer_phone}}
 
-4. FINANCING. This Offer is [X] contingent [ ] not contingent upon Buyer obtaining financing on the following terms: {{financing_terms}}.
+1. PURCHASE AND SALE. SELLER agrees to sell to PURCHASER, and PURCHASER agrees to purchase from SELLER all of the assets and properties pertaining to the business known as {{business_name}}, located at {{business_address}} (the "Premises"). The business to be conveyed to PURCHASER by SELLER at Closing includes all of SELLER'S furnishings, furniture, fixtures, and equipment (the "FF&E", a list of which is attached to this Agreement), goodwill, inventory, customer records, materials, supplies, transferable licenses, business name(s), telephone number(s), lease, leasehold interest and improvements, contract rights, software and software licenses, trade secrets, patents, intellectual property, web sites and domain names, email addresses, and all other assets of the business (together with the FF&E, the "Assets"). SELLER'S Accounts Receivable, cash, and deposits are not included among the Assets to be sold/purchased.
 
-5. ASSETS INCLUDED. The Purchase Price includes the following assets of the Business: {{included_assets}}. Excluded from the sale are: {{excluded_assets}}.
+2. PURCHASE PRICE. The total purchase price to be paid for the Assets shall be \${{total_purchase_price}} (the "Purchase Price"), paid as follows:
 
-6. CLOSING. The closing shall occur on or before {{closing_date}} (the "Closing Date"), at which time Seller shall transfer the Business and included assets to Buyer free and clear of all liens, and Buyer shall pay the balance of the Purchase Price.
+2.1 TOTAL PURCHASE PRICE TO BE PAID: \${{total_purchase_price}}
 
-7. REPRESENTATIONS. Seller represents that the financial statements and other information provided to Buyer are true and complete, and that the Business is being sold free of undisclosed liabilities.
+2.2 \${{deposit_amount}} by PURCHASER making an initial GOOD FAITH DEPOSIT to the escrow account of {{agency_name}} ("BROKER"), to be included in the Down Payment.
 
-8. BROKER\'S ROLE. Broker acted as the intermediary/agent in this transaction and shall be compensated by the party(s) as set forth in the applicable listing and/or buyer agreements.
+2.3 \${{additional_deposit}} by PURCHASER making an additional deposit to the escrow account of BROKER within two (2) business days following the final execution of this Agreement, to be included in the Down Payment.
 
-9. GOVERNING LAW. This Offer shall be governed by the laws of the state in which the Business is located.
+2.4 \${{cash_at_closing}} by cash or certified check paid to SELLER at Closing, subject to pro rations & adjustments.
 
-10. ACCEPTANCE. This Offer shall remain open for acceptance until {{closing_date}}. Acceptance shall be effective upon execution by Seller and delivery to Buyer or Broker.
+2.5 \${{note_amount}} by PURCHASER executing and delivering to SELLER, at Closing, a Promissory Note (the "Note") bearing interest at the rate of {{note_interest_rate}}% per annum, payable in equal monthly installments of principal and interest in the sum of \${{note_monthly_payment}} each.
 
-IN WITNESS WHEREOF, the parties have executed this Offer as of the date set forth below.
+2.6 \${{total_purchase_price}} TOTAL PURCHASE PRICE TO BE PAID.
 
-BUYER:
-Signature: ______________________________
-Printed Name: {{buyer_name}}
-Date: ___________________________________
+2.7 PURCHASER represents to SELLER that PURCHASER has the financial capability to Close this purchase pursuant to this Agreement.
 
-SELLER ACCEPTANCE:
+3. CLOSING. This transaction shall close on or about {{closing_date}} (the "Closing").
 
-The undersigned Seller accepts the foregoing Offer and agrees to the terms set forth herein.
+4.1 PURCHASER'S DUE DILIGENCE INSPECTION OF BUSINESS RECORDS, ASSETS & LEASE. This Agreement is contingent upon PURCHASER'S review and inspection of SELLER'S Business Records, Assets and Lease within a period of {{due_diligence_days}} calendar days following the date of the execution of this Agreement by SELLER and PURCHASER.
 
-SELLER:
-Signature: ______________________________
-Printed Name: {{seller_name}}
-Date: ___________________________________
+4.2 PURCHASER'S OPTION TO CANCEL. Following PURCHASER'S review and inspection of SELLER'S Business Records, Assets and Lease, if PURCHASER IS NOT SATISFIED FOR ANY REASON WHATSOEVER, PURCHASER shall have the option of canceling this Agreement by written notice to SELLER and BROKER (the "Due Diligence Cancellation Notice") made no later than the last day of the review and inspection period under paragraph 4.1, and thereafter, upon request, SELLER agrees to execute and deliver a written statement authorizing the release of the escrow deposit(s) to PURCHASER (the "Escrow Release Authorization" form). Upon PURCHASER'S receipt of a refund of the escrow deposit, SELLER, PURCHASER and BROKER shall have no further obligation one to the other under this Agreement.
 
-BROKER ({{agency_name}}):
-Signature: ______________________________
-Printed Name: {{broker_name}}
-Date: ___________________________________{{LEGAL_FOOTER}}`,
+4.3 EFFECT OF NO DUE DILIGENCE CANCELLATION NOTICE. In the event the Due Diligence Cancellation Notice is not timely sent by PURCHASER to SELLER and BROKER pursuant to paragraph 4.2, then this Agreement shall continue to be binding upon SELLER and PURCHASER.
+
+5.1 LEASE. SELLER represents that (a) SELLER presently possesses a lease for the Premises (the "Lease"), (b) the Lease is valid, current and in good standing, and (c) SELLER has the right, subject to any consent required to be obtained by the landlord under the terms of the Lease, to assign the Lease to PURCHASER.
+
+5.2 LEASE CONTINGENCY. This Agreement is contingent upon PURCHASER securing from Landlord, [X] Landlord's written consent to the assignment of the existing Lease by SELLER to PURCHASER or [X] a new Lease between PURCHASER and Landlord, to be delivered to PURCHASER at or prior to Closing, and in the event same is not secured by the scheduled Closing date, PURCHASER shall have the option of canceling this Agreement by written notice to SELLER and BROKER (the "Lease Cancellation Notice") made no later than the next business day following the scheduled date of Closing or within three (3) business days following PURCHASER'S sooner receipt of written notification from Landlord that it refuses to give its consent to the Lease assignment or enter into a new Lease, and thereafter, upon request, SELLER agrees to execute and deliver an Escrow Release Authorization form. Upon PURCHASER'S receipt of the escrow deposit, SELLER, PURCHASER and BROKER shall have no further obligation one to the other under this Agreement.
+
+5.3 LEASE APPLICATION. Immediately following the completion of the due diligence inspection under paragraph 4.1, PURCHASER agrees to diligently file a complete and accurate written application with Landlord per Landlord's requirements, and unless specifically stated otherwise in the existing Lease, if any, PURCHASER agrees to pay Landlord's reasonable application, transfer or similar fee, and Landlord's cost for the preparation and delivery of such assignment or new Lease. SELLER agrees to cooperate with PURCHASER in securing Landlord's written consent to the assignment of the Lease or a new Lease.
+
+5.4 EFFECT OF NO LEASE CANCELLATION NOTICE. In the event the Lease Cancellation Notice is not sent by PURCHASER to SELLER and BROKER pursuant to paragraph 5.2, then this Agreement shall continue to be binding upon SELLER and PURCHASER.
+
+5.5 LEASE ASSUMPTION AND GUARANTEE. At or prior to Closing, PURCHASER assumes and agrees to pay all amounts as they become due and payable under the existing Lease, as, if and when assigned by SELLER to PURCHASER, and upon Landlord's request, agrees to cause its equity owners to personally guarantee the existing Lease and/or a new Lease.
+
+6. INVENTORY. The Purchase Price includes saleable and marketable inventory to be transferred to PURCHASER at Closing at SELLER'S wholesale purchase cost amounting to \${{inventory_amount}}. In the event the cost value of the inventory is more than the stated amount, the Purchase Price and the Note shall appropriately be increased, and if there is no Note, then the cash payable at Closing shall be increased. If such value is less, then the Purchase Price, and the cash payable at Closing shall be appropriately decreased. Upon PURCHASER'S request, within three (3) days prior to Closing, SELLER and PURCHASER agree to conduct an itemized physical count of SELLER'S inventory, and SELLER agrees to make available to PURCHASER SELLER'S purchase invoices and/or statements to substantiate the inventory cost.
+
+7. AGREEMENT NOT TO COMPETE. SELLER agrees not to compete with the business being sold to PURCHASER for a period of {{non_compete_months}} months following the Closing within a radius of {{non_compete_radius}} miles from the business Premises, and at Closing, SELLER agrees to execute and deliver a writing to that effect. If SELLER is an entity, at Closing, SELLER agrees to cause all equity owners to execute and deliver a similar non-competition agreement. This paragraph 7 shall survive the Closing.
+
+8. MANAGEMENT ASSISTANCE. SELLER agrees to provide assistance and training to PURCHASER in the transfer of management and operation of the business during normal business hours at the location of the business for a period of {{training_days}} business days following Closing, all without additional consideration by PURCHASER to SELLER.
+
+9. LIABILITIES. PURCHASER agrees to assume and pay the following on and after Closing: (A) {{liabilities_assumed}}.
+
+10. PROMISSORY NOTE. The Note shall be secured by a Security Agreement, Chattel Mortgage, UCC Statements, and Collateral Assignment of the Lease acquired by PURCHASER pursuant to paragraph 5.2, provided Landlord's consent is obtained (the "Security Documents") on all of the Assets transferred to PURCHASER. In the event PURCHASER is an entity, PURCHASER'S principal equity owners shall personally guarantee the Note. The Note shall provide for a (A) ten (10) day grace period, (B) right to prepay at any time without penalty, and (C) right of set-off following ten (10) days' notice to SELLER of claims paid related to SELLER'S ownership of the business prior to Closing. In the event PURCHASER obtains Small Business Administration ("SBA") financing, the Note shall provide that it will be subject to any subordination or "stand still" requirements of the SBA lender. PURCHASER shall pay SELLER'S reasonable legal fee for the preparation of the Note and Security Documents, and all recording/filing charges and documentary taxes relative to the creation of the security interest in favor of SELLER.
+
+11. PRORATIONS, ADJUSTMENTS, UTILITIES AND DEPOSITS. Except as otherwise provided under paragraph 6, all customary adjustments and prorations shall be made at Closing and shall increase or decrease the cash payable by PURCHASER to SELLER under paragraph 2.4. SELLER and PURCHASER agree to arrange to notify all utility companies to take final readings as of the Closing date, and PURCHASER shall have the obligation to advise such utilities to provide future services in PURCHASER'S name. SELLER shall be entitled to be reimbursed for all deposits and pre-payments of all deposits held for the benefit of PURCHASER.
+
+12. CONDITION OF ASSETS. SELLER agrees to deliver to PURCHASER, at Closing, all the Assets in good working order, and SELLER shall be responsible for repairing any of the Assets found defective at or prior to Closing.
+
+13. CONDITIONS TO CLOSING. On or prior to Closing, SELLER agrees to obtain all necessary consents from third parties required for the transfer of the business and Assets to PURCHASER, including, but not limited to, the consent from the holders of mortgages or other liens, if any, assumed by PURCHASER under paragraph 9. PURCHASER agrees to cooperate with SELLER under this paragraph 13.
+
+14. SELLER'S REPRESENTATIONS. SELLER represents to PURCHASER that: (A) if SELLER is a formed entity, SELLER is in good standing and has the power to sell the business and Assets as provided for herein; (B) SELLER is the owner of and has good and marketable title to the business and Assets, free and clear of any and all liens, encumbrances or claims whatsoever, except those to be paid and satisfied at Closing or assumed by PURCHASER as may be set forth in paragraph 9; (C) SELLER possesses all licenses and/or permits necessary to operate the business, and where capable and/or permitted by law, agrees to assign/transfer them to PURCHASER at Closing; (D) at Closing, there will be no judgments, liens, debts, accounts payable, claims, or taxes (sales or otherwise) due, fixed and contingent, or actions or proceedings pending or threatened by or against SELLER; (E) SELLER agrees (i) to conduct and operate the business up to the date of Closing in accordance with all laws, rules and regulations, in the regular course of business, and in the same manner as presently conducted and operated, and (ii) not to violate the terms of any business contract with third parties; (F) at or prior to Closing, SELLER will pay in full and satisfy all sales taxes, interest and penalties which may be due and/or owing to the Pennsylvania Department of Revenue, and at Closing, SELLER agrees to execute and deliver to PURCHASER an agreement to indemnify and hold PURCHASER harmless from any and all sales taxes, interest and penalties that may be asserted against PURCHASER as a result of SELLER'S operations prior to Closing.
+
+14.1 SURVIVAL OF REPRESENTATIONS AND SET-OFF. The representations and provisions under paragraph 14 (A) through (F) shall survive the Closing, and in the event PURCHASER pays a claim made against the business or the Assets related to SELLER'S operation and ownership of the business and Assets prior to Closing following SELLER'S failure to pay and satisfy same within a ten (10) day prior written notice period from PURCHASER to SELLER, then PURCHASER shall have the right of set-off against any Note or other obligation which may then be owing from PURCHASER to SELLER, in addition to seeking appropriate judicial relief which shall include PURCHASER'S reasonable attorney's fees and costs incurred. In the event of an "all cash" sale, or 100% third party financing, the parties agree that the Closing agent shall retain \${{holdback_amount}} from SELLER'S Closing proceeds for a period of {{holdback_days}} days to secure SELLER'S responsibilities under paragraph 14 (D) and (F) above.
+
+15. LEGAL ADVICE. The parties acknowledge that they are aware of their right to employ legal counsel and that it is advisable to do so. SELLER AND PURCHASER hereby release BROKER, its agents and associates from any and all suits, actions, proceedings, claims, and demands by either party made which resulted in any loss occasioned by reason of either party's failure to obtain separate legal counsel and advice.
+
+16. CONTRACT REVIEW. From the date of the execution of this Agreement, SELLER and PURCHASER shall have {{contract_review_days}} business days to have this Agreement (which includes any addendum or amendments) reviewed by their respective attorney to verify that the FORM AND LANGUAGE ONLY used herein adequately protects the interests of their respective clients, and to make any necessary agreed changes within such time, provided the substance of and the material terms and provisions contained in this Agreement remain unchanged.
+
+17. DISPUTES BETWEEN SELLER AND PURCHASER. In the event any dispute arises under this Agreement between SELLER and PURCHASER resulting in BROKER being made a party to any action or proceeding, judicial or administrative, SELLER and PURCHASER, jointly and severally, agree to indemnify BROKER for all reasonable attorney's fees and costs incurred as a result of BROKER having been made a party to such action or proceeding, provided a judgment is not rendered stating that BROKER acted improperly regarding such dispute. All of BROKER'S reasonable attorney's fees and costs incurred shall be shared equally between SELLER and PURCHASER, unless the decision of the Court or other tribunal determines that BROKER was improperly or needlessly made a party solely as a result of the actions of either SELLER or PURCHASER, in which case such party shall immediately thereafter pay and satisfy all of BROKER'S reasonable attorney's fees and costs incurred.
+
+18. BROKER'S DISCLAIMER. The parties acknowledge that all information concerning SELLER'S business, Assets, and Premises, whether furnished before or after the execution of this Agreement, was and is supplied by SELLER to PURCHASER, and that BROKER has not made nor does BROKER make any warranty or representation as to the genuineness, accuracy, and truthfulness of any and all information of the business, notwithstanding the fact that any such information may have been delivered by BROKER to PURCHASER and/or PURCHASER'S representatives, it being understood that in so doing, BROKER has acted merely as a conduit for the information between SELLER and PURCHASER.
+
+19.1 SELLER'S FAILURE TO CLOSE. (A) In the event SELLER, without fault, is unable to consummate the sale of the business and Assets in accordance with the provisions of this Agreement, all deposits held in escrow by BROKER shall be returned to PURCHASER upon demand, and SELLER agrees to execute and deliver, on demand, an Escrow Release Authorization form. (B) In the event SELLER willfully defaults under this Agreement, PURCHASER may elect to either: (a) terminate this Agreement and PURCHASER shall be entitled to receive (i) from SELLER on demand and as liquidated damages, an amount equal to fifty (50%) percent of all deposits paid plus the right to seek reimbursement from SELLER for all legal, accounting and other costs incurred by virtue of this Agreement, and (ii) from BROKER on demand all deposits, and SELLER agrees to execute and deliver, on demand, an Escrow Release Authorization form; or alternatively, (b) seek against SELLER specific performance of this Agreement, in which case, all deposits shall continue to be held in escrow by BROKER until the happening of either of the following events: (i) PURCHASER in writing relinquishes the right to seek specific performance and terminates this Agreement, or (ii) a court of competent jurisdiction denies PURCHASER'S claim for specific performance, then, in either of such events, on PURCHASER'S demand, all deposits held in escrow by BROKER shall be returned to PURCHASER, and SELLER agrees to execute and deliver, on demand, an Escrow Release Authorization form.
+
+19.2 PURCHASER'S FAILURE TO CLOSE. In the event PURCHASER willfully fails or refuses to complete the purchase pursuant to this Agreement with no fault on SELLER'S part, fifty (50%) percent of all deposits made by PURCHASER shall be paid over to SELLER as liquidated damages, with the remaining fifty (50%) paid to BROKER also as liquidated damages, and upon demand, SELLER and PURCHASER each agree to execute and deliver an Escrow Release Authorization form, whereupon this Agreement shall be terminated.
+
+20. ATTORNEYS' FEES. In the event any party retains legal counsel to enforce the terms of this Agreement, whether or not any action or proceeding is commenced, the prevailing party shall be entitled to be reimbursed for all reasonable attorneys' fees and court costs incurred.
+
+21. FEES TO BROKER. SELLER acknowledges that BROKER has earned a commission as provided for in a separate Marketing and/or Listing Agreement between SELLER and BROKER, which commission shall be fully paid and satisfied at Closing, and for such limited purpose only, BROKER shall be considered a third party beneficiary hereunder. In the event SELLER refuses or is unable to close this transaction by reason of SELLER'S default, SELLER shall be liable for and agrees to pay the full agreed commission to BROKER upon demand.
+
+22. AMENDMENTS AND FURTHER COOPERATION. This Agreement may be amended at any time in writing executed by SELLER and PURCHASER; however, no such amendment shall affect BROKER'S interest unless the BROKER joins in the execution of any such amendment. SELLER and PURCHASER agree to take whatever action may be necessary to carry out the terms of this Agreement following Closing.
+
+23. DATE OF AGREEMENT. The date of this Agreement shall be the date this Agreement is fully signed by both SELLER and PURCHASER.
+
+24. TIME, NOTICES AND CAPTIONS. Except for the Closing date specified under paragraph 3, all other dates and references to time and periods of time SHALL BE OF THE ESSENCE; all notices required to be given under this Agreement shall be in writing, signed by the party giving same or by such party's attorney, and delivered to the other party and to BROKER either personally, or by certified mail return receipt requested, or by FedEx or UPS next business day delivery, addressed to the address first stated above, with the date of mailing being the date of notice, or by fax during 9AM to 5PM Monday through Friday to the fax number furnished by the other party; all captions in this Agreement are for reference purposes only, and are not intended to define, interpret or limit the provisions thereof.
+
+25. RIDERS. The parties acknowledge that there is no RIDER attached to this Agreement.
+
+26. PURCHASER'S OFFER. This Offer by PURCHASER shall be in effect until 11:59 PM on {{offer_expiry_date}}. If SELLER does not accept this Offer by such time, the Down Payment deposit(s) under paragraph 2.2 and/or 2.3 shall be returned by BROKER to PURCHASER on demand, and PURCHASER and SELLER shall have no further obligation one to the other.
+
+27. SELLER'S ACCEPTANCE. SELLER hereby accepts PURCHASER'S foregoing Offer in its entirety, and acknowledges fully reading, understanding, and receiving a copy of this Agreement.
+
+Signature: ______________________________  Date: ______________________________
+Print Name: {{seller_name}}
+
+28. SELLER'S COUNTER OFFER. SELLER hereby counters PURCHASER'S Offer (A) [_______] via markings and written changes, deletions, and/or additions hereon, or (B) [_______] via separate RIDER or attachment to PURCHASER'S Offer, or (C) [_______] via a combination of (A) and (B) above, and shall be in effect until ______ AM/PM on ____________________. If PURCHASER does not accept this Counter Offer by such time, the Down Payment deposit(s) under paragraph 2.2 and/or 2.3 shall be returned by BROKER to PURCHASER on demand, and PURCHASER and SELLER shall have no further obligation one to the other.
+
+Signature: ______________________________  Date: ______________________________
+Print Name: {{seller_name}}
+
+29. PURCHASER'S ACCEPTANCE OF SELLER'S COUNTER OFFER. PURCHASER hereby accepts SELLER'S Counter-Offer in its entirety, and acknowledges fully reading, understanding, and receiving a copy of this Agreement with RIDER or attachment, if any.
+
+Signature: ______________________________  Date: ______________________________
+Print Name: {{buyer_name}}
+
+30. SELLER'S REJECTION. SELLER hereby rejects PURCHASER'S Offer and declines to Counter Offer.
+
+Signature: ______________________________  Date: ______________________________
+Print Name: {{seller_name}}
+
+JOINDER
+
+{{agency_name}} as Escrow Agent and Broker hereunder, hereby acknowledges it has received the sum of __________ DOLLARS ($__________), representing the deposit provided for in paragraph 2.2 and/or 2.3, to be held pursuant to the terms of this Agreement, subject to clearance.
+
+Signature: ______________________________  Date: ______________________________
+Print Name: {{broker_name}}{{LEGAL_FOOTER}}`,
   },
   {
     name: 'Asset Purchase Agreement',
