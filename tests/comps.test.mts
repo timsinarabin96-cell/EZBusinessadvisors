@@ -5,7 +5,7 @@ import test from 'node:test'
 const schema = readFileSync('sql/comps_schema.sql', 'utf8')
 const lib = readFileSync('lib/comps.ts', 'utf8')
 const route = readFileSync('app/api/comps/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/comps/page.tsx', 'utf8')
+const page = readFileSync('components/valuation/CompsPanel.tsx', 'utf8')
 
 test('comps: schema is idempotent, agency-scoped, RLS-on', () => {
   assert.match(schema, /create table if not exists public\.sold_comps/)

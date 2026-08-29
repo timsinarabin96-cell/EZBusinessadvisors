@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/valuation.ts', 'utf8')
 const route = readFileSync('app/api/intelligence/valuation/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/valuation/page.tsx', 'utf8')
+const page = readFileSync('components/valuation/ValuationEnginePanel.tsx', 'utf8')
 const schema = readFileSync('sql/valuation_schema.sql', 'utf8')
 
 test('valuation: service client uses the service-role key', () => {
@@ -87,8 +87,6 @@ test('valuation: API supports GET list and POST estimate with auth broker', () =
 })
 
 test('valuation: dashboard page picks listings and shows range + midpoint + breakdown', () => {
-  assert.match(page, /AppShell active="Valuation Engine"/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext/)
   assert.match(page, /getStoredAccessToken/)

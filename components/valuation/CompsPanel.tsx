@@ -8,9 +8,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import MoneyInput from '@/components/ui/MoneyInput'
 import { getStoredAccessToken } from '@/lib/authToken'
@@ -38,19 +37,7 @@ interface MultiplesRow {
 const money = (n: number | null | undefined) => (n != null ? '$' + Math.round(n).toLocaleString() : '—')
 const fmtDate = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString() : '—')
 
-export default function CompsPage() {
-  return (
-    <AppShell active="Comps">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <CompsDb />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function CompsDb() {
+export function CompsDb() {
   const toast = useToast()
   const [comps, setComps] = useState<Comp[]>([])
   const [multiples, setMultiples] = useState<MultiplesRow[]>([])

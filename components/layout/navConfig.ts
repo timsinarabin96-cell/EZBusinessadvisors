@@ -57,9 +57,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/listing-agreements', label: 'Listing Agreements', icon: '📋', minRole: 'agent', group: 'Deals & Listings', keywords: 'listing agreement exclusive sign seller publish gate' },
   { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings', keywords: 'escrow closing checklist' },
 
-  { href: '/dashboard/comps', label: 'Comps', icon: '📊', minRole: 'broker', group: 'Deals & Listings', keywords: 'comparables sales multiples' },
-  { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings', keywords: 'value worth pricing' },
-  { href: '/dashboard/valuation-reports', label: 'Sellable Reports', icon: '💎', minRole: 'broker', group: 'Deals & Listings', keywords: 'valuation reports client' },
+  { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings', keywords: 'value worth pricing comps comparables multiples sellable reports client' },
   { href: '/dashboard/lead-marketplace', label: 'Lead Marketplace', icon: '🤝', minRole: 'broker', group: 'Deals & Listings', keywords: 'buy leads network' },
   { href: '/dashboard/off-market', label: 'Off-Market Room', icon: '🔐', minRole: 'agent', group: 'Deals & Listings', keywords: 'private deals verified buyers exclusive' },
 

@@ -8,10 +8,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { useToast } from '@/components/ui/Toast'
 
 interface ReportOrder {
   id: string
@@ -41,19 +40,7 @@ const STATUS_BADGE: Record<string, { bg: string; color: string; label: string }>
   failed: { bg: '#fee2e2', color: '#991b1b', label: 'Generation failed' },
 }
 
-export default function ValuationReportsPage() {
-  return (
-    <AppShell active="Valuation">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <ValuationReportsApp />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function ValuationReportsApp() {
+export function ValuationReportsApp() {
   const toast = useToast()
   const [agencyId, setAgencyId] = useState('')
   const [listings, setListings] = useState<ListingOpt[]>([])

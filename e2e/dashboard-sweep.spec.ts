@@ -30,7 +30,6 @@ const DASHBOARD_ROUTES = [
   '/dashboard/command-center',
   '/dashboard/commissions',
   '/dashboard/communications',
-  '/dashboard/comps',
   '/dashboard/documents',
   '/dashboard/documents/builder',
   '/dashboard/email-templates',
@@ -60,7 +59,6 @@ const DASHBOARD_ROUTES = [
   '/dashboard/tools',
   '/dashboard/training',
   '/dashboard/valuation',
-  '/dashboard/valuation-reports',
   '/dashboard/watchlist',
   // Top-level CRM pages
   '/leads',
