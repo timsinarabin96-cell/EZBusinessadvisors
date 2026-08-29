@@ -46,5 +46,5 @@ test('financial-import: studio wires the upload button into Financials', () => {
   assert.match(form, /financial-import/)
   assert.match(form, /listingId=\{createdListingId\}/)
   assert.match(form, /importFinancials/)
-  assert.match(form, /accept="\.pdf,\.csv/)
+  assert.match(form, /type="file"/)
 })

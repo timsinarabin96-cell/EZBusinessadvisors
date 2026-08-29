@@ -663,7 +663,7 @@ function FinancialSection({ form, setValue, listingId }: SectionProps & { listin
       <button type="button" onClick={() => fileRef.current?.click()} disabled={importing} style={{ marginLeft: 10, padding: '5px 12px', borderRadius: 7, background: '#2563eb', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: importing ? 'wait' : 'pointer' }}>
         {importing ? 'Analyzing…' : 'Choose file'}
       </button>
-      <input ref={fileRef} type="file" accept=".pdf,.csv,.tsv,.txt,.xlsx,.xls,.png,.jpg" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) importFinancials(f) }} />
+      <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={(e) => { const f = e.target.files?.[0]; if (f) importFinancials(f) }} />
     </div><Grid>
     <MoneyField label="Asking price" value={form.asking_price} onChange={(value) => setValue('asking_price', value)} />
     <MoneyField label="Annual revenue" value={form.annual_revenue} onChange={(value) => setValue('annual_revenue', value)} />

@@ -77,14 +77,23 @@ const INTERVIEW_QUESTIONS: Array<{ field: string; ask: string }> = [
   { field: 'growth_opportunities', ask: 'Any growth opportunities worth mentioning?' },
 ]
 
+// Interview fields that accept a plain number answer (parsed directly, no AI round-trip).
+const NUMERIC_QUESTION_FIELDS = new Set([
+  'asking_price', 'annual_revenue', 'sde', 'ebitda', 'established_year',
+  'employees_full_time', 'employees_part_time', 'owner_hours_weekly', 'training_period_weeks',
+])
+
 export default function StudioConcierge({
   onDraft,
   listingId,
+  onListingCreated,
 }: {
   /** Receives the extracted draft; the studio applies it to the live form. */
   onDraft: (draft: IntakeDraft) => void
   /** Optional listing id — enables financial upload straight to the deal record. */
   listingId?: string | null
+  /** Called when the concierge auto-creates a draft listing for an upload. */
+  onListingCreated?: (id: string) => void
 }) {
   const toast = useToast()
   const [text, setText] = useState('')
@@ -137,14 +146,27 @@ export default function StudioConcierge({
   }, [listingId])
 
   const uploadFinancial = async (f: File) => {
-    if (!listingId) { toast('Save the deal record first, then upload financials here.', 'info'); return }
+    // No deal record yet (fresh Capture) → auto-create a draft listing so the
+    // upload has somewhere to attach. Zero friction, no "save first" gate.
+    let targetListingId = listingId || null
+    if (!targetListingId) {
+      try {
+        const { createListing } = await import('@/lib/listings')
+        const created = await createListing({ business_name: 'Untitled deal', status: 'draft' })
+        targetListingId = created.id
+        onListingCreated?.(created.id)
+      } catch (e: any) {
+        toast(e.message || 'Could not create the deal record for this upload', 'error')
+        return
+      }
+    }
     setUploading(true)
     try {
-      const path = `listing-docs/${listingId}/financials/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const path = `listing-docs/${targetListingId}/financials/${Date.now()}-${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
       const { error: upErr } = await supabase.storage.from('documents').upload(path, f)
       if (upErr) { toast('Upload failed — check the documents bucket', 'error'); return }
       const url = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl
-      const row = await uploadListingDocument(listingId, { document_type: 'financial_proof', file_name: f.name, file_url: url, party_type: 'seller' })
+      const row = await uploadListingDocument(targetListingId, { document_type: 'financial_proof', file_name: f.name, file_url: url, party_type: 'seller' })
       setUploaded((p) => [{ id: String(row?.id || ''), name: f.name, url }, ...p])
       toast(`Financial doc uploaded — ${f.name}`, 'success')
     } catch (e: any) {
@@ -236,6 +258,32 @@ export default function StudioConcierge({
     if (!a) { toast('Type an answer first', 'error'); return }
     const q = question
     if (!q) return
+
+    // Direct numeric handling — no AI round-trip needed for numbers.
+    // (Previously a bare answer like "3500000" went back through the AI
+    // extractor, which often failed to parse it, so the question re-asked.)
+    if (NUMERIC_QUESTION_FIELDS.has(q.field)) {
+      const n = parseMoneyInput(a)
+      if (n === null) {
+        toast('Enter the amount in numbers — e.g. 3,500,000', 'error')
+        return
+      }
+      const patch = { [q.field]: n } as IntakeDraft
+      const merged = { ...(lastDraft || {}), ...patch }
+      setLastDraft(merged)
+      setApplied(false)
+      onDraft(merged) // fill the form immediately
+      setAnswer('')
+      const nextCount = qaCount + 1
+      setQaCount(nextCount)
+      const next = nextQuestion(merged)
+      if (next && nextCount < 6) setQuestion(next)
+      else setQuestion(null)
+      toast(`Got it — ${q.field.replace(/_/g, ' ')} saved ✓`, 'success')
+      return
+    }
+
+    // Text answers: append to context and re-extract.
     const nextText = `${text.trim()}\n${q.ask} — ${a}`
     setText(nextText)
     setQaCount((c) => c + 1)
@@ -323,7 +371,7 @@ export default function StudioConcierge({
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
             <label style={{ padding: '9px 16px', borderRadius: 8, background: 'rgba(201,168,76,0.16)', border: '1px solid rgba(201,168,76,0.5)', color: '#f5d97a', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
               {uploading ? '⏳ Uploading…' : '📤 Upload financials (P&L, tax returns)'}
-              <input type="file" style={{ display: 'none' }} accept=".pdf,.xls,.xlsx,.csv,.jpg,.png" onChange={async (e) => { const f = e.target.files?.[0]; if (f) await uploadFinancial(f); e.target.value = '' }} />
+              <input type="file" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files?.[0]; if (f) await uploadFinancial(f); e.target.value = '' }} />
             </label>
             {!listingId && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Save the deal record first to attach uploads.</span>}
           </div>
@@ -333,6 +381,7 @@ export default function StudioConcierge({
                 <div key={u.id || u.url} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px' }}>
                   <span style={{ fontSize: 13 }}>📎</span>
                   <span style={{ flex: 1, fontSize: 12, color: '#e2e8f0', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                  <a href={u.url} download={u.name} style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.4)', color: '#6ee7b7', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>⬇ Download</a>
                   <button onClick={() => setPreview({ name: u.name, url: u.url })} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>👁 Preview</button>
                   <button onClick={() => deleteFinancial(u)} disabled={uploading} style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.4)', color: '#fca5a5', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>✕ Delete</button>
                 </div>
