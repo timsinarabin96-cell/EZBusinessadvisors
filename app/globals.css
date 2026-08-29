@@ -565,6 +565,16 @@ h1, h2, h3, h4 {
   .publicnav-toggle { display: inline-flex !important; }
 }
 
+/* Grid children must be allowed to shrink below their content's min-content
+   width — otherwise a wide inner element (badges, long titles) forces the
+   track wider than the viewport and the page scrolls sideways on mobile. */
+div[style*="display: grid"], section[style*="display: grid"] {
+  min-width: 0;
+}
+div[style*="display: grid"] > * , section[style*="display: grid"] > * {
+  min-width: 0;
+}
+
 .sticky-sidebar { position: sticky; }
 @media (max-width: 900px) {
   .sticky-sidebar { position: static; }
