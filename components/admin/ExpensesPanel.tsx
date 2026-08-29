@@ -14,7 +14,6 @@
 // =============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
@@ -38,7 +37,7 @@ const CATEGORY_ICON: Record<string, string> = {
 const money = (cents: number) => '$' + (cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 
-export default function TenantExpensesPage() {
+export function ExpensesPanel() {
   const [rows, setRows] = useState<ExpenseRow[]>([])
   const [summary, setSummary] = useState<{ total: number; byCategory: Record<string, number>; byVendor: Record<string, number> }>({ total: 0, byCategory: {}, byVendor: {} })
   const [agencies, setAgencies] = useState<{ id: string; name: string }[]>([])
@@ -68,8 +67,7 @@ export default function TenantExpensesPage() {
   const topVendors = Object.entries(summary.byVendor).sort((a, b) => b[1] - a[1]).slice(0, 6)
 
   return (
-    <AppShell active="Expenses">
-      <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
+    <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a2e' }}>🧾 Expenses</div>
           <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
@@ -153,6 +151,5 @@ export default function TenantExpensesPage() {
           </>
         )}
       </div>
-    </AppShell>
   )
 }

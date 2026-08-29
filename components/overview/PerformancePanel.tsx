@@ -14,22 +14,11 @@
 
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import AppShell from '@/components/layout/AppShell'
 import { Card, CardHeader, LoadingState } from '@/components/ui'
 import { fmtMoney } from '@/lib/listings'
 import { supabase } from '@/lib/supabase/client'
 
-export default function PerformancePage() {
-  return (
-    <AppShell active="Performance">
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <Performance />
-      </div>
-    </AppShell>
-  )
-}
-
-function Performance() {
+export function PerformancePanel() {
   const [agents, setAgents] = useState<any[]>([])
   const [records, setRecords] = useState<any[]>([])
   const [loading, setLoading] = useState(true)

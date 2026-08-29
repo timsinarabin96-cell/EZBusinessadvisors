@@ -30,11 +30,9 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   // ── OVERVIEW ──────────────────────────────────────────────
   { href: '/dashboard', label: 'Dashboard', icon: '📊', minRole: 'agent', group: 'Overview', core: true, keywords: 'home home' },
-  { href: '/dashboard/command-center', label: 'Command Center', icon: '🎛️', minRole: 'broker', group: 'Overview', core: true, keywords: 'cockpit hub today' },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: '📈', minRole: 'broker', group: 'Overview', keywords: 'stats metrics charts' },
+  { href: '/dashboard/command-center', label: 'Command Center', icon: '🎛️', minRole: 'broker', group: 'Overview', core: true, keywords: 'cockpit hub today performance kpi goals targets analytics stats metrics charts leaderboard' },
   { href: '/dashboard/activity', label: 'Activity Feed', icon: '📋', minRole: 'agent', group: 'Overview', keywords: 'log audit trail' },
   { href: '/dashboard/notifications', label: 'Notifications', icon: '🛎️', minRole: 'agent', group: 'Overview', keywords: 'alerts bell' },
-  { href: '/dashboard/performance', label: 'Performance', icon: '🏆', minRole: 'broker', group: 'Overview', keywords: 'kpi goals targets' },
   // ── AI AUTOPILOT (one cockpit, tabs per tool) ────────────
   { href: '/dashboard/ai', label: 'Deal Autopilot', icon: '✨', minRole: 'broker', group: 'AI Autopilot', core: true, keywords: 'ai automation workflow cockpit' },
   { href: '/dashboard/ai?tab=doctor', label: 'Deal Doctor', icon: '🩺', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai health check diagnosis' },
@@ -82,12 +80,11 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/communications', label: 'Communications', icon: '🗒️', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'inbox messages' },
 
   { href: '/dashboard/training', label: 'Training', icon: '🎓', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'courses cbi learn' },
-  { href: '/dashboard/agents', label: 'Agents', icon: '🤖', minRole: 'admin', group: 'Team & Office', keywords: 'team members staff' },
+  { href: '/dashboard/agents', label: 'AI Agents', icon: '🤖', minRole: 'broker', group: 'AI Autopilot', keywords: 'ai agents assistant chat lead training document support' },
   { href: '/dashboard/hiring', label: 'Hiring', icon: '🤝', minRole: 'admin', group: 'Team & Office', keywords: 'recruiting jobs' },
   { href: '/dashboard/onboarding', label: 'Onboarding', icon: '🚀', minRole: 'admin', group: 'Team & Office', keywords: 'new hire setup' },
   // ── ADMIN ─────────────────────────────────────────────────
-  { href: '/dashboard/commissions', label: 'Commissions', icon: '💰', minRole: 'admin', group: 'Admin', keywords: 'payout splits' },
-  { href: '/dashboard/expenses', label: 'Expenses', icon: '🧾', minRole: 'admin', group: 'Admin', keywords: 'costs ai spend ledger' },
+  { href: '/dashboard/finance', label: 'Finance', icon: '💰', minRole: 'admin', group: 'Admin', keywords: 'commissions payouts splits expenses ledger costs' },
   { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️', minRole: 'admin', group: 'Admin', keywords: 'moderation approval' },
   { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰', minRole: 'broker', group: 'Admin', keywords: 'import export csv' },
   { href: '/dashboard/security', label: 'Security', icon: '🛂', minRole: 'admin', group: 'Admin', keywords: '2fa login access' },

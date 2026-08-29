@@ -5,7 +5,7 @@ import test from 'node:test'
 const schema = readFileSync('sql/commissions_schema.sql', 'utf8')
 const lib = readFileSync('lib/commissions.ts', 'utf8')
 const route = readFileSync('app/api/commissions/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/commissions/page.tsx', 'utf8')
+const page = readFileSync('components/admin/CommissionsPanel.tsx', 'utf8')
 
 test('commissions: schema defines commission_records with status lifecycle', () => {
   assert.match(schema, /create table if not exists public\.commission_records/)
@@ -85,8 +85,6 @@ test('commissions: API CSV path returns text/csv and wires the lib', () => {
 
 test('commissions: dashboard page renders form, list, and CSV export', () => {
   assert.match(page, /'use client'/)
-  assert.match(page, /<AppShell active="Commissions">/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext\(\)/)
   assert.match(page, /Record a commission/)
