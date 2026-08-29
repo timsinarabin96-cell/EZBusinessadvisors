@@ -107,15 +107,27 @@ export async function GET(req: NextRequest) {
     return d
   }))
 
+  const milestones = (milsRes.data || []).map((m) => ({
+    title: m.title, date: m.due_date ? String(m.due_date) : undefined, status: m.status,
+  }))
+  // Deal progress summary for the client — what % of the process is done.
+  const done = milestones.filter((m) => ['approved', 'waived', 'completed'].includes(m.status || '')).length
+  const pending = milestones.filter((m) => ['pending', 'in_review'].includes(m.status || '')).length
+  const progress = {
+    percent: milestones.length ? Math.round((done / milestones.length) * 100) : 0,
+    done,
+    pending,
+    total: milestones.length,
+  }
+
   return NextResponse.json({
     ok: true,
     clientName: access.client_name,
     clientEmail: access.client_email || null,
     deal: dealRes.data || null,
     documents,
-    milestones: (milsRes.data || []).map((m) => ({
-      title: m.title, date: m.due_date ? String(m.due_date) : undefined, status: m.status,
-    })),
+    milestones,
+    progress,
     messages: msgsRes.data || [],
     traction,
   })

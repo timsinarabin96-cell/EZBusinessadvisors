@@ -63,6 +63,7 @@ function PortalBody() {
   const [clientEmail, setClientEmail] = useState('')
   const [deal, setDeal] = useState<PortalDeal | null>(null)
   const [milestones, setMilestones] = useState<PortalMilestone[]>([])
+  const [progress, setProgress] = useState<{ percent: number; done: number; pending: number; total: number } | null>(null)
   const [messages, setMessages] = useState<PortalMessageUpdate[]>([])
   const [traction, setTraction] = useState<{ viewsTotal: number; views7d: number; ndaSigned: number; interestedBuyers: number } | null>(null)
   const [msg, setMsg] = useState('')
@@ -76,6 +77,7 @@ function PortalBody() {
     setClientName(snap.clientName)
     setClientEmail(snap.clientEmail || '')
     setDeal(snap.deal); setMilestones(snap.milestones); setMessages(snap.messages)
+    setProgress(snap.progress || null)
     setTraction(snap.traction || null)
   }, [dealId, token])
 
@@ -160,6 +162,23 @@ function PortalBody() {
       </header>
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px' }}>
+        {/* Deal progress — the client's at-a-glance tracker */}
+        {progress && progress.total > 0 && (
+          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+              <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: 0 }}>📈 Your deal's progress</h2>
+              <div style={{ fontSize: 15, fontWeight: 800, color: progress.percent === 100 ? '#15803d' : 'var(--navy)' }}>{progress.percent}%</div>
+            </div>
+            <div style={{ height: 10, borderRadius: 999, background: 'var(--line)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${progress.percent}%`, borderRadius: 999, background: progress.percent === 100 ? '#22c55e' : 'var(--gold)', transition: 'width .4s ease' }} />
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 8 }}>
+              {progress.done} of {progress.total} milestones complete{progress.pending > 0 ? ` · ${progress.pending} in review` : ''}
+              {progress.percent === 100 ? ' — all milestones done! 🎉' : ''}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
           {/* Seller traction — anonymized listing performance */}
           {traction && (

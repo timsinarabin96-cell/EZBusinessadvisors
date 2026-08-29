@@ -83,6 +83,7 @@ export interface PortalSnapshot {
   deal: PortalDeal | null
   documents: any[]
   milestones: PortalMilestone[]
+  progress?: { percent: number; done: number; pending: number; total: number }
   messages: PortalMessageUpdate[]
   traction?: {
     viewsTotal: number
