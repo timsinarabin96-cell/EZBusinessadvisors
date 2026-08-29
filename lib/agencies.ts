@@ -126,13 +126,21 @@ export async function fetchUserAgencyContext(): Promise<UserAgencyContext> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { agency: null, role: null, isOwner: false, hasRole: () => false }
 
-  const { data: member } = await supabase
+  // A user can belong to several agencies. Prefer the owner membership, then
+  // the most recently active; NEVER .single() here — multiple rows make
+  // PostgREST return 406 and the whole context silently degrades to null
+  // (dead billing page, dead purchase buttons).
+  const { data: members, error } = await supabase
     .from('agency_members')
     .select('*, agency:agencies(*)')
     .eq('profile_id', user.id)
-    .single()
+    .order('created_at', { ascending: false })
 
-  if (!member) return { agency: null, role: null, isOwner: false, hasRole: () => false }
+  if (error || !members || members.length === 0) {
+    return { agency: null, role: null, isOwner: false, hasRole: () => false }
+  }
+
+  const member = members.find((m: any) => m.is_owner) || members[0]
 
   const agency = (member as any).agency as Agency | null
   const role = (member as any).role as AgencyRole
