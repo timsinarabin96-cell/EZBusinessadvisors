@@ -115,15 +115,23 @@ export interface SearchFilters {
   location?: string
   minPrice?: number
   maxPrice?: number
-  maxRevenue?: number
   minRevenue?: number
+  maxRevenue?: number
+  minSde?: number
+  maxSde?: number
+  minEbitda?: number
+  maxEbitda?: number
   maxSdeMultiple?: number
+  minYear?: number
   absenteeOnly?: boolean
   franchiseOnly?: boolean
   financingAvailable?: boolean
   relocatableOnly?: boolean
   minEmployees?: number
   sbaOnly?: boolean
+  revenueVerified?: boolean
+  sellerVerified?: boolean
+  bovOnFile?: boolean
   status?: 'active' | 'under_contract' | 'sold'
   country?: string
   /** sort order for results: default = featured-first, then newest */
@@ -235,6 +243,11 @@ export async function searchPublicListings(filters: SearchFilters = {}, agency: 
     .filter((listing) => !filters.maxPrice || (listing.asking_price !== null && listing.asking_price <= filters.maxPrice))
     .filter((listing) => !filters.minRevenue || (listing.annual_revenue !== null && listing.annual_revenue >= filters.minRevenue))
     .filter((listing) => !filters.maxRevenue || (listing.annual_revenue !== null && listing.annual_revenue <= filters.maxRevenue))
+    .filter((listing) => !filters.minSde || (listing.sde !== null && listing.sde >= filters.minSde))
+    .filter((listing) => !filters.maxSde || (listing.sde !== null && listing.sde <= filters.maxSde))
+    .filter((listing) => !filters.minEbitda || (listing.ebitda !== null && listing.ebitda >= filters.minEbitda))
+    .filter((listing) => !filters.maxEbitda || (listing.ebitda !== null && listing.ebitda <= filters.maxEbitda))
+    .filter((listing) => !filters.minYear || (listing.established_year != null && listing.established_year >= filters.minYear))
     .filter((listing) => {
       if (!filters.maxSdeMultiple || listing.asking_price === null || listing.sde === null || listing.sde === 0) return true
       return listing.asking_price / listing.sde <= filters.maxSdeMultiple
@@ -245,6 +258,9 @@ export async function searchPublicListings(filters: SearchFilters = {}, agency: 
     .filter((listing) => !filters.relocatableOnly || listing.is_relocatable === true)
     .filter((listing) => !filters.minEmployees || (listing.employees_full_time != null && listing.employees_full_time >= filters.minEmployees))
     .filter((listing) => !filters.sbaOnly || listing.sba_qualified === true)
+    .filter((listing) => !filters.revenueVerified || listing.revenue_verified === true)
+    .filter((listing) => !filters.sellerVerified || listing.seller_verified === true)
+    .filter((listing) => !filters.bovOnFile || listing.bov_on_file === true)
     .filter((listing) => !filters.status || listing.status === filters.status)
     .filter((listing) => {
       if (!query) return true

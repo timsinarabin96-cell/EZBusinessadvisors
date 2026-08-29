@@ -57,22 +57,42 @@ export default function SearchListingsClient({ initialResults, initialIndustries
   const minEmployees = searchParams.get('minEmployees') || ''
   const sortBy = searchParams.get('sortBy') || ''
   const minPriceParam = searchParams.get('minPrice') || ''
+  const minSdeParam = searchParams.get('minSde') || ''
+  const maxSdeParam = searchParams.get('maxSde') || ''
+  const minEbitdaParam = searchParams.get('minEbitda') || ''
+  const maxEbitdaParam = searchParams.get('maxEbitda') || ''
+  const minYearParam = searchParams.get('minYear') || ''
+  const minRevenueParam = searchParams.get('minRevenue') || ''
+  const revenueVerifiedParam = searchParams.get('revenueVerified') === '1'
+  const sellerVerifiedParam = searchParams.get('sellerVerified') === '1'
+  const bovOnFileParam = searchParams.get('bovOnFile') === '1'
+  const relocatableParam = searchParams.get('relocatableOnly') === '1'
 
   const [query, setQuery] = useState(q)
   const [selIndustry, setSelIndustry] = useState(industry)
   const [loc, setLoc] = useState(location)
   const [price, setPrice] = useState(maxPrice)
   const [rev, setRev] = useState(maxRevenue)
+  const [minRev, setMinRev] = useState(minRevenueParam)
   const [multiple, setMultiple] = useState(maxSdeMultiple)
   const [absentee, setAbsentee] = useState(absenteeOnly)
   const [franchise, setFranchise] = useState(franchiseOnly)
   const [financing, setFinancing] = useState(financingAvailable)
   const [sba, setSba] = useState(sbaOnly)
+  const [relocatable, setRelocatable] = useState(relocatableParam)
+  const [revenueVerified, setRevenueVerified] = useState(revenueVerifiedParam)
+  const [sellerVerified, setSellerVerified] = useState(sellerVerifiedParam)
+  const [bovOnFile, setBovOnFile] = useState(bovOnFileParam)
   const [statusFilter, setStatusFilter] = useState(status)
   const [employees, setEmployees] = useState(minEmployees)
   const [advanced, setAdvanced] = useState(false)
   const [sort, setSort] = useState(sortBy)
   const [minPrice, setMinPrice] = useState(minPriceParam)
+  const [minSde, setMinSde] = useState(minSdeParam)
+  const [maxSde, setMaxSde] = useState(maxSdeParam)
+  const [minEbitda, setMinEbitda] = useState(minEbitdaParam)
+  const [maxEbitda, setMaxEbitda] = useState(maxEbitdaParam)
+  const [minYear, setMinYear] = useState(minYearParam)
 
   // Refresh side panels (industries/stats) if the server didn't provide them.
   useEffect(() => {
@@ -93,16 +113,26 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       minPrice: minPriceParam ? Number(minPriceParam) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       maxRevenue: maxRevenue ? Number(String(maxRevenue).replace(/[$,]/g, '')) : undefined,
+      minRevenue: minRevenueParam ? Number(String(minRevenueParam).replace(/[$,]/g, '')) : undefined,
+      minSde: minSdeParam ? Number(minSdeParam) : undefined,
+      maxSde: maxSdeParam ? Number(maxSdeParam) : undefined,
+      minEbitda: minEbitdaParam ? Number(minEbitdaParam) : undefined,
+      maxEbitda: maxEbitdaParam ? Number(maxEbitdaParam) : undefined,
+      minYear: minYearParam ? Number(minYearParam) : undefined,
       maxSdeMultiple: maxSdeMultiple ? Number(maxSdeMultiple) : undefined,
       absenteeOnly: absenteeOnly || undefined,
       franchiseOnly: franchiseOnly || undefined,
       financingAvailable: financingAvailable || undefined,
+      relocatableOnly: relocatableParam || undefined,
+      revenueVerified: revenueVerifiedParam || undefined,
+      sellerVerified: sellerVerifiedParam || undefined,
+      bovOnFile: bovOnFileParam || undefined,
       sbaOnly: sbaOnly || undefined,
       status: (status as any) || undefined,
       minEmployees: minEmployees ? Number(minEmployees) : undefined,
       sortBy: (sortBy as any) || undefined,
     }, agencyScope || undefined).then(setResults).finally(() => setLoading(false))
-  }, [q, industry, location, minPriceParam, maxPrice, maxRevenue, maxSdeMultiple, absenteeOnly, franchiseOnly, financingAvailable, sbaOnly, status, minEmployees, sortBy])
+  }, [q, industry, location, minPriceParam, maxPrice, minRevenueParam, maxRevenue, minSdeParam, maxSdeParam, minEbitdaParam, maxEbitdaParam, minYearParam, maxSdeMultiple, absenteeOnly, franchiseOnly, financingAvailable, relocatableParam, revenueVerifiedParam, sellerVerifiedParam, bovOnFileParam, sbaOnly, status, minEmployees, sortBy])
 
   const applyFilters = (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,20 +145,38 @@ export default function SearchListingsClient({ initialResults, initialIndustries
     if (industry) params.set('industry', industry)
     const location = loc || parsed.location || ''
     if (location) params.set('location', location)
-    if (price || parsed.maxPrice) params.set('maxPrice', String(price || parsed.maxPrice))
+    if (price === 'NONE') {
+      params.set('minPrice', '1000000') // $1M+ chip = no upper bound, min $1M
+    } else if (price || parsed.maxPrice) {
+      params.set('maxPrice', String(price || parsed.maxPrice))
+    }
     if (parsed.minPrice) params.set('minPrice', String(parsed.minPrice))
+    if (minPrice) params.set('minPrice', String(minPrice))
     if (rev || parsed.maxRevenue) params.set('maxRevenue', String(rev || parsed.maxRevenue).replace(/[$,]/g, ''))
+    if (minRev) params.set('minRevenue', String(minRev).replace(/[$,]/g, ''))
+    if (minSde) params.set('minSde', String(minSde))
+    if (maxSde) params.set('maxSde', String(maxSde))
+    if (minEbitda) params.set('minEbitda', String(minEbitda))
+    if (maxEbitda) params.set('maxEbitda', String(maxEbitda))
+    if (minYear) params.set('minYear', String(minYear))
     if (parsed.maxSdeMultiple) params.set('maxSdeMultiple', String(parsed.maxSdeMultiple))
     if (multiple) params.set('maxSdeMultiple', multiple)
     if (absentee || parsed.absenteeOnly) params.set('absenteeOnly', '1')
     if (franchise || parsed.franchiseOnly) params.set('franchiseOnly', '1')
     if (financing || parsed.financingAvailable) params.set('financingAvailable', '1')
     if (sba) params.set('sbaOnly', '1')
+    if (relocatable) params.set('relocatableOnly', '1')
+    if (revenueVerified) params.set('revenueVerified', '1')
+    if (sellerVerified) params.set('sellerVerified', '1')
+    if (bovOnFile) params.set('bovOnFile', '1')
     if (statusFilter) params.set('status', statusFilter)
     if (employees || parsed.minEmployees) params.set('minEmployees', String(employees || parsed.minEmployees))
-    if (minPrice) params.set('minPrice', String(minPrice))
     if (sort) params.set('sortBy', sort)
     router.push(`/marketplace/listings?${params.toString()}`)
+  }
+
+  const clearAll = () => {
+    router.push('/marketplace/listings')
   }
 
   return (
@@ -137,7 +185,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
         <div>
           <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Business Marketplace</div>
           <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: '8px 0 0' }}>
-            {q || industry || location || maxPrice || maxRevenue || maxSdeMultiple || absenteeOnly || franchiseOnly || financingAvailable || sbaOnly || status || minEmployees || minPriceParam
+            {q || industry || location || maxPrice || minPriceParam || maxRevenue || minRevenueParam || minSdeParam || maxSdeParam || minEbitdaParam || maxEbitdaParam || minYearParam || maxSdeMultiple || absenteeOnly || franchiseOnly || financingAvailable || sbaOnly || relocatableParam || revenueVerifiedParam || sellerVerifiedParam || bovOnFileParam || status || minEmployees || minPriceParam
               ? `${results.length} result${results.length !== 1 ? 's' : ''}${q ? ` for “${q}”` : ''}`
               : stats ? `${stats.totalListings} Businesses for Sale` : 'Businesses for Sale'}
           </h1>
@@ -163,14 +211,24 @@ export default function SearchListingsClient({ initialResults, initialIndustries
             { label: 'Under $250k', max: '250000' },
             { label: '$250k – $500k', max: '500000' },
             { label: '$500k – $1M', max: '1000000' },
-            { label: '$1M+', max: '' },
+            { label: '$1M+', max: 'NONE' }, // NONE = min price $1M (never the empty default)
           ].map((chip) => {
-            const active = price === chip.max
+            // Active only when this chip is REALLY the filter — the old `price === chip.max`
+            // made '$1M+' (max:'') match the empty default and highlight on every load.
+            const active = chip.max === 'NONE' ? price === 'NONE' : price === chip.max
             return (
               <button
                 key={chip.label}
                 type="button"
-                onClick={() => setPrice(active ? '' : chip.max)}
+                onClick={() => {
+                  if (chip.max === 'NONE') {
+                    setPrice(price === 'NONE' ? '' : 'NONE')
+                    setMinPrice(price === 'NONE' ? '' : '1000000')
+                  } else {
+                    setPrice(active ? '' : chip.max)
+                    setMinPrice('')
+                  }
+                }}
                 style={{
                   padding: '8px 16px', borderRadius: 99, cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
                   fontFamily: 'Georgia, serif',
@@ -191,18 +249,40 @@ export default function SearchListingsClient({ initialResults, initialIndustries
           <input value={price} onChange={(e) => setPrice(formatWithCommas(e.target.value))} placeholder="Max Price ($)" inputMode="decimal" style={inputStyle} />
           {advanced && (
             <>
-              <input value={minPrice} onChange={(e) => setMinPrice(formatWithCommas(e.target.value))} placeholder="Min Price ($)" inputMode="decimal" style={inputStyle} />
-              <input value={rev} onChange={(e) => setRev(formatWithCommas(e.target.value))} placeholder="Max Revenue ($)" inputMode="decimal" style={inputStyle} />
-              <input value={multiple} onChange={(e) => setMultiple(e.target.value)} placeholder="Max SDE multiple" type="number" step="0.1" style={inputStyle} />
-              <input value={employees} onChange={(e) => setEmployees(e.target.value)} placeholder="Min FT employees" type="number" style={inputStyle} />
+              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '12px 0 8px' }}>💰 Price</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12 }}>
+                <input value={minPrice} onChange={(e) => setMinPrice(formatWithCommas(e.target.value))} placeholder="Min Price ($)" inputMode="decimal" style={inputStyle} />
+                <input value={price === 'NONE' ? '1,000,000' : price} onChange={(e) => { setPrice(formatWithCommas(e.target.value)); setMinPrice('') }} placeholder="Max Price ($)" inputMode="decimal" style={inputStyle} />
+              </div>
+
+              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '14px 0 8px' }}>📊 Financials</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12 }}>
+                <input value={minRev} onChange={(e) => setMinRev(formatWithCommas(e.target.value))} placeholder="Min Revenue ($)" inputMode="decimal" style={inputStyle} />
+                <input value={rev} onChange={(e) => setRev(formatWithCommas(e.target.value))} placeholder="Max Revenue ($)" inputMode="decimal" style={inputStyle} />
+                <input value={minSde} onChange={(e) => setMinSde(formatWithCommas(e.target.value))} placeholder="Min SDE ($)" inputMode="decimal" style={inputStyle} />
+                <input value={maxSde} onChange={(e) => setMaxSde(formatWithCommas(e.target.value))} placeholder="Max SDE ($)" inputMode="decimal" style={inputStyle} />
+                <input value={minEbitda} onChange={(e) => setMinEbitda(formatWithCommas(e.target.value))} placeholder="Min EBITDA ($)" inputMode="decimal" style={inputStyle} />
+                <input value={maxEbitda} onChange={(e) => setMaxEbitda(formatWithCommas(e.target.value))} placeholder="Max EBITDA ($)" inputMode="decimal" style={inputStyle} />
+                <input value={multiple} onChange={(e) => setMultiple(e.target.value)} placeholder="Max SDE multiple" type="number" step="0.1" style={inputStyle} />
+              </div>
+
+              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '14px 0 8px' }}>🏢 Business profile</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12 }}>
+                <input value={minYear} onChange={(e) => setMinYear(e.target.value)} placeholder="Est. after year (e.g. 2010)" inputMode="numeric" style={inputStyle} />
+                <input value={employees} onChange={(e) => setEmployees(e.target.value)} placeholder="Min FT employees" type="number" style={inputStyle} />
+              </div>
             </>
           )}
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
             {[
               { label: 'Absentee', checked: absentee, set: setAbsentee },
               { label: 'Franchise', checked: franchise, set: setFranchise },
               { label: 'Financing', checked: financing, set: setFinancing },
               { label: 'SBA Qualified', checked: sba, set: setSba },
+              { label: 'Relocatable', checked: relocatable, set: setRelocatable },
+              { label: '✓ Revenue Verified', checked: revenueVerified, set: setRevenueVerified },
+              { label: '✓ Seller Verified', checked: sellerVerified, set: setSellerVerified },
+              { label: '📄 BOV on file', checked: bovOnFile, set: setBovOnFile },
             ].map((opt) => (
               <label key={opt.label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#1a1a2e', fontWeight: 600, cursor: 'pointer' }}>
                 <input
@@ -215,21 +295,24 @@ export default function SearchListingsClient({ initialResults, initialIndustries
               </label>
             ))}
           </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={inputStyle}>
-            <option value="">Any Status</option>
-            <option value="active">Active</option>
-            <option value="under_contract">Under Contract</option>
-            <option value="sold">Sold</option>
-          </select>
-          <select value={sort} onChange={(e) => setSort(e.target.value)} style={inputStyle}>
-            <option value="">Sort: Featured first</option>
-            <option value="newest">Newest</option>
-            <option value="price_asc">Price: Low → High</option>
-            <option value="price_desc">Price: High → Low</option>
-            <option value="revenue_desc">Revenue: High → Low</option>
-            <option value="multiple_desc">Multiple: High → Low</option>
-          </select>
-          <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: '1px solid #1a1a2e', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: 14, padding: '12px 14px', letterSpacing: '0.02em', boxShadow: '0 2px 10px rgba(26,26,46,0.18)', transition: 'all .15s ease' }}>Apply Filters</button>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 14 }}>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ ...inputStyle, width: 'auto' }}>
+              <option value="">Any Status</option>
+              <option value="active">Active</option>
+              <option value="under_contract">Under Contract</option>
+              <option value="sold">Sold</option>
+            </select>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ ...inputStyle, width: 'auto' }}>
+              <option value="">Sort: Featured first</option>
+              <option value="newest">Newest</option>
+              <option value="price_asc">Price: Low → High</option>
+              <option value="price_desc">Price: High → Low</option>
+              <option value="revenue_desc">Revenue: High → Low</option>
+              <option value="multiple_desc">Multiple: High → Low</option>
+            </select>
+            <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: '1px solid #1a1a2e', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: 14, padding: '12px 14px', letterSpacing: '0.02em', boxShadow: '0 2px 10px rgba(26,26,46,0.18)', transition: 'all .15s ease' }}>Apply Filters</button>
+            <button type="button" onClick={clearAll} style={{ background: 'none', border: '1px solid #d8d2c2', borderRadius: 8, padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#888', cursor: 'pointer' }}>✕ Clear all</button>
+          </div>
         </div>
       </form>
 
