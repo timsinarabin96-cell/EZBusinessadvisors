@@ -104,20 +104,42 @@ export async function POST(req: NextRequest) {
       const system = isCrm
         ? 'You are the AI assistant inside a business-brokerage CRM (EZ Business Advisors). Help the broker use the platform: listings, deal pipeline, lead management, NDA/listing agreements, documents, AI agents, calendar, communications, training. Answer briefly and concretely; point to the right tool/page when relevant. Never invent features that do not exist.'
         : 'You are the friendly AI assistant for a business brokerage website. Help visitors buy a business, sell their business, join the broker network, or contact a broker. Answer briefly and warmly. Do not disclose confidential business financials; tell buyers to request details through the site.'
-      const { text } = await chatWithDeepSeek({ system, userMessage: message, maxTokens: 400, tenant: { model: 'deepseek-chat' } })
-      const reply = (text || '').slice(0, 1500)
-      if (reply) {
-        await db.from('call_transcripts').insert({
-          agency_id: agencyId,
-          call_session_id: dbSessionId,
-          sequence: (Date.now() + 1) % 100000,
-          speaker: 'agent',
-          content: reply,
-        })
+      // Direct DeepSeek call (bypasses client lib) — minimal payload that is
+      // proven to return content; no response_format/thinking params that could
+      // trigger empty-content responses in the serverless runtime.
+      const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: message },
+          ],
+          max_tokens: 400,
+          stream: false,
+        }),
+        signal: AbortSignal.timeout(40_000),
+      })
+      if (!dsRes.ok) {
+        aiError = `DeepSeek HTTP ${dsRes.status}`
+      } else {
+        const payload = await dsRes.json().catch(() => null) as { choices?: Array<{ message?: { content?: string | null } }> } | null
+        const reply = (payload?.choices?.[0]?.message?.content || '').trim().slice(0, 1500)
+        if (reply) {
+          await db.from('call_transcripts').insert({
+            agency_id: agencyId,
+            call_session_id: dbSessionId,
+            sequence: (Date.now() + 1) % 100000,
+            speaker: 'agent',
+            content: reply,
+          })
+        } else {
+          aiError = 'DeepSeek returned empty content'
+        }
       }
     }
   } catch (e) {
-    // Reply is optional — widget falls back to "a broker will get back to you".
     aiError = e instanceof Error ? e.message : String(e)
     console.error('[chat-widget] AI reply failed:', aiError)
   }
