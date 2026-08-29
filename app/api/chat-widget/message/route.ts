@@ -127,13 +127,14 @@ export async function POST(req: NextRequest) {
         const payload = await dsRes.json().catch(() => null) as { choices?: Array<{ message?: { content?: string | null } }> } | null
         const reply = (payload?.choices?.[0]?.message?.content || '').trim().slice(0, 1500)
         if (reply) {
-          await db.from('call_transcripts').insert({
+          const { error: insErr } = await db.from('call_transcripts').insert({
             agency_id: agencyId,
             call_session_id: dbSessionId,
             sequence: (Date.now() + 1) % 100000,
             speaker: 'agent',
             content: reply,
           })
+          if (insErr) aiError = 'insert failed: ' + insErr.message
         } else {
           aiError = 'DeepSeek returned empty content'
         }
