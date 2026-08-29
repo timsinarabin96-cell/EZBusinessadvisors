@@ -5,7 +5,7 @@ import test from 'node:test'
 const schema = readFileSync('sql/nurture_schema.sql', 'utf8')
 const lib = readFileSync('lib/nurture.ts', 'utf8')
 const route = readFileSync('app/api/nurture/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/nurture/page.tsx', 'utf8')
+const page = readFileSync('components/marketing/panels/NurturePanel.tsx', 'utf8')
 
 test('nurture: schema defines sequences + recipients with audience/status checks', () => {
   assert.match(schema, /create table if not exists public\.nurture_sequences/)
@@ -88,8 +88,6 @@ test('nurture: API dispatches on action seed vs enroll', () => {
 
 test('nurture: dashboard page renders seed button, enroll form, and lists', () => {
   assert.match(page, /'use client'/)
-  assert.match(page, /<AppShell active="Nurture Drips">/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext\(\)/)
   assert.match(page, /Enroll a contact/)

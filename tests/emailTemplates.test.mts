@@ -6,7 +6,7 @@ const schema = readFileSync('sql/email_templates_schema.sql', 'utf8')
 const lib = readFileSync('lib/emailTemplates.ts', 'utf8')
 const route = readFileSync('app/api/email-templates/route.ts', 'utf8')
 const sendRoute = readFileSync('app/api/email-templates/send/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/email-templates/page.tsx', 'utf8')
+const page = readFileSync('components/marketing/panels/EmailTemplatesPanel.tsx', 'utf8')
 
 test('templates: schema creates email_templates + seeds standard library', () => {
   assert.match(schema, /create table if not exists public\.email_templates/)

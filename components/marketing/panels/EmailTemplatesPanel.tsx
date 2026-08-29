@@ -8,11 +8,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { useToast } from '@/components/ui/Toast'
 
 interface Template {
   id: string
@@ -26,19 +25,7 @@ interface Template {
 
 const CATEGORIES = ['intro', 'nda', 'offer', 'counter', 'welcome', 'valuation', 'follow_up', 'general']
 
-export default function EmailTemplatesPage() {
-  return (
-    <AppShell active="Email Templates">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <EmailTemplates />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function EmailTemplates() {
+export function EmailTemplatesPanel() {
   const toast = useToast()
   const [templates, setTemplates] = useState<Template[]>([])
   const [agencyId, setAgencyId] = useState('')

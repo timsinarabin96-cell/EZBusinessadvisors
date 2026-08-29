@@ -8,15 +8,14 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
 import {
   fetchSyndicationInbox, fetchSyndicationOutbox, fetchSyndicationStats,
   offerListing, respondToOffer, withdrawOffer, fetchMyListingsForSyndication,
   type SyndicationOffer, type SyndicationStats,
 } from '@/lib/syndication'
 import { fetchPublicBrokers, type PublicBroker } from '@/lib/marketplace'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLOR: Record<string, string> = {
   offered: '#0e7490',
@@ -28,19 +27,7 @@ const STATUS_COLOR: Record<string, string> = {
 const fmt$ = (n: number | null | undefined) =>
   n == null ? '—' : '$' + n.toLocaleString('en-US')
 
-export default function SyndicationHubPage() {
-  return (
-    <AppShell active="Syndication">
-      <ToastProvider>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '20px 16px 60px' }}>
-          <HubBody />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function HubBody() {
+export function SyndicationPanel() {
   const toast = useToast()
   const [inbox, setInbox] = useState<SyndicationOffer[]>([])
   const [outbox, setOutbox] = useState<SyndicationOffer[]>([])

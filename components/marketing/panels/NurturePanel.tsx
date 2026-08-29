@@ -8,11 +8,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { useToast } from '@/components/ui/Toast'
 
 interface NurtureStep {
   id: string
@@ -44,19 +43,7 @@ interface NurtureRecipient {
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
-export default function NurturePage() {
-  return (
-    <AppShell active="Nurture Drips">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <NurtureApp />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function NurtureApp() {
+export function NurturePanel() {
   const toast = useToast()
   const [sequences, setSequences] = useState<NurtureSequence[]>([])
   const [recipients, setRecipients] = useState<NurtureRecipient[]>([])

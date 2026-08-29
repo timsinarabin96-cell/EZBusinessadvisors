@@ -6,7 +6,7 @@ const lib = readFileSync('lib/blog.ts', 'utf8')
 const route = readFileSync('app/api/blog/route.ts', 'utf8')
 const hub = readFileSync('app/(public)/marketplace/insights/page.tsx', 'utf8')
 const article = readFileSync('app/(public)/marketplace/insights/[slug]/page.tsx', 'utf8')
-const page = readFileSync('app/dashboard/blog/page.tsx', 'utf8')
+const page = readFileSync('components/marketing/panels/BlogPanel.tsx', 'utf8')
 const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 test('blog: engine is DDL-free on platform_settings with a curated seed set', () => {
@@ -52,7 +52,6 @@ test('blog: public hub + article render from the engine', () => {
 })
 
 test('blog: dashboard manager has list, editor, publish/unpublish, delete', () => {
-  assert.match(page, /AppShell active="Blog & Insights"/)
   assert.match(page, /\/api\/blog\?all=1/)
   assert.match(page, /New article/)
   assert.match(page, /togglePublish/)
@@ -62,8 +61,8 @@ test('blog: dashboard manager has list, editor, publish/unpublish, delete', () =
   assert.match(page, /sections\.filter/)
 })
 
-test('blog: nav includes Blog & Insights under Marketing & Growth', () => {
-  assert.match(shell, /\/dashboard\/blog/)
-  assert.match(shell, /'Blog & Insights'/)
+test('blog: nav exposes Blog under the merged Marketing hub', () => {
+  assert.match(shell, /dashboard\/marketing/)
+  assert.match(shell, /blog/i)
   assert.match(shell, /'Marketing & Growth'/)
 })

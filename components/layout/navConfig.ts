@@ -76,13 +76,7 @@ export const NAV: NavItem[] = [
   { href: '/cim', label: 'CIM Generator', icon: '📑', minRole: 'broker', group: 'Clients & Docs', keywords: 'confidential information memorandum offering' },
   { href: '/bov', label: 'BOV Generator', icon: '⚖️', minRole: 'broker', group: 'Clients & Docs', keywords: 'broker opinion value' },
   // ── MARKETING & GROWTH ────────────────────────────────────
-  { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️', minRole: 'broker', group: 'Marketing & Growth', core: true, keywords: 'campaigns ads' },
-  { href: '/dashboard/social', label: 'Social Media', icon: '📣', minRole: 'broker', group: 'Marketing & Growth', keywords: 'facebook instagram post' },
-  { href: '/dashboard/newspaper', label: 'Weekly Newspaper', icon: '📰', minRole: 'broker', group: 'Marketing & Growth', keywords: 'newsletter digest' },
-  { href: '/dashboard/blog', label: 'Blog & Insights', icon: '📝', minRole: 'broker', group: 'Marketing & Growth', keywords: 'articles content seo' },
-  { href: '/dashboard/nurture', label: 'Nurture Drips', icon: '💌', minRole: 'broker', group: 'Marketing & Growth', keywords: 'email sequences drip' },
-  { href: '/dashboard/syndication', label: 'Syndication', icon: '🔗', minRole: 'broker', group: 'Marketing & Growth', keywords: 'bizbuysell listing push' },
-  { href: '/dashboard/email-templates', label: 'Email Templates', icon: '✉️', minRole: 'broker', group: 'Marketing & Growth', keywords: 'email drafts' },
+  { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️', minRole: 'broker', group: 'Marketing & Growth', core: true, keywords: 'campaigns ads social facebook instagram newspaper blog nurture drips syndication email templates store' },
   // ── TEAM & OFFICE ─────────────────────────────────────────
   { href: '/dashboard/calendar', label: 'Calendar', icon: '📅', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'schedule meetings calls phone reminders call-backs follow up tasks' },
   { href: '/dashboard/communications', label: 'Communications', icon: '🗒️', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'inbox messages' },

@@ -14,7 +14,6 @@
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import {
   fetchEditions, createEdition, updateEdition, publishEdition, deleteEdition,
   fetchArticles, upsertArticle, deleteArticle, autoGenerateArticles,
@@ -24,21 +23,9 @@ import {
 } from '@/lib/newspaper'
 import { Card, CardHeader, LoadingState } from '@/components/ui'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 
-export default function NewspaperPage() {
-  return (
-    <AppShell active="Weekly Newspaper">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
-          <NewspaperDashboard />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function NewspaperDashboard() {
+export function NewspaperPanel() {
   const toast = useToast()
   const [editions, setEditions] = useState<NewEdition[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)

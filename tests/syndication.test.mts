@@ -5,7 +5,7 @@ import test from 'node:test'
 const schema = readFileSync('sql/syndication_schema.sql', 'utf8')
 const lib = readFileSync('lib/syndication.ts', 'utf8')
 const api = readFileSync('app/api/syndication/route.ts', 'utf8')
-const hub = readFileSync('app/dashboard/syndication/page.tsx', 'utf8')
+const hub = readFileSync('components/marketing/panels/SyndicationPanel.tsx', 'utf8')
 const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
 test('syndication: schema creates syndication_offers with splits + RLS', () => {
@@ -66,7 +66,7 @@ test('syndication: hub page renders inbox/outbox, stats, and offer composer', ()
   assert.match(hub, /Co-brokered deals/)
 })
 
-test('syndication: dashboard nav includes Syndication', () => {
-  assert.match(shell, /dashboard\/syndication/)
-  assert.match(shell, /'Syndication'/)
+test('syndication: nav exposes Syndication via the merged Marketing hub', () => {
+  assert.match(shell, /dashboard\/marketing/)
+  assert.match(shell, /syndication/i)
 })

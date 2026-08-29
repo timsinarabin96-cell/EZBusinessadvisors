@@ -9,7 +9,6 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import AppShell from '@/components/layout/AppShell'
 import {
   SOCIAL_PLATFORMS,
   fetchPosts,
@@ -29,15 +28,7 @@ const STATUS_COLOR: Record<string, string> = {
   failed: '#ef4444',
 }
 
-export default function SocialDashboardPage() {
-  return (
-    <AppShell active="Social">
-      <SocialDashboard />
-    </AppShell>
-  )
-}
-
-function SocialDashboard() {
+export function SocialPanel() {
   const [posts, setPosts] = useState<SocialPost[]>([])
   const [loading, setLoading] = useState(true)
   const [platform, setPlatform] = useState<'all' | SocialPlatform>('all')

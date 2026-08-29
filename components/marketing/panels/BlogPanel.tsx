@@ -14,10 +14,9 @@
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { useToast } from '@/components/ui/Toast'
 
 interface BlogPost {
   slug: string
@@ -37,19 +36,7 @@ const authHeaders = () => ({ authorization: `Bearer ${token()}`, 'content-type':
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
-export default function BlogPage() {
-  return (
-    <AppShell active="Blog & Insights">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <BlogManager />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function BlogManager() {
+export function BlogPanel() {
   const toast = useToast()
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
