@@ -120,5 +120,5 @@ export async function POST(req: NextRequest) {
     console.error('[chat-widget] AI reply failed:', e instanceof Error ? e.message : String(e))
   }
 
-  return NextResponse.json({ ok: true, sessionId, dbSessionId })
+  return NextResponse.json({ ok: true, sessionId, dbSessionId, _debug: { deepseekSet: Boolean(process.env.DEEPSEEK_API_KEY), deepseekLen: (process.env.DEEPSEEK_API_KEY || '').length } })
 }
