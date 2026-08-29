@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { rateLimitAsync } from '@/lib/rateLimit'
-import { makeUnsubToken } from '@/lib/newspaper'
+import { makeUnsubToken } from '@/lib/newspaperShared'
 
 // ---------------------------------------------------------------------------
 // POST /api/newsletter — public newsletter signup.

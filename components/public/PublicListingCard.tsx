@@ -136,6 +136,31 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
               {listing.public_summary}
             </div>
           )}
+          {/* Financial highlights — the buyer hook: revenue, SDE/EBITDA, est. year */}
+          {(listing.annual_revenue != null || listing.sde != null || listing.ebitda != null || listing.established_year != null) && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+              {listing.annual_revenue != null && (
+                <span style={{ background: '#f4f1e8', border: '1px solid #ece8dc', borderRadius: 6, padding: '4px 9px', fontSize: 11.5, fontWeight: 700, color: '#1a1a2e' }}>
+                  💰 Rev {fmt$(listing.annual_revenue)}
+                </span>
+              )}
+              {listing.sde != null && (
+                <span style={{ background: '#fdf6ec', border: '1px solid #f0dfc2', borderRadius: 6, padding: '4px 9px', fontSize: 11.5, fontWeight: 700, color: '#8a6d1a' }}>
+                  📈 SDE {fmt$(listing.sde)}
+                </span>
+              )}
+              {listing.ebitda != null && (
+                <span style={{ background: '#eef7f1', border: '1px solid #d5eade', borderRadius: 6, padding: '4px 9px', fontSize: 11.5, fontWeight: 700, color: '#1e7e34' }}>
+                  📊 EBITDA {fmt$(listing.ebitda)}
+                </span>
+              )}
+              {listing.established_year != null && (
+                <span style={{ background: '#eef2f9', border: '1px solid #dbe4f2', borderRadius: 6, padding: '4px 9px', fontSize: 11.5, fontWeight: 700, color: '#1d4ed8' }}>
+                  🏢 Est. {listing.established_year}
+                </span>
+              )}
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
             <div>
               <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pricing</div>

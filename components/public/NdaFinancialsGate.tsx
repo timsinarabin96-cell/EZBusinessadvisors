@@ -185,7 +185,7 @@ export default function NdaFinancialsGate({ listing, askingPrice }: { listing: P
             <div className="grid-2" style={{ gap: 12, marginBottom: 16 }}>
               <div>
                 <label className="label">Business Listing ID No.</label>
-                <input className="input" value={listing.id} disabled style={{ background: '#faf9f4', color: '#888', fontSize: 12 }} />
+                <input className="input" value={listing.listing_ref || listing.id} disabled style={{ background: '#faf9f4', color: '#888', fontSize: 12 }} />
               </div>
               <div>
                 <label className="label">Business Category</label>

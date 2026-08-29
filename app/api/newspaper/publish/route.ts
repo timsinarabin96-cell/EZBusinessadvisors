@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { renderNewspaperHtml } from '@/lib/newspaper'
+import { renderNewspaperHtml } from '@/lib/newspaperShared'
 import { authenticateProfileRequest, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
