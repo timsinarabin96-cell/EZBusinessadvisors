@@ -68,6 +68,10 @@ export interface FilledParty {
   role: 'agent' | 'seller' | 'buyer' | 'custom'
   name: string | null
   email: string | null
+  /** Agent-only: license number, phone, title — auto-filled from broker_profiles. */
+  license?: string | null
+  phone?: string | null
+  title?: string | null
 }
 
 export interface DocumentSignature {

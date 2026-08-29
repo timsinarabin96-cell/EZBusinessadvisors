@@ -233,9 +233,9 @@ export async function POST(req: NextRequest) {
     // --- Signature lines ------------------------------------------------------
     // Agents put their full name + contact info here (bottom of the document);
     // the letterhead stays pure agency brand.
-    const parties = (doc.parties || []) as Array<{ key?: string; label?: string; role?: string; name?: string | null; email?: string | null }>
+    const parties = (doc.parties || []) as Array<{ key?: string; label?: string; role?: string; name?: string | null; email?: string | null; license?: string | null; phone?: string | null; title?: string | null }>
     if (parties.length > 0) {
-      const blockNeeds = 24 + 26 + parties.length * 34 + 20
+      const blockNeeds = 24 + 26 + parties.length * 40 + 20
       // Keep the whole signature block together on one page.
       if (y + blockNeeds > H - M - 20) { pdf.addPage(); y = M + 30 }
       y += 24
@@ -255,19 +255,30 @@ export async function POST(req: NextRequest) {
         const shown = p.name && p.name.trim() ? p.name : 'Signed'
         const clipped = pdf.splitTextToSize(shown, lineLen - 10).join(' ')
         pdf.text(clipped, nameX, y - 6)
-        // Contact info under the agent's name (email), truncated to the line.
-        const info = p.email && p.email.trim() ? p.email : ''
-        if (info) {
-          pdf.setFontSize(9)
-          pdf.setTextColor(138, 134, 120)
-          pdf.text(pdf.splitTextToSize(info, lineLen - 10).join(' '), nameX, y + 10)
-          pdf.setFontSize(11)
+        // Contact / credential lines under the name: email, then license/phone
+        // for the agent party (auto-filled from the broker's profile).
+        const lines: string[] = []
+        if (p.email && p.email.trim()) lines.push(p.email)
+        if (p.role === 'agent') {
+          const lic = p.license && p.license.trim() ? `License: ${p.license}` : ''
+          const ph = p.phone && p.phone.trim() ? `Tel: ${p.phone}` : ''
+          const ttl = p.title && p.title.trim() ? p.title : ''
+          const cred = [ttl, lic, ph].filter(Boolean).join(' · ')
+          if (cred) lines.push(cred)
         }
+        let infoY = y + 10
+        for (const line of lines) {
+          pdf.setFontSize(8.5)
+          pdf.setTextColor(138, 134, 120)
+          pdf.text(pdf.splitTextToSize(line, lineLen - 10).join(' '), nameX, infoY)
+          infoY += 10
+        }
+        pdf.setFontSize(11)
         // Actual underline beneath the name — consistent for every row.
         pdf.setDrawColor(120, 120, 120)
         pdf.setLineWidth(0.8)
         pdf.line(nameX, y + 2, nameX + lineLen, y + 2)
-        y += 34
+        y += 40
       }
     }
 

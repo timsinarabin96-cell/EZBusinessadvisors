@@ -97,11 +97,18 @@ export default function DocumentBuilder({ listingId, dealId }: { listingId?: str
   const [templateId, setTemplateId] = useState('')
   const [title, setTitle] = useState('')
   const [values, setValues] = useState<Record<string, string>>({})
-  const [partyNames, setPartyNames] = useState<Record<string, { name: string; email: string }>>({})
+  const [partyNames, setPartyNames] = useState<Record<string, { name: string; email: string; license?: string; phone?: string; title?: string }>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [createdDocId, setCreatedDocId] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
+  const [sentInfo, setSentInfo] = useState('')
   const [me, setMe] = useState<{ id: string; email?: string; full_name?: string } | null>(null)
+  // NOTE: license/phone/title are intentionally NOT auto-filled from broker
+  // profiles — many states don't require a license for business intermediaries,
+  // and test agents must never stamp fake credentials onto real documents.
+  // The agent fills their own info per document (fillable fields).
 
   const template = useMemo(() => templates.find((t) => t.id === templateId) || null, [templates, templateId])
 
@@ -118,6 +125,9 @@ export default function DocumentBuilder({ listingId, dealId }: { listingId?: str
           setTitle(`Draft — ${tpls[0].name}`)
         }
         if (user) setMe({ id: user.id, email: user.email, full_name: (user.user_metadata?.full_name as string) || undefined })
+        // Agent info stays blank/fillable — no auto-fill from (possibly fake)
+        // broker profiles. Real agents type their own name, license, phone.
+
       } catch (e: any) {
         setError(e.message || 'Failed to load templates')
       } finally {
@@ -130,11 +140,18 @@ export default function DocumentBuilder({ listingId, dealId }: { listingId?: str
   useEffect(() => {
     if (!template) return
     setValues({})
-    const p: Record<string, { name: string; email: string }> = {}
+    const p: Record<string, { name: string; email: string; license?: string; phone?: string; title?: string }> = {}
     for (const party of template.parties) {
-      // Smart default: the agent party is auto-assigned to the current user.
+      // Smart default: the agent party auto-fills the signed-in user's NAME and
+      // EMAIL only; license/phone/title stay blank for the agent to fill in.
       if (party.role === 'agent' && me) {
-        p[party.key] = { name: me.full_name || me.email || '', email: me.email || '' }
+        p[party.key] = {
+          name: me.full_name || me.email || '',
+          email: me.email || '',
+          license: '',
+          phone: '',
+          title: '',
+        }
       } else {
         p[party.key] = { name: '', email: '' }
       }
@@ -164,14 +181,41 @@ export default function DocumentBuilder({ listingId, dealId }: { listingId?: str
       role: p.role,
       name: partyNames[p.key]?.name || null,
       email: partyNames[p.key]?.email || null,
+      license: partyNames[p.key]?.license || null,
+      phone: partyNames[p.key]?.phone || null,
+      title: partyNames[p.key]?.title || null,
     }))
 
     try {
-      await createDocument({ template_id: template.id, listing_id: listingId, deal_id: dealId, title, filled_data: filled, parties })
+      const created = await createDocument({ template_id: template.id, listing_id: listingId, deal_id: dealId, title, filled_data: filled, parties })
+      setCreatedDocId(created.id)
       setSaved(true)
+      setSentInfo('')
       setTitle(`Draft — ${template.name}`)
     } catch (e: any) {
       setError(e.message || 'Failed to create document')
+    }
+  }
+
+  // Send the created document for signature to the seller/buyer parties
+  // (accountless signing links — no login needed on their side).
+  const handleSend = async () => {
+    if (!createdDocId) { setError('Create the document first'); return }
+    setSending(true)
+    setError('')
+    try {
+      const res = await fetch('/api/documents/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentId: createdDocId }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Failed to send')
+      setSentInfo(`✉️ Sent to ${j.sent} party(ies) — each got a private signing link.`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to send')
+    } finally {
+      setSending(false)
     }
   }
 
@@ -227,8 +271,15 @@ export default function DocumentBuilder({ listingId, dealId }: { listingId?: str
                   <div style={{ ...S.label, textTransform: 'capitalize' }}>
                     {p.label} <span style={{ color: 'var(--gold-dark)' }}>({p.role})</span>
                   </div>
-                  <input style={{ ...S.input, marginBottom: 6 }} placeholder="Full name" value={partyNames[p.key]?.name || ''} onChange={(e) => setPartyNames((prev) => ({ ...prev, [p.key]: { name: e.target.value, email: prev[p.key]?.email || '' } }))} />
-                  <input style={S.input} placeholder="Email (for e-sign)" value={partyNames[p.key]?.email || ''} onChange={(e) => setPartyNames((prev) => ({ ...prev, [p.key]: { email: e.target.value, name: prev[p.key]?.name || '' } }))} />
+                  <input style={{ ...S.input, marginBottom: 6 }} placeholder="Full name" value={partyNames[p.key]?.name || ''} onChange={(e) => setPartyNames((prev) => ({ ...prev, [p.key]: { name: e.target.value, email: prev[p.key]?.email || '', license: prev[p.key]?.license, phone: prev[p.key]?.phone, title: prev[p.key]?.title } }))} />
+                  <input style={{ ...S.input, marginBottom: 6 }} placeholder="Email (for e-sign)" value={partyNames[p.key]?.email || ''} onChange={(e) => setPartyNames((prev) => ({ ...prev, [p.key]: { email: e.target.value, name: prev[p.key]?.name || '', license: prev[p.key]?.license, phone: prev[p.key]?.phone, title: prev[p.key]?.title } }))} />
+                  {p.role === 'agent' && (
+                    <>
+                      <input style={{ ...S.input, marginBottom: 6 }} placeholder="Title (e.g. Business Broker) — optional" value={partyNames[p.key]?.title || ''} onChange={(e) => setPartyNames((prev) => ({ ...prev, [p.key]: { title: e.target.value, name: prev[p.key]?.name || '', email: prev[p.key]?.email || '', license: prev[p.key]?.license, phone: prev[p.key]?.phone } }))} />
+                      <input style={{ ...S.input, marginBottom: 6 }} placeholder="License # (if your state requires one) — optional" value={partyNames[p.key]?.license || ''} onChange={(e) => setPartyNames((prev) => ({ ...prev, [p.key]: { license: e.target.value, name: prev[p.key]?.name || '', email: prev[p.key]?.email || '', phone: prev[p.key]?.phone, title: prev[p.key]?.title } }))} />
+                      <input style={S.input} placeholder="Phone (optional)" value={partyNames[p.key]?.phone || ''} onChange={(e) => setPartyNames((prev) => ({ ...prev, [p.key]: { phone: e.target.value, name: prev[p.key]?.name || '', email: prev[p.key]?.email || '', license: prev[p.key]?.license, title: prev[p.key]?.title } }))} />
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -254,7 +305,25 @@ export default function DocumentBuilder({ listingId, dealId }: { listingId?: str
             Create Document
           </button>
           {error && <div style={S.err}>⚠️ {error}</div>}
-          {saved && <div style={S.ok}>✅ Document created — signature slots seeded. It now appears in the Documents dashboard.</div>}
+          {saved && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={S.ok}>✅ Document created — signature slots seeded. It now appears in the Documents dashboard.</div>
+              {createdDocId && (
+                <button
+                  onClick={handleSend}
+                  disabled={sending}
+                  style={{
+                    background: '#0e7490', color: '#fff', fontFamily: 'Georgia, serif', fontWeight: 700,
+                    fontSize: 14, border: 'none', padding: '10px 20px', borderRadius: 8, cursor: sending ? 'wait' : 'pointer',
+                    alignSelf: 'flex-start',
+                  }}
+                >
+                  {sending ? '⏳ Sending…' : '📨 Send for signature (seller & buyer)'}
+                </button>
+              )}
+              {sentInfo && <div style={S.ok}>{sentInfo}</div>}
+            </div>
+          )}
         </>
       )}
     </div>

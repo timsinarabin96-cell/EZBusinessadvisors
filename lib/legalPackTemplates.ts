@@ -1439,4 +1439,202 @@ Signature: ______________________________
 Printed Name: __________________________
 Date: ___________________________________{{LEGAL_FOOTER}}`,
   },
+  {
+    name: 'Offer to Purchase & Acceptance',
+    description: 'Buyer\'s formal offer (price, terms, deposits, contingencies) with the Seller\'s acceptance — the binding deal sheet that precedes the purchase agreement.',
+    category: 'Buyer Pack',
+    fields: [
+      { key: 'business_name', label: 'Business Name', type: 'text', required: true },
+      { key: 'buyer_name', label: 'Buyer Legal Name', type: 'text', required: true },
+      { key: 'buyer_entity_type', label: 'Buyer Entity Type', type: 'select', required: true, options: ['Individual', 'Corporation', 'LLC', 'Partnership', 'Trust', 'Other'] },
+      { key: 'seller_name', label: 'Seller Legal Name', type: 'text', required: true },
+      { key: 'purchase_price', label: 'Purchase Price ($)', type: 'number', required: true },
+      { key: 'deposit_amount', label: 'Earnest Money Deposit ($)', type: 'number', required: true },
+      { key: 'closing_date', label: 'Target Closing Date', type: 'date', required: true },
+      { key: 'due_diligence_days', label: 'Due Diligence Period (days)', type: 'number', required: true, default: 30 },
+      { key: 'financing_terms', label: 'Financing Terms', type: 'textarea', required: false, placeholder: 'e.g. Seller financing of $100,000 at 8% over 3 years' },
+      { key: 'included_assets', label: 'Included Assets Summary', type: 'textarea', required: false, placeholder: 'e.g. Equipment, inventory, goodwill, client list, trade name, lease assignment' },
+      { key: 'excluded_assets', label: 'Excluded Assets (if any)', type: 'textarea', required: false, placeholder: 'e.g. Cash, accounts receivable, real estate (unless included)' },
+      { key: 'agency_name', label: 'Brokerage Name', type: 'text', required: true },
+      { key: 'broker_name', label: 'Broker Name', type: 'text', required: true },
+    ],
+    parties: [
+      { key: 'agent', label: 'Broker', role: 'agent' },
+      { key: 'buyer', label: 'Buyer', role: 'buyer' },
+      { key: 'seller', label: 'Seller', role: 'seller' },
+    ],
+    body_template: `{{title}}
+
+OFFER TO PURCHASE & ACCEPTANCE
+
+This Offer to Purchase (this "Offer") is made as of {{closing_date}} by {{buyer_name}}, a {{buyer_entity_type}} ("Buyer"), to {{seller_name}} ("Seller"), for the purchase of the business known as {{business_name}} (the "Business"), brokered by {{broker_name}} of {{agency_name}} ("Broker").
+
+1. PURCHASE PRICE. Buyer offers to purchase the Business for the total purchase price of \${{purchase_price}} (the "Purchase Price"), payable in cash and/or other agreed terms as set forth in this Offer.
+
+2. EARNEST MONEY. Concurrently with the execution of this Offer, Buyer shall deposit earnest money of \${{deposit_amount}} (the "Deposit") to be held in escrow in accordance with the escrow instructions. The Deposit shall be credited toward the Purchase Price at closing and shall be refundable only as expressly provided herein.
+
+3. DUE DILIGENCE. Buyer shall have a due diligence period of {{due_diligence_days}} days from the Effective Date (the "Due Diligence Period") to review the Business\'s financial records, contracts, leases, permits, and operations, and to secure financing. Buyer may terminate this Offer for any reason during the Due Diligence Period by written notice, in which case the Deposit shall be returned in full.
+
+4. FINANCING. This Offer is [X] contingent [ ] not contingent upon Buyer obtaining financing on the following terms: {{financing_terms}}.
+
+5. ASSETS INCLUDED. The Purchase Price includes the following assets of the Business: {{included_assets}}. Excluded from the sale are: {{excluded_assets}}.
+
+6. CLOSING. The closing shall occur on or before {{closing_date}} (the "Closing Date"), at which time Seller shall transfer the Business and included assets to Buyer free and clear of all liens, and Buyer shall pay the balance of the Purchase Price.
+
+7. REPRESENTATIONS. Seller represents that the financial statements and other information provided to Buyer are true and complete, and that the Business is being sold free of undisclosed liabilities.
+
+8. BROKER\'S ROLE. Broker acted as the intermediary/agent in this transaction and shall be compensated by the party(s) as set forth in the applicable listing and/or buyer agreements.
+
+9. GOVERNING LAW. This Offer shall be governed by the laws of the state in which the Business is located.
+
+10. ACCEPTANCE. This Offer shall remain open for acceptance until {{closing_date}}. Acceptance shall be effective upon execution by Seller and delivery to Buyer or Broker.
+
+IN WITNESS WHEREOF, the parties have executed this Offer as of the date set forth below.
+
+BUYER:
+Signature: ______________________________
+Printed Name: {{buyer_name}}
+Date: ___________________________________
+
+SELLER ACCEPTANCE:
+
+The undersigned Seller accepts the foregoing Offer and agrees to the terms set forth herein.
+
+SELLER:
+Signature: ______________________________
+Printed Name: {{seller_name}}
+Date: ___________________________________
+
+BROKER ({{agency_name}}):
+Signature: ______________________________
+Printed Name: {{broker_name}}
+Date: ___________________________________{{LEGAL_FOOTER}}`,
+  },
+  {
+    name: 'Asset Purchase Agreement',
+    description: 'Full asset purchase agreement for the sale of a business — purchase price, allocation, closing conditions, reps & warranties, and indemnification.',
+    category: 'Buyer Pack',
+    fields: [
+      { key: 'business_name', label: 'Business Name', type: 'text', required: true },
+      { key: 'buyer_name', label: 'Buyer Legal Name', type: 'text', required: true },
+      { key: 'buyer_entity_type', label: 'Buyer Entity Type', type: 'select', required: true, options: ['Individual', 'Corporation', 'LLC', 'Partnership', 'Trust', 'Other'] },
+      { key: 'seller_name', label: 'Seller Legal Name', type: 'text', required: true },
+      { key: 'seller_entity_type', label: 'Seller Entity Type', type: 'select', required: true, options: ['Individual', 'Corporation', 'LLC', 'Partnership', 'Trust', 'Other'] },
+      { key: 'purchase_price', label: 'Purchase Price ($)', type: 'number', required: true },
+      { key: 'closing_date', label: 'Closing Date', type: 'date', required: true },
+      { key: 'allocation', label: 'Purchase Price Allocation', type: 'textarea', required: false, placeholder: 'e.g. Equipment $50,000; Inventory $20,000; Goodwill $180,000; Covenant not to compete $20,000' },
+      { key: 'escrow_agent', label: 'Escrow Agent / Title Company', type: 'text', required: false },
+      { key: 'agency_name', label: 'Brokerage Name', type: 'text', required: true },
+      { key: 'broker_name', label: 'Broker Name', type: 'text', required: true },
+    ],
+    parties: [
+      { key: 'agent', label: 'Broker', role: 'agent' },
+      { key: 'buyer', label: 'Buyer', role: 'buyer' },
+      { key: 'seller', label: 'Seller', role: 'seller' },
+    ],
+    body_template: `{{title}}
+
+ASSET PURCHASE AGREEMENT
+
+This Asset Purchase Agreement (this "Agreement") is entered into as of {{closing_date}} (the "Effective Date"), by and between {{seller_name}}, a {{seller_entity_type}} ("Seller"), and {{buyer_name}}, a {{buyer_entity_type}} ("Buyer"), with {{broker_name}} of {{agency_name}} ("Broker") having facilitated the transaction.
+
+RECITALS
+
+WHEREAS, Seller owns and operates the business known as {{business_name}} (the "Business"); and
+
+WHEREAS, Buyer desires to purchase, and Seller desires to sell, certain assets of the Business on the terms and conditions set forth herein.
+
+NOW, THEREFORE, in consideration of the mutual covenants and agreements contained herein, the Parties agree as follows:
+
+1. PURCHASE AND SALE. Subject to the terms and conditions hereof, Seller agrees to sell, transfer, convey, and assign to Buyer, and Buyer agrees to purchase from Seller, all of Seller\'s right, title, and interest in and to the assets of the Business (the "Purchased Assets"), free and clear of all liens, claims, and encumbrances.
+
+2. PURCHASE PRICE AND ALLOCATION. The total purchase price for the Purchased Assets shall be \${{purchase_price}} (the "Purchase Price"), allocated among the Purchased Assets as follows: {{allocation}}. The allocation shall be conclusive and binding on the Parties for tax and accounting purposes.
+
+3. CLOSING. The closing of the purchase and sale (the "Closing") shall take place on or before {{closing_date}} at a location and time agreed by the Parties, or by remote exchange of documents. At Closing, Seller shall deliver the Purchased Assets and all instruments of transfer, and Buyer shall pay the Purchase Price in immediately available funds.
+
+4. ASSUMPTION OF LIABILITIES. Buyer shall assume only those liabilities expressly set forth on a schedule of assumed liabilities and shall not assume any other liabilities of the Business.
+
+5. REPRESENTATIONS AND WARRANTIES OF SELLER. Seller represents and warrants that: (a) Seller has full authority to sell the Purchased Assets; (b) the financial statements are true and accurate; (c) the Business is in good standing with all applicable authorities; and (d) there are no undisclosed liabilities materially affecting the Business.
+
+6. REPRESENTATIONS AND WARRANTIES OF BUYER. Buyer represents and warrants that Buyer has the legal capacity and financial ability to complete the purchase.
+
+7. CONDITIONS TO CLOSING. Each Party\'s obligation to close is subject to satisfaction of the conditions set forth in the Due Diligence and financing requirements, and the accuracy of the other Party\'s representations.
+
+8. INDEMNIFICATION. Seller shall indemnify Buyer against any losses arising from Seller\'s breach of representations or from liabilities not assumed by Buyer. Buyer shall indemnify Seller against losses arising from Buyer\'s breach or from liabilities assumed by Buyer.
+
+9. COVENANT NOT TO COMPETE. Seller agrees not to compete with the Business within the applicable territory for a period of three (3) years from Closing, as set forth in a separate non-compete agreement.
+
+10. BROKER. Broker introduced the Parties and shall be compensated pursuant to separate agreements. Each Party acknowledges Broker is acting as a licensed intermediary/agent in this transaction.
+
+11. GOVERNING LAW. This Agreement shall be governed by the laws of the state in which the Business is located.
+
+12. ENTIRE AGREEMENT. This Agreement, together with the exhibits and schedules referenced herein, constitutes the entire agreement of the Parties and supersedes all prior understandings.
+
+IN WITNESS WHEREOF, the Parties have executed this Agreement as of the Effective Date.
+
+SELLER ({{seller_name}}):
+Signature: ______________________________
+Printed Name: {{seller_name}}
+Date: ___________________________________
+
+BUYER ({{buyer_name}}):
+Signature: ______________________________
+Printed Name: {{buyer_name}}
+Date: ___________________________________
+
+BROKER ({{agency_name}}):
+Signature: ______________________________
+Printed Name: {{broker_name}}
+Date: ___________________________________{{LEGAL_FOOTER}}`,
+  },
+  {
+    name: 'Dual Agency Disclosure & Consent',
+    description: 'Required disclosure when the brokerage represents both buyer and seller in the same transaction — informed consent, duties, and confidentiality carve-outs.',
+    category: 'Buyer Pack',
+    fields: [
+      { key: 'business_name', label: 'Business Name', type: 'text', required: true },
+      { key: 'buyer_name', label: 'Buyer Legal Name', type: 'text', required: true },
+      { key: 'seller_name', label: 'Seller Legal Name', type: 'text', required: true },
+      { key: 'agency_name', label: 'Brokerage Name', type: 'text', required: true },
+      { key: 'broker_name', label: 'Broker Name', type: 'text', required: true },
+      { key: 'disclosure_date', label: 'Date', type: 'date', required: true },
+    ],
+    parties: [
+      { key: 'agent', label: 'Broker', role: 'agent' },
+      { key: 'buyer', label: 'Buyer', role: 'buyer' },
+      { key: 'seller', label: 'Seller', role: 'seller' },
+    ],
+    body_template: `{{title}}
+
+DUAL AGENCY DISCLOSURE & CONSENT
+
+This Dual Agency Disclosure and Consent (this "Disclosure") is provided as of {{disclosure_date}} by {{broker_name}} of {{agency_name}} ("Brokerage") in connection with the proposed sale of {{business_name}} (the "Business").
+
+1. DISCLOSURE. Brokerage may be acting as a dual agent in this transaction, representing both the Seller and the Buyer. The Parties acknowledge that Brokerage may represent both parties as an intermediary, with the consent of each party, in accordance with applicable state law.
+
+2. DUTIES. In a dual agency capacity, Brokerage owes each Party the duties of honesty, good faith, and fair dealing, including the duty to disclose known material facts. Brokerage shall not disclose to either Party confidential information of the other Party without that Party\'s written consent.
+
+3. NO FAVORITISM. Brokerage shall not advocate for one Party over the other on price, terms, or other material matters. Each Party is advised to obtain independent legal and financial advice.
+
+4. COMMISSION. Brokerage\'s compensation shall be as set forth in the separate listing agreement and/or buyer representation agreement, and shall not be affected by this dual agency consent.
+
+5. CONSENT. By executing this Disclosure, each Party acknowledges receipt of this disclosure and voluntarily consents to Brokerage acting as a dual agent in this transaction.
+
+IN WITNESS WHEREOF, the Parties have executed this Disclosure as of the date set forth above.
+
+SELLER:
+Signature: ______________________________
+Printed Name: {{seller_name}}
+Date: ___________________________________
+
+BUYER:
+Signature: ______________________________
+Printed Name: {{buyer_name}}
+Date: ___________________________________
+
+BROKER ({{agency_name}}):
+Signature: ______________________________
+Printed Name: {{broker_name}}
+Date: ___________________________________{{LEGAL_FOOTER}}`,
+  },
 ]
