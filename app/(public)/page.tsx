@@ -134,6 +134,18 @@ export default async function HomePage() {
             <Link href="/marketplace/listings" style={ctaGold}>Browse All Listings →</Link>
             <Link href="/marketplace/sell" style={ctaGhost}>Get a Free Valuation</Link>
           </div>
+
+          {/* Brand 3D banner — the premium CONCORD wordmark */}
+          <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/og-3d.png"
+              alt="CONCORD — Buy or Sell a Business"
+              width={900}
+              height={472}
+              style={{ maxWidth: '100%', height: 'auto', borderRadius: 18, boxShadow: '0 30px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(201,168,76,0.35)' }}
+            />
+          </div>
         </div>
       </section>
 
