@@ -8,9 +8,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
 
@@ -57,19 +56,7 @@ const COMPONENT_LABELS: Record<string, string> = {
 
 const money = (n: number | null | undefined) => (n != null ? '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—')
 
-export default function ReadinessPage() {
-  return (
-    <AppShell active="Seller Readiness">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <SellerReadiness />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function SellerReadiness() {
+export function SellerReadinessPanel() {
   const toast = useToast()
   const [listings, setListings] = useState<{ id: string; label: string }[]>([])
   const [selected, setSelected] = useState('')

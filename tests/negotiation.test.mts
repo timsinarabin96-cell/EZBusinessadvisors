@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/negotiation.ts', 'utf8')
 const route = readFileSync('app/api/intelligence/negotiation/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/negotiation/page.tsx', 'utf8')
+const page = readFileSync('components/dealTerms/NegotiationAssistant.tsx', 'utf8')
 const schema = readFileSync('sql/negotiation_schema.sql', 'utf8')
 const offersLib = readFileSync('lib/offers.ts', 'utf8')
 
@@ -78,8 +78,6 @@ test('negotiation: API supports GET list and POST generate with auth broker', ()
 })
 
 test('negotiation: dashboard page picks offers, generates, and prints', () => {
-  assert.match(page, /AppShell active="Negotiation Assistant"/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext/)
   assert.match(page, /getStoredAccessToken/)

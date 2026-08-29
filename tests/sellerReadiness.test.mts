@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/sellerReadiness.ts', 'utf8')
 const route = readFileSync('app/api/intelligence/readiness/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/readiness/page.tsx', 'utf8')
+const page = readFileSync('components/listing/SellerReadinessPanel.tsx', 'utf8')
 const schema = readFileSync('sql/seller_readiness_schema.sql', 'utf8')
 
 test('seller readiness: computeReadiness never throws and returns a result envelope', () => {
@@ -78,8 +78,6 @@ test('seller readiness: API supports GET and POST with the auth broker', () => {
 })
 
 test('seller readiness: dashboard page has picker, score, action items, estimate', () => {
-  assert.match(page, /AppShell active="Seller Readiness"/)
-  assert.match(page, /ToastProvider/)
   assert.match(page, /useToast\(\)/)
   assert.match(page, /getAgencyContext/)
   assert.match(page, /api\/listings\/options/)

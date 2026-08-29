@@ -4,7 +4,7 @@ import test from 'node:test'
 
 const lib = readFileSync('lib/offers.ts', 'utf8')
 const route = readFileSync('app/api/offers/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/offer-lab/page.tsx', 'utf8')
+const page = readFileSync('components/dealTerms/OfferLab.tsx', 'utf8')
 const options = readFileSync('app/api/listings/options/route.ts', 'utf8')
 
 test('offer lab scores seller value heuristically', () => {
@@ -34,7 +34,7 @@ test('offer lab page is wired into dashboard nav', () => {
   assert.match(page, /Deal Offer Lab/)
   assert.match(page, /\/api\/offers/)
   const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
-  assert.match(shell, /dashboard\/offer-lab/)
+  assert.match(shell, /dashboard\/deal-terms/)
 })
 
 test('listing options endpoint feeds the offer picker', () => {

@@ -10,29 +10,38 @@
 import { useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { ToastProvider } from '@/components/ui/Toast'
-import ListingAdvisor from '@/components/listing/ListingAdvisorPanel'
-import { SellerReadinessPanel } from '@/components/listing/SellerReadinessPanel'
+import { LoiLab } from '@/components/dealTerms/LoiLab'
+import { OfferLab } from '@/components/dealTerms/OfferLab'
+import { NegotiationAssistant } from '@/components/dealTerms/NegotiationAssistant'
 
 // =============================================================================
-// Listing Advisor — one hub for seller-side prep: AI listability + valuation
-// (Listing Advisor) and the readiness-to-close funnel (Seller Readiness).
-// Previously two separate pages.
+// Deal Terms — one hub for the whole offer workflow: draft the offer (Offer
+// Lab), generate the Letter of Intent (LOI Lab), and get AI counter-offer
+// strategies (Negotiation). Previously three separate pages.
 // =============================================================================
 
 const TABS = [
-  { key: 'advisor', label: '🩺 Listing Advisor', hint: 'Worth listing? What to ask, value, CIM readiness' },
-  { key: 'readiness', label: '🚀 Seller Readiness', hint: 'Readiness-to-close funnel & blockers' },
+  { key: 'offers', label: '🧪 Offer Lab', hint: 'Draft offers with instant seller-value scoring' },
+  { key: 'loi', label: '📝 LOI Lab', hint: 'One click from accepted offer → professional LOI' },
+  { key: 'negotiation', label: '🧭 Negotiation', hint: 'AI counter-offer strategies with BATNA guidance' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
 
-export default function ListingAdvisorPage() {
-  const [tab, setTab] = useState<TabKey>('advisor')
+export default function DealTermsPage() {
+  const [tab, setTab] = useState<TabKey>('offers')
 
   return (
-    <AppShell active="Listing Advisor">
+    <AppShell active="Deal Terms">
       <ToastProvider>
         <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold">🤝 Deal Terms</h1>
+            <p className="text-gray-500 text-sm mt-1">
+              The whole offer workflow in one place — draft, send, negotiate, and close the terms.
+            </p>
+          </div>
+
           {/* Tab bar */}
           <div className="flex flex-col md:flex-row gap-2 mb-6 bg-white rounded-xl border border-gray-200 p-2">
             {TABS.map((t) => (
@@ -52,8 +61,9 @@ export default function ListingAdvisorPage() {
             ))}
           </div>
 
-          {tab === 'advisor' && <ListingAdvisor />}
-          {tab === 'readiness' && <SellerReadinessPanel />}
+          {tab === 'offers' && <OfferLab />}
+          {tab === 'loi' && <LoiLab />}
+          {tab === 'negotiation' && <NegotiationAssistant />}
         </div>
       </ToastProvider>
     </AppShell>

@@ -12,9 +12,8 @@
 // =============================================================================
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import MoneyInput from '@/components/ui/MoneyInput'
 
@@ -35,19 +34,7 @@ interface OfferRow {
 
 interface ListingOpt { id: string; label: string }
 
-export default function OfferLabPage() {
-  return (
-    <AppShell active="Offer Lab">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <OfferLab />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function OfferLab() {
+export function OfferLab() {
   const toast = useToast()
   const [offers, setOffers] = useState<OfferRow[]>([])
   const [listings, setListings] = useState<ListingOpt[]>([])

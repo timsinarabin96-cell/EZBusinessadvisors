@@ -5,7 +5,7 @@ import test from 'node:test'
 const schema = readFileSync('sql/listing_refs_reminders_schema.sql', 'utf8')
 const lib = readFileSync('lib/reminders.ts', 'utf8')
 const route = readFileSync('app/api/reminders/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/reminders/page.tsx', 'utf8')
+const page = readFileSync('components/calendar/RemindersPanel.tsx', 'utf8')
 const dashboard = readFileSync('components/listings/ListingsDashboard.tsx', 'utf8')
 
 test('listing refs: schema adds listing_ref, sequence, trigger, and backfill', () => {

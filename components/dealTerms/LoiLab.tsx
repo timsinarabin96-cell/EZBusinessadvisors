@@ -8,9 +8,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { renderLoiHtml } from '@/lib/loiRender'
 import { getStoredAccessToken } from '@/lib/authToken'
@@ -30,19 +29,7 @@ const money = (n: number | null | undefined) => (n != null ? '$' + Math.round(n)
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
-export default function LoiPage() {
-  return (
-    <AppShell active="LOI Lab">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <LoiLab />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function LoiLab() {
+export function LoiLab() {
   const toast = useToast()
   const [lois, setLois] = useState<LoiRow[]>([])
   const [offers, setOffers] = useState<OfferOpt[]>([])

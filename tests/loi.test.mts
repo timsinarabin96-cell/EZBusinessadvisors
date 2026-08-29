@@ -8,7 +8,7 @@ const lib = readFileSync('lib/loi.ts', 'utf8')
 // the client bundle); loi.ts re-exports it for server callers.
 const render = readFileSync('lib/loiRender.ts', 'utf8')
 const route = readFileSync('app/api/loi/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/loi/page.tsx', 'utf8')
+const page = readFileSync('components/dealTerms/LoiLab.tsx', 'utf8')
 const email = readFileSync('lib/email.ts', 'utf8')
 
 test('loi: schema is idempotent, agency-scoped, RLS-on', () => {

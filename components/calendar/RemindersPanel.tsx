@@ -8,9 +8,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
+import { useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
 
@@ -70,19 +69,7 @@ function entityLabel(r: Reminder): string {
   return ''
 }
 
-export default function RemindersPage() {
-  return (
-    <AppShell active="Reminders">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <Reminders />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function Reminders() {
+export function RemindersPanel() {
   const toast = useToast()
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [counts, setCounts] = useState<Counts | null>(null)

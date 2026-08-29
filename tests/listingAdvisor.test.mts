@@ -47,7 +47,7 @@ test('advisor API requires auth + agency membership and returns the report', () 
 })
 
 test('advisor dashboard page wires the picker + run + report sections', () => {
-  const page = readFileSync('app/dashboard/listing-advisor/page.tsx', 'utf8')
+  const page = readFileSync('components/listing/ListingAdvisorPanel.tsx', 'utf8')
   assert.match(page, /api\/listing-advisor/)
   assert.match(page, /api\/listings\/options/)
   assert.match(page, /Listability verdict/)
