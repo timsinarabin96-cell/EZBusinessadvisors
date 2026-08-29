@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
             agency_id: agencyId,
             call_session_id: dbSessionId,
             sequence: (Date.now() + 1) % 100000,
-            speaker: 'agent',
+            speaker: 'assistant',
             content: reply,
           })
           if (insErr) aiError = 'insert failed: ' + insErr.message
@@ -145,5 +145,5 @@ export async function POST(req: NextRequest) {
     console.error('[chat-widget] AI reply failed:', aiError)
   }
 
-  return NextResponse.json({ ok: true, sessionId, dbSessionId, _debug: { deepseekSet: Boolean(process.env.DEEPSEEK_API_KEY), deepseekLen: (process.env.DEEPSEEK_API_KEY || '').length, aiError } })
+  return NextResponse.json({ ok: true, sessionId, dbSessionId })
 }
