@@ -7,14 +7,15 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { authHeaders } from '@/lib/authToken'
 import type { IntakeDraft } from '@/lib/listingIntakeCore'
 import { SELLER_FORM_SCHEMAS } from '@/lib/sellerFormSchemas'
 import { computeValuation } from '@/lib/valuation'
+import { formatMoneyInput, parseMoneyInput, moneyChange } from '@/lib/moneyInput'
 import { supabase } from '@/lib/supabase/client'
-import { uploadListingDocument } from '@/lib/workflow'
+import { uploadListingDocument, fetchListingDocuments } from '@/lib/workflow'
 
 const fmtMoney = (n: number | null | undefined) =>
   n == null || isNaN(n) ? '—' : '$' + Math.round(n).toLocaleString('en-US')
@@ -104,19 +105,36 @@ export default function StudioConcierge({
 
   // ── Financial upload → quick valuation ────────────────────────────────
   const [uploading, setUploading] = useState(false)
-  const [uploaded, setUploaded] = useState<Array<{ name: string; url: string }>>([])
+  const [uploaded, setUploaded] = useState<Array<{ id: string; name: string; url: string }>>([])
+  const [preview, setPreview] = useState<{ name: string; url: string } | null>(null)
   const [sde, setSde] = useState('')
   const [revenue, setRevenue] = useState('')
   const [ebitda, setEbitda] = useState('')
   const [industry, setIndustry] = useState('')
   const estimate = computeValuation({
     business_name: null,
-    sde: sde ? Number(sde) : null,
-    annual_revenue: revenue ? Number(revenue) : null,
-    ebitda: ebitda ? Number(ebitda) : null,
+    sde: parseMoneyInput(sde),
+    annual_revenue: parseMoneyInput(revenue),
+    ebitda: parseMoneyInput(ebitda),
     industry: industry || null,
     asking_price: null,
   })
+
+  // Load financial docs already attached to this deal record.
+  useEffect(() => {
+    if (!listingId) return
+    ;(async () => {
+      try {
+        const rows = await fetchListingDocuments(listingId)
+        const financials = (rows || []).filter((d) =>
+          /financial|tax_return|bank_statement/i.test(String(d.document_type || d.category || '')),
+        )
+        setUploaded(financials.map((d) => ({ id: String(d.id || ''), name: String(d.file_name || 'document'), url: String(d.file_url || '') })))
+      } catch {
+        /* non-fatal */
+      }
+    })()
+  }, [listingId])
 
   const uploadFinancial = async (f: File) => {
     if (!listingId) { toast('Save the deal record first, then upload financials here.', 'info'); return }
@@ -126,11 +144,32 @@ export default function StudioConcierge({
       const { error: upErr } = await supabase.storage.from('documents').upload(path, f)
       if (upErr) { toast('Upload failed — check the documents bucket', 'error'); return }
       const url = supabase.storage.from('documents').getPublicUrl(path).data.publicUrl
-      await uploadListingDocument(listingId, { document_type: 'financial_proof', file_name: f.name, file_url: url, party_type: 'seller' })
-      setUploaded((p) => [{ name: f.name, url }, ...p])
+      const row = await uploadListingDocument(listingId, { document_type: 'financial_proof', file_name: f.name, file_url: url, party_type: 'seller' })
+      setUploaded((p) => [{ id: String(row?.id || ''), name: f.name, url }, ...p])
       toast(`Financial doc uploaded — ${f.name}`, 'success')
     } catch (e: any) {
       toast(e.message || 'Upload failed', 'error')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const deleteFinancial = async (doc: { id: string; name: string; url: string }) => {
+    if (!listingId || !doc.id) { toast('Nothing to delete', 'error'); return }
+    if (!confirm(`Delete "${doc.name}"? This removes it from the deal record and storage.`)) return
+    setUploading(true)
+    try {
+      const res = await fetch('/api/listings/documents/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, docId: doc.id, fileUrl: doc.url }),
+      })
+      const j = await res.json().catch(() => ({ ok: false }))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Delete failed')
+      setUploaded((p) => p.filter((x) => x.id !== doc.id))
+      toast(`Deleted — ${doc.name}`, 'success')
+    } catch (e: any) {
+      toast(e.message || 'Delete failed', 'error')
     } finally {
       setUploading(false)
     }
@@ -289,16 +328,24 @@ export default function StudioConcierge({
             {!listingId && <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>Save the deal record first to attach uploads.</span>}
           </div>
           {uploaded.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
               {uploaded.map((u) => (
-                <a key={u.url} href={u.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#7dd3fc', fontWeight: 600 }}>📎 {u.name} ↗</a>
+                <div key={u.id || u.url} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '6px 10px' }}>
+                  <span style={{ fontSize: 13 }}>📎</span>
+                  <span style={{ flex: 1, fontSize: 12, color: '#e2e8f0', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                  <button onClick={() => setPreview({ name: u.name, url: u.url })} style={{ background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.4)', color: '#93c5fd', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>👁 Preview</button>
+                  <button onClick={() => deleteFinancial(u)} disabled={uploading} style={{ background: 'rgba(220,38,38,0.15)', border: '1px solid rgba(220,38,38,0.4)', color: '#fca5a5', borderRadius: 6, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>✕ Delete</button>
+                </div>
               ))}
             </div>
           )}
+          {uploaded.length === 0 && listingId && (
+            <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>No financials attached yet — upload P&L or tax returns above.</div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
-            <input value={sde} onChange={(e) => setSde(e.target.value)} placeholder="SDE" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
-            <input value={revenue} onChange={(e) => setRevenue(e.target.value)} placeholder="Annual revenue" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
-            <input value={ebitda} onChange={(e) => setEbitda(e.target.value)} placeholder="EBITDA (opt.)" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
+            <input value={formatMoneyInput(sde)} onChange={moneyChange(setSde)} placeholder="SDE" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
+            <input value={formatMoneyInput(revenue)} onChange={moneyChange(setRevenue)} placeholder="Annual revenue" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
+            <input value={formatMoneyInput(ebitda)} onChange={moneyChange(setEbitda)} placeholder="EBITDA (opt.)" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} inputMode="numeric" />
             <input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Industry (opt.)" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 12.5 }} />
           </div>
           {estimate ? (
@@ -364,6 +411,26 @@ export default function StudioConcierge({
               <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)' }}>Public copy stays anonymous — never the legal name, address, or owner.</span>
             </div>
           </>
+        )}
+
+        {preview && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,11,23,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 24 }} onClick={() => setPreview(null)}>
+            <div style={{ background: '#fff', borderRadius: 12, maxWidth: 860, width: '100%', maxHeight: '90vh', overflow: 'auto', padding: 18 }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>👁 {preview.name}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <a href={preview.url} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 700, color: '#1d4ed8' }}>Open in new tab ↗</a>
+                  <button onClick={() => setPreview(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999' }}>✕</button>
+                </div>
+              </div>
+              {/\.(png|jpe?g|gif|webp|svg)$/i.test(preview.url) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview.url} alt={preview.name} style={{ width: '100%', borderRadius: 8 }} />
+              ) : (
+                <iframe src={preview.url} title={preview.name} style={{ width: '100%', height: '70vh', border: '1px solid #ece8dc', borderRadius: 8 }} />
+              )}
+            </div>
+          </div>
         )}
 
         {/* Extracted-field preview chips */}

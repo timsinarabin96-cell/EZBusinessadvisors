@@ -12,6 +12,7 @@ import { fetchTemplates, fetchDocuments, fetchSignatures, createDocument, update
 import { fetchListing, type Listing } from '@/lib/listings'
 import SignaturePad from './SignaturePad'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 
 // =============================================================================
 // Deal Docs & eSign — per-listing legal pack hub (like DocuSign).
@@ -369,13 +370,13 @@ export default function DealDocsPanel({ listingId }: { listingId: string }) {
             {seller.commissionType === 'Flat Fee' && (
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
                 Flat fee ($)
-                <input className="input" type="number" value={seller.commissionFlat} onChange={(e) => setSeller({ ...seller, commissionFlat: Number(e.target.value) })} style={{ fontSize: 13 }} />
+                <input className="input" inputMode="decimal" value={formatMoneyInput(seller.commissionFlat != null ? String(seller.commissionFlat) : '')} onChange={moneyChange((v) => setSeller({ ...seller, commissionFlat: v ? Number(v) : null }))} style={{ fontSize: 13 }} />
               </label>
             )}
             {(seller.commissionType === 'Percentage with Minimum' || seller.commissionType === 'Percentage or Minimum, Whichever is Greater') && (
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
                 Minimum commission ($)
-                <input className="input" type="number" value={seller.commissionMin} onChange={(e) => setSeller({ ...seller, commissionMin: Number(e.target.value) })} style={{ fontSize: 13 }} />
+                <input className="input" inputMode="decimal" value={formatMoneyInput(seller.commissionMin != null ? String(seller.commissionMin) : '')} onChange={moneyChange((v) => setSeller({ ...seller, commissionMin: v ? Number(v) : null }))} style={{ fontSize: 13 }} />
               </label>
             )}
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>

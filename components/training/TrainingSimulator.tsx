@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { Card, CardHeader, LoadingState, Badge } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
+import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 
 interface ScenarioFinancials {
   net_profit: number
@@ -142,7 +143,7 @@ export default function TrainingSimulator() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 14 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#555' }}>
             Recast SDE ($)
-            <input value={sde} onChange={(e) => setSde(e.target.value)} placeholder="e.g. 154200" inputMode="numeric" style={field} />
+            <input value={formatMoneyInput(sde)} onChange={moneyChange(setSde)} placeholder="e.g. 154,200" inputMode="numeric" style={field} />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#555' }}>
             Multiple (× SDE)

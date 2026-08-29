@@ -20,6 +20,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState } from '@/components/ui'
+import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 
 interface ExtractionRow {
   id: string
@@ -177,7 +178,7 @@ export default function ExtractionReview({ listingId }: { listingId: string }) {
                   {(['revenueTotal', 'expenseTotal', 'sde', 'ebitda', 'assets', 'liabilities'] as const).map((k) => (
                     <div key={k}>
                       <label style={{ fontSize: 10.5, fontWeight: 700, color: '#94a3b8', display: 'block', marginBottom: 3, textTransform: 'uppercase' }}>{k.replace(/([A-Z])/g, ' $1')}</label>
-                      <input style={inputStyle} inputMode="decimal" value={form[k]} placeholder="0" onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+                      <input style={inputStyle} inputMode="decimal" value={formatMoneyInput(form[k])} placeholder="0" onChange={moneyChange((v) => setForm({ ...form, [k]: v }))} />
                     </div>
                   ))}
                 </div>

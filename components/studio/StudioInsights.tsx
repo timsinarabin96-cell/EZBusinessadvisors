@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { authHeaders } from '@/lib/authToken'
+import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 
 // =============================================================================
 // StudioInsights — the advanced AI rail cards for the AI Deal Studio.
@@ -528,7 +529,7 @@ export function ClosingCostCard({ purchasePrice }: { purchasePrice?: number | nu
     <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
       <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 6 }}>💰 Closing cost estimate</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-        <input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} style={{ flex: 1, padding: '9px 10px', borderRadius: 8, border: '1px solid #d8dee6', fontSize: 12.5, fontFamily: 'inherit' }} />
+        <input value={formatMoneyInput(price != null ? String(price) : '')} onChange={moneyChange((v) => setPrice(v ? Number(v) : null))} inputMode="decimal" placeholder="Purchase price ($)" style={{ flex: 1, padding: '9px 10px', borderRadius: 8, border: '1px solid #d8dee6', fontSize: 12.5, fontFamily: 'inherit' }} />
         <button onClick={compute} style={{ padding: '9px 14px', borderRadius: 8, background: '#0e7490', color: '#fff', border: 'none', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }}>
           Estimate
         </button>

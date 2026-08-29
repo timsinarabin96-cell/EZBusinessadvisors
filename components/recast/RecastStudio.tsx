@@ -15,7 +15,8 @@ import {
   recastFinancials, fmt$, fmt$K,
 } from '@/lib/recast'
 import { UploadedFinancialDoc, uploadFinancialDocument, extractFinancialDocument } from '@/lib/recastDocs'
-import MoneyInput from '@/components/ui/MoneyInput'
+import MoneyInput, { formatWithCommas } from '@/components/ui/MoneyInput'
+import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 import { fetchListings, Listing } from '@/lib/listings'
 import { saveRecastProject } from '@/lib/recast'
 import { exportRecastToPdf } from '@/lib/pdfExport'
@@ -345,14 +346,14 @@ export default function RecastStudio() {
                   {years.length > 1 && <button className="btn btn-danger" onClick={() => removeYear(idx)} style={{ padding: '4px 8px' }}>✕</button>}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-                  <input className="input" placeholder="Revenue" value={y.grossRevenue} onChange={(e) => setYear(idx, 'grossRevenue', e.target.value)} />
-                  <input className="input" placeholder="COGS" value={y.cogs} onChange={(e) => setYear(idx, 'cogs', e.target.value)} />
-                  <input className="input" placeholder="Op. Expenses" value={y.operatingExpenses} onChange={(e) => setYear(idx, 'operatingExpenses', e.target.value)} />
-                  <input className="input" placeholder="Owner Comp" value={y.ownerComp} onChange={(e) => setYear(idx, 'ownerComp', e.target.value)} />
-                  <input className="input" placeholder="Depreciation" value={y.depreciation} onChange={(e) => setYear(idx, 'depreciation', e.target.value)} />
-                  <input className="input" placeholder="Interest" value={y.interest} onChange={(e) => setYear(idx, 'interest', e.target.value)} />
-                  <input className="input" placeholder="Other Exp" value={y.otherExpenses} onChange={(e) => setYear(idx, 'otherExpenses', e.target.value)} />
-                  <input className="input" placeholder="Net Income (opt)" value={y.netIncome} onChange={(e) => setYear(idx, 'netIncome', e.target.value)} />
+                  <input className="input" placeholder="Revenue" value={formatMoneyInput(y.grossRevenue)} onChange={moneyChange((v) => setYear(idx, 'grossRevenue', v))} />
+                  <input className="input" placeholder="COGS" value={formatMoneyInput(y.cogs)} onChange={moneyChange((v) => setYear(idx, 'cogs', v))} />
+                  <input className="input" placeholder="Op. Expenses" value={formatMoneyInput(y.operatingExpenses)} onChange={moneyChange((v) => setYear(idx, 'operatingExpenses', v))} />
+                  <input className="input" placeholder="Owner Comp" value={formatMoneyInput(y.ownerComp)} onChange={moneyChange((v) => setYear(idx, 'ownerComp', v))} />
+                  <input className="input" placeholder="Depreciation" value={formatMoneyInput(y.depreciation)} onChange={moneyChange((v) => setYear(idx, 'depreciation', v))} />
+                  <input className="input" placeholder="Interest" value={formatMoneyInput(y.interest)} onChange={moneyChange((v) => setYear(idx, 'interest', v))} />
+                  <input className="input" placeholder="Other Exp" value={formatMoneyInput(y.otherExpenses)} onChange={moneyChange((v) => setYear(idx, 'otherExpenses', v))} />
+                  <input className="input" placeholder="Net Income (opt)" value={formatMoneyInput(y.netIncome)} onChange={moneyChange((v) => setYear(idx, 'netIncome', v))} />
                 </div>
               </div>
             ))}

@@ -9,6 +9,7 @@
 
 import { useState } from 'react'
 import { getBuyerProfile, saveBuyerProfile, clearBuyerProfile, type BuyerProfile } from '@/lib/publicFavorites'
+import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 
 /**
  * "Refine my matches" — visitor sets a buyer profile (stored in the browser)
@@ -70,20 +71,20 @@ export default function MatchProfilePanel({ industries }: { industries: string[]
           <div>
             <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Max price ($)</div>
             <input
-              value={profile.max_price ?? ''}
-              onChange={(e) => setProfile({ ...profile, max_price: e.target.value ? Number(e.target.value) : null })}
-              type="number"
-              placeholder="500000"
+              value={formatMoneyInput(profile.max_price != null ? String(profile.max_price) : '')}
+              onChange={moneyChange((v) => setProfile({ ...profile, max_price: v ? Number(v) : null }))}
+              inputMode="decimal"
+              placeholder="500,000"
               style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', border: '1px solid #d8d2c2', borderRadius: 6, fontSize: 13, outline: 'none' }}
             />
           </div>
           <div>
             <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Min SDE ($)</div>
             <input
-              value={profile.min_sde ?? ''}
-              onChange={(e) => setProfile({ ...profile, min_sde: e.target.value ? Number(e.target.value) : null })}
-              type="number"
-              placeholder="100000"
+              value={formatMoneyInput(profile.min_sde != null ? String(profile.min_sde) : '')}
+              onChange={moneyChange((v) => setProfile({ ...profile, min_sde: v ? Number(v) : null }))}
+              inputMode="decimal"
+              placeholder="100,000"
               style={{ width: '100%', boxSizing: 'border-box', padding: '9px 11px', border: '1px solid #d8d2c2', borderRadius: 6, fontSize: 13, outline: 'none' }}
             />
           </div>

@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { Card, CardHeader, LoadingState, Badge } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
+import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 
 interface RoleplayRole {
   side: 'buyer' | 'seller'
@@ -120,7 +121,7 @@ export default function TrainingRoleplay() {
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 14 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 700, color: '#555' }}>
             Your final agreed price ($)
-            <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g. 300000" inputMode="numeric" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14, outline: 'none', background: '#fff', color: 'var(--ink)' }} />
+            <input value={formatMoneyInput(price)} onChange={moneyChange(setPrice)} placeholder="e.g. 300,000" inputMode="numeric" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--line)', fontSize: 14, outline: 'none', background: '#fff', color: 'var(--ink)' }} />
           </label>
           <button onClick={submit} disabled={grading} style={{ padding: '11px 22px', borderRadius: 8, background: 'var(--gold)', color: 'var(--navy)', border: 'none', fontWeight: 800, fontSize: 14, cursor: grading ? 'wait' : 'pointer' }}>
             {grading ? 'Grading…' : 'Lock it in'}

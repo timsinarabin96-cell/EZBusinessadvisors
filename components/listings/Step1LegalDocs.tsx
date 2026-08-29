@@ -13,6 +13,7 @@ import { uploadListingDocument, fetchListingDocuments, completeStep } from '@/li
 import { supabase } from '@/lib/supabase/client'
 import DealDocsPanel from '@/components/documents/DealDocsPanel'
 import { computeValuation } from '@/lib/valuation'
+import { formatMoneyInput, parseMoneyInput, moneyChange } from '@/lib/moneyInput'
 import { getStoredAccessToken } from '@/lib/authToken'
 
 const fmtMoney = (n: number | null | undefined) =>
@@ -104,9 +105,9 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
   const [industry, setIndustry] = useState('')
   const estimate = computeValuation({
     business_name: null,
-    sde: sde ? Number(sde) : null,
-    annual_revenue: revenue ? Number(revenue) : null,
-    ebitda: ebitda ? Number(ebitda) : null,
+    sde: parseMoneyInput(sde),
+    annual_revenue: parseMoneyInput(revenue),
+    ebitda: parseMoneyInput(ebitda),
     industry: industry || null,
     asking_price: null,
   })
@@ -157,15 +158,15 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
           <div>
             <label style={stepLabel}>SDE (seller's discretionary earnings)</label>
-            <input value={sde} onChange={(e) => setSde(e.target.value)} placeholder="e.g. 120000" style={stepField} inputMode="numeric" />
+            <input value={formatMoneyInput(sde)} onChange={moneyChange(setSde)} placeholder="e.g. 120,000" style={stepField} inputMode="numeric" />
           </div>
           <div>
             <label style={stepLabel}>Annual revenue</label>
-            <input value={revenue} onChange={(e) => setRevenue(e.target.value)} placeholder="e.g. 500000" style={stepField} inputMode="numeric" />
+            <input value={formatMoneyInput(revenue)} onChange={moneyChange(setRevenue)} placeholder="e.g. 500,000" style={stepField} inputMode="numeric" />
           </div>
           <div>
             <label style={stepLabel}>EBITDA (optional)</label>
-            <input value={ebitda} onChange={(e) => setEbitda(e.target.value)} placeholder="e.g. 80000" style={stepField} inputMode="numeric" />
+            <input value={formatMoneyInput(ebitda)} onChange={moneyChange(setEbitda)} placeholder="e.g. 80,000" style={stepField} inputMode="numeric" />
           </div>
           <div>
             <label style={stepLabel}>Industry (optional)</label>
