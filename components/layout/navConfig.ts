@@ -50,9 +50,7 @@ export const NAV: NavItem[] = [
   { href: '/leads', label: 'Lead Management', icon: '🎯', minRole: 'agent', group: 'Deals & Listings', core: true, keywords: 'buyers contacts prospects' },
   { href: '/dashboard/seller-leads', label: 'Seller Leads', icon: '🏷️', minRole: 'agent', group: 'Deals & Listings', keywords: 'sellers prospects' },
   { href: '/dashboard/deal-terms', label: 'Deal Terms', icon: '🤝', minRole: 'broker', group: 'Deals & Listings', keywords: 'offer lab loi negotiation letter of intent terms structure counter' },
-  { href: '/dashboard/nda-requests', label: 'NDA Requests', icon: '🛡️', minRole: 'agent', group: 'Deals & Listings', keywords: 'non disclosure confidentiality' },
-  { href: '/dashboard/nda', label: 'NDAs', icon: '📄', minRole: 'agent', group: 'Deals & Listings', keywords: 'non disclosure nda sign confidentiality buyer qualify' },
-  { href: '/dashboard/listing-agreements', label: 'Listing Agreements', icon: '📋', minRole: 'agent', group: 'Deals & Listings', keywords: 'listing agreement exclusive sign seller publish gate' },
+  { href: '/dashboard/deal-docs', label: 'Deal Docs', icon: '📄', minRole: 'agent', group: 'Deals & Listings', keywords: 'nda non disclosure confidentiality buyer qualify listing agreement exclusive sign approve requests' },
   { href: '/dashboard/closing', label: 'Closing Tracker', icon: '🏁', minRole: 'broker', group: 'Deals & Listings', keywords: 'escrow closing checklist' },
 
   { href: '/dashboard/valuation', label: 'Valuation', icon: '📐', minRole: 'broker', group: 'Deals & Listings', keywords: 'value worth pricing comps comparables multiples sellable reports client' },

@@ -6,7 +6,7 @@ const schema = readFileSync('sql/nda_access_schema.sql', 'utf8')
 const lib = readFileSync('lib/ndaAccess.ts', 'utf8')
 const route = readFileSync('app/api/data-rooms/access-request/route.ts', 'utf8')
 const reviewRoute = readFileSync('app/api/data-rooms/access-request/review/route.ts', 'utf8')
-const page = readFileSync('app/dashboard/nda-requests/page.tsx', 'utf8')
+const page = readFileSync('components/dealdocs/NdaRequestsPanel.tsx', 'utf8')
 const email = readFileSync('lib/email.ts', 'utf8')
 
 test('nda: schema is idempotent, agency-scoped, RLS-on, anon revoked', () => {

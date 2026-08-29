@@ -140,7 +140,7 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
         {laStatus === 'pending' && (
           <div style={{ marginTop: 10, fontSize: 13, color: '#92400e' }}>
             ⏳ Seller hasn't signed yet. You can keep filling the listing — it just can't go live until they do. When they sign, approve it from the{' '}
-            <a href="/dashboard/listing-agreements" style={{ color: 'var(--navy)', fontWeight: 700 }}>Listing Agreements page</a>.
+            <a href="/dashboard/deal-docs" style={{ color: 'var(--navy)', fontWeight: 700 }}>Listing Agreements page</a>.
           </div>
         )}
         {laStatus === 'signed' && (

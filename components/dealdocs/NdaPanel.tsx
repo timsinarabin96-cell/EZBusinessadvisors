@@ -8,10 +8,9 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import AppShell from '@/components/layout/AppShell'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
-import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { useToast } from '@/components/ui/Toast'
 
 interface NdaDoc {
   id: string
@@ -33,19 +32,7 @@ interface NdaDoc {
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
-export default function NdaPage() {
-  return (
-    <AppShell active="NDAs">
-      <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
-          <NdaBoard />
-        </div>
-      </ToastProvider>
-    </AppShell>
-  )
-}
-
-function NdaBoard() {
+export function NdaPanel() {
   const toast = useToast()
   const [ndas, setNdas] = useState<NdaDoc[]>([])
   const [loading, setLoading] = useState(true)

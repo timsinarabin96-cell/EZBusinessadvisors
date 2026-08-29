@@ -25,6 +25,7 @@ const DASHBOARD_ROUTES = [
   '/dashboard/certificates',
   '/dashboard/closing',
   '/dashboard/deal-terms',
+  '/dashboard/deal-docs',
   '/dashboard/command-center',
   '/dashboard/communications',
   '/dashboard/documents',
