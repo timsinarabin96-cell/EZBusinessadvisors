@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageListing, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { runWatchlistMatching } from '@/lib/watchlist'
 
 export const runtime = 'nodejs'
@@ -44,9 +44,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'listingId and a valid action are required' }, { status: 400 })
   }
 
-  const { data: listing } = await db.from('listings').select('id, agency_id, status').eq('id', listingId).maybeSingle()
+  const { data: listing } = await db.from('listings').select('id, agency_id, agent_id, status').eq('id', listingId).maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'listing not found' }, { status: 404 })
-  if (!canManageAgency(authenticated, listing.agency_id)) return forbiddenResponse()
+  // Brokers (not just owner/admin) review and approve their agency's listings.
+  if (!canManageListing(authenticated, { agency_id: listing.agency_id, agent_id: listing.agent_id ?? null })) return forbiddenResponse()
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
   if (action === 'approve') {
