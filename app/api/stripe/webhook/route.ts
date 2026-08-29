@@ -259,6 +259,70 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // --- Marketing Materials Store: confirm payment → record order + profit ---
+  // and AUTO-SEND the supplier work order (fully hands-off for the owner).
+  if (kind === 'store_order') {
+    const productId = String(metadata?.productId || '')
+    const productName = String(metadata?.productName || 'Store product')
+    const quantity = Math.max(1, parseInt(String(metadata?.quantity || '1'), 10) || 1)
+    const ship = {
+      name: String(metadata?.shipName || ''),
+      line1: String(metadata?.shipLine1 || ''),
+      line2: String(metadata?.shipLine2 || ''),
+      city: String(metadata?.shipCity || ''),
+      state: String(metadata?.shipState || ''),
+      zip: String(metadata?.shipZip || ''),
+    }
+    const { data: product } = productId
+      ? await db.from('store_products').select('*').eq('id', productId).maybeSingle()
+      : { data: null }
+    const unitCost = Number(product?.cost_price || 0)
+    const unitSell = Number(product?.sell_price || 0)
+    const subtotal = Math.round(unitSell * quantity * 100) / 100
+    const costTotal = Math.round(unitCost * quantity * 100) / 100
+    const profit = Math.round((subtotal - costTotal) * 100) / 100
+    const workOrderRef = `WO-${Date.now().toString(36).toUpperCase()}`
+
+    const { data: orderRow, error: orderErr } = await db.from('store_orders').insert({
+      user_id: profileId,
+      agency_id: clientRef || null,
+      product_id: productId || null,
+      product_name: productName,
+      quantity,
+      unit_cost: unitCost,
+      unit_sell: unitSell,
+      subtotal,
+      cost_total: costTotal,
+      profit,
+      shipping_address: ship,
+      status: 'paid',
+      work_order_ref: workOrderRef,
+      stripe_session_id: session?.id || null,
+    }).select().maybeSingle()
+    if (orderErr) {
+      return NextResponse.json({ ok: false, error: `order insert failed: ${orderErr.message}` }, { status: 500 })
+    }
+
+    // Auto-send the work order to the configured supplier (fire-and-forget).
+    const { dispatchStoreWorkOrder } = await import('@/lib/storeWorkOrder')
+    await dispatchStoreWorkOrder({
+      orderId: orderRow.id,
+      workOrderRef,
+      productName,
+      quantity,
+      unitCost,
+      shipping: ship,
+      customerEmail: email,
+    }).catch(() => {})
+
+    // Mark work_order_sent only when the supplier email is configured.
+    const { data: supplierCfg } = await db.from('store_settings').select('value').eq('key', 'supplier_email').maybeSingle()
+    if (supplierCfg?.value) {
+      await db.from('store_orders').update({ status: 'work_order_sent' }).eq('id', orderRow.id)
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   // 1) Activate / upsert the subscription.
   const periodEnd = new Date(Date.now() + 30 * 86400000).toISOString()
 

@@ -9,7 +9,26 @@ import { NextResponse } from 'next/server'
 import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
 import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
-import type { StudioDesignData, MarketingCategory } from '@/lib/marketing'
+
+// Local minimal types (the old lib/marketing module was removed — the new
+// Marketing Store has its own catalog; this route only needs the shape to
+// return AI-drafted copy for the social caption studio / flyer text).
+type MarketingCategory = 'business_cards' | 'banners' | 'brochures' | 'envelopes' | 'flyers' | 'postcards' | 'signage' | 'promo' | 'apparel' | 'stationery'
+interface StudioBrand { primaryColor: string; secondaryColor: string; accentColor: string; font: string; logoUrl: string | null }
+interface StudioDesignData {
+  productId: string
+  designName: string
+  brand: StudioBrand
+  text: {
+    headline: string; tagline: string; name: string; title: string; company: string
+    phone: string; email: string; website: string; address: string; body?: string; cta?: string
+  }
+  sides: 'front' | 'back'
+  qr: { enabled: boolean; url: string }
+  variantSelections: Record<string, string>
+  layout: string
+  aiGenerated?: boolean
+}
 
 // =============================================================================
 // POST /api/ai/marketing-copy

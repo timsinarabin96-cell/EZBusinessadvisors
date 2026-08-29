@@ -60,7 +60,11 @@ export const NAV: NavItem[] = [
   { href: '/dashboard/reports', label: 'Reports & Diligence', icon: '📑', minRole: 'broker', group: 'Clients & Docs', keywords: 'recast adjusted earnings sde cim confidential information memorandum bov broker opinion value due diligence checklist review' },
   { href: '/dashboard/financial-files', label: 'Financial Files', icon: '🗂️', minRole: 'broker', group: 'Clients & Docs', keywords: 'financials statements tax' },
   // ── MARKETING & GROWTH ────────────────────────────────────
-  { href: '/dashboard/marketing', label: 'Marketing', icon: '🖨️', minRole: 'broker', group: 'Marketing & Growth', core: true, keywords: 'campaigns ads social facebook instagram newspaper blog nurture drips syndication email templates store' },
+  { href: '/dashboard/marketing', label: 'Marketing', icon: '📣', minRole: 'broker', group: 'Marketing & Growth', core: true, keywords: 'social facebook instagram newspaper blog nurture drips syndication email templates campaigns ads' },
+  { href: '/dashboard/store', label: 'Marketing Store', icon: '🛍️', minRole: 'broker', group: 'Marketing & Growth', core: true, keywords: 'store order marketing materials flyers postcards business cards brochures banners signage print supplier work order' },
+  { href: '/dashboard/store/orders', label: 'Store Orders', icon: '📦', minRole: 'broker', group: 'Marketing & Growth', keywords: 'orders status tracking shipped work order print' },
+  { href: '/dashboard/store/profits', label: 'Store Profits', icon: '📈', minRole: 'admin', group: 'Marketing & Growth', keywords: 'profit revenue cost margins store dashboard earnings' },
+  { href: '/dashboard/newspaper', label: 'Newspaper', icon: '📰', minRole: 'broker', group: 'Marketing & Growth', keywords: 'weekly newspaper edition subscribers email briefing newsletter' },
   // ── TEAM & OFFICE ─────────────────────────────────────────
   { href: '/dashboard/calendar', label: 'Calendar', icon: '📅', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'schedule meetings calls phone reminders call-backs follow up tasks' },
   { href: '/dashboard/communications', label: 'Communications', icon: '🗒️', minRole: 'agent', group: 'Team & Office', core: true, keywords: 'inbox messages' },

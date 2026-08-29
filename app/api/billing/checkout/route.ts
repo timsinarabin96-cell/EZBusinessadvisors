@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
   const result = await createCheckoutSession({
     agencyId,
     items: body.items || [],
-    successUrl: body.successUrl || `${req.nextUrl.origin}/dashboard/marketing?checkout=success`,
-    cancelUrl: body.cancelUrl || `${req.nextUrl.origin}/dashboard/marketing?checkout=cancelled`,
+    successUrl: body.successUrl || `${req.nextUrl.origin}/dashboard/store?checkout=success`,
+    cancelUrl: body.cancelUrl || `${req.nextUrl.origin}/dashboard/store?checkout=cancelled`,
     metadata: body.metadata || {},
     customerEmail: body.customerEmail || auth.user.email,
   })

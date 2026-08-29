@@ -53,8 +53,8 @@ test('uploads: portal + data-room enforce size caps and type allowlists', () => 
 test('ai: chat + marketing routes require a signed-in session', () => {
   const chat = readFileSync('app/api/ai/chat/route.ts', 'utf8')
   const copy = readFileSync('app/api/ai/marketing-copy/route.ts', 'utf8')
-  const designs = readFileSync('app/api/ai/marketing-designs/route.ts', 'utf8')
-  for (const src of [chat, copy, designs]) {
+  const storeCheckout = readFileSync('app/api/store/checkout/route.ts', 'utf8')
+  for (const src of [chat, copy, storeCheckout]) {
     assert.match(src, /authenticateProfileRequest/)
     assert.match(src, /unauthorizedResponse\(\)/)
   }

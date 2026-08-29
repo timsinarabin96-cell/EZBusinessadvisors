@@ -9,7 +9,6 @@
 
 import { useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import MarketingStore from '@/components/marketing/MarketingStore'
 import { SocialPanel } from '@/components/marketing/panels/SocialPanel'
 import { NewspaperPanel } from '@/components/marketing/panels/NewspaperPanel'
 import { BlogPanel } from '@/components/marketing/panels/BlogPanel'
@@ -18,13 +17,12 @@ import { SyndicationPanel } from '@/components/marketing/panels/SyndicationPanel
 import { EmailTemplatesPanel } from '@/components/marketing/panels/EmailTemplatesPanel'
 
 // =============================================================================
-// Marketing — one hub for growth: store (design & merch), social, weekly
-// newspaper, blog, nurture drips, syndication, and email templates.
-// Previously seven separate pages.
+// Marketing — growth tools hub: social, weekly newspaper, blog, nurture drips,
+// syndication, and email templates. (The materials STORE moved to its own
+// advanced automated system at /dashboard/store — see lib/store.ts.)
 // =============================================================================
 
 const TABS = [
-  { key: 'store', label: '🖨️ Store', hint: 'Marketing products & designs' },
   { key: 'social', label: '📣 Social', hint: 'Post to Facebook / Instagram' },
   { key: 'newspaper', label: '📰 Newspaper', hint: 'Weekly editions & subscribers' },
   { key: 'blog', label: '📝 Blog', hint: 'Articles & insights' },
@@ -36,12 +34,20 @@ const TABS = [
 type TabKey = (typeof TABS)[number]['key']
 
 export default function MarketingPage() {
-  const [tab, setTab] = useState<TabKey>('store')
+  const [tab, setTab] = useState<TabKey>('social')
 
   return (
     <AppShell active="Marketing">
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 18px 60px' }}>
-        {/* Tab bar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1a1a2e', margin: 0, fontFamily: 'Georgia, serif' }}>Marketing & Growth</h1>
+            <p style={{ color: '#888', margin: '4px 0 0', fontSize: 13 }}>
+              Social, newspaper, blog, nurture, syndication & templates — order materials in the <a href="/dashboard/store" style={{ color: '#c9a84c', fontWeight: 700 }}>Marketing Store</a>.
+            </p>
+          </div>
+        </div>
+
         <div className="flex flex-col md:flex-row gap-2 mb-4 bg-white rounded-xl border border-gray-200 p-2">
           {TABS.map((t) => (
             <button
@@ -60,7 +66,6 @@ export default function MarketingPage() {
           ))}
         </div>
 
-        {tab === 'store' && <MarketingStore />}
         {tab === 'social' && <SocialPanel />}
         {tab === 'newspaper' && <NewspaperPanel />}
         {tab === 'blog' && <BlogPanel />}
