@@ -58,7 +58,7 @@ export default function FavoritesPage() {
       ) : (
         <>
           <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>{listings.length} saved listing{listings.length !== 1 ? 's' : ''}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
             {listings.map((l) => (
               <div key={l.id} style={{ position: 'relative' }}>
                 <PublicListingCard listing={l} />

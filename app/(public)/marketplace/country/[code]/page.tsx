@@ -83,7 +83,7 @@ export default async function CountryPage({ params }: { params: Promise<{ code: 
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
           {matches.map((l) => (
             <PublicListingCard key={l.id} listing={l} />
           ))}

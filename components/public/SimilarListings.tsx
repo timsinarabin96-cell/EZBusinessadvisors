@@ -69,7 +69,7 @@ export default function SimilarListings({ listing }: { listing: PublicMarketplac
           View all {listing.industry || 'similar'} →
         </Link>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
         {similar.map((l) => (
           <PublicListingCard key={l.id} listing={l} />
         ))}

@@ -50,7 +50,7 @@ export default function PnlBuilderPage() {
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <PublicPnlBuilder />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginTop: 40 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 16, marginTop: 40 }}>
             {[
               ['🧾', 'Broker-standard recast', 'Owner salary, discretionary perks, one-time expenses — the exact add-backs a buyer\u2019s lender and broker will use.'],
               ['🔍', 'Know your number first', 'Sellers who know their SDE negotiate from strength. Most owners under-value their earnings by 20–40%.'],

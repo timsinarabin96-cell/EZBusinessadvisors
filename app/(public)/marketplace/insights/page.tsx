@@ -37,7 +37,7 @@ export default async function InsightsPage() {
 
       {/* Post grid */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '52px 24px 80px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 22 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 22 }}>
           {posts.map((p) => (
             <Link key={p.slug} href={`/marketplace/insights/${p.slug}`} style={{ textDecoration: 'none' }}>
               <article style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 26, height: '100%', display: 'flex', flexDirection: 'column', transition: 'box-shadow .15s, transform .15s', boxShadow: '0 4px 18px rgba(16,42,67,0.05)' }}>

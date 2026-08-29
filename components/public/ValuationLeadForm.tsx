@@ -63,13 +63,13 @@ export default function ValuationLeadForm() {
     <form onSubmit={submit} style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 24, display: 'grid', gap: 10 }}>
       <div style={{ fontFamily: 'Georgia, serif', fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>Get your free valuation</div>
       <div style={{ fontSize: 13, color: '#888', marginBottom: 4 }}>Confidential · No obligation · Response within 1 business day</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 10 }}>
         <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name *" style={inputStyle} required />
         <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email *" type="email" style={inputStyle} required />
         <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone" style={inputStyle} />
       </div>
       <input value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} placeholder="Business name" style={inputStyle} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 10 }}>
         <input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} placeholder="Industry" style={inputStyle} />
         <select value={form.revenue_range} onChange={(e) => setForm({ ...form, revenue_range: e.target.value })} style={inputStyle}>
           <option value="">Annual revenue</option>

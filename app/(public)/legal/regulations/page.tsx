@@ -79,7 +79,7 @@ export default function RegulationsPage() {
 
       {/* License required */}
       <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 21, color: '#1a1a2e', margin: '30px 0 12px' }}>🔒 States Requiring a Broker License</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))', gap: 10 }}>
         {LICENSE_REQUIRED.map((s) => (
           <div key={s} style={{ padding: '11px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, fontSize: 13.5, fontWeight: 700, color: '#991b1b' }}>{s}</div>
         ))}
@@ -109,7 +109,7 @@ export default function RegulationsPage() {
         In these states, no standalone business-broker license is required by statute. General business, contract, and
         consumer-protection laws still apply, and federal securities rules may apply to certain transactions.
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 10 }}>
         {NO_STATE_LICENSE.map((s) => (
           <div key={s.state} style={{ padding: '11px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 9, fontSize: 13, color: '#166534' }}>
             <strong>{s.state}</strong>

@@ -60,7 +60,7 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
 
   return (
     <div style={{ position: 'relative' }}>
-      <Link href={href} style={{ display: 'block', textDecoration: 'none', background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
+      <Link href={href} style={{ display: 'block', minWidth: 0, textDecoration: 'none', background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
         <div style={{ height: 180, background: '#1a1a2e', position: 'relative', overflow: 'hidden' }}>
           {image && !imgError ? (
             // eslint-disable-next-line @next/next/no-img-element

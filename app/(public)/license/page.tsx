@@ -81,7 +81,7 @@ export default function LicensePage() {
         <p style={{ color: '#52606d', textAlign: 'center', fontSize: 15, margin: '0 0 32px' }}>
           One-time setup, then your CRM runs on your infrastructure with your credentials.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 18 }}>
           {features.map(([icon, title, body]) => (
             <div key={title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 26, boxShadow: '0 4px 18px rgba(16,42,67,0.05)' }}>
               <div style={{ fontSize: 28 }}>{icon}</div>
@@ -95,7 +95,7 @@ export default function LicensePage() {
       {/* How licensing works */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '48px 24px' }}>
         <h2 style={{ fontSize: 30, textAlign: 'center', margin: '0 0 32px' }}>How licensing works</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 16 }}>
           {[
             ['1', 'Create your agency', 'Sign up free — your branded workspace is ready in minutes.'],
             ['2', 'Activate the license', `One-time $${CRM_LICENSE.setupFee.toLocaleString()} setup + $${CRM_LICENSE.monthly}/mo platform fee via secure checkout.`],

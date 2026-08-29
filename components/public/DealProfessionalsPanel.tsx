@@ -56,7 +56,7 @@ export default function DealProfessionalsPanel({ listing }: { listing: PublicMar
           Browse all professionals →
         </Link>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))', gap: 14 }}>
         {pros.map((p) => (
           <Link key={p.id} href={`/marketplace/professionals/${p.id}`} style={{ textDecoration: 'none', display: 'block', border: '1px solid #ece8dc', borderRadius: 12, padding: 16, background: '#fcfbf7', transition: 'transform .15s ease' }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: '#1a1a2e' }}>

@@ -60,7 +60,7 @@ export default async function DealAlertsPage() {
         {/* How it works */}
         <div style={{ marginTop: 40, background: '#fff', border: '1px solid #ece8dc', borderRadius: 16, padding: 28 }}>
           <div style={{ fontSize: 12, color: '#c9a84c', letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 16 }}>How it works</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 20 }}>
             <Step n="1" title="Set your criteria" body="Pick an industry (restaurant, HVAC, e-commerce…) and a price range that fits your acquisition goals." />
             <Step n="2" title="We watch the market" body="Our brokers review every new listing against active alert criteria before it's even published." />
             <Step n="3" title="You get the email" body="The moment a match goes live, a personalized alert lands in your inbox — often before it's public." />
@@ -68,7 +68,7 @@ export default async function DealAlertsPage() {
         </div>
 
         {/* Why alerts beat browsing */}
-        <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
+        <div style={{ marginTop: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 18 }}>
           <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 24 }}>
             <div style={{ fontSize: 24, marginBottom: 8 }}>⏱️</div>
             <div style={{ fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif', fontSize: 16 }}>Best deals move fast</div>

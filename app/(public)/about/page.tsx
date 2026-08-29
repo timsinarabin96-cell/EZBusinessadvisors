@@ -36,7 +36,7 @@ export default function AboutPage() {
         before an NDA is signed.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, margin: '40px 0' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 20, margin: '40px 0' }}>
         <Pillar title="Confidential by Default" body="Business identity, exact location, and financials stay private unless a seller explicitly approves them for public display." />
         <Pillar title="Rigorous Valuation" body="Every listing is backed by a normalized financial recast and a broker opinion of value — not guesswork." />
         <Pillar title="Qualified Buyers Only" body="Full financials and identifying details are shared only with buyers who've signed an NDA and demonstrated the means to close." />

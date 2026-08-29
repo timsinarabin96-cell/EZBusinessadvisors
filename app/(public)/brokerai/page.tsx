@@ -77,7 +77,7 @@ export default function BrokerAiPage() {
             <div style={{ color: '#0e7490', fontSize: 13, letterSpacing: '0.18em', textTransform: 'uppercase', fontWeight: 800 }}>The full intelligence stack</div>
             <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#102a43', margin: '10px 0 0' }}>Eight systems. One assistant.</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
             {capabilities.map(([icon, title, body]) => (
               <div key={title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 24 }}>
                 <div style={{ fontSize: 30, marginBottom: 10 }}>{icon}</div>
@@ -95,7 +95,7 @@ export default function BrokerAiPage() {
           <div style={{ textAlign: 'center', marginBottom: 44 }}>
             <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#102a43', margin: 0 }}>How BrokerAI works</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 20 }}>
             {steps.map(([n, title, body]) => (
               <div key={n} style={{ textAlign: 'center', padding: '26px 20px' }}>
                 <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#102a43', color: '#c9a84c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, margin: '0 auto 14px' }}>{n}</div>

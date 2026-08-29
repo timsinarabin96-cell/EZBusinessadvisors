@@ -45,7 +45,7 @@ export default function SbaCalculator({ askingPrice }: { askingPrice?: number | 
   const fmt$ = (n: number) => '$' + Math.round(n).toLocaleString('en-US')
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginBottom: 32 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 18, marginBottom: 32 }}>
       {/* Payment calculator */}
       <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 24 }}>
         <div style={{ fontSize: 13, color: '#0e7490', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>SBA 7(a) Payment Calculator</div>

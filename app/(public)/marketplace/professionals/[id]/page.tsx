@@ -82,7 +82,7 @@ export default async function ProfessionalProfilePage({ params }: { params: Prom
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginTop: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 14, marginTop: 32 }}>
         <Stat label="Experience" value={pro.years_experience ? `${pro.years_experience}+ years` : 'N/A'} />
         <Stat label="Deals closed" value={pro.deals_closed ? `${pro.deals_closed}+` : 'Confidential'} />
         <Stat label="License" value={pro.license_verified ? `Verified (${pro.license_state || 'US'})` : 'On file'} />

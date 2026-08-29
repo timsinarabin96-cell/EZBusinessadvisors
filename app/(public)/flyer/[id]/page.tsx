@@ -74,7 +74,7 @@ export default async function FlyerPage({ params }: { params: Promise<{ id: stri
 
           {/* Financials */}
           {listing.show_financials && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12, marginBottom: 20 }}>
               <FlyerStat label="Annual Revenue" value={listing.annual_revenue !== null ? fmt$(listing.annual_revenue) : '—'} />
               <FlyerStat label="SDE" value={listing.sde !== null ? fmt$(listing.sde) : '—'} />
               {listing.ebitda !== null && <FlyerStat label="EBITDA" value={fmt$(listing.ebitda)} />}

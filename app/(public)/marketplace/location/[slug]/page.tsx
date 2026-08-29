@@ -152,7 +152,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
 
       {/* Live market stats band */}
       {matches.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12, marginBottom: 28 }}>
           <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 10, padding: '14px 16px' }}>
             <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>Avg asking</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif', marginTop: 4 }}>{avgAsking ? fmtNum(avgAsking) : '—'}</div>
@@ -182,7 +182,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
           {matches.map((l) => (
             <PublicListingCard key={l.id} listing={l} />
           ))}

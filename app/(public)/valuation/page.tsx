@@ -50,7 +50,7 @@ export default function ValuationPage() {
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <FreeValuationTool />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginTop: 40 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 16, marginTop: 40 }}>
             {[
               ['📊', 'Data-backed multiples', 'Ranges derived from industry transaction data — home care 4–5× EBITDA, restaurants ~2–3× SDE, and 40+ industry bands.'],
               ['🤫', '100% confidential', 'Your business identity is never exposed. The report is private and only your broker sees the details.'],

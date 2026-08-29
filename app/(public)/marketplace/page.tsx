@@ -26,7 +26,7 @@ export default async function MarketplaceHome() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 40 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 16, marginBottom: 40 }}>
         <Stat value={String(stats?.totalListings ?? 0)} label="Businesses for Sale" />
         <Stat value={stats?.avgAsking ? '$' + stats.avgAsking.toLocaleString() : '—'} label="Avg. Asking Price" />
         <Stat value={String(stats?.totalBusinessesSold ?? 0)} label="Businesses Sold" />
@@ -34,7 +34,7 @@ export default async function MarketplaceHome() {
       </div>
 
       {/* Entry cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 18, marginBottom: 40 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: 18, marginBottom: 40 }}>
         <Card href="/marketplace/listings" icon="🔍" title="Buy a Business" desc="Browse active listings with full financial snapshots, filters, and SBA/financing indicators." cta="Browse listings →" />
         <Card href="/marketplace/sell" icon="💰" title="Sell a Business" desc="Get a free valuation and list your business confidentially with a dedicated broker." cta="Start selling →" />
         <Card href="/marketplace/sold" icon="✅" title="Recently Sold" desc="See real sold comps and what businesses are actually trading for in your market." cta="View sold comps →" />

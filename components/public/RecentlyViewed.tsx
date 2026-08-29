@@ -49,7 +49,7 @@ export default function RecentlyViewed() {
           Recently viewed
         </span>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(190px, 100%), 1fr))', gap: 12 }}>
         {items.map((item) => (
           <Link
             key={item.id}

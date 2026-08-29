@@ -73,7 +73,7 @@ export default function PlatformPage() {
         <p style={{ color: '#52606d', textAlign: 'center', fontSize: 15, margin: '0 0 32px' }}>
           The same engine behind Concord — customized to your identity and your market.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 18 }}>
           {features.map(([icon, title, body]) => (
             <div key={title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 26, boxShadow: '0 4px 18px rgba(16,42,67,0.05)' }}>
               <div style={{ fontSize: 28 }}>{icon}</div>
@@ -87,7 +87,7 @@ export default function PlatformPage() {
       {/* How it works */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '48px 24px' }}>
         <h2 style={{ fontSize: 30, textAlign: 'center', margin: '0 0 32px' }}>From signup to first close</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 16 }}>
           {steps.map(([num, title, body]) => (
             <div key={num} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 22 }}>
               <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#0f2038', color: '#c9a84c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontFamily: 'Georgia, serif' }}>{num}</div>

@@ -188,7 +188,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
           {listing.revenue_verified && <span style={{ background: '#1e7e34', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>✅ Verified Revenue</span>}
         </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(min(280px, 100%), 1fr)', gap: 24, alignItems: 'start' }}>
         <div>
           {listing.gallery_urls.length > 0 ? (
             <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden' }}>
@@ -264,7 +264,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
           {/* EVERYTHING A BUYER NEEDS — operations & deal facts (no confidential data) */}
           <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 28, marginTop: 20 }}>
             <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 16px' }}>Everything You Need to Know</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 12 }}>
               {listing.established_year != null && <Fact icon="📅" label="Established" value={String(listing.established_year)} />}
               {listing.employees_full_time != null && <Fact icon="👥" label="Full-time employees" value={String(listing.employees_full_time)} />}
               {listing.is_absentee_owner != null && <Fact icon="🏖️" label="Owner involvement" value={listing.is_absentee_owner ? 'Absentee — owner not required' : 'Owner-operated'} />}

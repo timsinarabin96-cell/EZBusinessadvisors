@@ -161,7 +161,7 @@ export default async function HomePage() {
 
       {/* ══ LIVE STATS — count-up ══ */}
       <section style={{ background: '#fff', borderBottom: '1px solid #ece8dc' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 22 }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '30px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(170px, 100%), 1fr))', gap: 22 }}>
           <HomeCountUp value={stats.totalListings} label="Businesses for Sale" />
           <HomeCountUp value={stats.totalBusinessesSold} label="Businesses Sold" />
           <HomeCountUp value={stats.industries} label="Industries" />
@@ -172,7 +172,7 @@ export default async function HomePage() {
       {/* ══ MARKET INTELLIGENCE BAND — real sold-comps averages ══ */}
       {compsReport.totals.deals > 0 && (
         <section style={{ background: '#f5f3ec', borderBottom: '1px solid #e5dfcc' }}>
-          <div style={{ maxWidth: 1100, margin: '0 auto', padding: '22px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 18, textAlign: 'center' }}>
+          <div style={{ maxWidth: 1100, margin: '0 auto', padding: '22px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(170px, 100%), 1fr))', gap: 18, textAlign: 'center' }}>
             <MarketStat label="Closed deals tracked" value={compsReport.totals.deals.toLocaleString()} />
             <MarketStat label="Average multiple" value={compsReport.totals.avgMultiple != null ? `${compsReport.totals.avgMultiple.toFixed(2)}× SDE` : '—'} />
             <MarketStat label="Average sale price" value={compsReport.totals.avgSalePrice != null ? '$' + Math.round(compsReport.totals.avgSalePrice).toLocaleString() : '—'} />
@@ -211,7 +211,7 @@ export default async function HomePage() {
             <Link href="/contact" style={{ color: '#c9a84c', fontWeight: 700 }}>contact a broker</Link> about off-market opportunities.
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
             {featured.map((l) => <PublicListingCard key={l.id} listing={l} />)}
           </div>
         )}
@@ -219,7 +219,7 @@ export default async function HomePage() {
 
       {/* ══ INSTANT VALUATION + BUYER/SELLER ══ */}
       <section style={{ background: '#faf9f4', padding: '56px 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 24 }}>
           <div style={{ display: 'grid', gap: 24, alignContent: 'start' }}>
             <CtaCard eyebrow="For Buyers" title="Find Your Next Acquisition" body="Browse a curated selection of vetted, cash-flowing businesses. Sign an NDA to unlock full financials on any listing that interests you." href="/marketplace/listings" label="Browse Businesses" />
             <CtaCard eyebrow="For Sellers" title="Sell Your Business Confidentially" body="Get a free, no-obligation valuation from a licensed business broker. We market your business discreetly to qualified buyers only." href="/marketplace/sell" label="Learn More" />
@@ -237,7 +237,7 @@ export default async function HomePage() {
           <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>How It Works</div>
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 30, color: '#1a1a2e', margin: '8px 0 0' }}>A Clear Path From Interest to Closing</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 24 }}>
           <StepCard n="1" title="Browse & Filter" body="Search by industry, location, and price. Every listing is vetted, recast, and backed by a broker opinion of value." />
           <StepCard n="2" title="Sign an NDA" body="Unlock confidential financials after a quick qualification. Your identity stays private until you're ready to move." />
           <StepCard n="3" title="Negotiate & Close" body="Work directly with an experienced broker through LOI, due diligence, and closing — with support at every step." />
@@ -251,7 +251,7 @@ export default async function HomePage() {
             <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Why Concord</div>
             <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 30, color: '#1a1a2e', margin: '8px 0 0' }}>Built for Serious Transactions</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 20 }}>
             <Feature icon="🔒" title="Confidential by Default" body="Identity, location, and financials stay private until a buyer is qualified." />
             <Feature icon="📊" title="Recast Financials" body="Listings are normalized to true earning power — not what the tax return says." />
             <Feature icon="⚖️" title="Broker Opinion of Value" body="Every price is supported by market comps and professional analysis." />
@@ -262,7 +262,7 @@ export default async function HomePage() {
 
       {/* ══ TRUST + SOLD PROOF ══ */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 36 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: 20, marginBottom: 36 }}>
           <TrustBadge icon="🏅" title="Vetted Listings" body="Every listing passes a quality + compliance review before it goes live." />
           <TrustBadge icon="🔍" title="Verified Buyers" body="Confidential details release only after buyer qualification — no tire kickers." />
           <TrustBadge icon="📋" title="NDA-Protected" body="Your business name and address stay hidden until you approve the buyer." />
@@ -273,11 +273,11 @@ export default async function HomePage() {
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 28, color: '#1a1a2e', margin: '8px 0 0' }}>Deals That Actually Close</h2>
         </div>
         {sold.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 20 }}>
             {sold.slice(0, 3).map((s) => <SoldProofCard key={s.listing_id} s={s} />)}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 20 }}>
             <Testimonial quote="Sold my restaurant in 4 months at 95% of asking. The process was confidential start to finish — my staff never knew until the deal was done." name="Restaurant owner · Tucson, AZ" />
             <Testimonial quote="As a buyer, the pre-qualification and recast financials gave me real confidence. I knew exactly what I was getting before I ever signed an NDA." name="First-time buyer · Phoenix, AZ" />
             <Testimonial quote="The broker opinion of value beat two other appraisals. These folks know how to price a business for a real sale." name="Seller · Scottsdale, AZ" />
@@ -327,7 +327,7 @@ export default async function HomePage() {
             The full system behind this marketplace — deal pipeline, leads, CIM/BOV, AI agents, buyer portal, e-sign, white-label branding — on <strong>your own domain</strong>, with <strong>your own API keys</strong>.
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 20, maxWidth: 900, margin: '0 auto' }}>
           <div style={{ background: '#fff', border: '2px solid #c9a84c', borderRadius: 14, padding: 30, boxShadow: '0 12px 48px rgba(201,168,76,0.18)' }}>
             <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8a6d1a', fontWeight: 800 }}>One-Time License</div>
             <div style={{ fontFamily: 'Georgia, serif', fontSize: 44, fontWeight: 800, color: '#1a1a2e', margin: '8px 0 2px' }}>${CRM_LICENSE.setupFee.toLocaleString()}</div>

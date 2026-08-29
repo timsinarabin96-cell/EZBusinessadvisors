@@ -40,7 +40,7 @@ export default function PricingPage() {
             Be the first to know when a deal matches you. Priority alerts, off-market listings, AI fit-scoring, and a verified-buyer badge that makes sellers take you seriously.
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 20 }}>
           {BUYER_PASS_PLANS.map((plan) => (
             <div
               key={plan.id}

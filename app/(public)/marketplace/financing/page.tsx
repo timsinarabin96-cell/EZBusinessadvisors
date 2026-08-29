@@ -50,7 +50,7 @@ export default async function FinancingPage() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 40 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 16, marginBottom: 40 }}>
         <Metric label="SBA lenders in network" value={String(lenderCount)} />
         <Metric label="Verified lenders" value={String(verifiedLenders)} />
         <Metric label="Typical down payment" value="10%" />

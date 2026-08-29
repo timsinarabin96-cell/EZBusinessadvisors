@@ -103,7 +103,7 @@ export default function ProfessionalsDirectoryPage() {
             <div style={{ fontSize: 14, marginTop: 8 }}>New professionals are added as brokers vouch for them. Check back soon.</div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))', gap: 24 }}>
             {pros.map((p) => (
               <Link key={p.id} href={`/marketplace/professionals/${p.id}`} style={{ textDecoration: 'none', display: 'block', background: '#fff', border: '1px solid #dce6ef', borderRadius: 16, padding: 26, boxShadow: '0 10px 35px rgba(16,42,67,0.07)', transition: 'transform .15s ease' }}>
                 <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>

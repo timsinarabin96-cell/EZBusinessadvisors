@@ -104,7 +104,7 @@ export default function CbiPage() {
         <p style={{ color: '#52606d', textAlign: 'center', fontSize: 15, margin: '0 0 32px' }}>
           One-time enrollment. No monthly fee. Your certificates are yours for life (annual re-certification optional).
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 18 }}>
           {plans.map((p) => (
             <div key={p.id} style={{ background: '#fff', borderRadius: 16, border: p.highlighted ? '2px solid #c9a84c' : '1px solid #e2e8f0', boxShadow: p.highlighted ? '0 12px 48px rgba(201,168,76,0.2)' : '0 4px 18px rgba(16,42,67,0.05)', padding: '30px 28px', display: 'flex', flexDirection: 'column' }}>
               {p.highlighted && <div style={{ background: 'linear-gradient(90deg,#c9a84c,#e6ce8c)', color: '#1a1a2e', textAlign: 'center', padding: '5px', fontSize: 11.5, fontWeight: 800, letterSpacing: 1, borderRadius: 6, marginBottom: 12 }}>MOST POPULAR</div>}
@@ -135,7 +135,7 @@ export default function CbiPage() {
         <p style={{ color: '#52606d', textAlign: 'center', fontSize: 15, margin: '0 0 32px' }}>
           Every module: lessons → quiz → certificate. Finish all 14 and earn the full program credential.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 14 }}>
           {modules.map(([icon, title, body]) => (
             <div key={title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '18px 20px', display: 'flex', gap: 12 }}>
               <div style={{ fontSize: 24 }}>{icon}</div>

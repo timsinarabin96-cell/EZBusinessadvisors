@@ -66,7 +66,7 @@ export default function CertifiedBrokersPage() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 24 }}>
           {brokers.map((b) => (
             <div key={b.broker_id} style={{ background: '#fff', border: '1px solid #dce6ef', borderRadius: 16, padding: 26, boxShadow: '0 10px 35px rgba(16,42,67,0.07)' }}>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>

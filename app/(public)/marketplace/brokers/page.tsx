@@ -47,7 +47,7 @@ export default function BrokersPage() {
                 <span style={{ fontSize: 20 }}>⭐</span>
                 <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#102a43', margin: 0 }}>Featured Advisors</h2>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 18 }}>
                 {featured.map((b) => {
                   const s = brokerProfileStrength(b)
                   return (
@@ -78,7 +78,7 @@ export default function BrokersPage() {
             </div>
           )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))', gap: 24 }}>
           {brokers.length === 0 ? (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#888', padding: 60, background: '#fff', border: '1px solid #ece8dc', borderRadius: 12 }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🤝</div>

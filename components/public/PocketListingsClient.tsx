@@ -75,7 +75,7 @@ export default function PocketListingsClient({ teasers }: { teasers: any[] }) {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 18 }}>
           {teasers.map((t) => (
             <div key={t.listing_id} style={{ background: 'linear-gradient(160deg,#1a1a2e,#0f3460)', color: '#fff', borderRadius: 16, padding: 24, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ fontSize: 26 }}>🤫</div>

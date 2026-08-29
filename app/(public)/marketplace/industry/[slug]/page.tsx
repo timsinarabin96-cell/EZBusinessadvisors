@@ -144,7 +144,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
         ) : null
       })()}
       {compStat && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 14, marginBottom: 28 }}>
           <div style={{ background: 'linear-gradient(135deg, #1a1a2e, #2b2b4a)', borderRadius: 12, padding: '18px 20px', color: '#fff' }}>
             <div style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', fontWeight: 700 }}>Recent sales</div>
             <div style={{ fontSize: 28, fontWeight: 700, fontFamily: 'Georgia, serif', marginTop: 6 }}>{compStat.count}</div>
@@ -191,7 +191,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 20 }}>
           {listings.map((l) => (
             <PublicListingCard key={l.id} listing={l} />
           ))}

@@ -193,7 +193,7 @@ export default function BrokerProfilePage() {
               <div style={{ fontSize: 14, marginTop: 6 }}>Contact {firstName} directly for off-market opportunities.</div>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 20 }}>
               {listings.map((l) => <PublicListingCard key={l.id} listing={l} />)}
             </div>
           )}
@@ -242,7 +242,7 @@ export default function BrokerProfilePage() {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 20 }}>
             {/* Services */}
             <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: 22 }}>
               <SectionTitle>Services</SectionTitle>
@@ -309,7 +309,7 @@ export default function BrokerProfilePage() {
           <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', marginBottom: 16 }}>
             🤝 Agents at {broker.agency?.name || 'this brokerage'}
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 16 }}>
             {team.map((t) => (
               <Link
                 key={t.id}

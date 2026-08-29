@@ -77,7 +77,7 @@ export default function ListingUpsellPanel({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 10 }}>
         {LISTING_UPSELL_OPTIONS.map((option) => (
           <div key={option.id} style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 14, background: '#fff', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

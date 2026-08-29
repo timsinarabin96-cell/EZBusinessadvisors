@@ -60,7 +60,7 @@ export default function TrustCenterPage() {
 
       {/* Trust promises */}
       <section style={{ maxWidth: 1000, margin: '0 auto', padding: '48px 24px 8px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(220px, 100%), 1fr))', gap: 16 }}>
           {promises.map(([icon, title, body]) => (
             <div key={title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 22 }}>
               <div style={{ fontSize: 28 }}>{icon}</div>
@@ -78,7 +78,7 @@ export default function TrustCenterPage() {
           Each brokerage publishes its own approved legal, licensing, security, accessibility, AI-use, complaint, copyright,
           and incident-response information. The platform enforces these baseline controls everywhere.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(280px, 100%), 1fr))', gap: 18 }}>
           {controls.map((c, index) => (
             <article key={c.title} className="card" style={{ padding: 24, background: '#fff' }}>
               <div style={{ color: '#0e7490', fontWeight: 900, fontSize: 12 }}>CONTROL {String(index + 1).padStart(2, '0')}</div>

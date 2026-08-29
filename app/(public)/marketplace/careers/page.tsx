@@ -78,7 +78,7 @@ export default function CareersPage() {
         <p style={{ color: '#52606d', margin: '0 0 26px', fontSize: 15 }}>
           We give you the training, tools, and deal flow to build a serious brokerage career — then get out of your way.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 18 }}>
           {perks.map(([icon, title, body]) => (
             <div key={title} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 24 }}>
               <div style={{ fontSize: 26 }}>{icon}</div>

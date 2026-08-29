@@ -94,7 +94,7 @@ export default function SoldFilters({ sold }: { sold: SoldListing[] }) {
           <div style={{ fontSize: 13.5, marginTop: 6 }}>Try clearing a filter or searching something broader.</div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 20 }}>
           {filtered.map((s) => (
             <SoldCard key={s.listing_id} sold={s} />
           ))}

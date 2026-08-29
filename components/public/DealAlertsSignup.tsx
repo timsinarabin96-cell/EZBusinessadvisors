@@ -136,11 +136,11 @@ export default function DealAlertsSignup({ industries }: { industries: string[] 
           </div>
         ) : (
           <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12 }}>
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name (optional)" style={inputStyle} />
               <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" type="email" required style={inputStyle} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12 }}>
               <select value={industry} onChange={(e) => setIndustry(e.target.value)} style={inputStyle}>
                 <option value="">Any industry</option>
                 {industries.map((i) => <option key={i} value={i}>{i}</option>)}

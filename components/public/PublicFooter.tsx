@@ -12,7 +12,7 @@ import NewsletterSignup from './NewsletterSignup'
 export default function PublicFooter() {
   return (
     <footer style={{ background: '#1a1a2e', color: '#fff', marginTop: 80 }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 32 }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '48px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))', gap: 32 }}>
         <div>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: 20, fontWeight: 800, letterSpacing: 0.5 }}>CONCORD</div>
           <div style={{ fontSize: 10, letterSpacing: '0.25em', color: '#c9a84c', textTransform: 'uppercase', marginTop: 2 }}>Deal Platform</div>

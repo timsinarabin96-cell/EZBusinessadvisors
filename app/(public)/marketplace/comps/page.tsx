@@ -68,7 +68,7 @@ export default async function SoldCompsPage() {
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 36 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: 16, marginBottom: 36 }}>
             <Metric label="Closed deals tracked" value={totals.deals.toLocaleString()} />
             <Metric label="Average multiple" value={totals.avgMultiple != null ? `${totals.avgMultiple.toFixed(2)}× SDE` : '—'} />
             <Metric label="Average sale price" value={fmt$(totals.avgSalePrice)} />

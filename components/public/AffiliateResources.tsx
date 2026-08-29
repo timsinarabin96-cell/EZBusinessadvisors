@@ -24,7 +24,7 @@ export default function AffiliateResources({ surface, title = 'Resources We Reco
         <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 19, color: '#1a1a2e', margin: 0 }}>{title}</h2>
         <span style={{ flex: 1, height: 1, background: '#ece8dc' }} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(240px, 100%), 1fr))', gap: 14 }}>
         {links.map((l) => (
           <a
             key={l.name}

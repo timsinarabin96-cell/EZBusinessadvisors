@@ -79,7 +79,7 @@ export default function ReviewsPage() {
 
       {/* Stats */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '44px 24px 8px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(180px, 100%), 1fr))', gap: 16 }}>
           {stats.map(([value, label]) => (
             <div key={label} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '22px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 30, fontWeight: 900, color: '#0e7490', fontFamily: 'Georgia, serif' }}>{value}</div>
@@ -91,7 +91,7 @@ export default function ReviewsPage() {
 
       {/* Review grid */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 24px 72px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 22 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: 22 }}>
           {reviews.map((r) => (
             <figure key={r.name} style={{ margin: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 26, boxShadow: '0 4px 18px rgba(16,42,67,0.05)' }}>
               <div style={{ color: '#c9a84c', fontSize: 16, letterSpacing: 2 }}>{'★'.repeat(r.stars)}</div>

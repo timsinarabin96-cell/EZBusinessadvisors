@@ -50,7 +50,7 @@ export default function PricingTiers({ plans }: { plans: Plan[] }) {
       </div>
 
       {/* Tier cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: 20 }}>
         {plans.map((plan) => {
           const isFree = plan.monthly === 0
           const annualPerMonth = isFree ? 0 : Math.round(plan.annual / 12)

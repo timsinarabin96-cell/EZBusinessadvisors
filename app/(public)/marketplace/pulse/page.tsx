@@ -57,7 +57,7 @@ export default async function MarketPulsePage() {
 
       {/* Market stats band */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 24px 8px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(180px, 100%), 1fr))', gap: 16 }}>
           <StatCard label="Closed transactions tracked" value={totals.deals.toLocaleString()} />
           <StatCard label="Average sale multiple" value={fmtMult(totals.avgMultiple)} />
           <StatCard label="Average sale price" value={fmt$(totals.avgSalePrice)} />
@@ -115,7 +115,7 @@ export default async function MarketPulsePage() {
         <p style={{ color: '#52606d', fontSize: 14.5, margin: '0 0 20px' }}>
           Where deals are closing — transaction counts and average multiples by state.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(180px, 100%), 1fr))', gap: 12 }}>
           {states.slice(0, 18).map((st) => (
             <div key={st.state} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: 800, color: '#102a43', fontSize: 15 }}>{st.state}</span>
@@ -126,7 +126,7 @@ export default async function MarketPulsePage() {
       </section>
 
       {/* CTAs */}
-      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '8px 24px 80px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 18 }}>
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '8px 24px 80px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(300px, 100%), 1fr))', gap: 18 }}>
         <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, padding: 28 }}>
           <div style={{ fontSize: 30 }}>📊</div>
           <h3 style={{ fontSize: 19, margin: '10px 0 6px' }}>Selling? See what your business is worth</h3>
