@@ -75,7 +75,7 @@ const secureMiddleware = createSecureMiddleware(SECURITY_CONFIG)
 
 // Routes that require an authenticated broker (public marketplace is open)
 const PROTECTED_PREFIXES = [
-  '/dashboard', '/pipeline', '/listings', '/leads', '/documents',
+  '/dashboard', '/pipeline', '/listings', '/leads',
   '/agencies', '/sync', '/billing', '/training', '/agents',
 ]
 

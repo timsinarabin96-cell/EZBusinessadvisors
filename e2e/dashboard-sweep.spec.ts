@@ -32,7 +32,7 @@ const DASHBOARD_ROUTES = [
   '/dashboard/deal-docs',
   '/dashboard/command-center',
   '/dashboard/communications',
-  '/dashboard/documents',
+  '/dashboard/deal-room',
   '/dashboard/documents/builder',
   '/dashboard/expiry',
   '/dashboard/finance',
@@ -55,7 +55,6 @@ const DASHBOARD_ROUTES = [
   '/leads',
   '/pipeline',
   '/listings',
-  '/documents',
   '/billing',
 ]
 

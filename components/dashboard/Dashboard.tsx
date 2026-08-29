@@ -156,7 +156,7 @@ export default function Dashboard() {
                 { href: '/leads', label: '+ Add Lead', icon: '🎯' },
                 { href: '/dashboard/reports', label: 'Generate CIM', icon: '📑' },
                 { href: '/dashboard/reports', label: 'Generate BOV', icon: '⚖️' },
-                { href: '/documents', label: 'Upload Document', icon: '📁' },
+                { href: '/dashboard/deal-room', label: 'Deal Room', icon: '📁' },
               ].map((a) => (
                 <Link key={a.href} href={a.href} style={{
                   display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',

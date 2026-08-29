@@ -21,7 +21,7 @@ import {
   type PortalDeal, type PortalMilestone, type PortalMessageUpdate,
 } from '@/lib/clientPortal'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
-import DealDataRoom from '@/components/dataRoom/DealDataRoom'
+import DealRoom from '@/components/dealRoom/DealRoom'
 import PortalAgreements from '@/components/portal/PortalAgreements'
 
 const STAGE_LABEL: Record<string, { label: string; color: string }> = {
@@ -62,12 +62,10 @@ function PortalBody() {
   const [clientName, setClientName] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [deal, setDeal] = useState<PortalDeal | null>(null)
-  const [documents, setDocuments] = useState<any[]>([])
   const [milestones, setMilestones] = useState<PortalMilestone[]>([])
   const [messages, setMessages] = useState<PortalMessageUpdate[]>([])
   const [traction, setTraction] = useState<{ viewsTotal: number; views7d: number; ndaSigned: number; interestedBuyers: number } | null>(null)
   const [msg, setMsg] = useState('')
-  const [uploading, setUploading] = useState(false)
   const [updateReq, setUpdateReq] = useState(false)
   const msgEndRef = useRef<HTMLDivElement>(null)
 
@@ -77,33 +75,9 @@ function PortalBody() {
     setAuthorized(true)
     setClientName(snap.clientName)
     setClientEmail(snap.clientEmail || '')
-    setDeal(snap.deal); setDocuments(snap.documents); setMilestones(snap.milestones); setMessages(snap.messages)
+    setDeal(snap.deal); setMilestones(snap.milestones); setMessages(snap.messages)
     setTraction(snap.traction || null)
   }, [dealId, token])
-
-  const handleUpload = async (file: File) => {
-    setUploading(true)
-    const form = new FormData()
-    form.append('file', file)
-    form.append('kind', 'Client Upload')
-    const ok = await fetch(`/api/portal?dealId=${encodeURIComponent(dealId)}&token=${encodeURIComponent(token)}`, {
-      method: 'POST', body: form,
-    }).then((r) => r.ok).catch(() => false)
-    setUploading(false)
-    if (ok) { toast('Document uploaded'); load() } else toast('Upload failed — storage may not be set up', 'error')
-  }
-
-  const openDoc = async (doc: any) => {
-    // Fire-and-forget view log (buyer intent). Best effort — never blocks the open.
-    if (doc?.id && clientEmail) {
-      fetch('/api/data-rooms/view-log', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ fileId: doc.id, viewerEmail: clientEmail, action: 'view' }),
-      }).catch(() => {})
-    }
-    if (doc?.file_url) window.open(doc.file_url, '_blank', 'noreferrer')
-  }
 
   const handleSend = async () => {
     if (!msg.trim()) return
@@ -249,57 +223,11 @@ function PortalBody() {
             )}
           </div>
 
-          {/* Documents + upload */}
-          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 20 }}>
-            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>Documents</h2>
-            <p style={{ color: 'var(--muted)', fontSize: 13, margin: '0 0 12px' }}>Deal documents &amp; your uploads for due diligence.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-              {documents.length === 0 ? (
-                <p style={{ color: 'var(--muted)', fontSize: 13 }}>No documents shared yet.</p>
-              ) : (
-                documents.slice(0, 8).map((d) => (
-                  <a
-                    key={d.id}
-                    href={d.file_url || '#'}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      openDoc(d)
-                    }}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--line)', borderRadius: 8, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
-                  >
-                    <span style={{ fontSize: 16 }}>📄</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file_name || d.name || 'Document'}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>{d.category || 'Shared'}</div>
-                    </div>
-                    <span style={{ color: 'var(--navy)', fontSize: 13 }}>↗</span>
-                  </a>
-                ))
-              )}
-            </div>
-
-            {/* Upload */}
-            <label style={uploadBtn}>{uploading ? 'Uploading…' : '+ Upload document'}</label>
-            <input
-              type="file"
-              style={{ display: 'none' }}
-              onChange={async (e) => {
-                const f = e.target.files?.[0]
-                if (!f) return
-                await handleUpload(f)
-                e.target.value = ''
-              }}
-            />
-            <p style={{ fontSize: 12, color: 'var(--muted-2)', margin: '8px 0 0' }}>Share contracts, financials, or other due-diligence documents. Files are private to this deal.</p>
-          </div>
-
           <PortalAgreements dealId={dealId} token={token} />
 
-          {/* Shared Data Room — Dropbox-style, everyone can edit & delete */}
+          {/* Shared Deal Room — Dropbox-style, role-aware (buyers/sellers see their allowed folders) */}
           <div style={{ gridColumn: '1 / -1' }}>
-            <DealDataRoom dealId={dealId} token={token} compact />
+            <DealRoom dealId={dealId} token={token} compact />
           </div>
 
           {/* Chat */}
@@ -345,9 +273,4 @@ function PortalBody() {
       <style>{`@media (max-width: 720px){ .portal-grid{grid-template-columns:1fr} }`}</style>
     </div>
   )
-}
-
-const uploadBtn: React.CSSProperties = {
-  display: 'inline-block', padding: '10px 16px', background: 'transparent', color: 'var(--navy)',
-  border: '1px solid var(--gold)', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13.5,
 }

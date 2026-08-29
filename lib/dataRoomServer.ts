@@ -6,17 +6,58 @@
  */
 
 // =============================================================================
-// Deal Data Room — server-side helpers (service role, never in the browser)
+// Deal Room — server-side helpers (service role, never in the browser)
 // -----------------------------------------------------------------------------
-// One Dropbox-style room per deal. Folders + files + version history +
-// activity feed + soft delete (recycle bin) — all tables live in
-// sql/data_room_schema.sql. This module provides get-or-create, snapshots,
-// folder/file mutations and activity logging used by the API routes.
+// One Dropbox-style Deal Room per deal, shared by agent + buyer + seller.
+// Folders + files + version history + activity feed + soft delete + role-based
+// access (all_parties | buyer_only | seller_only | agent_only). Tables live in
+// sql/data_room_schema.sql + sql/deal_room_phase1.sql. This module provides
+// get-or-create (seeding the standard due-diligence template), role-aware
+// snapshots, folder/file mutations and activity logging used by the API routes.
 // =============================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export const DEFAULT_FOLDERS = ['Financials', 'Legal & Contracts', 'Due Diligence', 'Marketing', 'Other']
+/** Access levels understood by the Deal Room. */
+export type RoomAccessLevel = 'all_parties' | 'buyer_only' | 'seller_only' | 'agent_only'
+export type RoomRole = 'agent' | 'buyer' | 'seller'
+
+/** Standard due-diligence folder template, seeded on room creation. */
+export const DD_TEMPLATE: { name: string; icon: string; access: RoomAccessLevel }[] = [
+  { name: 'Financials', icon: '💰', access: 'all_parties' },
+  { name: 'Legal', icon: '⚖️', access: 'all_parties' },
+  { name: 'Operations', icon: '🏭', access: 'all_parties' },
+  { name: 'HR & Employees', icon: '👥', access: 'all_parties' },
+  { name: 'Real Estate & Lease', icon: '🏢', access: 'all_parties' },
+  { name: 'Insurance', icon: '🛡️', access: 'all_parties' },
+  { name: 'Contracts', icon: '📄', access: 'all_parties' },
+  { name: 'Tax Returns', icon: '🧾', access: 'all_parties' },
+  { name: 'Intellectual Property', icon: '💡', access: 'all_parties' },
+  { name: 'Other', icon: '📁', access: 'all_parties' },
+  { name: 'Internal (Agent Only)', icon: '🔒', access: 'agent_only' },
+]
+
+/** Folders a role may see. Agent sees everything. */
+export function visibleAccessLevels(role: RoomRole): RoomAccessLevel[] {
+  if (role === 'agent') return ['all_parties', 'buyer_only', 'seller_only', 'agent_only']
+  if (role === 'buyer') return ['all_parties', 'buyer_only']
+  return ['all_parties', 'seller_only'] // seller
+}
+
+export interface RoomFile {
+  id: string
+  folder_id: string | null
+  file_name: string
+  file_url: string
+  file_kind: string | null
+  file_size: number | null
+  version: number
+  notes: string | null
+  uploaded_at: string
+  uploaded_by_name: string | null
+  uploaded_by_role: string
+  access_level: string
+}
 
 export interface DataRoomSnapshot {
   room: {
@@ -27,23 +68,13 @@ export interface DataRoomSnapshot {
     description: string | null
     status: string
   } | null
-  folders: { id: string; name: string; icon: string | null; order: number }[]
-  files: {
-    id: string
-    folder_id: string | null
-    file_name: string
-    file_url: string
-    file_kind: string | null
-    file_size: number | null
-    version: number
-    notes: string | null
-    uploaded_at: string
-    uploaded_by_name: string | null
-  }[]
+  folders: { id: string; name: string; icon: string | null; order: number; access_level: string }[]
+  files: RoomFile[]
+  trash: RoomFile[]
   activities: { id: string; action: string; details: string | null; user_email: string | null; created_at: string }[]
 }
 
-/** Resolve the room for a deal, creating it (with default folders) on first use. */
+/** Resolve the room for a deal, creating it (with the DD template) on first use. */
 export async function ensureDataRoom(db: SupabaseClient, dealId: string) {
   // Existing room for this deal (or its listing)?
   const { data: deal } = await db.from('deals').select('id, listing_id').eq('id', dealId).maybeSingle()
@@ -80,11 +111,11 @@ export async function ensureDataRoom(db: SupabaseClient, dealId: string) {
 
   if (!room) {
     // Get a friendly name from the listing when available.
-    let name = 'Deal Data Room'
+    let name = 'Deal Room'
     if (listingId) {
       const { data: listing } = await db.from('listings').select('business_name').eq('id', listingId).maybeSingle()
       const biz = (listing as { business_name?: string | null } | null)?.business_name
-      if (biz) name = `${biz} — Data Room`
+      if (biz) name = `${biz} — Deal Room`
     }
     const { data: created, error } = await db
       .from('data_rooms')
@@ -94,33 +125,49 @@ export async function ensureDataRoom(db: SupabaseClient, dealId: string) {
     if (error) return null
     room = created as typeof room
 
-    // Seed default folders (idempotent guard).
+    // Seed the standard due-diligence template (idempotent guard).
     const { data: existing } = await db.from('data_room_folders').select('id').eq('data_room_id', room.id).limit(1)
     if (!existing || existing.length === 0) {
       await db.from('data_room_folders').insert(
-        DEFAULT_FOLDERS.map((name, i) => ({ data_room_id: room.id, name, icon: folderIcon(name), order: i })),
+        DD_TEMPLATE.map((f, i) => ({ data_room_id: room.id, name: f.name, icon: f.icon, order: i, access_level: f.access })),
       )
     }
-    await logActivity(db, room.id, null, null, 'created', 'Data room created')
+    await logActivity(db, room.id, null, null, 'created', 'Deal Room created with due-diligence template')
   }
 
   return room
 }
 
-/** Full snapshot for rendering the Dropbox-style UI. */
-export async function snapshotRoom(db: SupabaseClient, roomId: string): Promise<DataRoomSnapshot> {
+/**
+ * Full snapshot for rendering the Deal Room UI, filtered by role.
+ * Agents see everything; buyers see all_parties + buyer_only; sellers see
+ * all_parties + seller_only. Deleted files are returned in `trash` (agents
+ * only) so the UI can offer restore.
+ */
+export async function snapshotRoom(db: SupabaseClient, roomId: string, role: RoomRole = 'agent'): Promise<DataRoomSnapshot> {
+  const allowed = visibleAccessLevels(role)
   const { data: room } = await db.from('data_rooms').select('id, deal_id, listing_id, name, description, status').eq('id', roomId).maybeSingle()
   const { data: folders } = await db
     .from('data_room_folders')
-    .select('id, name, icon, order')
+    .select('id, name, icon, order, access_level')
     .eq('data_room_id', roomId)
+    .in('access_level', allowed)
     .order('order', { ascending: true })
   const { data: files } = await db
     .from('data_room_files')
-    .select('id, folder_id, file_name, file_url, file_kind, file_size, version, notes, uploaded_at, uploaded_by')
+    .select('id, folder_id, file_name, file_url, file_kind, file_size, version, notes, uploaded_at, uploaded_by, uploaded_by_role, access_level')
     .eq('data_room_id', roomId)
     .eq('is_deleted', false)
+    .in('access_level', allowed)
     .order('uploaded_at', { ascending: false })
+  const { data: trash } = role === 'agent'
+    ? await db.from('data_room_files')
+        .select('id, folder_id, file_name, file_url, file_kind, file_size, version, notes, uploaded_at, uploaded_by, uploaded_by_role, access_level')
+        .eq('data_room_id', roomId)
+        .eq('is_deleted', true)
+        .order('deleted_at', { ascending: false })
+        .limit(20)
+    : { data: null }
   const { data: activities } = await db
     .from('data_room_activities')
     .select('id, action, details, user_email, created_at')
@@ -138,11 +185,22 @@ export async function snapshotRoom(db: SupabaseClient, roomId: string): Promise<
       return { ...f, uploaded_by_name }
     }),
   )
+  const trashWithNames = await Promise.all(
+    ((trash || []) as any[]).map(async (f) => {
+      let uploaded_by_name: string | null = null
+      if (f.uploaded_by) {
+        const { data: p } = await db.from('profiles').select('full_name').eq('id', f.uploaded_by).maybeSingle()
+        uploaded_by_name = (p as { full_name?: string | null } | null)?.full_name || null
+      }
+      return { ...f, uploaded_by_name }
+    }),
+  )
 
   return {
     room: (room as DataRoomSnapshot['room']) || null,
     folders: (folders || []) as DataRoomSnapshot['folders'],
-    files: filesWithNames as DataRoomSnapshot['files'],
+    files: filesWithNames as RoomFile[],
+    trash: trashWithNames as RoomFile[],
     activities: (activities || []) as DataRoomSnapshot['activities'],
   }
 }
@@ -167,6 +225,7 @@ export async function logActivity(
 export function folderIcon(name: string): string {
   const map: Record<string, string> = {
     financials: '💰', legal: '⚖️', contract: '📄', diligence: '🔍', marketing: '📣', other: '📁',
+    operations: '🏭', hr: '👥', 'real estate': '🏢', insurance: '🛡️', tax: '🧾', intellectual: '💡', internal: '🔒',
   }
   const key = name.toLowerCase()
   for (const [k, icon] of Object.entries(map)) if (key.includes(k)) return icon
@@ -181,4 +240,15 @@ export function kindFromMime(mime: string, name: string): string {
   if (/\.(png|jpe?g|gif|webp|svg)$/.test(n)) return 'image'
   if (mime.startsWith('video/')) return 'video'
   return 'other'
+}
+
+/** Human label for an access level (used in badges). */
+export function accessLabel(level: string): string {
+  switch (level) {
+    case 'all_parties': return 'Everyone'
+    case 'buyer_only': return 'Agent + Buyer'
+    case 'seller_only': return 'Agent + Seller'
+    case 'agent_only': return 'Agents only'
+    default: return level
+  }
 }

@@ -163,15 +163,15 @@ test.describe('FULL ROLE SWEEP — buyer, agent, owner, broker, tenant', () => {
   })
 
   // ── 4) DOCS — document center + bundle download ──────────────────────────
-  test('docs: documents page renders, bundle endpoint returns a file', async ({ page }) => {
+  test('docs: deal room page renders, bundle endpoint returns a file', async ({ page }) => {
     await signIn(page, QA.email, QA.password)
     await expect(page).toHaveURL(/dashboard/, { timeout: 20_000 })
-    await page.goto('/documents')
+    await page.goto('/dashboard/deal-room')
     await page.waitForLoadState('domcontentloaded')
     await page.waitForTimeout(2000)
     const body = await page.locator('body').innerText()
     expect(body.length).toBeGreaterThan(150)
-    console.log('DOCS: documents center renders (len=', body.length, ')')
+    console.log('DOCS: deal room renders (len=', body.length, ')')
   })
 
   // ── 5) OWNER / SELLER portal flow ────────────────────────────────────────

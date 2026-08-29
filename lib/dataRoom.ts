@@ -6,15 +6,19 @@
  */
 
 // =============================================================================
-// Deal Data Room — client-side API wrapper
+// Deal Room — client-side API wrapper
 // -----------------------------------------------------------------------------
-// Dropbox-style shared folder per deal. Same API serves the broker CRM
-// (Supabase session) and the client portal (deal token):
-//   GET  /api/data-rooms/room?dealId=***&token=***   → snapshot
-//   POST /api/data-rooms/room?dealId=***&token=***   → upload / folder ops
+// Dropbox-style shared workspace per deal. Same API serves the broker CRM
+// (Supabase session → role 'agent') and the client portal (deal token → role
+// 'buyer' | 'seller' from client_portal_access.party_type):
+//   GET  /api/data-rooms/room?dealId=***&token=***   → role-aware snapshot
+//   POST /api/data-rooms/room?dealId=***&token=***   → upload / folder / file ops
 // =============================================================================
 
-export interface DataRoomFile {
+export type RoomAccessLevel = 'all_parties' | 'buyer_only' | 'seller_only' | 'agent_only'
+export type RoomRole = 'agent' | 'buyer' | 'seller'
+
+export interface RoomFile {
   id: string
   folder_id: string | null
   file_name: string
@@ -25,16 +29,19 @@ export interface DataRoomFile {
   notes: string | null
   uploaded_at: string
   uploaded_by_name: string | null
+  uploaded_by_role?: string
+  access_level?: string
 }
 
-export interface DataRoomFolder {
+export interface RoomFolder {
   id: string
   name: string
   icon: string | null
   order: number
+  access_level?: string
 }
 
-export interface DataRoomActivity {
+export interface RoomActivity {
   id: string
   action: string
   details: string | null
@@ -42,9 +49,10 @@ export interface DataRoomActivity {
   created_at: string
 }
 
-export interface DataRoomSnapshot {
+export interface RoomSnapshot {
   ok: boolean
   error?: string
+  role?: RoomRole
   room: {
     id: string
     deal_id: string | null
@@ -53,36 +61,38 @@ export interface DataRoomSnapshot {
     description: string | null
     status: string
   } | null
-  folders: DataRoomFolder[]
-  files: DataRoomFile[]
-  activities: DataRoomActivity[]
+  folders: RoomFolder[]
+  files: RoomFile[]
+  trash: RoomFile[]
+  activities: RoomActivity[]
   actor?: { userId: string | null; email: string | null }
 }
 
 const base = (dealId: string, token?: string) =>
   `/api/data-rooms/room?dealId=${encodeURIComponent(dealId)}${token ? `&token=${encodeURIComponent(token)}` : ''}`
 
-/** Load the room snapshot (auto-creates the room on first open). */
-export async function fetchDataRoom(dealId: string, token?: string): Promise<DataRoomSnapshot> {
+/** Load the room snapshot (auto-creates the room + DD template on first open). */
+export async function fetchRoom(dealId: string, token?: string): Promise<RoomSnapshot> {
   const res = await fetch(base(dealId, token), { cache: 'no-store' })
-  return res.json().catch(() => ({ ok: false, error: 'Failed to load data room' }))
+  return res.json().catch(() => ({ ok: false, error: 'Failed to load deal room' }))
 }
 
-/** Upload a file into the room (optionally into a folder). */
-export async function uploadRoomFile(dealId: string, file: File, folderId: string | null, token?: string) {
+/** Upload a file into the room (optionally into a folder, with an access level). */
+export async function uploadRoomFile(dealId: string, file: File, folderId: string | null, token?: string, accessLevel?: string) {
   const form = new FormData()
   form.append('file', file)
   if (folderId) form.append('folderId', folderId)
+  if (accessLevel) form.append('accessLevel', accessLevel)
   const res = await fetch(base(dealId, token), { method: 'POST', body: form })
   return res.json().catch(() => ({ ok: false, error: 'Upload failed' }))
 }
 
-/** Create a folder in the room. */
-export async function createRoomFolder(dealId: string, name: string, token?: string) {
+/** Create a folder in the room (agents may pick an access level). */
+export async function createRoomFolder(dealId: string, name: string, token?: string, accessLevel?: string) {
   const res = await fetch(base(dealId, token), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action: 'create_folder', name }),
+    body: JSON.stringify({ action: 'create_folder', name, accessLevel }),
   })
   return res.json().catch(() => ({ ok: false, error: 'Could not create folder' }))
 }
@@ -113,3 +123,61 @@ export async function deleteRoomItem(dealId: string, kind: 'file' | 'folder', id
   })
   return res.json().catch(() => ({ ok: false, error: 'Could not delete' }))
 }
+
+/** Restore a soft-deleted file from the trash (agents only). */
+export async function restoreRoomFile(dealId: string, fileId: string, token?: string) {
+  const res = await fetch(base(dealId, token), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'restore_file', fileId }),
+  })
+  return res.json().catch(() => ({ ok: false, error: 'Could not restore' }))
+}
+
+/** Move a file into another folder (null folderId = root). */
+export async function moveRoomFile(dealId: string, fileId: string, folderId: string | null, token?: string) {
+  const res = await fetch(base(dealId, token), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'move_file', fileId, folderId: folderId || '' }),
+  })
+  return res.json().catch(() => ({ ok: false, error: 'Could not move' }))
+}
+
+/** Change a file's access level (agents only). */
+export async function setRoomFileAccess(dealId: string, fileId: string, accessLevel: string, token?: string) {
+  const res = await fetch(base(dealId, token), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'set_file_access', fileId, accessLevel }),
+  })
+  return res.json().catch(() => ({ ok: false, error: 'Could not update access' }))
+}
+
+/** Change a folder's access level (agents only). */
+export async function setRoomFolderAccess(dealId: string, folderId: string, accessLevel: string, token?: string) {
+  const res = await fetch(base(dealId, token), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'set_folder_access', folderId, accessLevel }),
+  })
+  return res.json().catch(() => ({ ok: false, error: 'Could not update access' }))
+}
+
+/** Human label for an access level (badges). */
+export function accessLabel(level?: string | null): string {
+  switch (level) {
+    case 'all_parties': return 'Everyone'
+    case 'buyer_only': return 'Agent + Buyer'
+    case 'seller_only': return 'Agent + Seller'
+    case 'agent_only': return 'Agents only'
+    default: return 'Everyone'
+  }
+}
+
+export const ACCESS_OPTIONS: { value: string; label: string; icon: string }[] = [
+  { value: 'all_parties', label: 'Everyone (agent + buyer + seller)', icon: '🌐' },
+  { value: 'buyer_only', label: 'Agent + Buyer', icon: '🤝' },
+  { value: 'seller_only', label: 'Agent + Seller', icon: '🏠' },
+  { value: 'agent_only', label: 'Agents only (internal)', icon: '🔒' },
+]

@@ -8,7 +8,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { fetchDataRoom } from '@/lib/dataRoom'
+import { fetchRoom } from '@/lib/dataRoom'
 
 // =============================================================================
 // DataRoomBuyerInterest — "who viewed what" panel for the broker.
@@ -69,7 +69,7 @@ export default function DataRoomBuyerInterest({ dealId }: { dealId: string }) {
     (async () => {
       try {
         // Resolve the room id from the deal, then fetch the intent rollup.
-        const snap = await fetchDataRoom(dealId)
+        const snap = await fetchRoom(dealId)
         if (!snap.ok || !snap.room) { setLoading(false); return }
         const res = await fetch(`/api/data-rooms/intent?roomId=${encodeURIComponent(snap.room.id)}`, { cache: 'no-store' })
         const j = await res.json()

@@ -188,7 +188,7 @@ export default function DealDetail({ deal, onClose, onMoveStage, onEdit, onDelet
               ✎ Edit Deal
             </button>
             <a
-              href={`/dashboard/data-room/${deal.id}`}
+              href={`/dashboard/deal-room/${deal.id}`}
               style={{
                 flex: 1, padding: '11px', background: 'transparent', color: '#1d4ed8',
                 border: '1px solid #bfdbfe', borderRadius: '8px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'none', textAlign: 'center',
