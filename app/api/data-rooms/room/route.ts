@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 import {
   ensureDataRoom, snapshotRoom, logActivity, kindFromMime,
-  visibleAccessLevels, type RoomAccessLevel, type RoomRole,
+  visibleAccessLevels, canAccessDealRoom, type RoomAccessLevel, type RoomRole,
 } from '@/lib/dataRoomServer'
 import { notify } from '@/lib/email'
 
@@ -63,13 +63,10 @@ async function resolveActor(req: NextRequest, dealId: string, token: string) {
   }
   const authenticated = await authenticateProfileRequest(req)
   if (!authenticated) return { ok: false as const, status: 401, error: 'unauthorized' }
-  // Session path MUST verify the caller belongs to the deal's agency —
-  // otherwise any signed-in user could read/write any agency's deal room.
-  const { data: deal } = await SVC!.from('deals').select('id, agency_id').eq('id', dealId).maybeSingle()
-  const dealAgency = (deal as { agency_id?: string | null } | null)?.agency_id
-  if (!dealAgency) return { ok: false as const, status: 404, error: 'Deal not found' }
-  if (!authenticated.memberships.some((m) => m.agency_id === dealAgency)) {
-    return { ok: false as const, status: 403, error: 'Not a member of this deal\'s agency' }
+  // Listing-style isolation: only the deal's owning agent (listings.agent_id)
+  // or an agency admin/owner may open this deal room — NOT every agency member.
+  if (!(await canAccessDealRoom(SVC!, dealId, authenticated.user, authenticated.memberships))) {
+    return { ok: false as const, status: 403, error: 'Not authorized for this deal room' }
   }
   return {
     ok: true as const,

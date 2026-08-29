@@ -44,6 +44,35 @@ export function visibleAccessLevels(role: RoomRole): RoomAccessLevel[] {
   return ['all_parties', 'seller_only'] // seller
 }
 
+/**
+ * Listing-style isolation check: is this authenticated user allowed to open
+ * the deal room for this deal? Mirrors the listings rule
+ *   is_agency_member(agency_id) AND (agent_id = auth.uid() OR is_agency_admin(agency_id))
+ * A deal's room belongs to its LISTING's owning agent (listings.agent_id) or
+ * an agency admin/owner — NOT every agent in the agency.
+ */
+export async function canAccessDealRoom(
+  db: SupabaseClient,
+  dealId: string,
+  user: { id: string },
+  memberships: { agency_id: string; role: string; is_owner: boolean }[],
+): Promise<boolean> {
+  const { data: deal } = await db.from('deals').select('id, agency_id, listing_id').eq('id', dealId).maybeSingle()
+  const d = deal as { agency_id?: string | null; listing_id?: string | null } | null
+  if (!d?.agency_id) return false
+  if (!memberships.some((m) => m.agency_id === d.agency_id)) return false
+
+  const isAdmin = memberships.some((m) => m.agency_id === d.agency_id && (m.is_owner || m.role === 'admin'))
+  if (isAdmin) return true
+
+  if (d.listing_id) {
+    const { data: listing } = await db.from('listings').select('agent_id').eq('id', d.listing_id).maybeSingle()
+    const agentId = (listing as { agent_id?: string | null } | null)?.agent_id
+    if (agentId && agentId === user.id) return true
+  }
+  return false
+}
+
 export interface RoomFile {
   id: string
   folder_id: string | null

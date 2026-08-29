@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import JSZip from 'jszip'
+import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
+import { canAccessDealRoom } from '@/lib/dataRoomServer'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -42,9 +44,12 @@ async function resolveActor(req: NextRequest, dealId: string) {
   }
   const auth = req.headers.get('authorization') || ''
   if (!auth.startsWith('Bearer ')) return null
-  const { data: user, error } = await SVC!.auth.getUser(auth.slice(7))
-  if (error || !user?.user) return null
-  return { email: user.user.email || user.user.id, userId: user.user.id }
+  // Listing-style isolation: only the deal's owning agent or an agency
+  // admin/owner may export this deal room.
+  const authenticated = await authenticateProfileRequest(req)
+  if (!authenticated) return null
+  if (!(await canAccessDealRoom(SVC!, dealId, authenticated.user, authenticated.memberships))) return null
+  return { email: authenticated.user.email || authenticated.user.id, userId: authenticated.user.id }
 }
 
 export async function GET(req: NextRequest) {

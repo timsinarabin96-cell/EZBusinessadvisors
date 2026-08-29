@@ -51,3 +51,17 @@ test('dealRoom: old flat Documents hub is gone, Deal Room pages exist', () => {
   assert.ok(readFileSync('app/dashboard/deal-room/page.tsx', 'utf8').includes('Deal Room'))
   assert.ok(readFileSync('app/dashboard/deal-room/[dealId]/page.tsx', 'utf8').includes('DealRoom'))
 })
+
+test('dealRoom: listing-style isolation — owning agent or agency admin only', () => {
+  // Server lib exposes the owning-agent/admin check used by API + RLS.
+  assert.match(serverLib, /canAccessDealRoom/)
+  assert.match(serverLib, /listings\.agent_id/)
+  assert.match(serverLib, /is_owner \|\| m\.role === 'admin'/)
+  // Room API refuses non-owners instead of any agency member.
+  assert.match(roomRoute, /canAccessDealRoom\(SVC!, dealId, authenticated\.user, authenticated\.memberships\)/)
+  assert.match(roomRoute, /Not authorized for this deal room/)
+  // ZIP export enforces the same isolation (was any-authenticated-user).
+  const exportRoute = readFileSync('app/api/data-rooms/export/route.ts', 'utf8')
+  assert.match(exportRoute, /canAccessDealRoom/)
+  assert.match(exportRoute, /authenticateProfileRequest/)
+})
