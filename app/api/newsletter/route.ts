@@ -7,7 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import {rateLimitAsync } from '@/lib/rateLimit'
+import { rateLimitAsync } from '@/lib/rateLimit'
+import { makeUnsubToken } from '@/lib/newspaper'
 
 // ---------------------------------------------------------------------------
 // POST /api/newsletter — public newsletter signup.
@@ -68,6 +69,14 @@ export async function POST(req: NextRequest) {
       { onConflict: 'key' },
     )
   }
+
+  // ALSO add to the newspaper subscriber list — this is the list the weekly
+  // auto-newspaper cron (and the manual "📮 Email subscribers" button) reads.
+  // One signup box, one subscriber, two lists kept in sync.
+  await svc.from('newspaper_subscriptions').upsert(
+    { email, name: body.name || null, token: makeUnsubToken(email), status: 'active' },
+    { onConflict: 'email' },
+  ).then(({ error }) => { if (error) console.log('[newsletter] newspaper_subscriptions upsert skip:', error.message) })
 
   // Queue a welcome email (best-effort; flushes when SMTP is configured).
   await svc.from('email_emails').insert({

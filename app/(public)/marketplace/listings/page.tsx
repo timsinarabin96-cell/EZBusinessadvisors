@@ -14,6 +14,7 @@ import SearchListingsClient from '@/components/public/SearchListingsClient'
 import BuyerCapturePrompt from '@/components/public/BuyerCapturePrompt'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 import { SponsoredSlot } from '@/components/public/SponsoredSlot'
+import NewsletterSignup from '@/components/public/NewsletterSignup'
 import { LoadingState } from '@/components/ui'
 import { fmt$ } from '@/lib/recast'
 import { listingImageFor } from '@/lib/stockImages'
@@ -105,6 +106,18 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
       <Suspense fallback={<LoadingState label="Loading listings..." />}>
         <SearchListingsClient initialResults={results} initialIndustries={industries} initialStats={stats} agencyScope={scope} />
       </Suspense>
+      <section style={{ background: '#1a1a2e', padding: '26px 24px', marginTop: 0 }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ flex: '1 1 340px', maxWidth: 560 }}>
+            <div style={{ fontSize: 13, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#c9a84c', fontWeight: 800, marginBottom: 6 }}>Weekly listings briefing</div>
+            <div style={{ fontSize: 21, fontWeight: 800, color: '#fff', lineHeight: 1.3 }}>New businesses for sale, straight to your inbox.</div>
+            <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginTop: 6 }}>
+              One email every week — the latest listings, deals closed, and market news. Unsubscribe anytime.
+            </div>
+          </div>
+          <NewsletterSignup />
+        </div>
+      </section>
       <BuyerCapturePrompt hintIndustry={str(sp.industry) || null} />
       <SponsoredSlot slotKey="marketplace_bottom" />
     </>
