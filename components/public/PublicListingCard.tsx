@@ -60,16 +60,16 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
 
   return (
     <div style={{ position: 'relative' }}>
-      <Link href={href} style={{ display: 'block', minWidth: 0, textDecoration: 'none', background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
-        <div style={{ height: 180, background: '#1a1a2e', position: 'relative', overflow: 'hidden' }}>
+      <Link href={href} className="lift" style={{ display: 'block', minWidth: 0, textDecoration: 'none', background: '#fff', border: '1px solid #ece8dc', borderRadius: 18, overflow: 'hidden', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(26,26,46,0.06)' }}>
+        <div style={{ height: 200, background: '#1a1a2e', position: 'relative', overflow: 'hidden' }}>
           {image && !imgError ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image} alt={listing.public_title} onError={() => setImgError(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: 'rgba(201,168,76,0.55)', fontSize: 40, fontFamily: 'Georgia, serif' }}>{(listing.industry || 'B').slice(0, 1).toUpperCase()}</div>
           )}
-          <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(26,26,46,0.85)', color: '#c9a84c', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>
-            {listing.industry || 'Business'}
+          <span style={{ position: 'absolute', top: 12, left: 12, background: 'rgba(10,14,28,0.78)', backdropFilter: 'blur(8px)', color: '#f0d98c', padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 14 }}>{industryEmojiFor(listing.industry)}</span>{listing.industry || 'Business'}
           </span>
           {listing.is_confidential && (
             <span style={{ position: 'absolute', top: 12, right: 40, background: 'rgba(255,255,255,0.92)', color: '#1a1a2e', padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
@@ -211,6 +211,27 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
       )}
     </div>
   )
+}
+
+function industryEmojiFor(industry: string | null | undefined): string {
+  const t = (industry || '').toLowerCase()
+  if (/(restaurant|food|diner|cafe|bar|pizza|bakery)/.test(t)) return '🍽️'
+  if (/(hvac|plumb|electric|contractor|roof|construction)/.test(t)) return '🔧'
+  if (/(salon|barber|beauty|spa|nail|cosmetic)/.test(t)) return '💇'
+  if (/(auto|car|truck|repair|mechanic|dealership)/.test(t)) return '🚗'
+  if (/(health|medical|dental|clinic|pharma|home care)/.test(t)) return '🩺'
+  if (/(laundromat|laundry|clean)/.test(t)) return '🧺'
+  if (/(storage|warehouse)/.test(t)) return '📦'
+  if (/(e-?commerce|online|amazon|shopify)/.test(t)) return '🛒'
+  if (/(software|tech|it|app|web|saas)/.test(t)) return '💻'
+  if (/(gym|fitness|yoga|training)/.test(t)) return '🏋️'
+  if (/(pet|grooming|veterinar)/.test(t)) return '🐾'
+  if (/(childcare|daycare|preschool)/.test(t)) return '🧸'
+  if (/(retail|store|shop|convenience|gas)/.test(t)) return '🛍️'
+  if (/(manufactur|industrial|factory)/.test(t)) return '🏭'
+  if (/(logistics|truck|freight|delivery|transport)/.test(t)) return '🚚'
+  if (/(car wash|detail)/.test(t)) return '🚿'
+  return '🏢'
 }
 
 function BadgeTone({ color, children }: { color: string; children: React.ReactNode }) {

@@ -72,14 +72,30 @@ export default function AgencyAdmin() {
     } catch (e: any) { toast(e.message, 'error') }
   }
 
-  const handleAddMember = async (profileId: string, role: AgencyRole) => {
-    if (!selected) return
+  const handleAddMember = async (email: string, role: AgencyRole): Promise<{ added: boolean; inviteUrl?: string }> => {
+    if (!selected) return { added: false }
     try {
-      await addAgencyMember(selected.id, profileId, role)
-      toast('Member added', 'success')
-      setShowAddMember(false)
-      setMembers(await fetchAgencyMembers(selected.id))
-    } catch (e: any) { toast(e.message, 'error') }
+      const { added } = await addAgencyMember(selected.id, email, role)
+      if (added) {
+        toast('Member added', 'success')
+        setShowAddMember(false)
+        setMembers(await fetchAgencyMembers(selected.id))
+        return { added: true }
+      }
+      // No account yet → create an invite the agent accepts with their own login.
+      const res = await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetType: 'agent', email, agencyId: selected.id }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Failed to create invite')
+      toast('Invite created — agent creates their own login 📬', 'success')
+      return { added: false, inviteUrl: j.url }
+    } catch (e: any) {
+      toast(e.message, 'error')
+      return { added: false }
+    }
   }
 
   const roleColor = (r: AgencyRole) => r === 'admin' ? '#b91c1c' : r === 'broker' ? '#1a1a2e' : '#64748b'
@@ -281,18 +297,20 @@ function CreateAgencyModal({ onClose, onSubmit }: { onClose: () => void; onSubmi
   )
 }
 
-function AddMemberModal({ onClose, onSubmit, agencyName }: { onClose: () => void; onSubmit: (profileId: string, role: AgencyRole) => Promise<void>; agencyName: string }) {
-  const [profileId, setProfileId] = useState('')
+function AddMemberModal({ onClose, onSubmit, agencyName }: { onClose: () => void; onSubmit: (email: string, role: AgencyRole) => Promise<{ added: boolean; inviteUrl?: string }>; agencyName: string }) {
+  const [email, setEmail] = useState('')
   const [role, setRole] = useState<AgencyRole>('broker')
+  const [busy, setBusy] = useState(false)
+  const [inviteUrl, setInviteUrl] = useState('')
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(26,26,46,0.55)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px' }} onClick={onClose}>
       <div style={{ background: '#fff', borderRadius: 12, maxWidth: 440, width: '100%', padding: 26 }} onClick={(e) => e.stopPropagation()}>
         <h2 style={{ margin: '0 0 4px', fontSize: 20, color: 'var(--navy)' }}>Add Member to {agencyName}</h2>
-        <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 20px' }}>Enter the user's profile ID (from Supabase Auth users).</p>
-        <form onSubmit={(e) => { e.preventDefault(); if (profileId.trim()) onSubmit(profileId, role) }}>
+        <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 20px' }}>Enter the agent's email — existing users join instantly; new users get an invite to create their own login.</p>
+        <form onSubmit={async (e) => { e.preventDefault(); if (!email.trim() || busy) return; setBusy(true); const r = await onSubmit(email.trim(), role); setBusy(false); if (r.inviteUrl) setInviteUrl(r.inviteUrl) }}>
           <div style={{ marginBottom: 14 }}>
-            <label className="label">Profile ID *</label>
-            <input className="input" value={profileId} onChange={(e) => setProfileId(e.target.value)} placeholder="uuid" autoFocus />
+            <label className="label">Email *</label>
+            <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="agent@brokerage.com" autoFocus />
           </div>
           <div style={{ marginBottom: 20 }}>
             <label className="label">Role</label>
@@ -300,9 +318,15 @@ function AddMemberModal({ onClose, onSubmit, agencyName }: { onClose: () => void
               {AGENCY_ROLES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
             </select>
           </div>
+          {inviteUrl && (
+            <div style={{ marginBottom: 16, background: '#f4f8fc', border: '1px solid #dbe7f3', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: '#1e3a5f', marginBottom: 4 }}>📬 Invite created — share this link:</div>
+              <div style={{ fontSize: 12, color: '#334155', wordBreak: 'break-all', fontFamily: 'monospace' }}>{inviteUrl}</div>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">Add</button>
+            <button type="button" className="btn btn-ghost" onClick={onClose}>{inviteUrl ? 'Done' : 'Cancel'}</button>
+            <button type="submit" className="btn btn-primary" disabled={busy || !email.trim()}>{busy ? 'Working…' : inviteUrl ? 'Resend' : 'Add / Invite'}</button>
           </div>
         </form>
       </div>

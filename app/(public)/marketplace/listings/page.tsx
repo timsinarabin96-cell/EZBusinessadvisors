@@ -80,9 +80,9 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
   return (
     <>
       <SponsoredSlot slotKey="marketplace_top" />
-      {/* ══ 3D HERO — logo + Businesses for Sale + animated stats ══ */}
-      <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 45%,#0f3460 100%)', color: '#fff', padding: '56px 24px 64px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 55% 50% at 75% 15%, rgba(201,168,76,0.18), transparent 60%), radial-gradient(ellipse 45% 45% at 15% 85%, rgba(15,52,96,0.6), transparent 65%)' }} />
+      {/* ══ 3D HERO — logo + Businesses for Sale + animated stats (billion-dollar pass) ══ */}
+      <section style={{ background: 'linear-gradient(160deg,#0b1020 0%,#101a38 42%,#0f2a52 100%)', color: '#fff', padding: '64px 24px 72px', position: 'relative', overflow: 'hidden' }}>
+        <div className="hero-aurora" />
         <div style={{ position: 'relative', maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
           {/* 3D logo emblem */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>
@@ -90,24 +90,26 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
             <img
               src="/brand/concord-3d-logo.png"
               alt="CONCORD — Deal Platform"
-              width={150}
-              height={150}
-              style={{ borderRadius: 26, boxShadow: '0 24px 70px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.3)', objectFit: 'cover' }}
+              width={140}
+              height={140}
+              style={{ borderRadius: 26, boxShadow: '0 24px 70px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.35)', objectFit: 'cover' }}
             />
           </div>
-          <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>Business Marketplace</div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 5vw, 52px)', margin: '12px 0 12px', lineHeight: 1.1 }}>
-            Businesses for Sale
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 999, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em', color: '#f0d98c', marginBottom: 16 }}>
+            🏢 Business Marketplace
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 56px)', margin: '8px 0 14px', lineHeight: 1.06, letterSpacing: '-0.03em', color: '#fff' }}>
+            Businesses for <span className="grad-gold">Sale</span>
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 16.5, maxWidth: 620, margin: '0 auto 30px', lineHeight: 1.6 }}>
+          <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 16.5, maxWidth: 620, margin: '0 auto 30px', lineHeight: 1.65 }}>
             Browse vetted, profitable businesses for sale — or list yours confidentially and reach qualified buyers.
           </p>
-          {/* Animated stats — same language as the homepage */}
+          {/* Animated stats — glass cards, same language as the homepage */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 14, maxWidth: 880, margin: '0 auto' }}>
-            <CountUpStat value={statValue(stats?.totalListings)} label="Businesses for Sale" />
-            <CountUpStat value={statValue(stats?.avgAsking)} label="Avg. Asking Price" prefix="$" accent="#c9a84c" />
-            <CountUpStat value={statValue(stats?.totalBusinessesSold)} label="Businesses Sold" accent="#16a34a" />
-            <CountUpStat value={statValue(stats?.industries)} label="Industries" accent="#1d4ed8" />
+            <div className="glass" style={{ padding: '18px 14px' }}><CountUpStat value={statValue(stats?.totalListings)} label="Businesses for Sale" /></div>
+            <div className="glass" style={{ padding: '18px 14px' }}><CountUpStat value={statValue(stats?.avgAsking)} label="Avg. Asking Price" prefix="$" accent="#f0d98c" /></div>
+            <div className="glass" style={{ padding: '18px 14px' }}><CountUpStat value={statValue(stats?.totalBusinessesSold)} label="Businesses Sold" accent="#4ade80" /></div>
+            <div className="glass" style={{ padding: '18px 14px' }}><CountUpStat value={statValue(stats?.industries)} label="Industries" accent="#60a5fa" /></div>
           </div>
         </div>
       </section>

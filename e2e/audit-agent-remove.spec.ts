@@ -62,10 +62,10 @@ test.describe('AUDIT — agent add/remove + auto-save with commas', () => {
     const brandingName = page.locator('label:has-text("Agency Name") + input')
     await expect(brandingName).toHaveValue(/QA Test Brokerage/, { timeout: 10000 })
 
-    // Add member.
+    // Add member (email-based invite modal).
     await page.getByRole('button', { name: '+ Add Member' }).click()
-    await page.locator('input[placeholder="uuid"]').fill(profileId)
-    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await page.locator('input[type="email"]').fill(email)
+    await page.getByRole('button', { name: /Add \/ Invite/ }).click()
 
     // Row shows the first 8 chars of the profile id.
     const truncated = profileId.slice(0, 8)

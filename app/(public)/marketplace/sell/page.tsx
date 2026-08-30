@@ -206,24 +206,27 @@ function SellContent() {
                 height={72}
                 style={{ borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(201,168,76,0.35)', objectFit: 'cover' }}
               />
-              <div style={{ color: '#c9a84c', fontSize: 12.5, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 800 }}>Sell Your Business</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 999, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em', color: '#f0d98c' }}>📣 Sell Your Business</div>
             </div>
-            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 4.4vw, 48px)', margin: '14px 0 16px', lineHeight: 1.15, color: '#fff', textShadow: '0 4px 24px rgba(0,0,0,0.45)' }}>
-              List Your Business <span style={{ color: '#c9a84c', textShadow: '0 4px 24px rgba(201,168,76,0.4)' }}>— Free</span>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(34px, 4.6vw, 52px)', margin: '14px 0 16px', lineHeight: 1.08, color: '#fff', letterSpacing: '-0.03em', textShadow: '0 4px 24px rgba(0,0,0,0.45)' }}>
+              List Your Business <span className="grad-gold">— Free</span>
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 16, lineHeight: 1.7, maxWidth: 540 }}>
               Post one confidential listing at no cost. A broker reviews it before anything goes live — then qualified buyers can reach you. Prefer a broker-grade valuation first? Get one for ${VALUATION_PRICE} below.
             </p>
-            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 26, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-              <span>🤫 100% confidential</span>
-              <span>📊 Broker-grade valuation</span>
-              <span>🤝 Qualified buyers only</span>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 26 }}>
+              {[['🤫', '100% confidential'], ['📊', 'Broker-grade valuation'], ['🤝', 'Qualified buyers only']].map(([e, t]) => (
+                <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 999, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(10px)' }}>
+                  <span style={{ fontSize: 16 }}>{e}</span> {t}
+                </span>
+              ))}
             </div>
             <button
               onClick={() => document.getElementById('sell-form')?.scrollIntoView({ behavior: 'smooth' })}
-              style={{ marginTop: 26, background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 10, padding: '14px 28px', fontWeight: 800, fontFamily: 'Georgia, serif', fontSize: 15.5, cursor: 'pointer', boxShadow: '0 10px 30px rgba(201,168,76,0.4)', transition: 'all .15s ease' }}
+              className="home-glow"
+              style={{ marginTop: 28, background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', border: 'none', borderRadius: 14, padding: '15px 30px', fontWeight: 800, fontFamily: 'var(--font-sans)', fontSize: 15.5, cursor: 'pointer', boxShadow: '0 10px 30px rgba(201,168,76,0.45)', transition: 'all .15s ease' }}
             >
-              Start Free Listing →
+              Start Free Listing 🚀
             </button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>

@@ -100,16 +100,20 @@ export async function fetchAgencyMembers(agencyId: string): Promise<AgencyMember
   return data as AgencyMember[]
 }
 
-export async function addAgencyMember(agencyId: string, profileId: string, role: AgencyRole): Promise<void> {
+export async function addAgencyMember(agencyId: string, email: string, role: AgencyRole): Promise<{ added: boolean }> {
   // Server-side route uses the service role — the client insert is blocked by
   // RLS (`agency_members_insert_admin_only` needs role 'admin', not 'owner').
+  // Resolves the profile by email; returns added:false when no account exists
+  // yet so the UI can fall back to creating an invite.
   const res = await authenticatedFetch('/api/agency/members', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ agencyId, profileId, role }),
+    body: JSON.stringify({ agencyId, email, role }),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to add member')
+  if (res.ok && data.ok) return { added: true }
+  if (data.code === 'NO_PROFILE') return { added: false }
+  throw new Error(data.error || 'Failed to add member')
 }
 
 export async function updateAgencyMemberRole(memberId: string, role: AgencyRole): Promise<void> {

@@ -34,7 +34,9 @@ function getDb() {
   return db
 }
 
-/** POST — add a member. { agencyId, profileId, role } */
+/** POST — add a member. { agencyId, email, role } — email lookup server-side
+ *  so owners never paste raw profile UUIDs. Returns { added: true } when the
+ *  account exists, or { code: 'NO_PROFILE' } so the UI can fall back to invite. */
 export async function POST(req: NextRequest) {
   const db = getDb()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
@@ -43,36 +45,37 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const agencyId = String(body?.agencyId || '').trim()
-  const profileId = String(body?.profileId || '').trim()
+  const email = String(body?.email || '').trim().toLowerCase()
   const role = String(body?.role || 'broker').trim()
-  if (!agencyId || !profileId) {
-    return NextResponse.json({ ok: false, error: 'agencyId and profileId are required' }, { status: 400 })
+  if (!agencyId || !email) {
+    return NextResponse.json({ ok: false, error: 'agencyId and email are required' }, { status: 400 })
   }
   if (!canManageTeam(auth, agencyId)) return forbiddenResponse()
 
-  // Ensure the target profile actually exists before linking it.
+  // Resolve the profile by email (service role — no client-side UUID needed).
   const { data: profile, error: profileError } = await db
     .from('profiles')
     .select('id')
-    .eq('id', profileId)
+    .ilike('email', email)
     .maybeSingle()
   if (profileError) {
     return NextResponse.json({ ok: false, error: profileError.message }, { status: 500 })
   }
   if (!profile) {
-    return NextResponse.json({ ok: false, error: 'Profile not found' }, { status: 404 })
+    // No account yet — let the UI create an invite instead.
+    return NextResponse.json({ ok: false, code: 'NO_PROFILE', error: 'No account found for this email' }, { status: 404 })
   }
 
   const { error } = await db.from('agency_members').insert({
     agency_id: agencyId,
-    profile_id: profileId,
+    profile_id: profile.id,
     role,
     is_owner: false,
   })
   if (error) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
   }
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, added: true })
 }
 
 /** PATCH — update a member's role. { memberId, role } */
