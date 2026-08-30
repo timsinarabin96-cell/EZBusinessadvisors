@@ -272,7 +272,7 @@ export default function OneShotDealBuilder() {
       const j = await res.json()
       if (!res.ok || !j.ok) throw new Error(j.error || 'Publish failed')
       toast('🚀 Listing is LIVE on the marketplace', 'success')
-      setListing({ ...listing, status: 'active' })
+      setListing({ ...listing, status: 'active', published_at: new Date().toISOString() })
     } catch (e: any) {
       toast(e.message || 'Publish failed', 'error')
     } finally {
@@ -524,7 +524,7 @@ export default function OneShotDealBuilder() {
                   <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 700 }}>READINESS</div>
                 </div>
               )}
-              {listing.status !== 'active' && (
+              {!listing.published_at && (
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid var(--line)', borderRadius: 10, padding: '9px 12px', fontSize: 12, color: 'var(--navy)', fontWeight: 600, cursor: 'pointer', maxWidth: 240 }}>
                   <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} style={{ accentColor: '#16a34a', width: 15, height: 15, cursor: 'pointer' }} />
                   I confirm the asking price, revenue &amp; earnings are correct
@@ -536,12 +536,12 @@ export default function OneShotDealBuilder() {
                 disabled={publishing}
                 style={{
                   padding: '13px 22px', borderRadius: 10, border: 'none', cursor: publishing ? 'wait' : 'pointer',
-                  background: listing.status === 'active' ? '#16a34a' : 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff',
+                  background: listing.published_at ? '#16a34a' : 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff',
                   fontWeight: 800, fontSize: 14.5, boxShadow: '0 8px 20px rgba(22,163,74,0.35)',
-                  opacity: !confirmed && listing.status !== 'active' ? 0.55 : 1,
+                  opacity: !confirmed && !listing.published_at ? 0.55 : 1,
                 }}
               >
-                {listing.status === 'active' ? '✓ Live on the marketplace' : publishing ? 'Publishing…' : '✅ Approve & Go Live'}
+                {listing.published_at ? '✓ Live on the marketplace' : publishing ? 'Publishing…' : '✅ Approve & Go Live'}
               </button>
             </div>
           </div>
