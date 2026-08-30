@@ -181,26 +181,35 @@ export default function SearchListingsClient({ initialResults, initialIndustries
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+      <style>{`
+        .cdp-glass input, .cdp-glass select { color: #fff; }
+        .cdp-glass input:focus, .cdp-glass select:focus { border-color: #c9a84c !important; box-shadow: 0 0 0 3px rgba(201,168,76,0.25) !important; outline: none; }
+        .cdp-glass input::placeholder, .cdp-glass select::placeholder { color: rgba(255,255,255,0.45); }
+        .cdp-glass select option { color: #1a1a2e; background: #fff; }
+        .cdp-chip { transition: all .15s ease; }
+        .cdp-chip:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(201,168,76,0.25); }
+        @media (hover: none) { .cdp-chip:hover { transform: none; } }
+      `}</style>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Business Marketplace</div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: '8px 0 0' }}>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 4vw, 44px)', color: '#1a1a2e', margin: '8px 0 0' }}>
             {q || industry || location || maxPrice || minPriceParam || maxRevenue || minRevenueParam || minSdeParam || maxSdeParam || minEbitdaParam || maxEbitdaParam || minYearParam || maxSdeMultiple || absenteeOnly || franchiseOnly || financingAvailable || sbaOnly || relocatableParam || revenueVerifiedParam || sellerVerifiedParam || bovOnFileParam || status || minEmployees || minPriceParam
-              ? `${results.length} result${results.length !== 1 ? 's' : ''}${q ? ` for “${q}”` : ''}`
-              : stats ? `${stats.totalListings} Businesses for Sale` : 'Businesses for Sale'}
+              ? <>{results.length} result{results.length !== 1 ? 's' : ''}{q ? ` for “${q}”` : ''}</>
+              : <><span style={{ color: '#c9a84c' }}>{stats ? stats.totalListings : '—'}</span> Businesses for Sale</>}
           </h1>
         </div>
         <Link href="/marketplace/sell" style={{ color: '#c9a84c', textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'Georgia, serif' }}>→ Seller? List your business</Link>
       </header>
 
-      {/* FILTERS */}
-      <form onSubmit={applyFilters} style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 18, marginBottom: 28 }}>
+      {/* FILTERS — premium glass card */}
+      <form onSubmit={applyFilters} className="cdp-glass" style={{ background: 'linear-gradient(135deg, rgba(15,16,35,0.97), rgba(26,26,46,0.97) 55%, rgba(15,52,96,0.92))', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 18, padding: 20, marginBottom: 28, boxShadow: '0 22px 55px rgba(15,16,35,0.28), 0 0 0 1px rgba(201,168,76,0.12), inset 0 1px 0 rgba(255,255,255,0.07)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
-          <div style={{ fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>Find your business</div>
+          <div style={{ fontSize: 12, color: '#c9a84c', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 800 }}>Find your business</div>
           <button
             type="button"
             onClick={() => setAdvanced((a) => !a)}
-            style={{ background: 'none', border: '1px solid #d8d2c2', borderRadius: 99, padding: '6px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(201,168,76,0.5)', borderRadius: 99, padding: '6px 14px', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#e0c97e', fontFamily: 'Georgia, serif' }}
           >
             {advanced ? '▲ Simple view' : '▼ Advanced filters'}
           </button>
@@ -220,6 +229,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
               <button
                 key={chip.label}
                 type="button"
+                className="cdp-chip"
                 onClick={() => {
                   if (chip.max === 'NONE') {
                     setPrice(price === 'NONE' ? '' : 'NONE')
@@ -232,9 +242,9 @@ export default function SearchListingsClient({ initialResults, initialIndustries
                 style={{
                   padding: '8px 16px', borderRadius: 99, cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
                   fontFamily: 'Georgia, serif',
-                  background: active ? '#1a1a2e' : '#fff',
-                  color: active ? '#c9a84c' : '#1a1a2e',
-                  border: active ? '1px solid #1a1a2e' : '1px solid #d8d2c2',
+                  background: active ? '#c9a84c' : 'rgba(255,255,255,0.06)',
+                  color: active ? '#1a1a2e' : '#e0c97e',
+                  border: active ? '1px solid #c9a84c' : '1px solid rgba(201,168,76,0.4)',
                 }}
               >
                 {chip.label}
@@ -249,13 +259,13 @@ export default function SearchListingsClient({ initialResults, initialIndustries
           <input value={price} onChange={(e) => setPrice(formatWithCommas(e.target.value))} placeholder="Max Price ($)" inputMode="decimal" style={inputStyle} />
           {advanced && (
             <>
-              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '12px 0 8px' }}>💰 Price</div>
+              <div style={{ fontSize: 11, color: '#c9a84c', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '12px 0 8px' }}>💰 Price</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))', gap: 12 }}>
                 <input value={minPrice} onChange={(e) => setMinPrice(formatWithCommas(e.target.value))} placeholder="Min Price ($)" inputMode="decimal" style={inputStyle} />
                 <input value={price === 'NONE' ? '1,000,000' : price} onChange={(e) => { setPrice(formatWithCommas(e.target.value)); setMinPrice('') }} placeholder="Max Price ($)" inputMode="decimal" style={inputStyle} />
               </div>
 
-              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '14px 0 8px' }}>📊 Financials</div>
+              <div style={{ fontSize: 11, color: '#c9a84c', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '14px 0 8px' }}>📊 Financials</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12 }}>
                 <input value={minRev} onChange={(e) => setMinRev(formatWithCommas(e.target.value))} placeholder="Min Revenue ($)" inputMode="decimal" style={inputStyle} />
                 <input value={rev} onChange={(e) => setRev(formatWithCommas(e.target.value))} placeholder="Max Revenue ($)" inputMode="decimal" style={inputStyle} />
@@ -266,7 +276,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
                 <input value={multiple} onChange={(e) => setMultiple(e.target.value)} placeholder="Max SDE multiple" type="number" step="0.1" style={inputStyle} />
               </div>
 
-              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '14px 0 8px' }}>🏢 Business profile</div>
+              <div style={{ fontSize: 11, color: '#c9a84c', textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 800, margin: '14px 0 8px' }}>🏢 Business profile</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12 }}>
                 <input value={minYear} onChange={(e) => setMinYear(e.target.value)} placeholder="Est. after year (e.g. 2010)" inputMode="numeric" style={inputStyle} />
                 <input value={employees} onChange={(e) => setEmployees(e.target.value)} placeholder="Min FT employees" type="number" style={inputStyle} />
@@ -284,12 +294,12 @@ export default function SearchListingsClient({ initialResults, initialIndustries
               { label: '✓ Seller Verified', checked: sellerVerified, set: setSellerVerified },
               { label: '📄 BOV on file', checked: bovOnFile, set: setBovOnFile },
             ].map((opt) => (
-              <label key={opt.label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: '#1a1a2e', fontWeight: 600, cursor: 'pointer' }}>
+              <label key={opt.label} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'rgba(255,255,255,0.88)', fontWeight: 600, cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={opt.checked}
                   onChange={(e) => opt.set(e.target.checked)}
-                  style={{ width: 15, height: 15, accentColor: '#1a1a2e', cursor: 'pointer' }}
+                  style={{ width: 15, height: 15, accentColor: '#c9a84c', cursor: 'pointer' }}
                 />
                 {opt.label}
               </label>
@@ -310,8 +320,8 @@ export default function SearchListingsClient({ initialResults, initialIndustries
               <option value="revenue_desc">Revenue: High → Low</option>
               <option value="multiple_desc">Multiple: High → Low</option>
             </select>
-            <button type="submit" style={{ background: '#1a1a2e', color: '#fff', border: '1px solid #1a1a2e', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: 14, padding: '12px 14px', letterSpacing: '0.02em', boxShadow: '0 2px 10px rgba(26,26,46,0.18)', transition: 'all .15s ease' }}>Apply Filters</button>
-            <button type="button" onClick={clearAll} style={{ background: 'none', border: '1px solid #d8d2c2', borderRadius: 8, padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#888', cursor: 'pointer' }}>✕ Clear all</button>
+            <button type="submit" style={{ background: '#c9a84c', color: '#1a1a2e', border: '1px solid #c9a84c', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: 14, padding: '12px 14px', letterSpacing: '0.02em', boxShadow: '0 4px 16px rgba(201,168,76,0.35)', transition: 'all .15s ease' }}>Apply Filters</button>
+            <button type="button" onClick={clearAll} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 8, padding: '12px 16px', fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', cursor: 'pointer' }}>✕ Clear all</button>
           </div>
         </div>
       </form>

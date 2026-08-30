@@ -197,9 +197,19 @@ function SellContent() {
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 55% 60% at 80% 15%, rgba(201,168,76,0.16), transparent 60%), radial-gradient(ellipse 45% 45% at 12% 85%, rgba(15,52,96,0.6), transparent 65%)' }} />
         <div style={{ position: 'relative', maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 44, alignItems: 'center' }} className="hero-grid">
           <div>
-            <div style={{ color: '#c9a84c', fontSize: 12.5, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 800 }}>Sell Your Business</div>
-            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 4.4vw, 48px)', margin: '14px 0 16px', lineHeight: 1.15 }}>
-              List Your Business <span style={{ color: '#c9a84c' }}>— Free</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/concord-3d-logo.png"
+                alt="CONCORD — Deal Platform"
+                width={72}
+                height={72}
+                style={{ borderRadius: 16, boxShadow: '0 14px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(201,168,76,0.35)', objectFit: 'cover' }}
+              />
+              <div style={{ color: '#c9a84c', fontSize: 12.5, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 800 }}>Sell Your Business</div>
+            </div>
+            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 4.4vw, 48px)', margin: '14px 0 16px', lineHeight: 1.15, color: '#fff', textShadow: '0 4px 24px rgba(0,0,0,0.45)' }}>
+              List Your Business <span style={{ color: '#c9a84c', textShadow: '0 4px 24px rgba(201,168,76,0.4)' }}>— Free</span>
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 16, lineHeight: 1.7, maxWidth: 540 }}>
               Post one confidential listing at no cost. A broker reviews it before anything goes live — then qualified buyers can reach you. Prefer a broker-grade valuation first? Get one for ${VALUATION_PRICE} below.
@@ -209,6 +219,12 @@ function SellContent() {
               <span>📊 Broker-grade valuation</span>
               <span>🤝 Qualified buyers only</span>
             </div>
+            <button
+              onClick={() => document.getElementById('sell-form')?.scrollIntoView({ behavior: 'smooth' })}
+              style={{ marginTop: 26, background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 10, padding: '14px 28px', fontWeight: 800, fontFamily: 'Georgia, serif', fontSize: 15.5, cursor: 'pointer', boxShadow: '0 10px 30px rgba(201,168,76,0.4)', transition: 'all .15s ease' }}
+            >
+              Start Free Listing →
+            </button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -218,7 +234,7 @@ function SellContent() {
       </section>
 
       {/* Main two-column: copy + form */}
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
+    <div id="sell-form" style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
       {/* LEFT — demand + valuation + trust features (headline moved to hero) */}
       <div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

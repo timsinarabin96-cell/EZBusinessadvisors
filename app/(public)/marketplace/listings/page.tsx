@@ -14,6 +14,7 @@ import SearchListingsClient from '@/components/public/SearchListingsClient'
 import CategoryCards from '@/components/public/CategoryCards'
 import BuyerCapturePrompt from '@/components/public/BuyerCapturePrompt'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
+import CountUpStat from '@/components/public/CountUpStat'
 import { SponsoredSlot } from '@/components/public/SponsoredSlot'
 import NewsletterSignup from '@/components/public/NewsletterSignup'
 import { LoadingState } from '@/components/ui'
@@ -74,9 +75,42 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
     fetchFeaturedListings(4, scope),
   ])
 
+  const statValue = (v: number | null | undefined) => (v != null && !isNaN(v) ? v : 0)
+
   return (
     <>
       <SponsoredSlot slotKey="marketplace_top" />
+      {/* ══ 3D HERO — logo + Businesses for Sale + animated stats ══ */}
+      <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 45%,#0f3460 100%)', color: '#fff', padding: '56px 24px 64px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 55% 50% at 75% 15%, rgba(201,168,76,0.18), transparent 60%), radial-gradient(ellipse 45% 45% at 15% 85%, rgba(15,52,96,0.6), transparent 65%)' }} />
+        <div style={{ position: 'relative', maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
+          {/* 3D logo emblem */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/concord-3d-logo.png"
+              alt="CONCORD — Deal Platform"
+              width={150}
+              height={150}
+              style={{ borderRadius: 26, boxShadow: '0 24px 70px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.3)', objectFit: 'cover' }}
+            />
+          </div>
+          <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>Business Marketplace</div>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 5vw, 52px)', margin: '12px 0 12px', lineHeight: 1.1 }}>
+            Businesses for Sale
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 16.5, maxWidth: 620, margin: '0 auto 30px', lineHeight: 1.6 }}>
+            Browse vetted, profitable businesses for sale — or list yours confidentially and reach qualified buyers.
+          </p>
+          {/* Animated stats — same language as the homepage */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 14, maxWidth: 880, margin: '0 auto' }}>
+            <CountUpStat value={statValue(stats?.totalListings)} label="Businesses for Sale" />
+            <CountUpStat value={statValue(stats?.avgAsking)} label="Avg. Asking Price" prefix="$" accent="#c9a84c" />
+            <CountUpStat value={statValue(stats?.totalBusinessesSold)} label="Businesses Sold" accent="#16a34a" />
+            <CountUpStat value={statValue(stats?.industries)} label="Industries" accent="#1d4ed8" />
+          </div>
+        </div>
+      </section>
       <SoldCompsTicker limit={8} />
       {!hasActiveSearch && spotlight.length > 0 && (
         <section style={{ background: '#fff', borderBottom: '1px solid #ece8dc', padding: '22px 24px' }}>
