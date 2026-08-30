@@ -13,6 +13,7 @@ import { fetchFeaturedListings, fetchMarketplaceStats, fetchAllIndustries, fetch
 import { buildSoldCompsReport } from '@/lib/soldComps'
 import { getPublicAgencyContext } from '@/lib/publicAgency'
 import PublicListingCard from '@/components/public/PublicListingCard'
+import CategoryCards from '@/components/public/CategoryCards'
 import AuthRedirect from '@/components/public/AuthRedirect'
 import ValuationLeadForm from '@/components/public/ValuationLeadForm'
 import HomeSearchLocation from '@/components/public/HomeSearchLocation'
@@ -89,54 +90,57 @@ export default async function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqLd) }} />
 
-      {/* ══ HERO — premium animated band ══ */}
+      {/* ══ HERO — premium two-column band: value prop + search left, 3D brand banner right ══ */}
       <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 45%,#0f3460 100%)', color: '#fff', padding: '84px 24px 72px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 70% 20%, rgba(201,168,76,0.14), transparent 60%), radial-gradient(ellipse 50% 40% at 15% 80%, rgba(15,52,96,0.55), transparent 65%)' }} />
-        <div style={{ position: 'relative', maxWidth: 1100, margin: '0 auto', textAlign: 'center' }}>
-          <div className="home-fade-up" style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>
-            Confidential Business Brokerage
+        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 48, alignItems: 'center' }} className="hero-grid">
+          {/* LEFT — headline + search + trust */}
+          <div style={{ textAlign: 'left' }}>
+            <div className="home-fade-up" style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>
+              Confidential Business Brokerage
+            </div>
+            <h1 className="home-fade-up d1" style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 4.4vw, 52px)', margin: '16px 0 14px', lineHeight: 1.12, color: '#fff' }}>
+              Buy or Sell a Business<br />With <span style={{ color: '#c9a84c' }}>Confidence</span>
+            </h1>
+            <p className="home-fade-up d2" style={{ fontSize: 16.5, color: 'rgba(255,255,255,0.78)', maxWidth: 560, margin: '0 0 30px', lineHeight: 1.6 }}>
+              Concord connects qualified buyers with vetted, profitable businesses — and helps owners sell confidentially, for the right price.
+            </p>
+
+            {/* Smart search — plain GET form, zero client JS */}
+            <form
+              action="/marketplace/listings"
+              method="GET"
+              className="home-fade-up d3"
+              style={{
+                background: '#fff', borderRadius: 14, padding: 12,
+                display: 'grid', gridTemplateColumns: '1.5fr 1.1fr 1fr auto', gap: 8,
+                maxWidth: 640, boxShadow: '0 24px 70px rgba(0,0,0,0.45)',
+              } as React.CSSProperties}
+            >
+              <input name="q" placeholder="Keyword (restaurant, HVAC…)" style={searchInput} />
+              <HomeSearchCategory style={searchInput} />
+              <HomeSearchLocation style={searchInput} />
+              <button type="submit" className="home-glow" style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', borderRadius: 8, padding: '0 22px', fontWeight: 800, fontFamily: 'Georgia, serif', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Search →
+              </button>
+            </form>
+
+            {/* Trust chips */}
+            <div className="home-fade-up d3" style={{ marginTop: 24, display: 'flex', gap: 20, justifyContent: 'flex-start', flexWrap: 'wrap', fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
+              <span>🔒 NDA-protected</span>
+              <span>📊 Recast financials</span>
+              <span>⚖️ Broker-valued</span>
+              <span>🤝 Verified buyers</span>
+            </div>
+
+            <div style={{ marginTop: 26, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              <Link href="/marketplace/listings" style={ctaGold}>Browse All Listings →</Link>
+              <Link href="/marketplace/sell" style={ctaGhost}>Get a Free Valuation</Link>
+            </div>
           </div>
-          <h1 className="home-fade-up d1" style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(32px, 5.4vw, 54px)', margin: '16px 0 14px', lineHeight: 1.12, color: '#fff' }}>
-            Buy or Sell a Business<br />With <span style={{ color: '#c9a84c' }}>Confidence</span>
-          </h1>
-          <p className="home-fade-up d2" style={{ fontSize: 17, color: 'rgba(255,255,255,0.78)', maxWidth: 640, margin: '0 auto 34px', lineHeight: 1.6 }}>
-            Concord connects qualified buyers with vetted, profitable businesses — and helps owners sell confidentially, for the right price.
-          </p>
 
-          {/* Smart search — plain GET form, zero client JS */}
-          <form
-            action="/marketplace/listings"
-            method="GET"
-            className="grid-responsive collapse-md home-fade-up d3"
-            style={{
-              background: '#fff', borderRadius: 14, padding: 14,
-              '--grid-cols': '2fr 1.3fr 1fr auto', '--grid-gap': '10px',
-              maxWidth: 840, margin: '0 auto', boxShadow: '0 24px 70px rgba(0,0,0,0.45)',
-            } as React.CSSProperties}
-          >
-            <input name="q" placeholder="Keyword (e.g. restaurant, HVAC, e-commerce)" style={searchInput} />
-            <HomeSearchCategory style={searchInput} />
-            <HomeSearchLocation style={searchInput} />
-            <button type="submit" className="home-glow" style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', borderRadius: 8, padding: '0 26px', fontWeight: 800, fontFamily: 'Georgia, serif', fontSize: 14.5, cursor: 'pointer' }}>
-              Search →
-            </button>
-          </form>
-
-          {/* Trust chips */}
-          <div className="home-fade-up d3" style={{ marginTop: 26, display: 'flex', gap: 22, justifyContent: 'center', flexWrap: 'wrap', fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
-            <span>🔒 NDA-protected</span>
-            <span>📊 Recast financials</span>
-            <span>⚖️ Broker-valued</span>
-            <span>🤝 Verified buyers</span>
-          </div>
-
-          <div style={{ marginTop: 28, display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/marketplace/listings" style={ctaGold}>Browse All Listings →</Link>
-            <Link href="/marketplace/sell" style={ctaGhost}>Get a Free Valuation</Link>
-          </div>
-
-          {/* Brand 3D banner — the premium CONCORD wordmark */}
-          <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center' }}>
+          {/* RIGHT — 3D brand banner */}
+          <div className="home-fade-up d2" style={{ display: 'flex', justifyContent: 'center' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/og-3d.png"
@@ -205,17 +209,8 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {/* Browse by industry — SEO entry points */}
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 10 }}>Browse by industry</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {industries.slice(0, 20).map((ind) => (
-              <Link key={ind} href={`/marketplace/industry/${slugify(ind)}`} style={{ padding: '7px 16px', borderRadius: 99, fontSize: 13, fontWeight: 700, textDecoration: 'none', background: '#faf9f4', color: '#1a1a2e', border: '1px solid #ece8dc', transition: 'all 0.15s' }}>
-                {ind}
-              </Link>
-            ))}
-          </div>
-        </div>
+        {/* Browse by industry — SEO entry points, now full-color category cards */}
+        <CategoryCards industries={industries} limit={12} />
 
         {featured.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 12, color: '#888' }}>

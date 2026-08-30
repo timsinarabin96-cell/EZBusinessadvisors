@@ -11,6 +11,7 @@ import { Suspense } from 'react'
 import { fetchAllIndustries, fetchFeaturedListings, fetchMarketplaceStats, searchPublicListings } from '@/lib/marketplace'
 import { getPublicAgencyContext } from '@/lib/publicAgency'
 import SearchListingsClient from '@/components/public/SearchListingsClient'
+import CategoryCards from '@/components/public/CategoryCards'
 import BuyerCapturePrompt from '@/components/public/BuyerCapturePrompt'
 import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 import { SponsoredSlot } from '@/components/public/SponsoredSlot'
@@ -106,6 +107,7 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
       <Suspense fallback={<LoadingState label="Loading listings..." />}>
         <SearchListingsClient initialResults={results} initialIndustries={industries} initialStats={stats} agencyScope={scope} />
       </Suspense>
+      <CategoryCards industries={industries} limit={12} title="Browse by business type" subtitle="Color-coded categories — pick one to explore vetted businesses for sale" />
       <section style={{ background: '#1a1a2e', padding: '26px 24px', marginTop: 0 }}>
         <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ flex: '1 1 340px', maxWidth: 560 }}>

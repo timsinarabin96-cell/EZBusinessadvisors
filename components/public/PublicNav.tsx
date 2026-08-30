@@ -37,24 +37,39 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
           <span style={{ fontSize: 10, letterSpacing: '0.25em', color: accent, textTransform: 'uppercase' }}>{brand ? 'Markets' : 'Deal Platform'}</span>
         </Link>
 
-        {/* Desktop nav — hidden under 860px via .publicnav-links (an inline
-            display:none can't be overridden by a media query, so visibility
-            for both this and the toggle button below is CSS-class driven).
-            Kept to the core links so the row never overflows at common
-            widths; the full link set lives in the hamburger menu. */}
-        <nav className="publicnav-links" style={{ gap: 20, alignItems: 'center' }}>
-          <NavLink href="/marketplace/listings">Buy a Business</NavLink>
-          <NavLink href="/marketplace/sell">Sell a Business</NavLink>
-          <NavLink href="/brokerai">BrokerAI</NavLink>
-          <NavLink href="/marketplace/brokers">Our Brokers</NavLink>
-          <NavLink href="/marketplace/financing">Financing</NavLink>
-          <NavLink href="/about">About</NavLink>
-          <Link
-            href="/auth"
-            style={{ background: '#1a1a2e', color: '#fff', padding: '10px 20px', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'Georgia, serif', whiteSpace: 'nowrap' }}
-          >
-            Broker Login
-          </Link>
+        {/* Desktop nav — full advanced link set in a two-tier layout. The
+            utility row (second tier) keeps every marketplace link visible on
+            desktop; the hamburger only appears on phones/tablets. */}
+        <nav className="publicnav-links" style={{ flexDirection: 'column', alignItems: 'flex-end', gap: 0 }}>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+            <NavLink href="/marketplace/listings">Buy a Business</NavLink>
+            <NavLink href="/marketplace/sell">Sell a Business</NavLink>
+            <NavLink href="/brokerai">BrokerAI</NavLink>
+            <NavLink href="/marketplace/brokers">Our Brokers</NavLink>
+            <NavLink href="/marketplace/financing">Financing</NavLink>
+            <NavLink href="/marketplace/professionals">Professionals</NavLink>
+            <NavLink href="/marketplace/qualify">Pre-Qualify</NavLink>
+            <Link
+              href="/auth"
+              style={{ background: '#1a1a2e', color: '#fff', padding: '10px 20px', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'Georgia, serif', whiteSpace: 'nowrap' }}
+            >
+              Broker Login
+            </Link>
+          </div>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginTop: 8, paddingTop: 7, borderTop: '1px solid #f0ede4' }}>
+            {[
+              ['/marketplace/comps', 'Sale Comps'],
+              ['/marketplace/sold', 'Recently Sold'],
+              ['/marketplace/pulse', 'Market Pulse'],
+              ['/marketplace/compare', '⚖ Compare'],
+              ['/marketplace/favorites', '♥ Saved'],
+              ['/marketplace/trust', 'Trust Center'],
+              ['/marketplace/insights', 'Insights'],
+              ['/contact', 'Contact'],
+            ].map(([href, label]) => (
+              <NavLink key={href} href={href} small>{label}</NavLink>
+            ))}
+          </div>
         </nav>
 
         <button
@@ -94,9 +109,9 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
   )
 }
 
-function NavLink({ href, children, arrow, onClick }: { href: string; children: React.ReactNode; arrow?: boolean; onClick?: () => void }) {
+function NavLink({ href, children, arrow, onClick, small }: { href: string; children: React.ReactNode; arrow?: boolean; onClick?: () => void; small?: boolean }) {
   return (
-    <Link href={href} onClick={onClick} style={{ color: '#1a1a2e', textDecoration: 'none', fontSize: 14.5, fontWeight: 600, fontFamily: 'Georgia, serif', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+    <Link href={href} onClick={onClick} style={{ color: '#1a1a2e', textDecoration: 'none', fontSize: small ? 12 : 14.5, fontWeight: small ? 500 : 600, fontFamily: 'Georgia, serif', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: small ? 0.72 : 1 }}>
       {children} {arrow && <span style={{ color: '#c9a84c' }}>→</span>}
     </Link>
   )

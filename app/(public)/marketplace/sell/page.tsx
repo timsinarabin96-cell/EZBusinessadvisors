@@ -192,17 +192,35 @@ function SellContent() {
   return (
     <main>
       <SponsoredSlotInline slotKey="sell_page_promo" />
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '60px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
-      {/* LEFT copy */}
-      <div>
-        <div style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>Sell Your Business</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, color: '#1a1a2e', margin: '12px 0 16px', lineHeight: 1.15 }}>
-          List Your Business <span style={{ color: '#c9a84c' }}>— Free</span>
-        </h1>
-        <p style={{ color: '#666', fontSize: 16, lineHeight: 1.7, marginBottom: 28 }}>
-          Post one confidential listing at no cost. A broker reviews it before anything goes live — then qualified buyers can reach you. Prefer a broker-grade valuation first? Get one for ${VALUATION_PRICE} below.
-        </p>
+      {/* ══ SELL HERO — dark premium band ══ */}
+      <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 50%,#0f3460 100%)', color: '#fff', padding: '72px 24px 64px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 55% 60% at 80% 15%, rgba(201,168,76,0.16), transparent 60%), radial-gradient(ellipse 45% 45% at 12% 85%, rgba(15,52,96,0.6), transparent 65%)' }} />
+        <div style={{ position: 'relative', maxWidth: 1100, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 44, alignItems: 'center' }} className="hero-grid">
+          <div>
+            <div style={{ color: '#c9a84c', fontSize: 12.5, letterSpacing: '0.22em', textTransform: 'uppercase', fontWeight: 800 }}>Sell Your Business</div>
+            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 4.4vw, 48px)', margin: '14px 0 16px', lineHeight: 1.15 }}>
+              List Your Business <span style={{ color: '#c9a84c' }}>— Free</span>
+            </h1>
+            <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 16, lineHeight: 1.7, maxWidth: 540 }}>
+              Post one confidential listing at no cost. A broker reviews it before anything goes live — then qualified buyers can reach you. Prefer a broker-grade valuation first? Get one for ${VALUATION_PRICE} below.
+            </p>
+            <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 26, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+              <span>🤫 100% confidential</span>
+              <span>📊 Broker-grade valuation</span>
+              <span>🤝 Qualified buyers only</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/og-3d.png" alt="CONCORD — Sell Your Business" width={760} height={399} style={{ maxWidth: '100%', height: 'auto', borderRadius: 18, boxShadow: '0 30px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(201,168,76,0.35)' }} />
+          </div>
+        </div>
+      </section>
 
+      {/* Main two-column: copy + form */}
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '56px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'start' }}>
+      {/* LEFT — demand + valuation + trust features (headline moved to hero) */}
+      <div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <BuyerDemandPanel industry={form.industry || undefined} location={form.location || undefined} />
           <InstantValuation
@@ -230,7 +248,7 @@ function SellContent() {
       </div>
 
       {/* RIGHT form */}
-      <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: 32, boxShadow: '0 8px 40px rgba(26,26,46,0.1)', position: 'sticky', top: 88 }}>
+      <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 16, padding: 32, boxShadow: '0 12px 48px rgba(26,26,46,0.12)', position: 'sticky', top: 88, borderTop: '4px solid #c9a84c' }}>
         <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 4px' }}>List Your Business</h2>
         <p style={{ fontSize: 13, color: '#888', margin: '0 0 20px' }}>{planId ? `Selected plan: ${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.name} — ${OWNER_LISTING_PLANS.find((p) => p.id === planId)?.price === 0 ? 'free' : '$' + OWNER_LISTING_PLANS.find((p) => p.id === planId)?.price + ' ' + OWNER_LISTING_PLANS.find((p) => p.id === planId)?.billing}. A broker reviews before anything goes live.` : '100% confidential. No obligation.'}</p>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

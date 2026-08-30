@@ -565,6 +565,12 @@ h1, h2, h3, h4 {
   .publicnav-toggle { display: inline-flex !important; }
 }
 
+/* Two-column hero → stacked on mobile/tablet */
+.hero-grid { grid-template-columns: 1.05fr 0.95fr; }
+@media (max-width: 980px) {
+  .hero-grid { grid-template-columns: 1fr; }
+}
+
 /* Grid children must be allowed to shrink below their content's min-content
    width — otherwise a wide inner element (badges, long titles) forces the
    track wider than the viewport and the page scrolls sideways on mobile.
