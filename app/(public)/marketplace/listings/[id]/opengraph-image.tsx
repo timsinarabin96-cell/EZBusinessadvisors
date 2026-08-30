@@ -10,7 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { normalizePublicListing } from '@/lib/marketplace'
 import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs'
 export const alt = 'Business for sale'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
