@@ -47,6 +47,7 @@ export async function counterSignDocument(
 
   const res = await completeSigning(brokerLink.token, {
     name: (auth.profile as { full_name?: string | null }).full_name || 'Broker',
+    title: (auth.profile as { title?: string | null }).title || undefined,
     mode: 'type',
   })
   if (!res.ok) return { ok: false, error: res.error || 'Could not record signature', status: 400 }

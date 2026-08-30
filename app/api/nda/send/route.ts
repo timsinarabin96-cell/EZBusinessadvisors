@@ -60,6 +60,10 @@ export async function POST(req: NextRequest) {
   const { data: agency } = await db.from('agencies').select('name').eq('id', agencyId).maybeSingle()
   const agencyName = agency?.name || 'the Brokerage'
   const brokerName = (auth.profile as { full_name?: string | null }).full_name || 'the Broker'
+  const brokerTitle =
+    (auth.profile as { title?: string | null }).title ||
+    (agency as { signing_title?: string | null })?.signing_title ||
+    'Business Advisor'
   const brokerEmail = auth.user.email || ''
 
   const buyerName = lead.full_name || lead.contact_name || lead.company || 'the Buyer'
@@ -151,7 +155,7 @@ export async function POST(req: NextRequest) {
 
   const parties = [
     { key: 'buyer', label: 'Buyer', role: 'buyer', name: buyerName, email: buyerEmail },
-    { key: 'broker', label: 'Broker', role: 'broker', name: brokerName, email: brokerEmail },
+    { key: 'broker', label: 'Broker', role: 'broker', name: brokerName, email: brokerEmail, title: brokerTitle },
   ]
 
   const { data: doc, error: docErr } = await db

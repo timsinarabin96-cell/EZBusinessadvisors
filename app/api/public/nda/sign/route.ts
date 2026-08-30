@@ -130,10 +130,18 @@ export async function POST(req: NextRequest) {
 
   // --- AUTO COUNTER-SIGN + ARCHIVE + BUYER COPY (best-effort, never blocks) ---
   try {
-    const { data: listingRow } = await svc.from('listings').select('agency_id, business_name').eq('id', listingId).maybeSingle()
+    const { data: listingRow } = await svc.from('listings').select('agency_id, agent_id, business_name').eq('id', listingId).maybeSingle()
     const agencyId = (listingRow as any)?.agency_id || null
+    const agentId = (listingRow as any)?.agent_id || null
+    // Counter-sign with the AGENT who owns/sends this listing's NDA — not a
+    // generic agency identity. Boss's rule: my listing + I sent → my name &
+    // title; another agent's listing → their name & title.
     let signer: { name: string; title: string } = { name: 'Broker', title: 'Licensed Business Broker' }
-    if (agencyId) {
+    if (agentId) {
+      const { data: agent } = await svc.from('profiles').select('full_name, title').eq('id', agentId).maybeSingle()
+      if (agent?.full_name) signer = { name: String(agent.full_name), title: String(agent.title || 'Business Advisor') }
+    }
+    if (agencyId && signer.name === 'Broker') {
       const { data: ag } = await svc.from('agencies').select('signing_name, signing_title').eq('id', agencyId).maybeSingle()
       if (ag?.signing_name) signer = { name: String(ag.signing_name), title: String(ag.signing_title || 'Broker') }
     }

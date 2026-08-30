@@ -33,6 +33,7 @@ export interface SigningParty {
   role: string
   name?: string | null
   email?: string | null
+  title?: string | null
 }
 
 export interface DocumentRow {
@@ -95,7 +96,7 @@ export async function resolveSigningToken(token: string): Promise<{ ok: boolean;
 /** Mark a party's link signed (draw/type signature). */
 export async function completeSigning(
   token: string,
-  signature: { name: string; mode: 'draw' | 'type'; dataUrl?: string },
+  signature: { name: string; mode: 'draw' | 'type'; dataUrl?: string; title?: string | null },
 ): Promise<{ ok: boolean; allSigned: boolean; documentId?: string; error?: string }> {
   const db = svc()
   if (!db) return { ok: false, allSigned: false, error: 'not configured' }
@@ -120,10 +121,11 @@ export async function completeSigning(
     document_id: link.document_id,
     party_key: partyKey,
     party_name: signature.name,
+    party_title: signature.title || null,
     party_email: link.party_email,
     role: sigRole,
     status: 'signed',
-    signature_data: { mode: signature.mode, dataUrl: signature.dataUrl || null, signedAt: new Date().toISOString() },
+    signature_data: { mode: signature.mode, dataUrl: signature.dataUrl || null, title: signature.title || null, signedAt: new Date().toISOString() },
     signed_at: new Date().toISOString(),
   }, { onConflict: 'document_id,party_key' }).maybeSingle()
 
