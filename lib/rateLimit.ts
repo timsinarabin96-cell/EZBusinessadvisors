@@ -28,6 +28,15 @@ interface Bucket {
 const buckets = new Map<string, Bucket>()
 const MAX_BUCKETS = 10_000
 
+// Loopback addresses — exempt in non-production so local dev + e2e runs
+// (all traffic from one machine) don't trip per-IP limits. Production is
+// never exempted: behind Vercel the real client IP arrives via
+// x-forwarded-for, so loopback never appears there anyway.
+const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
+function isExemptLoopback(ip: string): boolean {
+  return process.env.NODE_ENV !== 'production' && LOOPBACK_IPS.has(ip)
+}
+
 export interface RateLimitOptions {
   /** Max requests allowed per window per IP. */
   limit?: number
@@ -79,6 +88,7 @@ async function rateLimitUpstash(ip: string, { limit = 20, windowMs = 60_000 }: R
  */
 export function rateLimit(ip: string, { limit = 20, windowMs = 60_000 }: RateLimitOptions = {}): boolean {
   if (!ip) return true // can't key — don't block legit traffic
+  if (isExemptLoopback(ip)) return true // local dev/test traffic
 
   const now = Date.now()
   const existing = buckets.get(ip)
@@ -109,6 +119,7 @@ export function rateLimit(ip: string, { limit = 20, windowMs = 60_000 }: RateLim
  */
 export async function rateLimitAsync(ip: string, opts: RateLimitOptions = {}): Promise<boolean> {
   if (!ip) return true
+  if (isExemptLoopback(ip)) return true // local dev/test traffic
   if (UPSTASH_ENABLED) {
     try {
       return await rateLimitUpstash(ip, opts)

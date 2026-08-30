@@ -5,9 +5,9 @@
  * prior written permission. See LICENSE for full terms.
  */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* NOTE: Tailwind is intentionally NOT installed — the design system below
+   is 100% custom CSS. If you ever add Tailwind, re-add the @tailwind
+   directives here. */
 
 :root {
   --navy: #1a1a2e;
