@@ -35,10 +35,10 @@ const SECURITY_CONFIG: Partial<WebSecureConfig> = {
       // this app renders inline styles; no external script hosts are allowed,
       // which keeps the main XSS/exfiltration vector closed.
       scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https://ui-avatars.com', 'https://*.supabase.co'],
       connectSrc: ["'self'", 'https://*.supabase.co', 'wss://*.supabase.co'],
-      fontSrc: ["'self'", 'data:'],
+      fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'", 'https://*.supabase.co'],
       // Training videos
