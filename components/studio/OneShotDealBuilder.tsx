@@ -71,7 +71,7 @@ export default function OneShotDealBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const loadDeal = async (id: string) => {
+  const loadDeal = async (id: string, opts?: { justBuilt?: boolean }) => {
     setPhase('deal')
     // Sync the URL so the deal is deep-linkable / refreshable (?listing=<id>).
     try {
@@ -87,9 +87,11 @@ export default function OneShotDealBuilder() {
       // PURE DRAFT: no build trail yet → restore the notes into the intake
       // editor so the broker can continue where they left off (the boss flow:
       // "not enough info → save draft → start new listing → come back later").
+      // SKIPPED when we JUST finished a build (the persisted trail can race
+      // the done event — the review screen must show regardless).
       const savedSteps = (l as any)?.ai_metadata?.build?.steps as BuildStep[] | undefined
       const hasBuildTrail = Array.isArray(savedSteps) && savedSteps.length > 0
-      if (!hasBuildTrail && l && (l as any).status === 'draft') {
+      if (!opts?.justBuilt && !hasBuildTrail && l && (l as any).status === 'draft') {
         if ((l as any).description) setNotes(String((l as any).description))
         setPhase('intake')
         return
@@ -245,7 +247,7 @@ export default function OneShotDealBuilder() {
       setSteps(final.steps || [])
       if (final.failed) toast(`${final.failed} step${final.failed === 1 ? '' : 's'} need attention — see the trail`, 'error')
       else toast('Deal built — everything generated', 'success')
-      await loadDeal(final.listingId)
+      await loadDeal(final.listingId, { justBuilt: true })
     } catch (e: any) {
       setError(e.message || 'Build failed')
       setPhase('intake')
