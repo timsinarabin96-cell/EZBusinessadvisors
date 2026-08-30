@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/Toast'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
-import { createListing, fetchListing } from '@/lib/listings'
+import { createListing, fetchListing, updateListing } from '@/lib/listings'
 import DocOpenLink from '@/components/financial/DocOpenLink'
 import { ONE_SHOT_STAGES, type BuildStep } from '@/lib/oneShotDeal'
 import AiPhotoStudioCard from '@/components/studio/AiPhotoStudioCard'
@@ -55,6 +55,7 @@ export default function OneShotDealBuilder() {
   const [docs, setDocs] = useState<any[]>([])
   const [publishing, setPublishing] = useState(false)
   const [resumable, setResumable] = useState(false)
+  const [savingDraft, setSavingDraft] = useState(false)
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   // Resume a deep link ?listing=<id> → straight to the deal review.
@@ -80,11 +81,20 @@ export default function OneShotDealBuilder() {
     try {
       const l = await fetchListing(id)
       setListing(l)
+      // PURE DRAFT: no build trail yet → restore the notes into the intake
+      // editor so the broker can continue where they left off (the boss flow:
+      // "not enough info → save draft → start new listing → come back later").
+      const savedSteps = (l as any)?.ai_metadata?.build?.steps as BuildStep[] | undefined
+      const hasBuildTrail = Array.isArray(savedSteps) && savedSteps.length > 0
+      if (!hasBuildTrail && l && (l as any).status === 'draft') {
+        if ((l as any).description) setNotes(String((l as any).description))
+        setPhase('intake')
+        return
+      }
       // RESUME SUPPORT: if a previous build was interrupted (persisted trail
       // has pending/failed/running stages), restore the trail + offer resume
       // instead of silently showing the review screen.
-      const savedSteps = (l as any)?.ai_metadata?.build?.steps as BuildStep[] | undefined
-      if (Array.isArray(savedSteps) && savedSteps.length) {
+      if (hasBuildTrail) {
         const incomplete = savedSteps.some((s) => s.status === 'pending' || s.status === 'failed' || s.status === 'running')
         if (incomplete) {
           setSteps(ONE_SHOT_STAGES.map((s) => savedSteps.find((x) => x.key === s.key) || { key: s.key, label: s.label, status: 'pending' }))
@@ -101,6 +111,56 @@ export default function OneShotDealBuilder() {
     } catch (e: any) {
       setError(e.message || 'Could not load the deal')
     }
+  }
+
+  /** Save partial work as a draft WITHOUT running the AI pipeline — the boss
+   *  flow: not enough info yet → save draft → start a fresh listing → resume
+   *  the draft later. Creates a draft listing row (or updates the current
+   *  one) and keeps the URL deep-linkable so it survives refresh. */
+  const saveDraft = async () => {
+    if (savingDraft) return
+    if (!notes.trim() && files.length === 0) {
+      toast('Add some notes or a document first so the draft has content', 'error')
+      return
+    }
+    setSavingDraft(true)
+    try {
+      const firstLine = notes.split('\n')[0].trim().slice(0, 60) || 'Untitled deal'
+      const desc = notes.trim().slice(0, 2000) || null
+      if (listingId) {
+        await updateListing(listingId, { business_name: firstLine, description: desc, status: 'draft' } as any)
+      } else {
+        const created = await createListing({ business_name: firstLine, status: 'draft', description: desc } as any)
+        setListingId(created.id)
+        const u = new URL(window.location.href)
+        u.searchParams.set('listing', created.id)
+        window.history.replaceState(null, '', u.toString())
+      }
+      toast('💾 Draft saved — resume it anytime from your listings', 'success')
+    } catch (e: any) {
+      toast(e.message || 'Could not save draft', 'error')
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+
+  /** Clear the form + deep link so the broker can start a brand-new listing
+   *  while saved drafts stay intact in the dashboard. */
+  const startNewListing = () => {
+    setListingId(null)
+    setNotes('')
+    setFiles([])
+    setResult(null)
+    setListing(null)
+    setError(null)
+    setResumable(false)
+    setSteps(ONE_SHOT_STAGES.map((s) => ({ key: s.key, label: s.label, status: 'pending' })))
+    setPhase('intake')
+    try {
+      const u = new URL(window.location.href)
+      u.searchParams.delete('listing')
+      window.history.replaceState(null, '', u.toString())
+    } catch { /* best-effort */ }
   }
 
   const build = async () => {
@@ -290,17 +350,49 @@ export default function OneShotDealBuilder() {
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              onClick={build}
-              style={{
-                width: '100%', marginTop: 16, padding: '15px', borderRadius: 11, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg,#c9a84c,#b08d2e)', color: '#0f1023', fontWeight: 800, fontSize: 16,
-                fontFamily: 'Georgia, serif', boxShadow: '0 8px 24px rgba(201,168,76,0.4)',
-              }}
-            >
-              🚀 Build Entire Deal
-            </button>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={build}
+                style={{
+                  flex: 1, padding: '15px', borderRadius: 11, border: 'none', cursor: 'pointer',
+                  background: 'linear-gradient(135deg,#c9a84c,#b08d2e)', color: '#0f1023', fontWeight: 800, fontSize: 16,
+                  fontFamily: 'Georgia, serif', boxShadow: '0 8px 24px rgba(201,168,76,0.4)',
+                }}
+              >
+                🚀 Build Entire Deal
+              </button>
+              <button
+                type="button"
+                onClick={saveDraft}
+                disabled={savingDraft}
+                title="Save what you have so far as a draft — build it later, or start another listing now"
+                style={{
+                  padding: '15px 18px', borderRadius: 11, cursor: 'pointer',
+                  background: '#fff', border: '1.5px dashed #94a3b8', color: 'var(--navy)', fontWeight: 800, fontSize: 14,
+                  fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap',
+                }}
+              >
+                {savingDraft ? 'Saving…' : '💾 Save Draft'}
+              </button>
+              <button
+                type="button"
+                onClick={startNewListing}
+                title="Clear the form and start a brand-new listing (saved drafts stay in your dashboard)"
+                style={{
+                  padding: '15px 18px', borderRadius: 11, cursor: 'pointer',
+                  background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569', fontWeight: 700, fontSize: 13.5,
+                  fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap',
+                }}
+              >
+                ＋ New Listing
+              </button>
+            </div>
+            {listingId && (
+              <div style={{ marginTop: 10, fontSize: 12, color: '#0e7490', background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 8, padding: '8px 12px' }}>
+                💾 Working on a saved draft — your notes auto-save here. Build it when ready, or start a new listing anytime.
+              </div>
+            )}
             <div style={{ marginTop: 12, fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>
               The pipeline runs ~11 AI stages — record → docs → audit → recast → BOV/CIM/BLI → SBA → comps → buyers → photos → teaser → readiness.
             </div>
