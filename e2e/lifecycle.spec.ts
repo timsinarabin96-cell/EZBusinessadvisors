@@ -15,7 +15,7 @@
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
-import { signIn, authHeaders } from './helpers'
+import { signIn, authHeaders, oneShotBuildDeal } from './helpers'
 
 test.setTimeout(360_000)
 
@@ -31,77 +31,14 @@ test.describe('full deal lifecycle', () => {
     await signIn(page)
     await expect(page).toHaveURL(/dashboard/, { timeout: 20_000 })
 
-    // 2. Listing wizard — fill EVERY section like a real broker so the record
-    //    reaches publishable readiness (the quality gate rejects thin data).
-    await page.goto('/dashboard/listings/new')
+    // 2. One-Shot Deal Builder — full AI pipeline like a real broker would use.
     const businessName = `Lifecycle Test ${Date.now().toString().slice(-6)}`
-    await page.getByPlaceholder('Private CRM identity').waitFor({ timeout: 20_000 })
-
-    // ── Business section ──
-    await page.getByPlaceholder('Private CRM identity').fill(businessName)
-    await page.getByPlaceholder('Established recurring-revenue service company').fill('Established recurring-revenue commercial services company')
-    await page.getByPlaceholder('Business Services').fill('Business Services')
-    await page.getByPlaceholder('Business Services').press('Escape')
-    await page.getByPlaceholder(/Greater Philadelphia/).fill('Greater Philadelphia, PA')
-    await page.getByPlaceholder(/Greater Philadelphia/).press('Escape')
-    await page.getByPlaceholder(/Explain the business model/).fill(
-      'A growing business services company with recurring revenue, strong margins, and an experienced team. Serves commercial clients across the region with multi-year contracts, high retention, and clear expansion potential in adjacent verticals.'
-    )
-
-    // ── Financials section (money fields are labelled) ──
-    await page.getByRole('button', { name: /2 Financials Price, earnings/ }).click()
-    await page.getByLabel('Asking price').fill('495000')
-    await page.getByLabel('Annual revenue').fill('640000')
-    await page.getByLabel('Seller discretionary earnings').fill('118000')
-
-    // ── Operations section ──
-    await page.getByRole('button', { name: /3 Operations People, facilities/ }).click()
-    await page.getByLabel('Full-time employees').fill('8')
-    await page.getByLabel('Competitive advantages').fill('Multi-year client contracts, strong recurring revenue base, experienced management team, established brand in the region.')
-    await page.getByLabel('Growth opportunities').fill('Expand into adjacent verticals, add sales capacity, raise prices on legacy clients, open a second location.')
-    await page.getByLabel('Facilities and operating footprint').fill('Leased 4,800 sq ft office with dedicated client meeting space, storage, and room to grow.')
-
-    // ── Seller & Deal section ──
-    await page.getByRole('button', { name: /4 Seller & Deal Motivation/ }).click()
-    await page.getByLabel('Reason for sale').fill('Owner is retiring after 15 years and wants to hand the business to capable new ownership.')
-    await page.getByLabel('Transition support').fill('Owner will stay 4 weeks for training and introduce key clients; additional consulting available.')
-
-    // ── Public Preview section (anonymous marketplace content) ──
-    await page.getByRole('button', { name: /6 Public Preview Anonymous/ }).click()
-    await page.getByLabel('Anonymous public title').fill('Recurring-Revenue Commercial Services Company')
-    await page.getByLabel('Public summary').fill(
-      'Established business services company with strong recurring revenue, multi-year client contracts, and an experienced team. Ideal for a strategic buyer or an operator looking for a proven platform with clear growth runway.'
-    )
-    await page.getByLabel('Public highlights — one per line').fill(
-      'High percentage of recurring revenue\nMulti-year client contracts\nExperienced management team\nSeller transition support available'
-    )
-
-    // Create the draft — the button label changes with readiness: thin data
-    // shows "Create Draft & Start Review", a fully-built record (≥70) shows
-    // "✓ Ready — advance to Verify". Match either like a human reading the CTA.
-    await page.getByRole('button', { name: /Ready — advance to Verify|Create Draft & Start Review/ }).click()
-    const dupModal = page.getByRole('button', { name: 'Continue anyway — create new' })
-    const matchModal = page.getByRole('button', { name: 'Continue to workflow →' })
-    // Duplicate-modal churn: the modal re-renders mid-click when many same-named
-    // test listings exist. Use force-click + retry loop (documented flake fix).
-    for (let i = 0; i < 40; i++) {
-      if (page.url().includes('listing=')) break
-      if (await dupModal.isVisible({ timeout: 500 }).catch(() => false)) {
-        await dupModal.click({ force: true, timeout: 3000 }).catch(() => {})
-        await page.waitForTimeout(750)
-        if (page.url().includes('listing=')) break
-        continue
-      }
-      if (await matchModal.isVisible({ timeout: 500 }).catch(() => false)) {
-        await matchModal.click({ force: true, timeout: 3000 }).catch(() => {})
-        await page.waitForTimeout(750)
-        if (page.url().includes('listing=')) break
-        continue
-      }
-      await page.waitForTimeout(750)
-    }
-    await expect(page).toHaveURL(/\/dashboard\/studio\?.*listing=[0-9a-f-]+/, { timeout: 60_000 })
-    const listingId = new URL(page.url()).searchParams.get('listing')
+    const listingId = await oneShotBuildDeal(page,
+      `${businessName} — established commercial services company in Greater Philadelphia, PA with recurring revenue. ` +
+      'Asking $495,000. Annual revenue $640,000, SDE $118,000, 8 employees. ' +
+      'Multi-year client contracts, strong recurring revenue base, experienced management team, established brand. ' +
+      'Leased 4,800 sq ft office with client meeting space and storage. ' +
+      'Owner retiring after 15 years, stays 4 weeks for training and client introductions; additional consulting available.')
     expect(listingId).toBeTruthy()
 
     // 3. Publish through the real API (force bypasses seller-approval for the
@@ -118,11 +55,10 @@ test.describe('full deal lifecycle', () => {
     expect(pubBody.score).toBeGreaterThanOrEqual(70)
 
     // 4. Public marketplace: listing live → buyer requests confidential details.
-    const slugBase = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 60) || 'business'
-    const listingSlug = `${slugBase}-${listingId.slice(0, 8)}`
-    await page.goto(`/marketplace/listings/${listingSlug}`)
+    // The public feed resolves by raw listing id too, so no slug guessing.
+    await page.goto(`/marketplace/listings/${listingId}`)
     await page.waitForLoadState('networkidle').catch(() => {})
-    await expect(page.getByText('Established business services company with strong recurring revenue').first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('button', { name: /Request Confidential Access/ }).first()).toBeVisible({ timeout: 20_000 })
 
     // A real buyer gets the "What are you looking for?" capture popup over the
     // page after ~3.5s — dismiss it like a human before touching the CTA.
@@ -142,10 +78,10 @@ test.describe('full deal lifecycle', () => {
     await expect(page.getByText(/broker will contact you/i).first()).toBeVisible({ timeout: 20_000 })
 
     // 5. Deal Studio → Sell & Close phase: Step 9 buyer management.
-    await page.goto(`/dashboard/studio?phase=sell&listing=${listingId}`)
+    await page.goto(`/dashboard/studio?listing=${listingId}`)
     await page.getByPlaceholder('Buyer name').waitFor({ timeout: 20_000 })
     await page.getByPlaceholder('Buyer name').fill(BUYER.name)
-    await page.getByPlaceholder('Email').fill(BUYER.email)
+    await page.getByPlaceholder('Email', { exact: true }).fill(BUYER.email)
     await page.getByPlaceholder('Phone').fill(BUYER.phone)
     await page.getByRole('button', { name: '+ Add buyer' }).click()
     await expect(page.getByText(BUYER.name).first()).toBeVisible({ timeout: 20_000 })

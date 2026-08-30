@@ -15,6 +15,8 @@ import { createListing, fetchListing } from '@/lib/listings'
 import { ONE_SHOT_STAGES, type BuildStep } from '@/lib/oneShotDeal'
 import AiPhotoStudioCard from '@/components/studio/AiPhotoStudioCard'
 import LegalDocsCard from '@/components/studio/LegalDocsCard'
+import Step9BuyerManagement from '@/components/listings/Step9BuyerManagement'
+import Step10DealClosing from '@/components/listings/Step10DealClosing'
 
 // =============================================================================
 // OneShotDealBuilder — THE HEART of the platform.
@@ -407,6 +409,15 @@ export default function OneShotDealBuilder() {
                   description={listing.description}
                   onAdded={() => fetchListing(listing.id).then(setListing).catch(() => {})}
                 />
+              </div>
+
+              {/* Sell & Close — buyers, LOI, purchase, closing (full lifecycle) */}
+              <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 10 }}>🤝 Sell & Close</div>
+                <Step9BuyerManagement listingId={listing.id} onNext={() => {}} onAgreementChange={() => fetchListing(listing.id).then(setListing).catch(() => {})} />
+                <div style={{ marginTop: 14 }}>
+                  <Step10DealClosing listingId={listing.id} onNext={() => fetchListing(listing.id).then(setListing).catch(() => {})} />
+                </div>
               </div>
 
               {/* Buyers + valuation */}

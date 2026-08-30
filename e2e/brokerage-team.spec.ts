@@ -18,7 +18,7 @@
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
-import { signIn, getAuthToken, authHeaders, submitWizardAndGetListing } from './helpers'
+import { signIn, getAuthToken, authHeaders, oneShotBuildDeal } from './helpers'
 
 test.setTimeout(240_000)
 
@@ -49,40 +49,10 @@ async function clearSession(page) {
 /** Fill the full wizard and submit; returns the created listing id. */
 async function createListingViaWizard(page, businessName) {
   await page.goto('/dashboard/listings/new')
-  await page.getByPlaceholder('Private CRM identity').waitFor({ timeout: 20_000 })
-
-  await page.getByPlaceholder('Private CRM identity').fill(businessName)
-  await page.getByPlaceholder('Established recurring-revenue service company').fill('Established recurring-revenue commercial services company')
-  await page.getByPlaceholder('Business Services').fill('Business Services')
-  await page.getByPlaceholder('Business Services').press('Escape')
-  await page.getByPlaceholder(/Greater Philadelphia/).fill('Harrisburg, PA')
-  await page.getByPlaceholder(/Greater Philadelphia/).press('Escape')
-  await page.getByPlaceholder(/Explain the business model/).fill(
-    'A growing business services company with recurring revenue, strong margins, and an experienced team. Serves commercial clients across central Pennsylvania with multi-year contracts and clear expansion potential.'
-  )
-  await page.getByRole('button', { name: /2 Financials Price, earnings/ }).click()
-  await page.getByLabel('Asking price').fill('385000')
-  await page.getByLabel('Annual revenue').fill('520000')
-  await page.getByLabel('Seller discretionary earnings').fill('96000')
-  await page.getByRole('button', { name: /3 Operations People, facilities/ }).click()
-  await page.getByLabel('Full-time employees').fill('6')
-  await page.getByLabel('Competitive advantages').fill('Multi-year client contracts, recurring revenue, experienced team, strong regional brand.')
-  await page.getByLabel('Growth opportunities').fill('Expand into adjacent verticals, add sales capacity, open a second location.')
-  await page.getByLabel('Facilities and operating footprint').fill('Leased 3,200 sq ft office with client space and storage.')
-  await page.getByRole('button', { name: /4 Seller & Deal Motivation/ }).click()
-  await page.getByLabel('Reason for sale').fill('Owner retiring after 12 years; wants capable new ownership to continue serving clients.')
-  await page.getByLabel('Transition support').fill('Owner stays 4 weeks for training and client introductions.')
-  await page.getByRole('button', { name: /6 Public Preview Anonymous/ }).click()
-  await page.getByLabel('Anonymous public title').fill('Recurring-Revenue Commercial Services Company')
-  await page.getByLabel('Public summary').fill(
-    'Established business services company with strong recurring revenue, multi-year contracts, and an experienced team. Ideal for a strategic buyer or operator seeking a proven platform.'
-  )
-  await page.getByLabel('Public highlights — one per line').fill(
-    'High percentage of recurring revenue\nMulti-year client contracts\nExperienced management team'
-  )
-
-  await page.getByRole('button', { name: /Ready — advance to Verify|Create Draft & Start Review/ }).click()
-  return await submitWizardAndGetListing(page)
+  const listingId = await oneShotBuildDeal(page,
+      `${businessName} — established business services company in Harrisburg, PA with recurring revenue. ` +
+      'Asking $385,000. Annual revenue $520,000, SDE $96,000, 6 employees. Multi-year client contracts, experienced team.')
+  return listingId
 }
 
 test.describe('brokerage team — Harbor Acquisitions', () => {

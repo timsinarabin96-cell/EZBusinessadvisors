@@ -56,6 +56,31 @@ export async function authHeaders(page: Page): Promise<Record<string, string>> {
 }
 
 /**
+ * ONE-SHOT DEAL BUILDER — create a listing like a human broker would now.
+ * Paste notes into the builder, hit Build Entire Deal, wait for the streaming
+ * pipeline to finish and the URL to gain ?listing=<id>. Returns the listing id.
+ * The build can take a while (AI pipeline: docs → recast → BOV/CIM/BLI → SBA
+ * → comps → buyers → photos → teaser → readiness), so the default wait is long.
+ */
+export async function oneShotBuildDeal(page: Page, notes: string, maxWaitMs = 240_000): Promise<string | null> {
+  await page.goto('/dashboard/listings/new')
+  await page.getByPlaceholder(/Paste anything/).waitFor({ timeout: 30_000 })
+  await page.getByPlaceholder(/Paste anything/).fill(notes)
+  await page.getByRole('button', { name: /Build Entire Deal/ }).click()
+  const deadline = Date.now() + maxWaitMs
+  while (Date.now() < deadline) {
+    if (page.url().includes('listing=')) {
+      return new URL(page.url()).searchParams.get('listing')
+    }
+    // Building trail visible → still working; failure banner → give up fast.
+    const failed = page.getByText(/Build failed|need attention/).first()
+    if (await failed.isVisible({ timeout: 300 }).catch(() => false)) break
+    await page.waitForTimeout(1500)
+  }
+  return page.url().includes('listing=') ? new URL(page.url()).searchParams.get('listing') : null
+}
+
+/**
  * Robust duplicate-listing modal handler. The wizard's dup guard can re-render
  * the modal while the test is clicking it (listings accumulate across runs), so
  * we click with force + retry and never let a detached element fail the test.

@@ -17,7 +17,7 @@
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
-import { signIn, getAuthToken, authHeaders, submitWizardAndGetListing } from './helpers'
+import { signIn, getAuthToken, authHeaders, oneShotBuildDeal } from './helpers'
 
 test.setTimeout(240_000)
 
@@ -71,42 +71,12 @@ test.describe('agent invite flow — Harbor Acquisitions', () => {
     await expect(page.getByRole('link', { name: /Command Center/ })).toHaveCount(0, { timeout: 15_000 })
     await expect(page.getByRole('link', { name: /Listings/ }).first()).toBeVisible({ timeout: 15_000 })
 
-    // 4) They can create their own listing via the real wizard (agent insert allowed).
-    await page.goto('/dashboard/listings/new')
-    await page.getByPlaceholder('Private CRM identity').waitFor({ timeout: 20_000 })
+    // 4) They can create their own listing via the One-Shot builder (agent insert allowed).
     const bizName = `Invited Agent ${Date.now().toString().slice(-6)}`
-    await page.getByPlaceholder('Private CRM identity').fill(bizName)
-    await page.getByPlaceholder('Established recurring-revenue service company').fill('Established recurring-revenue commercial services company')
-    await page.getByPlaceholder('Business Services').fill('Business Services')
-    await page.getByPlaceholder('Business Services').press('Escape')
-    await page.getByPlaceholder(/Greater Philadelphia/).fill('Harrisburg, PA')
-    await page.getByPlaceholder(/Greater Philadelphia/).press('Escape')
-    await page.getByPlaceholder(/Explain the business model/).fill(
-      'A growing business services company with recurring revenue and an experienced team.'
-    )
-    // Complete the remaining wizard sections so the submit button renders.
-    await page.getByRole('button', { name: /2 Financials Price, earnings/ }).click()
-    await page.getByLabel('Asking price').fill('385000')
-    await page.getByLabel('Annual revenue').fill('520000')
-    await page.getByLabel('Seller discretionary earnings').fill('96000')
-    await page.getByRole('button', { name: /3 Operations People, facilities/ }).click()
-    await page.getByLabel('Full-time employees').fill('6')
-    await page.getByLabel('Competitive advantages').fill('Multi-year client contracts, recurring revenue, experienced team.')
-    await page.getByLabel('Growth opportunities').fill('Expand into adjacent verticals, add sales capacity.')
-    await page.getByLabel('Facilities and operating footprint').fill('Leased 3,200 sq ft office with client space.')
-    await page.getByRole('button', { name: /4 Seller & Deal Motivation/ }).click()
-    await page.getByLabel('Reason for sale').fill('Owner retiring after 12 years; wants capable new ownership.')
-    await page.getByLabel('Transition support').fill('Owner stays 4 weeks for training and client introductions.')
-    await page.getByRole('button', { name: /6 Public Preview Anonymous/ }).click()
-    await page.getByLabel('Anonymous public title').fill('Recurring-Revenue Commercial Services Company')
-    await page.getByLabel('Public summary').fill(
-      'Established business services company with strong recurring revenue, multi-year contracts, and an experienced team.'
-    )
-    await page.getByLabel('Public highlights — one per line').fill(
-      'High percentage of recurring revenue\nMulti-year client contracts\nExperienced management team'
-    )
-    await page.getByRole('button', { name: /Ready — advance to Verify|Create Draft & Start Review/ }).click()
-    const listingId = await submitWizardAndGetListing(page)
+    const listingId = await oneShotBuildDeal(page,
+      `${bizName} — established commercial services company in Harrisburg, PA with recurring revenue. ` +
+      'Asking $385,000. Annual revenue $520,000, SDE $96,000, 6 employees. Multi-year client contracts. ' +
+      'Owner retiring after 12 years, stays 4 weeks for transition.')
     expect(listingId).toBeTruthy()
 
     // 5) Scope check: they cannot publish ANOTHER agent's listing (403).

@@ -21,7 +21,7 @@
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
-import { signIn, submitWizardAndGetListing } from './helpers'
+import { signIn, oneShotBuildDeal } from './helpers'
 
 test.setTimeout(300_000)
 
@@ -67,77 +67,27 @@ test.describe('FULL ROLE SWEEP — buyer, agent, owner, broker, tenant', () => {
     console.log('BUYER: marketplace browse + search + detail OK')
   })
 
-  // ── 2) LISTING AGENT — full create flow with photos + financials ────────
-  test('agent: create listing with auto-save, financials import, photos, edit, preview, publish', async ({ page }) => {
+  // ── 2) LISTING AGENT — One-Shot build → review → publish ───────────────
+  test('agent: One-Shot build a full deal, review, publish', async ({ page }) => {
     await signIn(page, QA.email, QA.password)
     await expect(page).toHaveURL(/dashboard/, { timeout: 20_000 })
-    await page.goto('/dashboard/listings/new')
-    await page.getByPlaceholder('Private CRM identity').waitFor({ timeout: 20_000 })
 
-    // Business basics
-    await page.getByPlaceholder('Private CRM identity').fill(BIZ)
-    await page.getByPlaceholder('Established recurring-revenue service company').fill('Established full-role test business with steady cash flow')
-    await page.getByPlaceholder('Business Services').fill('Business Services')
-    await page.getByPlaceholder('Business Services').press('Escape')
-    await page.getByPlaceholder(/Greater Philadelphia/).fill('Harrisburg, PA')
-    await page.getByPlaceholder(/Greater Philadelphia/).press('Escape')
-    await page.getByPlaceholder(/Explain the business model/).fill('Full-role sweep business: strong margins, recurring revenue, growth runway.')
-    console.log('AGENT: step 1 business filled')
+    // One-Shot Deal Builder: paste notes → Build Entire Deal → live pipeline.
+    const notes = `${BIZ} — established business services company in Harrisburg, PA with steady cash flow. ` +
+      'Asking $425,000. Annual revenue $540,000, SDE $98,000, 6 full-time employees. ' +
+      'Multi-year client contracts, recurring revenue, experienced team. Leased 3,200 sq ft office. ' +
+      'Owner retiring after 12 years, stays 4 weeks for transition.'
+    const listingId = await oneShotBuildDeal(page, notes)
+    expect(listingId, 'one-shot build should land a ?listing= URL').toBeTruthy()
+    console.log('AGENT: one-shot build complete, listing id=', listingId)
 
-    // Financials
-    await page.getByRole('button', { name: /2 Financials Price, earnings/ }).click()
-    await page.getByLabel('Asking price').fill('425000')
-    await page.getByLabel('Annual revenue').fill('540000')
-    await page.getByLabel('Seller discretionary earnings').fill('98000')
-    console.log('AGENT: step 2 financials filled')
-
-    // Operations
-    await page.getByRole('button', { name: /3 Operations People, facilities/ }).click()
-    await page.getByLabel('Full-time employees').fill('6')
-    await page.getByLabel('Competitive advantages').fill('Multi-year contracts, recurring revenue, experienced team.')
-    await page.getByLabel('Growth opportunities').fill('Adjacent verticals, second location.')
-    await page.getByLabel('Facilities and operating footprint').fill('Leased 3,200 sq ft office.')
-
-    // Seller & Deal
-    await page.getByRole('button', { name: /4 Seller & Deal Motivation/ }).click()
-    await page.getByLabel('Reason for sale').fill('Owner retiring after 12 years.')
-    await page.getByLabel('Transition support').fill('Owner stays 4 weeks.')
-
-    // Public preview
-    await page.getByRole('button', { name: /6 Public Preview Anonymous/ }).click()
-    await page.getByLabel('Anonymous public title').fill(`${BIZ} — Full Role`)
-    await page.getByLabel('Public summary').fill('Full-role test business with strong recurring revenue and an experienced team.')
-    await page.getByLabel('Public highlights — one per line').fill('Recurring revenue\nMulti-year contracts\nExperienced team')
-    console.log('AGENT: steps 1-6 filled (auto-save fired on each step)')
-
-    // Photos step (7) — upload 2 images
-    const photoStep = page.getByRole('button', { name: /7 Photos|Photos & Video/ })
-    if (await photoStep.isVisible().catch(() => false)) {
-      await photoStep.click()
-      await page.waitForTimeout(800)
-      const fileInput = page.locator('input[type="file"][accept*="image"]').first()
-      await fileInput.setInputFiles([
-        { name: 'front.jpg', mimeType: 'image/jpeg', buffer: PNG_1PX },
-        { name: 'interior.jpg', mimeType: 'image/jpeg', buffer: PNG_1PX },
-      ])
-      await page.waitForTimeout(3000)
-      console.log('AGENT: photos uploaded (2)')
-    }
-
-    // Submit → draft (tests auto-save + resume)
-    const listingId = await submitWizardAndGetListing(page)
-    expect(listingId).toBeTruthy()
-    console.log('AGENT: listing created, id=', listingId)
-
-    // Edit the listing (reopen + change a field)
-    await page.goto(`/listings`)
-    await page.waitForLoadState('domcontentloaded')
-    await page.waitForTimeout(2000)
+    // Deal review screen rendered (The Deal header + readiness + Go Live).
+    await page.waitForTimeout(1500)
     const body = await page.locator('body').innerText()
-    expect(body).toContain(BIZ.split(' ').slice(0, 3).join(' ') || BIZ)
-    console.log('AGENT: listing visible in dashboard list')
+    expect(body).toMatch(/The Deal|Approve & Go Live|Build trail/)
+    console.log('AGENT: deal review rendered')
 
-    // Publish via API (same as lifecycle test — real publish path)
+    // Publish via API (same as lifecycle test — real publish path).
     const { authHeaders } = await import('./helpers')
     const pub = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),

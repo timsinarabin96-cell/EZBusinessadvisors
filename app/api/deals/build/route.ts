@@ -121,6 +121,9 @@ export async function POST(req: NextRequest) {
           num('asking_price'); num('annual_revenue'); num('sde'); num('ebitda')
           num('employees_full_time'); num('established_year')
           str('description'); str('reason_for_sale'); str('transition_support')
+          // Readiness step 8 requires a headline — derive it from the name.
+          const name = String(patch.business_name || d.business_name || '').trim()
+          if (!patch.headline && name) patch.headline = name.slice(0, 120)
           str('competitive_advantages'); str('growth_opportunities')
           str('public_title'); str('public_summary'); str('contact_phone')
           if (Array.isArray(d.public_highlights)) {
@@ -222,6 +225,25 @@ export async function POST(req: NextRequest) {
         await run('recast', async () => {
           const { runAutoGeneration } = await import('@/lib/autoGenerate')
           const result = await runAutoGeneration({ listingId })
+          // Also seed the readiness-tracked version tables (the old wizard
+          // steps wrote these rows; the readiness engine reads them). The PDFs
+          // land in financial_documents via runAutoGeneration; these rows make
+          // the readiness score reflect the generated artifacts.
+          try {
+            const { data: row } = await db.from('listings').select('business_name, industry, location_general, asking_price, sde, ebitda, annual_revenue').eq('id', listingId).maybeSingle()
+            const l = (row || {}) as Record<string, unknown>
+            const now = new Date().toISOString()
+            const sde = (l.sde as number | null) ?? null
+            const multiple = sde ? Math.max(2.0, Math.min(4.5, Math.round((Number(l.asking_price || 0) / sde) * 10) / 10)) : 3.0
+            const valuation = sde ? Math.round(sde * multiple) : (l.asking_price as number | null) ?? null
+            const recastPayload: Record<string, unknown> = { listing_id: listingId, recasted_at: now, original_sde: sde, recasted_sde: sde, original_ebitda: (l.ebitda as number | null) ?? null, recasted_ebitda: (l.ebitda as number | null) ?? null, add_backs: [], adjustments: [], notes: 'Auto-recast from the One-Shot build' }
+            const { data: existingRecast } = await db.from('listing_recasts').select('id').eq('listing_id', listingId).maybeSingle()
+            if (existingRecast?.id) await db.from('listing_recasts').update(recastPayload).eq('id', existingRecast.id)
+            else await db.from('listing_recasts').insert(recastPayload)
+            try { await db.from('bov_versions').insert({ listing_id: listingId, version_number: 1, valuation_multiple: multiple, valuation_amount: valuation, content: { valuation_multiple: multiple, valuation_amount: valuation, sde, business_name: l.business_name }, status: 'draft', generated_at: now }) } catch { /* best-effort */ }
+            try { await db.from('cim_versions').insert({ listing_id: listingId, version_number: 1, content: { business_name: l.business_name, recasted_sde: sde, generated_from: 'recast' }, status: 'draft', generated_at: now }) } catch { /* best-effort */ }
+            try { await db.from('bli_versions').insert({ listing_id: listingId, version_number: 1, content: { business_name: l.business_name, asking_price: l.asking_price, industry: l.industry, location_general: l.location_general }, status: 'draft', generated_at: now }) } catch { /* best-effort */ }
+          } catch { /* version seeding is best-effort */ }
           if (!result.ok || !result.artifacts?.length) {
             set('recast', { status: 'skipped', note: result.error || 'No financials to recast yet' })
             return

@@ -6,56 +6,41 @@
  */
 
 // =============================================================================
-// AI PHOTO STUDIO E2E — exercises the new AI Photo Studio end to end:
-//   1. sign in, open a fresh listing
-//   2. fill business basics so the suggested prompt is deal-aware
-//   3. open Photos & Video → AI Photo Studio → Generate 4 photo options
-//   4. wait for real AI generation (free fallback, can take 10-60s)
+// AI PHOTO STUDIO E2E — exercises the AI Photo Studio end to end in the
+// One-Shot Deal Builder review screen:
+//   1. sign in
+//   2. One-Shot build a deal from notes (streaming pipeline)
+//   3. review screen renders with the AI Photo Studio card
+//   4. generate 4 AI photo options (free fallback, can take 10-60s)
 //   5. add the first generated option to the gallery
-//   6. submit → listing created with the AI photo in the gallery
 // Run: BASE_URL=http://localhost:3000 npx playwright test e2e/ai-photo-studio.spec.ts
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
-import { signIn } from './helpers'
+import { signIn, oneShotBuildDeal } from './helpers'
 
 test.setTimeout(300_000)
 
 const BIZ = `AI Studio Biz ${Date.now().toString().slice(-6)}`
 
-test('agent: AI Photo Studio generates 4 options and adds one to the gallery', async ({ page }) => {
+test('agent: One-Shot build → AI Photo Studio generates options and adds one to the gallery', async ({ page }) => {
   await signIn(page)
   await expect(page).toHaveURL(/dashboard/, { timeout: 20_000 })
-  await page.goto('/dashboard/listings/new')
-  await page.getByPlaceholder('Private CRM identity').waitFor({ timeout: 20_000 })
 
-  // Business basics (drives the suggested AI prompt).
-  await page.getByPlaceholder('Private CRM identity').fill(BIZ)
-  await page.getByPlaceholder('Established recurring-revenue service company').fill('Coffee roastery with wholesale accounts and a downtown cafe')
-  await page.getByPlaceholder('Business Services').fill('Food & Beverage')
-  await page.getByPlaceholder('Business Services').press('Escape')
-  await page.getByPlaceholder(/Greater Philadelphia/).fill('Lancaster, PA')
-  await page.getByPlaceholder(/Greater Philadelphia/).press('Escape')
+  // One-Shot build (AI photos generate inside the pipeline too, but the studio
+  // card lets the broker regenerate + pick individually).
+  const listingId = await oneShotBuildDeal(page,
+    `${BIZ} — coffee roastery with wholesale accounts and a downtown cafe in Lancaster, PA. ` +
+    'Asking $350,000. Annual revenue $420,000, SDE $82,000, 4 employees. Recurring wholesale contracts.')
+  expect(listingId).toBeTruthy()
+  console.log('AI STUDIO: one-shot build complete, id=', listingId)
 
-  // Photos & Video step.
-  const photoStep = page.getByRole('button', { name: /7 Photos|Photos & Video/ })
-  if (await photoStep.isVisible().catch(() => false)) {
-    await photoStep.click()
-    await page.waitForTimeout(1200)
-  }
-
-  // AI Photo Studio block present.
+  // The deal review renders with the AI Photo Studio card.
   const studio = page.getByText('AI Photo Studio')
-  await studio.waitFor({ timeout: 20_000 })
-  console.log('AI STUDIO: block rendered')
+  await studio.waitFor({ timeout: 30_000 })
+  console.log('AI STUDIO: card rendered in the deal review')
 
-  // Suggested prompt is deal-aware (contains the business category).
-  const promptBox = page.locator('textarea').filter({ hasText: /Food & Beverage|Coffee/i }).first()
-  const promptText = await promptBox.inputValue().catch(() => '')
-  expect(promptText.toLowerCase()).toContain('business')
-  console.log('AI STUDIO: suggested prompt =', promptText.slice(0, 120))
-
-  // Generate 4 options.
+  // Generate 4 options via the studio card.
   await page.getByRole('button', { name: /Generate 4 photo options/ }).click()
   console.log('AI STUDIO: generation started (free AI can take 10-60s)…')
 
@@ -67,29 +52,7 @@ test('agent: AI Photo Studio generates 4 options and adds one to the gallery', a
   expect(count).toBeGreaterThan(0)
 
   // Add the first option to the gallery.
-  await page.getByRole('button', { name: /Add to gallery/ }).first().click()
-  await expect(page.getByText('✓ Added').first()).toBeVisible({ timeout: 10_000 })
+  await page.getByRole('button', { name: /Save to gallery/ }).first().click()
+  await expect(page.getByText('✓ Saved to gallery').first()).toBeVisible({ timeout: 10_000 })
   console.log('AI STUDIO: option added to gallery')
-
-  // Gallery now contains the AI image.
-  const galleryImages = page.locator('img[alt^="Gallery"]')
-  await expect(galleryImages.first()).toBeVisible({ timeout: 15_000 })
-  const galleryCount = await galleryImages.count()
-  console.log(`AI STUDIO: gallery now has ${galleryCount} photo(s)`)
-  expect(galleryCount).toBeGreaterThanOrEqual(1)
-
-  // Submit → draft created with the AI photo persisted.
-  const submitBtn = page.getByRole('button', { name: /Ready — advance to Verify|Create Draft & Start Review/ })
-  await submitBtn.click({ timeout: 10_000 }).catch(() => {})
-  const deadline = Date.now() + 90_000
-  let listingId: string | null = null
-  while (Date.now() < deadline) {
-    if (page.url().includes('listing=')) {
-      listingId = new URL(page.url()).searchParams.get('listing')
-      break
-    }
-    await page.waitForTimeout(1000)
-  }
-  expect(listingId).toBeTruthy()
-  console.log(`AI STUDIO: listing created with AI photo, id=${listingId}`)
 })

@@ -158,8 +158,14 @@ function stringArray(value: unknown): string[] {
 }
 
 export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketplaceListing {
+  // Schema-drift tolerance: the live get_public_listing_feed returns the row
+  // as `id`/`contact_email`, while some schema snapshots declare
+  // `listing_id`/`agent_email`. Accept BOTH shapes so the detail page never
+  // 404s because of a column rename.
+  const id = (row as any).listing_id ?? (row as any).id
+  const agentEmail = (row as any).agent_email ?? (row as any).contact_email
   return {
-    id: row.listing_id,
+    id,
     slug: row.slug,
     public_title: row.public_title || 'Confidential Business Opportunity',
     public_summary: row.public_summary,
@@ -183,7 +189,7 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     agent_title: row.agent_title || null,
     agent_photo: row.agent_photo || null,
     agent_phone: row.agent_phone || null,
-    agent_email: row.agent_email || null,
+    agent_email: agentEmail || null,
     is_absentee_owner: row.is_absentee_owner ?? null,
     is_franchise: row.is_franchise ?? null,
     is_relocatable: row.is_relocatable ?? null,

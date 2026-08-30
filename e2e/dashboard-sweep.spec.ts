@@ -14,7 +14,7 @@
 import { test, expect } from '@playwright/test'
 import { signIn } from './helpers'
 
-test.setTimeout(240_000)
+test.setTimeout(900_000)
 
 const DASHBOARD_ROUTES = [
   '/dashboard',

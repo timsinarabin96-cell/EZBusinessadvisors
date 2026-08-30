@@ -13,7 +13,7 @@
 // =============================================================================
 
 import { test, expect } from '@playwright/test'
-import { signIn, authHeaders, E2E_USER } from './helpers'
+import { signIn, authHeaders, E2E_USER, oneShotBuildDeal } from './helpers'
 
 // Full journey spans sign-in + wizard + publish + marketplace + inquiry —
 // needs more than the default 45s.
@@ -31,42 +31,12 @@ test.describe('full journey', () => {
     await signIn(page)
     await expect(page).toHaveURL(/dashboard/, { timeout: 20_000 })
 
-    // 2. Listing wizard: create a draft through the studio.
-    await page.goto('/dashboard/listings/new')
+    // 2. One-Shot Deal Builder: paste notes → Build Entire Deal → review.
     const businessName = `Journey Test ${Date.now().toString().slice(-6)}`
-
-    // Wait for the form to hydrate before typing.
-    await page.getByPlaceholder('Private CRM identity').waitFor({ timeout: 20_000 })
-    await page.getByPlaceholder('Private CRM identity').fill(businessName)
-    await page.getByPlaceholder('Established recurring-revenue service company').fill('Established service business with recurring revenue')
-    await page.getByPlaceholder('Business Services').fill('Business Services')
-    await page.getByPlaceholder('Business Services').press('Escape')
-    await page.getByPlaceholder(/Greater Philadelphia/).fill('Greater Philadelphia, PA')
-    await page.getByPlaceholder(/Greater Philadelphia/).press('Escape')
-    await page.getByPlaceholder(/Explain the business model/).fill(
-      'A growing business services company with recurring revenue, strong margins, and an experienced team. Serves commercial clients across the region.'
-    )
-
-    // Jump straight to the final section (sidebar nav), then submit.
-    await page.getByRole('button', { name: 'Public Preview' }).click()
-    await page.waitForTimeout(400)
-    await page.getByRole('button', { name: 'Create Draft & Start Review' }).click()
-
-    // Post-create modals appear asynchronously (duplicate guard → buyer match).
-    // Poll until the workflow URL lands or a modal needs a click.
-    const dupModal = page.getByRole('button', { name: 'Continue anyway — create new' })
-    const matchModal = page.getByRole('button', { name: 'Continue to workflow →' })
-    for (let i = 0; i < 40; i++) {
-      if (page.url().includes('/workflow')) break
-      if (await dupModal.isVisible({ timeout: 500 }).catch(() => false)) { await dupModal.click(); break }
-      if (await matchModal.isVisible({ timeout: 500 }).catch(() => false)) { await matchModal.click(); break }
-      await page.waitForTimeout(750)
-    }
-
-    // The draft stays in the AI Deal Studio (single canvas) — the listing id
-    // rides in the ?listing= query param, and the studio stays on Capture.
-    await expect(page).toHaveURL(/\/dashboard\/studio\?.*listing=[0-9a-f-]+/, { timeout: 60_000 })
-    const listingId = new URL(page.url()).searchParams.get('listing')
+    const listingId = await oneShotBuildDeal(page,
+      `${businessName} — established business services company in Greater Philadelphia, PA with recurring revenue. ` +
+      'Asking $495,000. Annual revenue $640,000, SDE $118,000, 8 employees. Multi-year client contracts, strong margins, experienced team. ' +
+      'Leased 4,800 sq ft office. Owner retiring after 15 years, stays 4 weeks for transition.')
     expect(listingId).toBeTruthy()
 
     // 3. Publish through the real API (force bypasses readiness for thin test
@@ -85,11 +55,9 @@ test.describe('full journey', () => {
     // 4. Public marketplace: the listing is live and visible. The detail page
     //    resolves by slug (matches syncPublicListingRow's deterministic format)
     //    and titles itself with the marketing headline, not the business name.
-    const slugBase = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 60) || 'business'
-    const listingSlug = `${slugBase}-${listingId.slice(0, 8)}`
-    await page.goto(`/marketplace/listings/${listingSlug}`)
+    await page.goto(`/marketplace/listings/${listingId}`)
     await page.waitForLoadState('networkidle').catch(() => {})
-    await expect(page.getByText('Established service business with recurring revenue').first()).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByRole('button', { name: /Request Confidential Access/ }).first()).toBeVisible({ timeout: 20_000 })
     await expect(page.getByRole('button', { name: 'Request Confidential Details' })).toBeVisible()
 
     // 5. Buyer NDA / inquiry: request confidential details → form → success.
