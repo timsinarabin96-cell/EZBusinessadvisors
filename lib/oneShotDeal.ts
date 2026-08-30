@@ -58,6 +58,54 @@ export interface RecordExtractionInput {
   docSummaries?: string[]
 }
 
+// ---------------------------------------------------------------------------
+// Deterministic record fallback — used when the LLM extraction flakes (rate
+// limit, timeout, empty JSON). Regex-extracts the key deal figures straight
+// from broker notes so the pipeline NEVER produces an incomplete listing.
+// Pure + testable. Returns only fields it can actually find in the text.
+// ---------------------------------------------------------------------------
+function labeledFigure(notes: string, label: RegExp): number | null {
+  // Wrap alternations (annual revenue|revenue) so the $ figure suffix applies
+  // to EVERY branch, not just the last one. Also captures shorthand suffixes
+  // ($610k, $1.2M, "$3 million") which are ubiquitous in broker notes.
+  const m = notes.match(
+    new RegExp(`(?:${label.source})\\s*(?:of\\s*)?\\$?[\\d][\\d,]*(?:\\.\\d+)?\\s*(?:[kKmM]|thousand|million)?`, 'i'),
+  )
+  if (!m) return null
+  const digits = m[0].match(/\$?([\d][\d,]*(?:\.\d+)?)\s*([kKmM]|thousand|million)?/)
+  if (!digits) return null
+  let n = Number(digits[1].replace(/,/g, ''))
+  if (!Number.isFinite(n)) return null
+  const suffix = (digits[2] || '').toLowerCase()
+  if (suffix === 'k' || suffix === 'thousand') n *= 1_000
+  else if (suffix === 'm' || suffix === 'million') n *= 1_000_000
+  return n
+}
+
+export function fallbackExtractRecord(notes: string): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  const asking = labeledFigure(notes, /asking(?:\s*price)?/)
+  if (asking != null) out.asking_price = asking
+  const revenue = labeledFigure(notes, /annual\s+revenue|gross\s+revenue|revenue/)
+  if (revenue != null) out.annual_revenue = revenue
+  const sde = labeledFigure(notes, /sde|owner'?s?\s+discretionary\s+earnings/)
+  if (sde != null) out.sde = sde
+  const ebitda = labeledFigure(notes, /ebitda/)
+  if (ebitda != null) out.ebitda = ebitda
+
+  const emp = notes.match(/(\d{1,3})\s*(?:full[- ]time\s+)?employees?/i)
+  if (emp) out.employees_full_time = Number(emp[1])
+  const year = notes.match(/est(?:ablished)?\s+(?:in\s+)?((?:19|20)\d{2})/i)
+  if (year) out.established_year = Number(year[1])
+
+  // Location: "in Greater Philadelphia, PA" / "located in Austin, TX" — first
+  // City, ST-style pair found.
+  const loc = notes.match(/in\s+([A-Z][A-Za-z .-]+(?:,\s*[A-Z]{2})?)/i)
+  if (loc) out.location_general = loc[1].trim()
+
+  return out
+}
+
 /**
  * Ask the LLM to turn raw notes + doc summaries into the listing record.
  * Conservative: null for anything not actually present in the source.

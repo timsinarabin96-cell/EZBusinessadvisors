@@ -11,6 +11,7 @@ import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase
 import {
   ONE_SHOT_STAGES,
   buildRecordExtractionPrompt,
+  fallbackExtractRecord,
   buildTeaserPrompt,
   runAudit,
   valuationFromMultiples,
@@ -99,15 +100,29 @@ export async function POST(req: NextRequest) {
           }
           const { completeWithDeepSeek } = await import('@/lib/deepseek/client')
           const { system, user } = buildRecordExtractionPrompt({ notes })
-          const res = await completeWithDeepSeek({
-            context: { kind: 'listing', entityId: listingId, text: user },
-            system,
-            message: 'Extract the deal record from the context above.',
-            jsonMode: true,
-            maxTokens: 1600,
-          })
-          const d = (res.data || {}) as Record<string, unknown>
+          let d: Record<string, unknown> = {}
+          try {
+            const res = await completeWithDeepSeek({
+              context: { kind: 'listing', entityId: listingId, text: user },
+              system,
+              message: 'Extract the deal record from the context above.',
+              jsonMode: true,
+              maxTokens: 1600,
+            })
+            d = (res.data || {}) as Record<string, unknown>
+          } catch (e) {
+            // AI flake (rate limit / timeout) must never produce an incomplete
+            // listing — fall back to the deterministic regex extractor.
+            console.error('[deals/build] intake AI failed, using deterministic fallback:', (e as Error)?.message)
+            d = {}
+          }
           const patch: Record<string, unknown> = {}
+          // If the LLM returned nothing usable, merge the deterministic
+          // fallback (asking price, revenue, SDE, EBITDA, employees, year, loc).
+          const llmHasData = Object.keys(d).length > 0
+          if (!llmHasData) {
+            Object.assign(d, fallbackExtractRecord(notes))
+          }
           const str = (k: string) => {
             const v = d[k]
             if (typeof v === 'string' && v.trim() && v !== 'null') patch[k] = v.trim().slice(0, 500)
