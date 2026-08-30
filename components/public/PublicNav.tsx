@@ -26,15 +26,15 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
   const accent = brand?.accent || '#c9a84c'
   const name = brand?.name || 'CONCORD'
   return (
-    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: '#ffffff', borderBottom: '1px solid #ece8dc', boxShadow: '0 1px 8px rgba(26,26,46,0.06)' }}>
+    <header className="nav-glass" style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.82)' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 72 }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           {/* Boss rule: agency logos render ONLY in the CRM's documents — the
               public website never shows logo images, just the agency name. */}
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 800, color: primary, letterSpacing: 0.5 }}>{name}</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: primary, letterSpacing: '-0.01em' }}>{name}</span>
           {/* Boss rule: agency domains render their own brand; the default
               platform brand reads "DEAL PLATFORM" — one name everywhere. */}
-          <span style={{ fontSize: 10, letterSpacing: '0.25em', color: accent, textTransform: 'uppercase' }}>{brand ? 'Markets' : 'Deal Platform'}</span>
+          <span style={{ fontSize: 10, letterSpacing: '0.25em', color: accent, textTransform: 'uppercase', fontWeight: 700 }}>{brand ? 'Markets' : 'Deal Platform'}</span>
         </Link>
 
         {/* Desktop nav — full advanced link set in a two-tier layout. The
@@ -51,7 +51,7 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
             <NavLink href="/marketplace/qualify">Pre-Qualify</NavLink>
             <Link
               href="/auth"
-              style={{ background: '#1a1a2e', color: '#fff', padding: '10px 20px', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontSize: 14, fontFamily: 'Georgia, serif', whiteSpace: 'nowrap' }}
+              style={{ background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', padding: '10px 22px', borderRadius: 12, textDecoration: 'none', fontWeight: 800, fontSize: 14, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(201,168,76,0.35)' }}
             >
               Broker Login
             </Link>
@@ -111,7 +111,7 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
 
 function NavLink({ href, children, arrow, onClick, small }: { href: string; children: React.ReactNode; arrow?: boolean; onClick?: () => void; small?: boolean }) {
   return (
-    <Link href={href} onClick={onClick} style={{ color: '#1a1a2e', textDecoration: 'none', fontSize: small ? 12 : 14.5, fontWeight: small ? 500 : 600, fontFamily: 'Georgia, serif', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: small ? 0.72 : 1 }}>
+    <Link href={href} onClick={onClick} style={{ color: '#1a1a2e', textDecoration: 'none', fontSize: small ? 12 : 14.5, fontWeight: small ? 500 : 600, fontFamily: 'var(--font-sans)', display: 'inline-flex', alignItems: 'center', gap: 6, opacity: small ? 0.72 : 1 }}>
       {children} {arrow && <span style={{ color: '#c9a84c' }}>→</span>}
     </Link>
   )

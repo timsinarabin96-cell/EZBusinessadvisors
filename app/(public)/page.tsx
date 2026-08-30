@@ -8,7 +8,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
-import type { SoldListing } from '@/lib/marketplace'
+import type { SoldListing, PublicMarketplaceListing } from '@/lib/marketplace'
 import { fetchFeaturedListings, fetchMarketplaceStats, fetchAllIndustries, fetchSoldListings } from '@/lib/marketplace'
 import { buildSoldCompsReport } from '@/lib/soldComps'
 import { getPublicAgencyContext } from '@/lib/publicAgency'
@@ -90,20 +90,20 @@ export default async function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqLd) }} />
 
-      {/* ══ HERO — premium two-column band: value prop + search left, 3D brand banner right ══ */}
-      <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 45%,#0f3460 100%)', color: '#fff', padding: '84px 24px 72px', position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 50% at 70% 20%, rgba(201,168,76,0.14), transparent 60%), radial-gradient(ellipse 50% 40% at 15% 80%, rgba(15,52,96,0.55), transparent 65%)' }} />
-        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 48, alignItems: 'center' }} className="hero-grid">
+      {/* ══ HERO — premium two-column band: value prop + search left, live glass dashboard mockup right ══ */}
+      <section style={{ background: 'linear-gradient(160deg,#0b1020 0%,#101a38 42%,#0f2a52 100%)', color: '#fff', padding: '88px 24px 84px', position: 'relative', overflow: 'hidden' }}>
+        <div className="hero-aurora" />
+        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', gap: 52, alignItems: 'center' }} className="hero-grid">
           {/* LEFT — headline + search + trust */}
           <div style={{ textAlign: 'left' }}>
-            <div className="home-fade-up" style={{ color: '#c9a84c', fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>
-              Confidential Business Brokerage
+            <div className="home-fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 999, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em', color: '#f0d98c' }}>
+              🇺🇸 The confidential business marketplace
             </div>
-            <h1 className="home-fade-up d1" style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 4.4vw, 52px)', margin: '16px 0 14px', lineHeight: 1.12, color: '#fff' }}>
-              Buy or Sell a Business<br />With <span style={{ color: '#c9a84c' }}>Confidence</span>
+            <h1 className="home-fade-up d1" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(36px, 5vw, 60px)', margin: '22px 0 16px', lineHeight: 1.06, color: '#fff', letterSpacing: '-0.03em' }}>
+              Buy or Sell a Business<br />With <span className="grad-gold">Total Confidence</span>
             </h1>
-            <p className="home-fade-up d2" style={{ fontSize: 16.5, color: 'rgba(255,255,255,0.78)', maxWidth: 560, margin: '0 0 30px', lineHeight: 1.6 }}>
-              Concord connects qualified buyers with vetted, profitable businesses — and helps owners sell confidentially, for the right price.
+            <p className="home-fade-up d2" style={{ fontSize: 16.5, color: 'rgba(255,255,255,0.75)', maxWidth: 560, margin: '0 0 30px', lineHeight: 1.65 }}>
+              Concord connects qualified buyers with vetted, profitable businesses — recast financials, broker-valued pricing, and NDA-protected deals from start to close.
             </p>
 
             {/* Smart search — plain GET form, zero client JS */}
@@ -112,44 +112,38 @@ export default async function HomePage() {
               method="GET"
               className="home-fade-up d3"
               style={{
-                background: '#fff', borderRadius: 14, padding: 12,
+                background: 'rgba(255,255,255,0.08)', borderRadius: 18, padding: 10,
+                border: '1px solid rgba(255,255,255,0.16)',
                 display: 'grid', gridTemplateColumns: '1.5fr 1.1fr 1fr auto', gap: 8,
-                maxWidth: 640, boxShadow: '0 24px 70px rgba(0,0,0,0.45)',
+                maxWidth: 640, boxShadow: '0 30px 80px rgba(2,6,23,0.5)',
+                backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
               } as React.CSSProperties}
             >
               <input name="q" placeholder="Keyword (restaurant, HVAC…)" style={searchInput} />
               <HomeSearchCategory style={searchInput} />
               <HomeSearchLocation style={searchInput} />
-              <button type="submit" className="home-glow" style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', borderRadius: 8, padding: '0 22px', fontWeight: 800, fontFamily: 'Georgia, serif', fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                Search →
+              <button type="submit" className="home-glow" style={{ background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', border: 'none', borderRadius: 12, padding: '0 24px', fontWeight: 800, fontFamily: 'var(--font-sans)', fontSize: 14.5, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 20px rgba(201,168,76,0.4)' }}>
+                Search 🔍
               </button>
             </form>
 
-            {/* Trust chips */}
-            <div className="home-fade-up d3" style={{ marginTop: 24, display: 'flex', gap: 20, justifyContent: 'flex-start', flexWrap: 'wrap', fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
-              <span>🔒 NDA-protected</span>
-              <span>📊 Recast financials</span>
-              <span>⚖️ Broker-valued</span>
-              <span>🤝 Verified buyers</span>
+            {/* Trust chips — real emojis, glass pills */}
+            <div className="home-fade-up d3" style={{ marginTop: 26, display: 'flex', gap: 12, justifyContent: 'flex-start', flexWrap: 'wrap' }}>
+              {[['🔒', 'NDA-protected'], ['📊', 'Recast financials'], ['⚖️', 'Broker-valued'], ['🤝', 'Verified buyers']].map(([e, t]) => (
+                <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 999, padding: '8px 16px', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(10px)' }}>
+                  <span style={{ fontSize: 16 }}>{e}</span> {t}
+                </span>
+              ))}
             </div>
 
-            <div style={{ marginTop: 26, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-              <Link href="/marketplace/listings" style={ctaGold}>Browse All Listings →</Link>
-              <Link href="/marketplace/sell" style={ctaGhost}>Get a Free Valuation</Link>
+            <div style={{ marginTop: 30, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              <Link href="/marketplace/listings" className="cta-glow">Browse All Listings →</Link>
+              <Link href="/marketplace/sell" className="cta-ghost-dark">Get a Free Valuation</Link>
             </div>
           </div>
 
-          {/* RIGHT — 3D brand banner */}
-          <div className="home-fade-up d2" style={{ display: 'flex', justifyContent: 'center' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/og-3d.png"
-              alt="CONCORD — Buy or Sell a Business"
-              width={900}
-              height={472}
-              style={{ maxWidth: '100%', height: 'auto', borderRadius: 18, boxShadow: '0 30px 80px rgba(0,0,0,0.5)', border: '1px solid rgba(201,168,76,0.35)' }}
-            />
-          </div>
+          {/* RIGHT — live glass dashboard mockup + floating emoji chips */}
+          <HeroMock featured={featured} />
         </div>
       </section>
 
@@ -367,6 +361,101 @@ export default async function HomePage() {
 }
 
 /* ── helpers ── */
+function industryEmoji(industry: string | null | undefined): string {
+  const t = (industry || '').toLowerCase()
+  if (/(restaurant|food|diner|cafe|bar|pizza|bakery)/.test(t)) return '🍽️'
+  if (/(hvac|plumb|electric|contractor|roof|construction)/.test(t)) return '🔧'
+  if (/(salon|barber|beauty|spa|nail|cosmetic)/.test(t)) return '💇'
+  if (/(auto|car|truck|repair|mechanic|dealership)/.test(t)) return '🚗'
+  if (/(health|medical|dental|clinic|pharma|home care)/.test(t)) return '🩺'
+  if (/(laundromat|laundry|clean)/.test(t)) return '🧺'
+  if (/(storage|warehouse)/.test(t)) return '📦'
+  if (/(e-?commerce|online|amazon|shopify)/.test(t)) return '🛒'
+  if (/(software|tech|it|app|web|saas)/.test(t)) return '💻'
+  if (/(gym|fitness|yoga|training)/.test(t)) return '🏋️'
+  if (/(pet|grooming|veterinar)/.test(t)) return '🐾'
+  if (/(childcare|daycare|preschool)/.test(t)) return '🧸'
+  if (/(retail|store|shop|convenience|gas)/.test(t)) return '🛍️'
+  if (/(manufactur|industrial|factory)/.test(t)) return '🏭'
+  if (/(logistics|truck|freight|delivery|transport)/.test(t)) return '🚚'
+  if (/(car wash|detail)/.test(t)) return '🚿'
+  return '🏢'
+}
+
+/** Live glass dashboard mockup for the hero — real featured listings inside a
+ *  browser frame with floating emoji stat chips. Pure server component. */
+function HeroMock({ featured }: { featured: PublicMarketplaceListing[] }) {
+  const rows = featured.slice(0, 3)
+  const list = rows.length
+    ? rows.map((l) => ({ emoji: industryEmoji(l.industry), title: l.public_title, loc: l.location_general || 'Confidential' }))
+    : [
+        { emoji: '🍽️', title: 'Catering Co. · Established 2009', loc: 'Philadelphia, PA' },
+        { emoji: '🔧', title: 'HVAC Services · 40+ Contracts', loc: 'New Jersey' },
+        { emoji: '🧺', title: 'Laundromat · 3 Locations', loc: 'Delaware' },
+      ]
+  return (
+    <div className="home-fade-up d2" style={{ position: 'relative', padding: '18px 10px' }}>
+      {/* Browser frame */}
+      <div className="mock-frame">
+        <div className="mock-bar">
+          <span className="mock-dot" style={{ background: '#ff5f57' }} />
+          <span className="mock-dot" style={{ background: '#febc2e' }} />
+          <span className="mock-dot" style={{ background: '#28c840' }} />
+          <span className="mock-url">🔒 concord.marketplace/opportunities</span>
+        </div>
+        <div style={{ padding: 16, display: 'grid', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 4px 10px' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', fontFamily: 'var(--font-display)' }}>🔥 Featured opportunities</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>Live · updated daily</div>
+          </div>
+          {list.map((r, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, padding: '11px 14px' }}>
+              <span style={{ fontSize: 24, filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.4))' }}>{r.emoji}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</div>
+                <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>📍 {r.loc}</div>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#f0d98c', background: 'rgba(201,168,76,0.14)', border: '1px solid rgba(201,168,76,0.35)', padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>🔒 NDA</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 6px 2px', fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 4px rgba(34,197,94,0.18)' }} />
+            New listings added every week — sign up for alerts
+          </div>
+        </div>
+      </div>
+      {/* Floating emoji stat chips */}
+      <div className="home-float" style={{ position: 'absolute', top: -8, left: -26, zIndex: 3 }}>
+        <div className="emoji-chip">
+          <span className="ec-emoji">💰</span>
+          <div>
+            <div className="ec-val">$40M+</div>
+            <div className="ec-lab">in asking value</div>
+          </div>
+        </div>
+      </div>
+      <div className="home-float" style={{ position: 'absolute', bottom: 46, right: -18, zIndex: 3, animationDelay: '1.4s' }}>
+        <div className="emoji-chip">
+          <span className="ec-emoji">🤝</span>
+          <div>
+            <div className="ec-val">500+</div>
+            <div className="ec-lab">qualified buyers</div>
+          </div>
+        </div>
+      </div>
+      <div className="home-float" style={{ position: 'absolute', top: '42%', right: -30, zIndex: 3, animationDelay: '0.7s' }}>
+        <div className="emoji-chip">
+          <span className="ec-emoji">✅</span>
+          <div>
+            <div className="ec-val">100%</div>
+            <div className="ec-lab">confidential</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TrustBadge({ icon, title, body }: { icon: string; title: string; body: string }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 24, textAlign: 'center' }}>
@@ -477,11 +566,11 @@ function CtaCard({ eyebrow, title, body, href, label }: { eyebrow: string; title
 }
 
 const searchInput: React.CSSProperties = {
-  padding: '13px 14px', border: '1px solid #d8d2c2', borderRadius: 8, fontSize: 14, fontFamily: 'Georgia, serif', outline: 'none', color: '#1a1a2e',
+  padding: '13px 15px', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 12, fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', color: '#fff', background: 'rgba(255,255,255,0.09)', minWidth: 0,
 }
 const ctaGold: React.CSSProperties = {
-  background: '#c9a84c', color: '#1a1a2e', padding: '13px 26px', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontFamily: 'Georgia, serif', fontSize: 14.5,
+  background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', padding: '14px 28px', borderRadius: 14, textDecoration: 'none', fontWeight: 800, fontFamily: 'var(--font-sans)', fontSize: 14.5, boxShadow: '0 6px 24px rgba(201,168,76,0.45)', display: 'inline-flex', alignItems: 'center', gap: 8,
 }
 const ctaGhost: React.CSSProperties = {
-  border: '1px solid rgba(255,255,255,0.4)', color: '#fff', padding: '13px 26px', borderRadius: 6, textDecoration: 'none', fontWeight: 700, fontFamily: 'Georgia, serif', fontSize: 14.5,
+  border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '14px 28px', borderRadius: 14, textDecoration: 'none', fontWeight: 700, fontFamily: 'var(--font-sans)', fontSize: 14.5, background: 'rgba(255,255,255,0.07)', display: 'inline-flex', alignItems: 'center', gap: 8,
 }
