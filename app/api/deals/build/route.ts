@@ -93,11 +93,14 @@ export async function POST(req: NextRequest) {
     const s = steps.find((x) => x.key === key)
     if (s) Object.assign(s, patch)
   }
-  // Non-blocking persistence — never let a DB hiccup kill the stream.
+  // Non-blocking persistence — never let a DB hiccup kill the stream. Merges
+  // with the CURRENT ai_metadata (fresh read) so stage writes (audit/comps)
+  // are never clobbered by a stale snapshot from request start.
   const persistBuild = () => {
-    const meta = ((listingRow as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata) || {}
     void (async () => {
       try {
+        const { data: fresh } = await db.from('listings').select('ai_metadata').eq('id', listingId).maybeSingle()
+        const meta = ((fresh as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata) || {}
         await db.from('listings').update({
           ai_metadata: { ...meta, build: { steps: steps.map(({ key, status, note }) => ({ key, status, note })), updatedAt: new Date().toISOString() } },
           updated_at: new Date().toISOString(),
@@ -319,18 +322,18 @@ export async function POST(req: NextRequest) {
           set('documents', { note: `${artifacts.length} document${artifacts.length === 1 ? '' : 's'} generated (BOV/CIM/BLI)` })
         })
 
-        // ── 6. SBA ───────────────────────────────────────────────────────
-        await run('sba', async () => {
+        // ── 6+7+8. SBA + COMPS + BUYERS — independent, run in parallel ────
+        let valuation: ReturnType<typeof valuationFromMultiples> | null = null
+        let buyerCount = 0
+        await Promise.all([
+        run('sba', async () => {
           const { data: listing } = await db.from('listings').select('asking_price, sde, sba_qualified').eq('id', listingId).maybeSingle()
           const l = listing as Record<string, unknown> | null
           const sba = sbaEligibility({ askingPrice: (l?.asking_price as number | null) ?? null, sde: (l?.sde as number | null) ?? null })
           await db.from('listings').update({ sba_qualified: sba.eligible, updated_at: new Date().toISOString() }).eq('id', listingId)
           set('sba', { note: sba.note })
-        })
-
-        // ── 7. COMPS + VALUATION ─────────────────────────────────────────
-        let valuation: ReturnType<typeof valuationFromMultiples> | null = null
-        await run('comps', async () => {
+        }),
+        run('comps', async () => {
           const { data: listing } = await db.from('listings').select('agency_id, industry, sde, ebitda').eq('id', listingId).maybeSingle()
           const l = listing as Record<string, unknown> | null
           const agencyId = (l?.agency_id as string | null) || (auth.memberships?.[0]?.agency_id as string | undefined) || ''
@@ -359,11 +362,8 @@ export async function POST(req: NextRequest) {
               ? `${valuation.basis} $${(valuation.mid).toLocaleString()} range $${valuation.low.toLocaleString()}–$${valuation.high.toLocaleString()}`
               : `${comps.length} comp${comps.length === 1 ? '' : 's'} found — add earnings to price`,
           })
-        })
-
-        // ── 8. BUYERS ────────────────────────────────────────────────────
-        let buyerCount = 0
-        await run('buyers', async () => {
+        }),
+        run('buyers', async () => {
           const { data: listing } = await db.from('listings').select('industry').eq('id', listingId).maybeSingle()
           const { matchBuyerLeads } = await import('@/lib/leads2')
           const leads = await matchBuyerLeads(((listing as any)?.industry as string | null) || null)
@@ -371,11 +371,13 @@ export async function POST(req: NextRequest) {
           set('buyers', {
             note: buyerCount ? `${buyerCount} qualified buyer${buyerCount === 1 ? '' : 's'} matched` : 'No buyer matches yet — add buyer leads first',
           })
-        })
+        }),
+        ])
 
-        // ── 9. PHOTOS — generate 4 AI options ────────────────────────────
+        // ── 9+10. PHOTOS + TEASER — independent, run in parallel ──────────
         let photos: string[] = []
-        await run('photos', async () => {
+        await Promise.all([
+        run('photos', async () => {
           try {
             const { data: listing } = await db.from('listings').select('business_name, industry, sub_industry, location_general, description').eq('id', listingId).maybeSingle()
             const l = listing as Record<string, unknown> | null
@@ -421,10 +423,8 @@ export async function POST(req: NextRequest) {
           } catch (e: any) {
             set('photos', { status: 'skipped', note: e?.message || 'Photo generation skipped' })
           }
-        })
-
-        // ── 10. TEASER — anonymous public copy ───────────────────────────
-        await run('teaser', async () => {
+        }),
+        run('teaser', async () => {
           const { data: listing } = await db.from('listings').select('business_name, industry, location_general, annual_revenue, sde, public_title').eq('id', listingId).maybeSingle()
           const l = listing as Record<string, unknown> | null
           if (l?.public_title && String(l.public_title).trim()) {
@@ -459,7 +459,8 @@ export async function POST(req: NextRequest) {
             await db.from('listings').update(patch).eq('id', listingId)
           }
           set('teaser', { note: patch.public_title ? `"${patch.public_title}"` : 'Teaser written' })
-        })
+        }),
+        ])
 
         // ── 11. READY — readiness score ──────────────────────────────────
         let readiness: Record<string, unknown> | null = null

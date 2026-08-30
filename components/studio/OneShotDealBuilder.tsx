@@ -56,6 +56,9 @@ export default function OneShotDealBuilder() {
   const [publishing, setPublishing] = useState(false)
   const [resumable, setResumable] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editForm, setEditForm] = useState<Record<string, string>>({})
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   // Resume a deep link ?listing=<id> → straight to the deal review.
@@ -251,6 +254,12 @@ export default function OneShotDealBuilder() {
 
   const goLive = async () => {
     if (!listingId || publishing) return
+    // Human confirm gate: the broker must explicitly own the key figures.
+    const hasFigures = listing && (Number(listing.asking_price) > 0 || Number(listing.annual_revenue) > 0 || Number(listing.sde) > 0)
+    if (!confirmed && hasFigures) {
+      toast('Confirm the deal figures first — this is the broker sign-off before going live', 'error')
+      return
+    }
     setPublishing(true)
     try {
       const res = await authenticatedFetch('/api/listings/publish', {
@@ -267,6 +276,41 @@ export default function OneShotDealBuilder() {
     } finally {
       setPublishing(false)
     }
+  }
+
+  /** Inline edit — save key figures straight from the review screen. */
+  const saveInlineEdit = async () => {
+    if (!listingId) return
+    const num = (v: string | undefined) => (v && v.trim() && !isNaN(Number(v.replace(/[$,]/g, ''))) ? Number(v.replace(/[$,]/g, '')) : null)
+    const patch: Record<string, unknown> = {}
+    const asking = num(editForm.asking_price)
+    const revenue = num(editForm.annual_revenue)
+    const sde = num(editForm.sde)
+    const ebitda = num(editForm.ebitda)
+    if (editForm.asking_price !== undefined) patch.asking_price = asking
+    if (editForm.annual_revenue !== undefined) patch.annual_revenue = revenue
+    if (editForm.sde !== undefined) patch.sde = sde
+    if (editForm.ebitda !== undefined) patch.ebitda = ebitda
+    try {
+      await updateListing(listingId, patch as any)
+      const l = await fetchListing(listingId)
+      setListing(l)
+      setEditing(false)
+      setEditForm({})
+      toast('Figures updated — re-run the build to refresh audit, valuation & documents', 'success')
+    } catch (e: any) {
+      toast(e.message || 'Could not save figures', 'error')
+    }
+  }
+
+  const startInlineEdit = () => {
+    setEditForm({
+      asking_price: listing?.asking_price ? String(listing.asking_price) : '',
+      annual_revenue: listing?.annual_revenue ? String(listing.annual_revenue) : '',
+      sde: listing?.sde ? String(listing.sde) : '',
+      ebitda: listing?.ebitda ? String(listing.ebitda) : '',
+    })
+    setEditing(true)
   }
 
   const icon = (s: BuildStep) =>
@@ -300,6 +344,16 @@ export default function OneShotDealBuilder() {
               placeholder={'Paste anything… e.g.\n\n"Corner laundromat in Harrisburg, 24 machines + drop-off service. Asking $350k, gross ~$180k, owner works 30h/wk. Lease is $4,200/mo with 8 years left. Owner retiring, will train 3 weeks. Two employees."'}
               style={{ fontSize: 14, lineHeight: 1.6 }}
             />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+              <button
+                type="button"
+                onClick={() => setNotes('Corner laundromat in Harrisburg, PA — 24 machines + drop-off service. Asking $350,000. Gross revenue $180,000, SDE $72,000. Lease is $4,200/mo with 8 years left on a 10-year term. Owner works 30h/wk, retiring, will train the buyer for 3 weeks. Two part-time employees. Established 2008. Steady neighborhood customer base, minimal competition within 2 miles.')}
+                style={{ background: 'none', border: 'none', color: '#0e7490', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '2px 0' }}
+              >
+                ✨ Try example notes
+              </button>
+              <span style={{ fontSize: 11, color: '#94a3b8' }}>{notes.length} chars</span>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
               <button
                 type="button"
@@ -468,6 +522,12 @@ export default function OneShotDealBuilder() {
                   <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 700 }}>READINESS</div>
                 </div>
               )}
+              {listing.status !== 'active' && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1px solid var(--line)', borderRadius: 10, padding: '9px 12px', fontSize: 12, color: 'var(--navy)', fontWeight: 600, cursor: 'pointer', maxWidth: 240 }}>
+                  <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} style={{ accentColor: '#16a34a', width: 15, height: 15, cursor: 'pointer' }} />
+                  I confirm the asking price, revenue &amp; earnings are correct
+                </label>
+              )}
               <button
                 type="button"
                 onClick={goLive}
@@ -476,6 +536,7 @@ export default function OneShotDealBuilder() {
                   padding: '13px 22px', borderRadius: 10, border: 'none', cursor: publishing ? 'wait' : 'pointer',
                   background: listing.status === 'active' ? '#16a34a' : 'linear-gradient(135deg,#16a34a,#15803d)', color: '#fff',
                   fontWeight: 800, fontSize: 14.5, boxShadow: '0 8px 20px rgba(22,163,74,0.35)',
+                  opacity: !confirmed && listing.status !== 'active' ? 0.55 : 1,
                 }}
               >
                 {listing.status === 'active' ? '✓ Live on the marketplace' : publishing ? 'Publishing…' : '✅ Approve & Go Live'}
@@ -497,21 +558,50 @@ export default function OneShotDealBuilder() {
               <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 10 }}>📋 Deal record</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, fontSize: 12.5 }}>
-                  {[
-                    ['Asking price', listing.asking_price ? `$${Number(listing.asking_price).toLocaleString()}` : null],
-                    ['Annual revenue', listing.annual_revenue ? `$${Number(listing.annual_revenue).toLocaleString()}` : null],
-                    ['SDE', listing.sde ? `$${Number(listing.sde).toLocaleString()}` : null],
-                    ['EBITDA', listing.ebitda ? `$${Number(listing.ebitda).toLocaleString()}` : null],
-                    ['Employees', listing.employees_full_time ? String(listing.employees_full_time) : null],
-                    ['Established', listing.established_year ? String(listing.established_year) : null],
-                    ['SBA', listing.sba_qualified ? '✅ Eligible' : null],
-                  ].filter((r) => r[1]).map(([k, v]) => (
-                    <div key={k as string} style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px' }}>
-                      <div style={{ fontSize: 10.5, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>
-                      <div style={{ fontWeight: 700, color: 'var(--navy)', marginTop: 2 }}>{v}</div>
-                    </div>
-                  ))}
+                  {editing ? (
+                    [
+                      ['asking_price', 'Asking price'],
+                      ['annual_revenue', 'Annual revenue'],
+                      ['sde', 'SDE'],
+                      ['ebitda', 'EBITDA'],
+                    ].map(([key, label]) => (
+                      <div key={key} style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ fontSize: 10.5, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                        <input
+                          className="input"
+                          inputMode="decimal"
+                          value={editForm[key] ?? ''}
+                          onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                          placeholder="0"
+                          style={{ marginTop: 4, padding: '6px 8px', fontSize: 12.5 }}
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    [
+                      ['Asking price', listing.asking_price ? `$${Number(listing.asking_price).toLocaleString()}` : null],
+                      ['Annual revenue', listing.annual_revenue ? `$${Number(listing.annual_revenue).toLocaleString()}` : null],
+                      ['SDE', listing.sde ? `$${Number(listing.sde).toLocaleString()}` : null],
+                      ['EBITDA', listing.ebitda ? `$${Number(listing.ebitda).toLocaleString()}` : null],
+                      ['Employees', listing.employees_full_time ? String(listing.employees_full_time) : null],
+                      ['Established', listing.established_year ? String(listing.established_year) : null],
+                      ['SBA', listing.sba_qualified ? '✅ Eligible' : null],
+                    ].filter((r) => r[1]).map(([k, v]) => (
+                      <div key={k as string} style={{ background: '#f8fafc', borderRadius: 8, padding: '8px 10px' }}>
+                        <div style={{ fontSize: 10.5, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--navy)', marginTop: 2 }}>{v}</div>
+                      </div>
+                    ))
+                  )}
                 </div>
+                {editing ? (
+                  <div style={{ marginTop: 12, display: 'flex', gap: 10 }}>
+                    <button type="button" onClick={saveInlineEdit} className="btn btn-primary" style={{ fontSize: 12.5 }}>💾 Save figures</button>
+                    <button type="button" onClick={() => { setEditing(false); setEditForm({}) }} className="btn btn-ghost" style={{ fontSize: 12.5 }}>Cancel</button>
+                  </div>
+                ) : (
+                  <button type="button" onClick={startInlineEdit} className="btn btn-navy" style={{ marginTop: 12, fontSize: 12.5, padding: '8px 14px' }}>✏️ Edit figures</button>
+                )}
                 {listing.description && <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 10, lineHeight: 1.6 }}>{listing.description}</div>}
                 <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <Link href={`/dashboard/listings/${listing.id}/edit`} style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--navy)', background: '#f1f5f9', padding: '8px 14px', borderRadius: 8, textDecoration: 'none' }}>
@@ -605,8 +695,9 @@ export default function OneShotDealBuilder() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {result.audit.figures.map((f: any, i: number) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
-                        <span>{f.source === 'document' ? '✅' : f.source === 'notes' ? '📝' : '🧮'}</span>
-                        <span style={{ fontWeight: 700, color: 'var(--navy)' }}>{f.field.replace('_', ' ')}</span>
+                        <span title={f.source === 'document' ? 'Verified from source document' : f.source === 'notes' ? 'From broker notes' : 'Estimated'}>{f.source === 'document' ? '✅' : f.source === 'notes' ? '📝' : '🧮'}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--navy)', textTransform: 'capitalize' }}>{f.field.replace(/_/g, ' ')}</span>
+                        {f.sourceName && <span style={{ fontSize: 10.5, color: '#94a3b8', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={f.sourceName}>· {f.sourceName}</span>}
                         <span style={{ marginLeft: 'auto', color: 'var(--muted)' }}>${Number(f.value).toLocaleString()}</span>
                       </div>
                     ))}

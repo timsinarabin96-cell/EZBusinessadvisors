@@ -246,6 +246,32 @@ export function runAudit(input: {
     redFlags.push('Asking price below 1× SDE — possible distress sale or pricing error.')
   }
 
+  // ── Smarter red flags (P1 pass) ──────────────────────────────────────────
+  // Negative or zero earnings are impossible combos — never publish those.
+  const sdeVal = input.docFigures.sde ?? input.noteFigures.sde
+  const revVal = input.docFigures.revenue ?? input.noteFigures.revenue
+  const ebitdaVal = input.docFigures.ebitda ?? input.noteFigures.ebitda
+  if (sdeVal != null && sdeVal <= 0) {
+    redFlags.push('SDE is zero or negative — a business must have positive owner earnings to list.')
+  }
+  if (ebitdaVal != null && ebitdaVal <= 0) {
+    redFlags.push('EBITDA is zero or negative — check the recast; lenders will not underwrite.')
+  }
+  if (revVal != null && revVal <= 0) {
+    redFlags.push('Revenue is zero or negative — impossible for an operating business; verify the source.')
+  }
+  if (sdeVal != null && ebitdaVal != null && ebitdaVal > sdeVal) {
+    redFlags.push('EBITDA exceeds SDE — mathematically impossible (SDE ≥ EBITDA by definition).')
+  }
+  // Asking price with NO earnings basis at all → cannot price the deal.
+  if (input.askingPrice != null && input.askingPrice > 0 && sdeVal == null && ebitdaVal == null) {
+    redFlags.push('Asking price set but no SDE/EBITDA — add owner earnings before going live.')
+  }
+  // Revenue with no SDE and no EBITDA → suspiciously incomplete.
+  if (revVal != null && revVal > 0 && sdeVal == null && ebitdaVal == null) {
+    notes.push('Revenue present but no earnings figure — recast the financials to derive SDE/EBITDA.')
+  }
+
   return { figures, redFlags, notes }
 }
 

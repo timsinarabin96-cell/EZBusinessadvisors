@@ -145,8 +145,9 @@ export default function ListingsDashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--gold-light)', fontSize: 32 }}>🏢</div>
                   )
                 })()}
-                <div style={{ position: 'absolute', top: 10, left: 10 }}>
+                <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 6 }}>
                   <Badge color={statusColor(listing.status)}>{listing.status || 'draft'}</Badge>
+                  {(() => { const bs = buildStateFor(listing); return bs ? <Badge color={bs.color}>{bs.label}</Badge> : null })()}
                 </div>
               </div>
 
@@ -203,7 +204,7 @@ export default function ListingsDashboard() {
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                  <Link href={`/dashboard/studio?phase=${listing.status === 'draft' ? 'capture' : 'verify'}&listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>✨ Open in Deal Studio</Link>
+                  <Link href={`/dashboard/studio?phase=${listing.status === 'draft' ? 'capture' : 'verify'}&listing=${listing.id}`} className="btn btn-navy" style={{ flex: 1, justifyContent: 'center', padding: '8px 10px', fontSize: 13 }}>{(() => { const bs = buildStateFor(listing); return bs && bs.resume ? '▶ Resume build' : '✨ Open in Deal Studio' })()}</Link>
                   <Link href={`/dashboard/reports?tab=cim&listing=${listing.id}`} className="btn btn-ghost" style={{ padding: '8px 10px', fontSize: 12.5 }}>📑 CIM</Link>
                   <Link href={`/dashboard/reports?tab=bov&listing=${listing.id}`} className="btn btn-ghost" style={{ padding: '8px 10px', fontSize: 12.5 }}>⚖️ BOV</Link>
                   <button className="btn btn-danger" onClick={() => handleDelete(listing)}>🗑</button>
@@ -237,8 +238,7 @@ export default function ListingsDashboard() {
   )
 }
 
-function FilterPill({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
-  return (
+function FilterPill({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {  return (
     <button
       onClick={onClick}
       style={{
@@ -251,4 +251,17 @@ function FilterPill({ children, active, onClick }: { children: React.ReactNode; 
       {children}
     </button>
   )
+}
+
+/** Build-state badge for draft cards — reads the persisted One-Shot build
+ *  trail (ai_metadata.build.steps) and shows In progress / Needs attention /
+ *  Ready, plus whether the card should offer Resume instead of Open. */
+function buildStateFor(listing: any): { label: string; color: string; resume: boolean } | null {
+  const steps = listing?.ai_metadata?.build?.steps as Array<{ key: string; status: string }> | undefined
+  if (!Array.isArray(steps) || steps.length === 0) return null
+  const statuses = steps.map((s) => s.status)
+  if (statuses.includes('running')) return { label: '⏳ Building…', color: '#0e7490', resume: false }
+  if (statuses.includes('failed')) return { label: '⚠️ Needs attention', color: '#b91c1c', resume: true }
+  if (statuses.includes('pending')) return { label: '⏸ In progress', color: '#b45309', resume: true }
+  return { label: '✅ Build complete', color: '#15803d', resume: false }
 }
