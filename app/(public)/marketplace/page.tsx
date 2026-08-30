@@ -26,6 +26,7 @@ export default async function MarketplaceHome() {
 
   return (
     <div>
+      <style>{`.mp-depth-card:hover { transform: translateY(-5px); box-shadow: 0 22px 50px rgba(16,42,67,0.18), 0 0 0 1px rgba(201,168,76,0.35), inset 0 1px 0 rgba(255,255,255,0.9); } @media (hover: none) { .mp-depth-card:hover { transform: none; } }`}</style>
       {/* ══ HERO — 3D logo + glass search ══ */}
       <section style={{ background: 'linear-gradient(135deg,#0f1023 0%,#1a1a2e 45%,#0f3460 100%)', color: '#fff', padding: '64px 24px 72px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 55% 50% at 75% 15%, rgba(201,168,76,0.18), transparent 60%), radial-gradient(ellipse 45% 45% at 15% 85%, rgba(15,52,96,0.6), transparent 65%)' }} />
@@ -106,14 +107,13 @@ function Card({ href, icon, title, desc, cta }: { href: string; icon: string; ti
   return (
     <Link
       href={href}
+      className="mp-depth-card"
       style={{
         textDecoration: 'none', display: 'block', background: 'linear-gradient(165deg,#ffffff,#f8f5ec)',
         border: '1px solid #ece5d4', borderRadius: 18, padding: 26, position: 'relative', overflow: 'hidden',
         boxShadow: '0 12px 34px rgba(16,42,67,0.10), inset 0 1px 0 rgba(255,255,255,0.9)',
         transition: 'transform .18s ease, box-shadow .18s ease',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = '0 22px 50px rgba(16,42,67,0.18), 0 0 0 1px rgba(201,168,76,0.35), inset 0 1px 0 rgba(255,255,255,0.9)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 12px 34px rgba(16,42,67,0.10), inset 0 1px 0 rgba(255,255,255,0.9)' }}
     >
       <div style={{ position: 'absolute', right: -12, top: -12, fontSize: 64, opacity: 0.07, transform: 'rotate(12deg)' }}>{icon}</div>
       <div style={{ fontSize: 30, marginBottom: 10, filter: 'drop-shadow(0 3px 8px rgba(201,168,76,0.35))' }}>{icon}</div>

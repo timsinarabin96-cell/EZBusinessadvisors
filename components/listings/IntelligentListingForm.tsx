@@ -27,6 +27,7 @@ import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import { pricePosition } from '@/lib/listingMarketContextCore.ts'
 import { uploadListingImages, deleteListingImage } from '@/lib/supabase/listings'
+import { buildAiPhotoPrompt, aiPhotoStyleById, AI_PHOTO_STYLES, type GeneratedAiImage } from '@/lib/aiPhotos'
 import {
   buildListingInsert,
   calculateListingReadiness,
@@ -749,6 +750,151 @@ function TransitionSection({ form, setValue }: SectionProps) {
   </Grid><div style={{ marginTop: 18, padding: 16, borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: 13, lineHeight: 1.55 }}>Creating this draft does not publish it. Broker review, jurisdictional compliance review, and documented seller approval remain separate required gates.</div></Section>
 }
 
+function AiPhotoStudio({ businessName, industry, subIndustry, location, description, listingId, onAdd }: {
+  businessName?: string | null
+  industry?: string | null
+  subIndustry?: string | null
+  location?: string | null
+  description?: string | null
+  listingId?: string | null
+  onAdd: (urls: string[]) => void
+}) {
+  const toast = useToast()
+  const [styleId, setStyleId] = useState('realistic')
+  const [prompt, setPrompt] = useState('')
+  const [touched, setTouched] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [options, setOptions] = useState<GeneratedAiImage[]>([])
+  const [providerLabel, setProviderLabel] = useState<string | null>(null)
+  const [added, setAdded] = useState<Set<string>>(new Set())
+
+  // Suggested prompt tracks the deal record + chosen style until the broker edits it.
+  useEffect(() => {
+    if (touched) return
+    setPrompt(buildAiPhotoPrompt({ businessName, industry, subIndustry, location, description }, aiPhotoStyleById(styleId)))
+  }, [touched, styleId, businessName, industry, subIndustry, location, description])
+
+  const generate = async () => {
+    if (generating || prompt.trim().length < 3) return
+    setGenerating(true)
+    setOptions([])
+    setAdded(new Set())
+    try {
+      const res = await fetch('/api/listings/ai-photos', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ listingId: listingId || undefined, prompt: prompt.trim(), count: 4 }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.ok) throw new Error(json.error || 'AI photo generation failed')
+      setOptions(json.images || [])
+      setProviderLabel(json.providerLabel || null)
+      if (json.failed > 0) toast(`${json.failed} option${json.failed === 1 ? '' : 's'} failed — added the rest`, 'error')
+    } catch (e: any) {
+      toast(e.message || 'AI photo generation failed', 'error')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const add = (url: string) => {
+    if (added.has(url)) return
+    onAdd([url])
+    setAdded((prev) => new Set(prev).add(url))
+    toast('AI photo added to gallery — drag it first to make it the cover', 'success')
+  }
+
+  const resetPrompt = () => {
+    setTouched(false)
+    setPrompt(buildAiPhotoPrompt({ businessName, industry, subIndustry, location, description }, aiPhotoStyleById(styleId)))
+  }
+
+  return <div style={{ marginBottom: 16, padding: 16, borderRadius: 12, background: 'linear-gradient(135deg,#f6f3ff,#eef4ff)', border: '1px solid #d8c8ff', fontSize: 13 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+      <span style={{ fontSize: 17 }}>✨</span>
+      <span style={{ fontWeight: 800, color: '#1a1a2e' }}>AI Photo Studio</span>
+      <span style={{ fontSize: 11.5, color: '#6b5b8a', fontWeight: 600 }}>— generate 4 professional photo options with AI, pick your favorite</span>
+    </div>
+    <div style={{ fontSize: 12, color: '#5b4a7a', marginBottom: 10, lineHeight: 1.5 }}>
+      Real AI image generation (not stock photos) — perfect for listings with no real photos yet. Images are saved permanently to your gallery when you add them.
+      {providerLabel && <span style={{ display: 'block', marginTop: 3, fontWeight: 700, color: '#4c1d95' }}>⚡ Generated with {providerLabel}</span>}
+    </div>
+
+    <textarea
+      className="textarea"
+      rows={3}
+      value={prompt}
+      onChange={(e) => { setPrompt(e.target.value); setTouched(true) }}
+      placeholder="Describe the business photo you want…"
+      style={{ fontSize: 12.5 }}
+    />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+      {AI_PHOTO_STYLES.map((s) => (
+        <button
+          key={s.id}
+          type="button"
+          onClick={() => { setStyleId(s.id); setTouched(false) }}
+          style={{
+            padding: '4px 10px', borderRadius: 999, border: '1px solid #cbb8f0', fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+            background: styleId === s.id ? '#4c1d95' : '#fff', color: styleId === s.id ? '#fff' : '#4c1d95',
+          }}
+        >
+          {s.label}
+        </button>
+      ))}
+      {touched && (
+        <button type="button" onClick={resetPrompt} style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: 999, border: '1px dashed #94a3b8', background: 'transparent', fontSize: 11.5, color: '#64748b', cursor: 'pointer', fontWeight: 600 }}>
+          ↺ Reset to suggested
+        </button>
+      )}
+    </div>
+
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 }}>
+      <button
+        type="button"
+        onClick={generate}
+        disabled={generating || prompt.trim().length < 3}
+        style={{
+          padding: '8px 18px', borderRadius: 8, border: 'none', cursor: generating ? 'wait' : 'pointer',
+          background: 'linear-gradient(135deg,#4c1d95,#2563eb)', color: '#fff', fontSize: 13, fontWeight: 800,
+          opacity: generating || prompt.trim().length < 3 ? 0.6 : 1,
+        }}
+      >
+        {generating ? '🎨 Generating 4 options…' : '🎨 Generate 4 photo options'}
+      </button>
+      <span style={{ fontSize: 11.5, color: '#7c6a9e' }}>Uses OpenAI, FAL, or the free fallback — whichever is configured.</span>
+    </div>
+
+    {(generating || options.length > 0) && (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginTop: 14 }}>
+        {generating
+          ? Array.from({ length: 4 }, (_, i) => (
+              <div key={i} style={{ aspectRatio: '1/1', borderRadius: 10, background: 'linear-gradient(110deg,#ece5fa 30%,#f8f4ff 50%,#ece5fa 70%)', backgroundSize: '200% 100%', animation: 'aiShimmer 1.2s infinite linear' }} />
+            ))
+          : options.map((o, i) => (
+              <div key={o.url} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #d8c8ff', background: '#fff' }}>
+                <img src={o.url} alt={`AI option ${i + 1}`} style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />
+                <div style={{ padding: 6 }}>
+                  <button
+                    type="button"
+                    onClick={() => add(o.url)}
+                    disabled={added.has(o.url)}
+                    style={{
+                      width: '100%', padding: '5px 0', borderRadius: 7, border: 'none', fontSize: 11.5, fontWeight: 800, cursor: added.has(o.url) ? 'default' : 'pointer',
+                      background: added.has(o.url) ? '#e2e8f0' : '#4c1d95', color: added.has(o.url) ? '#64748b' : '#fff',
+                    }}
+                  >
+                    {added.has(o.url) ? '✓ Added' : '➕ Add to gallery'}
+                  </button>
+                </div>
+              </div>
+            ))}
+      </div>
+    )}
+    <style>{`@keyframes aiShimmer { to { background-position: -200% 0 } }`}</style>
+  </div>
+}
+
 function MediaSection({ form, setValue, listingId }: SectionProps & { listingId?: string | null }) {
   const toast = useToast()
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -791,6 +937,20 @@ function MediaSection({ form, setValue, listingId }: SectionProps & { listingId?
       </button>
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple style={{ display: 'none' }} onChange={(e) => upload(e.target.files)} />
     </div>
+
+    {/* AI Photo Studio — real AI image generation with multiple options to pick from. */}
+    <AiPhotoStudio
+      businessName={form.business_name || form.public_title}
+      industry={form.industry}
+      subIndustry={form.sub_industry}
+      location={form.location_general}
+      description={form.description}
+      listingId={listingId}
+      onAdd={(urls) => {
+        const next = [...form.gallery_images, ...urls].slice(0, 10)
+        setValue('gallery_images', next)
+      }}
+    />
 
     {/* One-click branded cover — instant professional look without photos. */}
     {photoCount === 0 && (
