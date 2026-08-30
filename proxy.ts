@@ -119,7 +119,7 @@ async function resolveCustomDomain(hostname: string): Promise<string | null> {
   }
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const host = req.headers.get('host') || ''
   const hostname = host.split(':')[0].toLowerCase()
 
