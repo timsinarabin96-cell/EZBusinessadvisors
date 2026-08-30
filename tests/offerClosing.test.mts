@@ -21,7 +21,7 @@ const compareApi = readFileSync('app/api/offers/compare/route.ts', 'utf8')
 const runwayApi = readFileSync('app/api/closing/runway/route.ts', 'utf8')
 const costsApi = readFileSync('app/api/closing/costs/route.ts', 'utf8')
 const insights = readFileSync('components/studio/StudioInsights.tsx', 'utf8')
-const studio = readFileSync('components/studio/AIDealStudio.tsx', 'utf8')
+const studio = readFileSync('components/studio/OneShotDealBuilder.tsx', 'utf8')
 
 const base: OfferRow = { id: 'a', purchasePrice: 500000, cashAtClosing: 450000, financingContingency: false, diligenceDays: 30, trainingDays: 30 }
 
@@ -123,8 +123,9 @@ test('Wave B cards exist in the studio insights', () => {
   assert.match(insights, /export function ClosingCostCard/)
 })
 
-test('Wave B cards are wired into the Sell rail', () => {
-  assert.match(studio, /<OfferCompareCard listingId=\{listingId\} askingPrice=\{listing\?\.asking_price\} \/>/)
-  assert.match(studio, /<ClosingRunwayCard \/>/)
-  assert.match(studio, /<ClosingCostCard purchasePrice=\{listing\?\.asking_price\} \/>/)
+test('One-Shot Deal Builder wires the deal review (photos, valuation, buyers, go-live)', () => {
+  assert.match(studio, /AiPhotoStudioCard/)
+  assert.match(studio, /Approve & Go Live/)
+  assert.match(studio, /valuation/)
+  assert.match(studio, /buyerCount/)
 })

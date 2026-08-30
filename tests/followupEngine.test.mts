@@ -12,7 +12,7 @@ const ladderCard = readFileSync('components/buyers/FollowUpLadderCard.tsx', 'utf
 const postCloseCard = readFileSync('components/buyers/PostCloseCard.tsx', 'utf8')
 const timelineCard = readFileSync('components/buyers/DealTimelineCard.tsx', 'utf8')
 const dashboard = readFileSync('components/buyers/PipelineDashboard.tsx', 'utf8')
-const studio = readFileSync('components/studio/AIDealStudio.tsx', 'utf8')
+const studio = readFileSync('components/studio/OneShotDealBuilder.tsx', 'utf8')
 
 // --- Escalation ladder API ---------------------------------------------------
 test('ladder API is agency-gated and returns ladder steps', () => {
@@ -116,8 +116,7 @@ test('pipeline dashboard shows funnel + heat + per-listing breakdown', () => {
   assert.match(dashboard, /conversions/)
 })
 
-test('Wave C+D cards are wired into the studio Sell rail', () => {
-  assert.match(studio, /<FollowUpLadderCard \/>/)
-  assert.match(studio, /<PostCloseCard \/>/)
-  assert.match(studio, /<DealTimelineCard listingId=\{listingId\} \/>/)
+test('One-Shot Deal Builder mounts the AI photo studio + go-live', () => {
+  assert.match(studio, /AiPhotoStudioCard/)
+  assert.match(studio, /Approve & Go Live/)
 })

@@ -1,26 +1,15 @@
-/**
- * Concord Deal Platform
- * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
- * Proprietary & confidential. No copying, distribution, or modification without
- * prior written permission. See LICENSE for full terms.
- */
-
 import AppShell from '@/components/layout/AppShell'
-import AIDealStudio from '@/components/studio/AIDealStudio'
+import OneShotDealBuilder from '@/components/studio/OneShotDealBuilder'
 
-// =============================================================================
-// /dashboard/studio — the ONE continuous AI Deal Studio.
-// The entire listing lifecycle (Capture → Verify → Go Live → Sell & Close)
-// lives in a single canvas with the AI as the conductor. The old separate
-// listing-studio and workflow pages route here; Continue never leaves.
-// Deep links: ?phase=capture|verify|golive|sell&listing=<id>&step=<n>
-// =============================================================================
-
+// /dashboard/studio — the ONE-SHOT DEAL BUILDER, the heart of the platform.
+// One input (paste notes / drop docs) → Build Entire Deal → AI generates the
+// complete, verified, publish-ready deal → Approve & Go Live.
+// Deep link: ?listing=<id> opens an existing deal's review screen.
 export default function DealStudioPage() {
   return (
     <AppShell active="Deal Studio">
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 18px 60px' }}>
-        <AIDealStudio />
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 18px 60px' }}>
+        <OneShotDealBuilder />
       </div>
     </AppShell>
   )

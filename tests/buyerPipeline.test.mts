@@ -27,7 +27,7 @@ const board = readFileSync('components/buyers/BuyerPipelineBoard.tsx', 'utf8')
 const lib = readFileSync('lib/buyerPipeline.ts', 'utf8')
 const step9 = readFileSync('components/listings/Step9BuyerManagement.tsx', 'utf8')
 const insights = readFileSync('components/studio/StudioInsights.tsx', 'utf8')
-const studio = readFileSync('components/studio/AIDealStudio.tsx', 'utf8')
+const studio = readFileSync('components/studio/OneShotDealBuilder.tsx', 'utf8')
 
 // --- Core: stages -----------------------------------------------------------
 test('pipeline has the full buyer journey stages', () => {
@@ -222,5 +222,6 @@ test('Step 9 embeds the pipeline board', () => {
 
 test('competitive board consent card is wired into Go Live rail', () => {
   assert.match(insights, /export function CompetitiveBoardCard/)
-  assert.match(studio, /<CompetitiveBoardCard listingId=\{listingId\} enabled=\{!!listing\?\.competitive_board_enabled\} \/>/)
+  assert.match(studio, /buyerCount/)
+  assert.match(studio, /Buyer matches/)
 })

@@ -58,14 +58,14 @@ test('no API route still emits "Validation failed"', () => {
 })
 
 // --- Client surfaces show friendly errors --------------------------------------
-const concierge = readFileSync('components/studio/StudioConcierge.tsx', 'utf8')
+const concierge = readFileSync('components/studio/OneShotDealBuilder.tsx', 'utf8')
 const insights = readFileSync('components/studio/StudioInsights.tsx', 'utf8')
 const form = readFileSync('components/listings/IntelligentListingForm.tsx', 'utf8')
 const intakeRoute = readFileSync('app/api/listings/intake/route.ts', 'utf8')
 
-test('concierge surfaces the detail + friendly fallback', () => {
-  assert.match(concierge, /j\.error \|\| j\.detail/)
-  assert.match(concierge, /tap Build my listing again/)
+test('One-Shot builder surfaces build errors with a friendly message', () => {
+  assert.match(concierge, /setError\(/)
+  assert.match(concierge, /Build failed/)
 })
 
 test('intake API returns a human message with next-step guidance', () => {

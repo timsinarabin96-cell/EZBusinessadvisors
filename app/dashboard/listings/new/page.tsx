@@ -1,13 +1,13 @@
 import AppShell from '@/components/layout/AppShell'
-import AIDealStudio from '@/components/studio/AIDealStudio'
+import OneShotDealBuilder from '@/components/studio/OneShotDealBuilder'
 
-// New listings open inside the AI Deal Studio (Capture phase) — one continuous
-// canvas from here through Verify → Go Live → Sell & Close.
+// New listings open in the One-Shot Deal Builder — paste what you know, the
+// AI builds the entire deal, then one Approve & Go Live publishes it.
 export default function NewListingPage() {
   return (
     <AppShell active="Deal Studio">
-      <div style={{ maxWidth: 1440, margin: '0 auto', padding: '20px 18px 60px' }}>
-        <AIDealStudio />
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 18px 60px' }}>
+        <OneShotDealBuilder />
       </div>
     </AppShell>
   )

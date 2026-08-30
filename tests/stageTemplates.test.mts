@@ -10,7 +10,6 @@ import {
   type StageTemplate,
 } from '../lib/stageTemplates.ts'
 
-const studio = readFileSync('components/studio/AIDealStudio.tsx', 'utf8')
 
 test('templates cover the buyer journey stages', () => {
   const keys = STAGE_TEMPLATES.map((t) => t.key)

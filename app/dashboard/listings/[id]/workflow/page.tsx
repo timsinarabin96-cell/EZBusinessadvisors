@@ -9,12 +9,12 @@ import { redirect } from 'next/navigation'
 
 // =============================================================================
 // /dashboard/listings/[id]/workflow — DEPRECATED standalone page.
-// The 10-step workflow now lives INSIDE the AI Deal Studio (Verify phase).
+// Everything now lives in the One-Shot Deal Builder review screen.
 // This route is kept only for deep links / bookmarks — it routes straight
 // into the same continuous canvas.
 // =============================================================================
 
 export default async function WorkflowPageRedirect({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  redirect(`/dashboard/studio?phase=verify&listing=${id}&step=1`)
+  redirect(`/dashboard/studio?listing=${id}`)
 }

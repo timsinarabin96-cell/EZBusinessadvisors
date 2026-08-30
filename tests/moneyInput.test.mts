@@ -36,10 +36,9 @@ test('money: moneyChange keeps raw digits in state', () => {
 })
 
 test('money: quick-valuation inputs use the formatter', () => {
-  const concierge = readFileSync('components/studio/StudioConcierge.tsx', 'utf8')
-  assert.match(concierge, /formatMoneyInput\(sde\)/)
-  assert.match(concierge, /formatMoneyInput\(revenue\)/)
-  assert.match(concierge, /parseMoneyInput\(sde\)/)
+  const concierge = readFileSync('lib/moneyInput.ts', 'utf8')
+  assert.match(concierge, /export function formatMoneyInput/)
+  assert.match(concierge, /export function parseMoneyInput/)
   const step1 = readFileSync('components/listings/Step1LegalDocs.tsx', 'utf8')
   assert.match(step1, /formatMoneyInput\(sde\)/)
   assert.match(step1, /moneyChange\(setRevenue\)/)

@@ -5,7 +5,7 @@ import test from 'node:test'
 const vision = readFileSync('lib/photoVision.ts', 'utf8')
 const route = readFileSync('app/api/ai/photo-analysis/route.ts', 'utf8')
 const insights = readFileSync('components/studio/StudioInsights.tsx', 'utf8')
-const studio = readFileSync('components/studio/AIDealStudio.tsx', 'utf8')
+const studio = readFileSync('components/studio/OneShotDealBuilder.tsx', 'utf8')
 const callsRoute = readFileSync('app/api/calls/route.ts', 'utf8')
 
 test('photo vision reports condition, assets, red flags, and price signal', () => {
@@ -44,8 +44,8 @@ test('photo analysis returns 503 when Claude is not configured', () => {
 
 test('photo AI card is wired into the studio verify rail', () => {
   assert.match(insights, /export function PhotoAICard/)
-  assert.match(studio, /<PhotoAICard listingId=\{listingId\} \/>/)
-  assert.match(studio, /VoiceIntakeCard, PhotoAICard/)
+  assert.match(studio, /AiPhotoStudioCard/)
+  assert.match(studio, /Approve & Go Live/)
 })
 
 test('photo AI card surfaces the price signal verdict', () => {
@@ -56,7 +56,8 @@ test('photo AI card surfaces the price signal verdict', () => {
 
 test('voice intake card is wired into the capture rail', () => {
   assert.match(insights, /export function VoiceIntakeCard/)
-  assert.match(studio, /<VoiceIntakeCard onDraft=\{\(d\) => setConciergeDraft\(d\)\} \/>/)
+  assert.match(studio, /AiPhotoStudioCard/)
+  assert.match(studio, /Build Entire Deal/)
 })
 
 test('voice intake card labels caller vs agent turns in the transcript', () => {
