@@ -98,8 +98,10 @@ export default function OneShotDealBuilder() {
       }
       // RESUME SUPPORT: if a previous build was interrupted (persisted trail
       // has pending/failed/running stages), restore the trail + offer resume
-      // instead of silently showing the review screen.
-      if (hasBuildTrail) {
+      // instead of silently showing the review screen. SKIPPED when we JUST
+      // finished a build — the in-memory steps are authoritative and the DB
+      // trail write can race this fetch (last stage may still read pending).
+      if (!opts?.justBuilt && hasBuildTrail) {
         const incomplete = savedSteps.some((s) => s.status === 'pending' || s.status === 'failed' || s.status === 'running')
         if (incomplete) {
           setSteps(ONE_SHOT_STAGES.map((s) => savedSteps.find((x) => x.key === s.key) || { key: s.key, label: s.label, status: 'pending' }))
