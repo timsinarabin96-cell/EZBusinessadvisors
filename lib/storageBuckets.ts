@@ -43,9 +43,10 @@ export type FinancialCategory =
 export function fileKindOf(name: string): FileKind {
   const ext = name.split('?')[0].split('.').pop()?.toLowerCase() || ''
   if (ext === 'pdf') return 'pdf'
-  if (['xls', 'xlsx', 'csv'].includes(ext)) return 'excel'
-  if (['doc', 'docx'].includes(ext)) return 'word'
-  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) return 'image'
+  if (['xls', 'xlsx', 'csv', 'tsv', 'ods'].includes(ext)) return 'excel'
+  if (['doc', 'docx', 'rtf', 'txt', 'json'].includes(ext)) return 'word'
+  if (['ppt', 'pptx'].includes(ext)) return 'word'
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tif', 'tiff'].includes(ext)) return 'image'
   return 'other'
 }
 

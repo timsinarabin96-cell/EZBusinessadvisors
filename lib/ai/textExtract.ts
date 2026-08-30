@@ -84,6 +84,32 @@ async function excelToText(data: Buffer): Promise<string> {
   }
 }
 
+// ── Word .docx → text (zip of XML) ────────────────────────────────────────
+// .docx is a zip containing word/document.xml — extract the <w:t> runs and
+// join by paragraph so Word financial summaries become AI-readable.
+let jszipLib: any = null
+async function docxToText(data: Buffer): Promise<string> {
+  try {
+    if (!jszipLib) jszipLib = await import('jszip')
+    const zip = await jszipLib.loadAsync(data)
+    const docXml = zip.file('word/document.xml')
+    if (!docXml) return ''
+    const xml = await docXml.async('string')
+    // Paragraph boundaries + inline text runs.
+    const paras = xml.split(/<w:p[ >]/)
+    const lines = paras
+      .map((p) => {
+        const runs = p.match(/<w:t[^>]*>([^<]*)<\/w:t>/g) || []
+        return runs.map((r) => r.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")).join('')
+      })
+      .map((l) => l.trim())
+      .filter((l) => l)
+    return lines.slice(0, 600).join('\n')
+  } catch {
+    return ''
+  }
+}
+
 const IMAGE_MIME_RE = /^image\/(png|jpe?g|webp|bmp|gif|tiff?)$/i
 const IMAGE_EXT_RE = /\.(png|jpe?g|webp|bmp|gif|tiff?)$/i
 
@@ -170,6 +196,9 @@ export async function extractDocumentText({
     } else if (n.endsWith('.xlsx') || n.endsWith('.xls') || m.includes('spreadsheet') || m.includes('excel')) {
       // Excel / CSV workbooks → read every sheet as text rows.
       raw = await excelToText(data)
+    } else if (n.endsWith('.docx') || n.endsWith('.docm')) {
+      // Word .docx is a zip of XML — unpack document.xml and strip tags.
+      raw = await docxToText(data)
     } else if (IMAGE_MIME_RE.test(m) || IMAGE_EXT_RE.test(n)) {
       // Scanned bank statements / POS summaries / paper financials → OCR.
       raw = await ocrImageBuffer(data)

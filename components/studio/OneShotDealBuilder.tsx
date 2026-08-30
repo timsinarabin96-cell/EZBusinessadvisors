@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useToast } from '@/components/ui/Toast'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { createListing, fetchListing } from '@/lib/listings'
 import { ONE_SHOT_STAGES, type BuildStep } from '@/lib/oneShotDeal'
 import AiPhotoStudioCard from '@/components/studio/AiPhotoStudioCard'
@@ -78,7 +78,7 @@ export default function OneShotDealBuilder() {
     try {
       const l = await fetchListing(id)
       setListing(l)
-      const res = await fetch(`/api/listings/options?listingId=${id}`, { headers: authHeaders() }).catch(() => null)
+      const res = await authenticatedFetch(`/api/listings/options?listingId=${id}`).catch(() => null)
       void res
       // Documents (generated BOV/CIM/BLI + uploads).
       const supabase = (await import('@/lib/supabase/client')).supabase
@@ -113,22 +113,21 @@ export default function OneShotDealBuilder() {
         setListingId(id)
       }
 
-      // 2. Upload each financial doc.
+      // 2. Upload each financial doc (authenticatedFetch = real session + refresh).
       for (const f of files) {
         const fd = new FormData()
         fd.append('file', f)
         fd.append('listingId', id)
-        await fetch('/api/listings/financial-import', {
+        await authenticatedFetch('/api/listings/financial-import', {
           method: 'POST',
-          headers: authHeaders(),
           body: fd,
         }).catch((e) => console.error('doc upload failed', e))
       }
 
       // 3. Stream the build pipeline.
-      const res = await fetch('/api/deals/build', {
+      const res = await authenticatedFetch('/api/deals/build', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId: id, notes }),
       })
       if (!res.ok || !res.body) {
@@ -176,9 +175,9 @@ export default function OneShotDealBuilder() {
     if (!listingId || publishing) return
     setPublishing(true)
     try {
-      const res = await fetch('/api/listings/publish', {
+      const res = await authenticatedFetch('/api/listings/publish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId, force: true }),
       })
       const j = await res.json()
@@ -235,12 +234,42 @@ export default function OneShotDealBuilder() {
                 ref={fileRef}
                 type="file"
                 multiple
-                accept=".pdf,.xlsx,.xls,.csv,image/*"
+                accept=".pdf,.xlsx,.xls,.csv,.doc,.docx,.txt,.rtf,.png,.jpg,.jpeg,.webp,.gif,.bmp,.tif,.tiff,.tsv,.ods,.ppt,.pptx,.json"
                 style={{ display: 'none' }}
                 onChange={(e) => setFiles(Array.from(e.target.files || []).slice(0, 10))}
               />
               {files.length > 0 && (
-                <span style={{ fontSize: 12, color: 'var(--muted)' }}>{files.map((f) => f.name).join(', ').slice(0, 120)}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10, width: '100%' }}>
+                  {files.map((f, i) => {
+                    const url = URL.createObjectURL(f)
+                    const isImage = f.type.startsWith('image/')
+                    return (
+                      <div key={`${f.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 9, padding: '6px 10px' }}>
+                        {isImage ? (
+                          <img src={url} alt={f.name} style={{ width: 34, height: 34, borderRadius: 6, objectFit: 'cover', background: '#eef2f7' }} />
+                        ) : (
+                          <div style={{ width: 34, height: 34, borderRadius: 6, background: '#1a1a2e', color: '#c9a84c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800 }}>{f.name.split('.').pop()?.toUpperCase().slice(0, 4) || 'DOC'}</div>
+                        )}
+                        <span style={{ fontSize: 12.5, color: 'var(--navy)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={f.name}>{f.name}</span>
+                        <span style={{ fontSize: 11, color: '#94a3b8' }}>{(f.size / 1024).toFixed(0)}KB</span>
+                        <button
+                          type="button"
+                          onClick={() => window.open(url, '_blank')}
+                          style={{ background: 'none', border: '1px solid #d8d2c2', borderRadius: 7, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, color: '#1a1a2e', cursor: 'pointer' }}
+                        >
+                          👁 Preview
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                          style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: 7, padding: '4px 10px', fontSize: 11.5, fontWeight: 700, color: '#b91c1c', cursor: 'pointer' }}
+                        >
+                          ✕ Remove
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </div>
             <button
