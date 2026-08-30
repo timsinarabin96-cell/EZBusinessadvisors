@@ -11,6 +11,7 @@
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // --- Types ---
 export interface Agency {
@@ -100,18 +101,35 @@ export async function fetchAgencyMembers(agencyId: string): Promise<AgencyMember
 }
 
 export async function addAgencyMember(agencyId: string, profileId: string, role: AgencyRole): Promise<void> {
-  const { error } = await supabase.from('agency_members').insert({ agency_id: agencyId, profile_id: profileId, role, is_owner: false })
-  if (error) throw new Error(error.message || 'Failed to add member')
+  // Server-side route uses the service role — the client insert is blocked by
+  // RLS (`agency_members_insert_admin_only` needs role 'admin', not 'owner').
+  const res = await authenticatedFetch('/api/agency/members', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agencyId, profileId, role }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to add member')
 }
 
 export async function updateAgencyMemberRole(memberId: string, role: AgencyRole): Promise<void> {
-  const { error } = await supabase.from('agency_members').update({ role }).eq('id', memberId)
-  if (error) throw new Error(error.message || 'Failed to update role')
+  const res = await authenticatedFetch('/api/agency/members', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ memberId, role }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to update role')
 }
 
 export async function removeAgencyMember(memberId: string): Promise<void> {
-  const { error } = await supabase.from('agency_members').delete().eq('id', memberId)
-  if (error) throw new Error(error.message || 'Failed to remove member')
+  const res = await authenticatedFetch('/api/agency/members', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ memberId }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to remove member')
 }
 
 // --- Current user's agency + role ---
