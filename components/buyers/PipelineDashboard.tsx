@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { STAGE_META, BUYER_STAGES } from '@/lib/buyerPipelineCore'
 
 // =============================================================================
@@ -27,7 +27,7 @@ export default function PipelineDashboard() {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch('/api/buyers/pipeline-stats', { headers: authHeaders() })
+        const res = await authenticatedFetch('/api/buyers/pipeline-stats', { headers: {} })
         const j = await res.json()
         if (!cancelled && j.ok) setData(j)
       } catch { if (!cancelled) setData(null) }

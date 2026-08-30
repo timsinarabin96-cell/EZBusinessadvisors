@@ -15,7 +15,7 @@ import { exportCimToPdf } from '@/lib/pdfExport'
 import { fetchUserAgencyContext } from '@/lib/agencies'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState } from '@/components/ui'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 export default function CimGenerator() {
   const toast = useToast()
@@ -147,9 +147,9 @@ export default function CimGenerator() {
               if (!shareOpen) {
                 setShareBusy(true)
                 try {
-                  const res = await fetch('/api/share/cim', {
+                  const res = await authenticatedFetch('/api/share/cim', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                    headers: { 'Content-Type': 'application/json',  },
                     body: JSON.stringify({ cimId, listingId: selectedId }),
                   })
                   const j = await res.json().catch(() => ({ ok: false, buyers: [] }))
@@ -195,9 +195,9 @@ export default function CimGenerator() {
                           const cimId = currentVersionId || versions[0]?.id
                           if (!cimId) return
                           try {
-                            const res = await fetch('/api/share/cim', {
+                            const res = await authenticatedFetch('/api/share/cim', {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                              headers: { 'Content-Type': 'application/json',  },
                               body: JSON.stringify({ cimId, listingId: selectedId, buyerEmail: b.email }),
                             })
                             const j = await res.json().catch(() => ({ ok: false }))
@@ -218,9 +218,9 @@ export default function CimGenerator() {
                           const cimId = currentVersionId || versions[0]?.id
                           if (!cimId) return
                           try {
-                            const res = await fetch('/api/share/cim', {
+                            const res = await authenticatedFetch('/api/share/cim', {
                               method: 'POST',
-                              headers: { 'Content-Type': 'application/json', ...authHeaders() },
+                              headers: { 'Content-Type': 'application/json',  },
                               body: JSON.stringify({ cimId, listingId: selectedId, buyerEmail: b.email, sendEmail: true }),
                             })
                             const j = await res.json().catch(() => ({ ok: false }))

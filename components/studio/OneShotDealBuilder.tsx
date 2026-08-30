@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { useToast } from '@/components/ui/Toast'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { createListing, fetchListing } from '@/lib/listings'
+import DocOpenLink from '@/components/financial/DocOpenLink'
 import { ONE_SHOT_STAGES, type BuildStep } from '@/lib/oneShotDeal'
 import AiPhotoStudioCard from '@/components/studio/AiPhotoStudioCard'
 import LegalDocsCard from '@/components/studio/LegalDocsCard'
@@ -406,10 +407,10 @@ export default function OneShotDealBuilder() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {docs.map((d) => (
-                      <a key={d.id} href={d.file_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--navy)', textDecoration: 'none', padding: '8px 10px', background: '#f8fafc', borderRadius: 8 }}>
+                      <DocOpenLink key={d.id} doc={d} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--navy)', textDecoration: 'none', padding: '8px 10px', background: '#f8fafc', borderRadius: 8 }}>
                         📎 <span style={{ fontWeight: 700 }}>{d.file_name}</span>
                         <span style={{ marginLeft: 'auto', color: '#2563eb', fontWeight: 700 }}>Open ↗</span>
-                      </a>
+                      </DocOpenLink>
                     ))}
                   </div>
                 )}

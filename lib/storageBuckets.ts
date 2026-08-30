@@ -20,11 +20,14 @@
 // previously-unresolved production bug, not a stale deployment.
 // =============================================================================
 
-// Private bucket — financial documents (tax returns, P&L, bank statements,
-// generated Recast/BOV/CIM/BLI PDFs) must never be publicly downloadable.
-// Access is always via a short-lived signed URL, never a stored permanent
-// public URL.
+// Private bucket — source financial documents (tax returns, P&L, bank
+// statements) must never be publicly downloadable. Access is always via a
+// short-lived signed URL, never a stored permanent public URL.
 export const FF_BUCKET = 'financial_docs'
+
+// Public bucket — generated deliverables (BOV/CIM/BLI/recast PDFs) that are
+// meant to be shared with buyers/brokers. Public URLs here work directly.
+export const DOCS_BUCKET = 'documents'
 
 // --- Server-safe pure helpers (no client deps) ---------------------------------
 // These live here so server-only modules never import from the 'use client'

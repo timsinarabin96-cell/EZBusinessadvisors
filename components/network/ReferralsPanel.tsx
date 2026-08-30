@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState } from '@/components/ui'
 import { getAgencyContext } from '@/lib/agencyContext'
-import { getStoredAccessToken } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { useToast } from '@/components/ui/Toast'
 
 interface Referral {
@@ -52,8 +52,7 @@ export function ReferralsPanel() {
   const [commissionPct, setCommissionPct] = useState('')
 
   const load = useCallback(async (agency: string) => {
-    const token = getStoredAccessToken()
-    const res = await fetch(`/api/referrals?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } })
+    const res = await authenticatedFetch(`/api/referrals?agencyId=${agency}`)
     const data = await res.json().catch(() => ({}))
     setReferrals(data.referrals || [])
   }, [])
@@ -70,15 +69,14 @@ export function ReferralsPanel() {
   }, [])
 
   const authHeaders = () => ({
-    authorization: `Bearer ${getStoredAccessToken()}`,
     'content-type': 'application/json',
   })
 
   const createReferral = async () => {
     setSaving(true)
-    const res = await fetch('/api/referrals', {
+    const res = await authenticatedFetch('/api/referrals', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({
         agencyId,
         referrerName,
@@ -126,9 +124,9 @@ export function ReferralsPanel() {
     const idx = STATUS_FLOW.indexOf(referral.status)
     const next = STATUS_FLOW[idx + 1]
     if (!next) return
-    const res = await fetch('/api/referrals', {
+    const res = await authenticatedFetch('/api/referrals', {
       method: 'PATCH',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({
         id: referral.id,
         status: next,

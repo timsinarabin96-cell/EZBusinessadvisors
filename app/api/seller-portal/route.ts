@@ -129,7 +129,9 @@ export async function GET(req: NextRequest) {
     financials.docs = await Promise.all((((docs || []) as any[])).map(async (d) => {
       let fileUrl = d.file_url as string | null
       if (d.storage_path) {
-        const { data: su } = await db.storage.from('documents').createSignedUrl(d.storage_path, 3600)
+        // Source financials live in the PRIVATE financial_docs bucket — sign
+        // from THAT bucket (signing from 'documents' would 404 the object).
+        const { data: su } = await db.storage.from(FF_BUCKET).createSignedUrl(d.storage_path, 3600)
         if (su?.signedUrl) fileUrl = su.signedUrl
       }
       return {

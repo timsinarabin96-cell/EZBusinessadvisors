@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // =============================================================================
 // FollowUpLadderCard — no-reply escalation ladder + AI composer (studio rail).
@@ -29,7 +29,7 @@ export default function FollowUpLadderCard() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/followups/ladder?days=7', { headers: authHeaders() })
+      const res = await authenticatedFetch('/api/followups/ladder?days=7', { headers: {} })
       const j = await res.json()
       setItems(Array.isArray(j.items) ? j.items.slice(0, 6) : [])
     } catch {
@@ -44,9 +44,9 @@ export default function FollowUpLadderCard() {
   const compose = async (it: any) => {
     setDrafting(it.lead_id)
     try {
-      const res = await fetch('/api/followups/ladder', {
+      const res = await authenticatedFetch('/api/followups/ladder', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({
           kind: it.kind,
           leadId: it.lead_id,

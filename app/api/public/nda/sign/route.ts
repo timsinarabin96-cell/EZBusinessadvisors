@@ -153,7 +153,6 @@ export async function POST(req: NextRequest) {
     }).eq('unlock_token', token)
     // 2) Archive a copy into the deal's documents (visible in the deal review).
     if (pdfPath) {
-      const { data: pub } = svc.storage.from(FF_BUCKET).getPublicUrl(pdfPath)
       try {
         await svc.from('listing_documents').insert({
           listing_id: listingId,
@@ -161,7 +160,8 @@ export async function POST(req: NextRequest) {
           party_type: 'buyer',
           party_name: name,
           party_email: email,
-          file_url: pub?.publicUrl || pdfPath,
+          file_url: null,
+          storage_path: pdfPath,
           signature_name: name,
           status: 'signed',
           signed_at: new Date().toISOString(),

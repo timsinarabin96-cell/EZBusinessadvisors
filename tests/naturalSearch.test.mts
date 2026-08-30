@@ -82,7 +82,7 @@ test('website: listings page has advanced filter controls', () => {
   assert.match(client, /Absentee/)
   assert.match(client, /Franchise/)
   assert.match(client, /Financing/)
-  // Brand-clean filters: native checkboxes with navy accent, no emojis.
-  assert.match(client, /accentColor: '#1a1a2e'/)
+  // Brand-clean filters: native checkboxes with gold accent, no emojis.
+  assert.match(client, /accentColor: '#c9a84c'/)
   assert.doesNotMatch(client, /🏖️ Absentee/)
 })

@@ -16,6 +16,7 @@ import MatchedBuyersModal from '@/components/leads/MatchedBuyersModal'
 import { useToast } from '@/components/ui/Toast'
 import MoneyInput from '@/components/ui/MoneyInput'
 import { getStoredAccessToken, authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import GrammarCheckButton from './GrammarCheckButton'
 import SuggestionInput from './SuggestionInput'
 import ListingIntakeModal from './ListingIntakeModal'
@@ -633,9 +634,9 @@ function FinancialSection({ form, setValue, listingId }: SectionProps & { listin
       const fd = new FormData()
       fd.append('file', file)
       if (listingId) fd.append('listingId', listingId)
-      const res = await fetch('/api/listings/financial-import', {
+      const res = await authenticatedFetch('/api/listings/financial-import', {
         method: 'POST',
-        headers: authHeaders(),
+        headers: {},
         body: fd,
       })
       const j = await res.json().catch(() => ({}))
@@ -780,9 +781,9 @@ function AiPhotoStudio({ businessName, industry, subIndustry, location, descript
     setOptions([])
     setAdded(new Set())
     try {
-      const res = await fetch('/api/listings/ai-photos', {
+      const res = await authenticatedFetch('/api/listings/ai-photos', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...authHeaders() },
+        headers: { 'content-type': 'application/json',  },
         body: JSON.stringify({ listingId: listingId || undefined, prompt: prompt.trim(), count: 4 }),
       })
       const json = await res.json()
@@ -1045,9 +1046,9 @@ function PublicSection({ form, setValue }: SectionProps) {
     ].join('\n')
     setDrafting(true)
     try {
-      const res = await fetch('/api/listings/intake', {
+      const res = await authenticatedFetch('/api/listings/intake', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...authHeaders() },
+        headers: { 'content-type': 'application/json',  },
         body: JSON.stringify({ notes: context, mode: 'public' }),
       })
       const j = await res.json().catch(() => ({}))

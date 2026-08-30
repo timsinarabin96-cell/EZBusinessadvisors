@@ -8,7 +8,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { fetchListingReadiness, type ReadinessResult } from '@/lib/listingReadiness'
 
 // =============================================================================
@@ -36,9 +36,9 @@ export default function GoLiveCard({ listingId, onGoLive }: { listingId: string;
     setPublishing(true)
     setPublishMsg(null)
     try {
-      const res = await fetch('/api/listings/publish', {
+      const res = await authenticatedFetch('/api/listings/publish', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({ listingId, force: false }),
       })
       const j = await res.json().catch(() => ({}))

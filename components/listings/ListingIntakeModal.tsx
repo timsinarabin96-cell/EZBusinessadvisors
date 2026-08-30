@@ -8,7 +8,7 @@
 'use client'
 
 import { useState } from 'react'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { useToast } from '@/components/ui/Toast'
 import type { IntakeDraft } from '@/lib/listingIntakeCore'
 
@@ -50,9 +50,9 @@ export default function ListingIntakeModal({
     setBusy(true)
     setError('')
     try {
-      const res = await fetch('/api/listings/intake', {
+      const res = await authenticatedFetch('/api/listings/intake', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...authHeaders() },
+        headers: { 'content-type': 'application/json',  },
         body: JSON.stringify({ notes, mode: 'full' }),
       })
       const j = await res.json().catch(() => ({}))

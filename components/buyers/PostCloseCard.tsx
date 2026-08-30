@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // =============================================================================
 // PostCloseCard — the golden-referral engine in the studio.
@@ -34,7 +34,7 @@ export default function PostCloseCard() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/post-close', { headers: authHeaders() })
+      const res = await authenticatedFetch('/api/post-close', { headers: {} })
       const j = await res.json()
       setItems(Array.isArray(j.items) ? j.items.slice(0, 6) : [])
     } catch {
@@ -48,9 +48,9 @@ export default function PostCloseCard() {
 
   const setStatus = async (id: string, status: string) => {
     try {
-      const res = await fetch('/api/post-close', {
+      const res = await authenticatedFetch('/api/post-close', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({ checkinId: id, status }),
       })
       const j = await res.json()

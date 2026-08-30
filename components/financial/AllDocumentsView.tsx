@@ -18,6 +18,7 @@ import type { FinancialDoc, FinancialStatus } from '@/lib/financialFiles'
 import { formatBytes } from '@/lib/financialFiles'
 import { FileTypeBadge, CategoryBadge, StatusPill } from '@/components/financial/FilesUI'
 import { downloadDocsAsZip } from '@/lib/zip'
+import DocOpenLink from '@/components/financial/DocOpenLink'
 
 interface Props {
   docs: FinancialDoc[]
@@ -131,15 +132,13 @@ export default function AllDocumentsView({ docs, onRefresh, onDelete, dealTitle 
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, maxWidth: 280 }}>
                         <span style={{ fontSize: 19 }}>{generated ? (f.file_name.includes('Recast') ? '🔄' : f.file_name.includes('BOV') ? '⚖️' : f.file_name.includes('CIM') ? '📑' : f.file_name.includes('BLI') ? '📋' : '📄') : '📎'}</span>
                         <div style={{ minWidth: 0 }}>
-                          <a
-                            href={f.file_url}
-                            target="_blank"
-                            rel="noreferrer"
+                          <DocOpenLink
+                            doc={f}
                             style={{ fontWeight: 600, color: 'var(--navy)', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}
                             title={f.file_name}
                           >
                             {f.file_name}
-                          </a>
+                          </DocOpenLink>
                           <div style={{ marginTop: 3 }}><FileTypeBadge kind={f.file_kind as any} size="sm" /></div>
                         </div>
                       </div>
@@ -157,15 +156,13 @@ export default function AllDocumentsView({ docs, onRefresh, onDelete, dealTitle 
                     </td>
                     <td style={{ padding: '11px 12px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <a
+                        <DocOpenLink
                           title="Download"
-                          href={f.file_url}
-                          download={f.file_name}
-                          target="_blank"
-                          rel="noreferrer"
+                          doc={f}
+                          download
                           className="btn-ghost"
                           style={{ padding: '5px 9px', fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-                        >⬇️</a>
+                        >⬇️</DocOpenLink>
                         <button
                           title="Delete"
                           onClick={() => onDelete(f)}

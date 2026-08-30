@@ -10,7 +10,8 @@
 import { useEffect, useState } from 'react'
 import { uploadListingDocument, fetchListingDocuments } from '@/lib/workflow'
 import { supabase } from '@/lib/supabase/client'
-import { getStoredAccessToken } from '@/lib/authToken'
+import DocOpenLink from '@/components/financial/DocOpenLink'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // =============================================================================
 // LegalDocsCard — the legal gate, inside the One-Shot Deal review.
@@ -37,8 +38,7 @@ export default function LegalDocsCard({ listingId }: { listingId: string }) {
       setDocs(list)
     } catch { setDocs([]) }
     try {
-      const token = getStoredAccessToken()
-      const res = await fetch('/api/listing-agreement/list', { headers: { authorization: `Bearer ${token}` } })
+      const res = await authenticatedFetch('/api/listing-agreement/list')
       const j = await res.json().catch(() => ({}))
       const mine = (j.agreements || []).filter((a: any) => a.listing_id === listingId)
       if (mine.length > 0) {
@@ -56,10 +56,9 @@ export default function LegalDocsCard({ listingId }: { listingId: string }) {
     if (!sellerEmail.trim()) { alert('Enter the seller\'s email first'); return }
     setLaSending(true)
     try {
-      const token = getStoredAccessToken()
-      const res = await fetch('/api/listing-agreement/send', {
+      const res = await authenticatedFetch('/api/listing-agreement/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId, sellerEmail: sellerEmail.trim() }),
       })
       const j = await res.json().catch(() => ({}))
@@ -154,10 +153,10 @@ export default function LegalDocsCard({ listingId }: { listingId: string }) {
         {docs.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
             {docs.slice(0, 6).map((d) => (
-              <a key={d.id} href={d.file_url} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: 'var(--navy)', textDecoration: 'none', display: 'flex', gap: 6 }}>
+              <DocOpenLink key={d.id} doc={d} style={{ fontSize: 11.5, color: 'var(--navy)', textDecoration: 'none', display: 'flex', gap: 6 }}>
                 📎 <span style={{ fontWeight: 600 }}>{d.file_name || d.document_type}</span>
                 <span style={{ marginLeft: 'auto', color: '#2563eb' }}>Open ↗</span>
-              </a>
+              </DocOpenLink>
             ))}
           </div>
         )}

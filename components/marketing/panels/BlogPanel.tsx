@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState } from '@/components/ui'
-import { getStoredAccessToken } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { useToast } from '@/components/ui/Toast'
 
 interface BlogPost {
@@ -30,8 +30,7 @@ interface BlogPost {
   updated_at: string
 }
 
-const token = () => getStoredAccessToken()
-const authHeaders = () => ({ authorization: `Bearer ${token()}`, 'content-type': 'application/json' })
+const authHeaders = () => ({ 'content-type': 'application/json' })
 
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
@@ -45,7 +44,7 @@ export function BlogPanel() {
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/blog?all=1', { headers: { authorization: `Bearer ${token()}` } })
+    const res = await authenticatedFetch('/api/blog?all=1')
     const data = await res.json().catch(() => ({}))
     setPosts(data.posts || [])
     setLoading(false)
@@ -54,9 +53,9 @@ export function BlogPanel() {
   useEffect(() => { load() }, [load])
 
   const togglePublish = async (p: BlogPost) => {
-    await fetch('/api/blog', {
+    await authenticatedFetch('/api/blog', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({
         slug: p.slug, title: p.title, excerpt: p.excerpt, category: p.category,
         read: p.read, date: p.date, published: !p.published, sections: p.sections,
@@ -68,8 +67,8 @@ export function BlogPanel() {
 
   const remove = async (p: BlogPost) => {
     if (!window.confirm(`Delete "${p.title}"?`)) return
-    const res = await fetch(`/api/blog?slug=${encodeURIComponent(p.slug)}`, {
-      method: 'DELETE', headers: { authorization: `Bearer ${token()}` },
+    const res = await authenticatedFetch(`/api/blog?slug=${encodeURIComponent(p.slug)}`, {
+      method: 'DELETE', headers: {},
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok || !data.ok) return toast(data.error || 'Failed to delete', 'error')
@@ -98,9 +97,9 @@ export function BlogPanel() {
     if (!clean.title) return toast('Title is required', 'error')
     if (clean.sections.length === 0) return toast('Add at least one section with heading + body', 'error')
     setBusy(true)
-    const res = await fetch('/api/blog', {
+    const res = await authenticatedFetch('/api/blog', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({
         slug: clean.slug || undefined, title: clean.title, excerpt: clean.excerpt,
         category: clean.category, read: clean.read, date: clean.date,

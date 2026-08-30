@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { STAGE_META, heatBand, BUYER_STAGES, type BuyerStage } from '@/lib/buyerPipelineCore'
 
 // =============================================================================
@@ -55,7 +55,7 @@ export default function BuyerPipelineBoard({ listingId, onBuyersChange }: { list
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/buyers/pipeline?listingId=${encodeURIComponent(listingId)}`, { headers: authHeaders() })
+      const res = await authenticatedFetch(`/api/buyers/pipeline?listingId=${encodeURIComponent(listingId)}`, { headers: {} })
       const j = await res.json()
       if (j.ok && j.board) {
         setBuyers(j.board.buyers || [])
@@ -74,9 +74,9 @@ export default function BuyerPipelineBoard({ listingId, onBuyersChange }: { list
     if (!next) return
     setMoving(b.id)
     try {
-      const res = await fetch('/api/buyers/pipeline', {
+      const res = await authenticatedFetch('/api/buyers/pipeline', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({ buyerListId: b.id, listingId, toStage: next }),
       })
       const j = await res.json()
@@ -93,9 +93,9 @@ export default function BuyerPipelineBoard({ listingId, onBuyersChange }: { list
   const runNqa = async (b: BoardBuyer) => {
     setNqaBusy(true)
     try {
-      const res = await fetch('/api/buyers/pipeline', {
+      const res = await authenticatedFetch('/api/buyers/pipeline', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({ action: 'nqa', listingId, buyerListId: b.id, answers: nqa }),
       })
       const j = await res.json()

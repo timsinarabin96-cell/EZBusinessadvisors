@@ -184,14 +184,14 @@ export async function snapshotRoom(db: SupabaseClient, roomId: string, role: Roo
     .order('order', { ascending: true })
   const { data: files } = await db
     .from('data_room_files')
-    .select('id, folder_id, file_name, file_url, file_kind, file_size, version, notes, uploaded_at, uploaded_by, uploaded_by_role, access_level')
+    .select('id, folder_id, file_name, file_url, storage_path, file_kind, file_size, version, notes, uploaded_at, uploaded_by, uploaded_by_role, access_level')
     .eq('data_room_id', roomId)
     .eq('is_deleted', false)
     .in('access_level', allowed)
     .order('uploaded_at', { ascending: false })
   const { data: trash } = role === 'agent'
     ? await db.from('data_room_files')
-        .select('id, folder_id, file_name, file_url, file_kind, file_size, version, notes, uploaded_at, uploaded_by, uploaded_by_role, access_level')
+        .select('id, folder_id, file_name, file_url, storage_path, file_kind, file_size, version, notes, uploaded_at, uploaded_by, uploaded_by_role, access_level')
         .eq('data_room_id', roomId)
         .eq('is_deleted', true)
         .order('deleted_at', { ascending: false })

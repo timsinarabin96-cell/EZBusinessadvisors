@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState } from '@/components/ui'
 import { getAgencyContext } from '@/lib/agencyContext'
-import { getStoredAccessToken } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { useToast } from '@/components/ui/Toast'
 
 interface NurtureStep {
@@ -56,8 +56,7 @@ export function NurturePanel() {
   const [leadType, setLeadType] = useState('buyer')
 
   const load = useCallback(async (agency: string) => {
-    const token = getStoredAccessToken()
-    const res = await fetch(`/api/nurture?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } })
+    const res = await authenticatedFetch(`/api/nurture?agencyId=${agency}`)
     const data = await res.json().catch(() => ({}))
     setSequences(data.sequences || [])
     setRecipients(data.recipients || [])
@@ -76,15 +75,14 @@ export function NurturePanel() {
   }, [])
 
   const authHeaders = () => ({
-    authorization: `Bearer ${getStoredAccessToken()}`,
     'content-type': 'application/json',
   })
 
   const seed = async () => {
     setBusy(true)
-    const res = await fetch('/api/nurture', {
+    const res = await authenticatedFetch('/api/nurture', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({ action: 'seed', agencyId }),
     })
     const data = await res.json().catch(() => ({}))
@@ -99,9 +97,9 @@ export function NurturePanel() {
 
   const enrollContact = async () => {
     setBusy(true)
-    const res = await fetch('/api/nurture', {
+    const res = await authenticatedFetch('/api/nurture', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({ action: 'enroll', sequenceId, email, leadType }),
     })
     const data = await res.json().catch(() => ({}))

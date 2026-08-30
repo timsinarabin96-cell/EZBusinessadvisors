@@ -14,7 +14,8 @@ import { supabase } from '@/lib/supabase/client'
 import DealDocsPanel from '@/components/documents/DealDocsPanel'
 import { computeValuation } from '@/lib/valuation'
 import { formatMoneyInput, parseMoneyInput, moneyChange } from '@/lib/moneyInput'
-import { getStoredAccessToken } from '@/lib/authToken'
+import DocOpenLink from '@/components/financial/DocOpenLink'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 const fmtMoney = (n: number | null | undefined) =>
   n == null || isNaN(n) ? '—' : '$' + Math.round(n).toLocaleString('en-US')
@@ -82,8 +83,7 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
 
   const loadLa = async () => {
     try {
-      const token = getStoredAccessToken()
-      const res = await fetch(`/api/listing-agreement/list`, { headers: { authorization: `Bearer ${token}` } })
+      const res = await authenticatedFetch(`/api/listing-agreement/list`)
       const j = await res.json().catch(() => ({}))
       const mine = (j.agreements || []).filter((a: any) => a.listing_id === listingId)
       if (mine.length > 0) {
@@ -102,10 +102,9 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
     if (!sellerEmail.trim()) { alert('Enter the seller\'s email first'); return }
     setLaSending(true)
     try {
-      const token = getStoredAccessToken()
-      const res = await fetch('/api/listing-agreement/send', {
+      const res = await authenticatedFetch('/api/listing-agreement/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId, sellerEmail: sellerEmail.trim() }),
       })
       const j = await res.json().catch(() => ({}))
@@ -246,9 +245,9 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file_name || d.document_type}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'capitalize' }}>{d.document_type} · {d.status}</div>
             </div>
-            {d.file_url && (
-              <button onClick={() => setPreviewDoc({ name: d.file_name || d.document_type, url: d.file_url })} style={{ fontSize: 12, color: 'var(--navy)', fontWeight: 700, background: 'none', border: '1px solid var(--line)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}>👁 Preview</button>
-            )}
+            {d.file_url || d.storage_path ? (
+              <DocOpenLink doc={d} style={{ fontSize: 12, color: 'var(--navy)', fontWeight: 700, background: 'none', border: '1px solid var(--line)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}>👁 Preview</DocOpenLink>
+            ) : null}
             <button onClick={() => deleteDoc(d)} disabled={deletingDocId === d.id} style={{ fontSize: 12, color: '#dc2626', fontWeight: 700, background: 'none', border: '1px solid rgba(220,38,38,0.35)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}>{deletingDocId === d.id ? '…' : '✕ Delete'}</button>
           </div>
         ))}

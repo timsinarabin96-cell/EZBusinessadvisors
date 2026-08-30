@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
+import { DOCS_BUCKET } from '@/lib/storageBuckets'
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
 export const runtime = 'nodejs'
@@ -112,13 +113,14 @@ export async function POST(req: NextRequest) {
   // ── Save to the financial folder + record in listing_recasts ───────────
   const fileName = `recast-${year}.pdf`
   const storagePath = `${listingId}/${fileName}`
-  const { error: upErr } = await db.storage.from('financial_docs').upload(storagePath, new Uint8Array(pdf), {
+  // Generated recast deliverable → PUBLIC documents bucket (directly openable).
+  const { error: upErr } = await db.storage.from(DOCS_BUCKET).upload(storagePath, new Uint8Array(pdf), {
     cacheControl: '3600',
     upsert: true,
     contentType: 'application/pdf',
   })
   if (upErr) return NextResponse.json({ ok: false, error: `storage: ${upErr.message}` }, { status: 500 })
-  const { data: urlData } = db.storage.from('financial_docs').getPublicUrl(storagePath)
+  const { data: urlData } = db.storage.from(DOCS_BUCKET).getPublicUrl(storagePath)
 
   const recastPayload = {
     listing_id: listingId,

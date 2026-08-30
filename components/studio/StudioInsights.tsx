@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 
 // =============================================================================
@@ -42,7 +42,7 @@ export function PipelineStatusCard({ listingId, businessName }: { listingId: str
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/financial/extractions?listingId=${encodeURIComponent(listingId)}&mode=docs`, { headers: authHeaders() })
+      const res = await authenticatedFetch(`/api/financial/extractions?listingId=${encodeURIComponent(listingId)}&mode=docs`, { headers: {} })
       const j = await res.json()
       setDocs(j.docs || [])
     } catch {
@@ -57,9 +57,9 @@ export function PipelineStatusCard({ listingId, businessName }: { listingId: str
   const runPipeline = async () => {
     setRunning(true)
     try {
-      const res = await fetch('/api/financial/generate', {
+      const res = await authenticatedFetch('/api/financial/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({ listingId }),
       })
       const j = await res.json()
@@ -141,7 +141,7 @@ export function DealPulseCard({ listingId }: { listingId: string }) {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`/api/intelligence/readiness?listingId=${encodeURIComponent(listingId)}&action=blocking`, { headers: authHeaders() })
+        const res = await authenticatedFetch(`/api/intelligence/readiness?listingId=${encodeURIComponent(listingId)}&action=blocking`, { headers: {} })
         const j = await res.json()
         if (cancelled) return
         setBlocking(Array.isArray(j.blockers) ? j.blockers.slice(0, 4) : [])
@@ -178,7 +178,7 @@ export function RiskCard({ listingId }: { listingId: string }) {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`/api/intelligence/readiness?listingId=${encodeURIComponent(listingId)}&action=blocking`, { headers: authHeaders() })
+        const res = await authenticatedFetch(`/api/intelligence/readiness?listingId=${encodeURIComponent(listingId)}&action=blocking`, { headers: {} })
         const j = await res.json()
         if (cancelled) return
         setRisks(Array.isArray(j.blockers) ? j.blockers.slice(0, 5) : [])
@@ -215,7 +215,7 @@ export function CompsCard({ industry, askingPrice }: { industry?: string | null;
     if (!industry) { setComps([]); return }
     ;(async () => {
       try {
-        const res = await fetch(`/api/comps?industry=${encodeURIComponent(industry)}`, { headers: authHeaders() })
+        const res = await authenticatedFetch(`/api/comps?industry=${encodeURIComponent(industry)}`, { headers: {} })
         const j = await res.json()
         if (!cancelled && Array.isArray(j.comps)) setComps(j.comps.slice(0, 4))
       } catch { if (!cancelled) setComps([]) }
@@ -304,7 +304,7 @@ export function BuyerLeaderboardCard({ industry }: { industry?: string | null })
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`/api/marketplace/buyer-demand?industry=${encodeURIComponent(industry || '')}`, { cache: 'no-store' })
+        const res = await authenticatedFetch(`/api/marketplace/buyer-demand?industry=${encodeURIComponent(industry || '')}`, { cache: 'no-store' })
         const j = await res.json()
         if (!cancelled && typeof j.count === 'number') setDemand(j.count)
       } catch { if (!cancelled) setDemand(null) }
@@ -379,7 +379,7 @@ export function OfferIntelligenceCard({ listingId, askingPrice }: { listingId: s
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`/api/offers?listingId=${encodeURIComponent(listingId)}`, { headers: authHeaders() })
+        const res = await authenticatedFetch(`/api/offers?listingId=${encodeURIComponent(listingId)}`, { headers: {} })
         const j = await res.json()
         if (!cancelled) setOffers(Array.isArray(j.offers) ? j.offers : [])
       } catch { if (!cancelled) setOffers([]) }
@@ -419,7 +419,7 @@ export function OfferCompareCard({ listingId, askingPrice }: { listingId: string
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/offers/compare?listingId=${encodeURIComponent(listingId)}`, { headers: authHeaders() })
+      const res = await authenticatedFetch(`/api/offers/compare?listingId=${encodeURIComponent(listingId)}`, { headers: {} })
       const j = await res.json()
       if (j.ok) setData(j)
     } catch { /* non-fatal */ }
@@ -477,7 +477,7 @@ export function ClosingRunwayCard() {
 
   const compute = () => {
     if (!closeDate) return
-    const res = fetch(`/api/closing/runway?closeDate=${encodeURIComponent(closeDate)}`, { headers: authHeaders() }).then((r) => r.json()).then((j) => { if (j.ok) setRunway(j.runway) }).catch(() => {})
+    const res = authenticatedFetch(`/api/closing/runway?closeDate=${encodeURIComponent(closeDate)}`, { headers: {} }).then((r) => r.json()).then((j) => { if (j.ok) setRunway(j.runway) }).catch(() => {})
     return res
   }
 
@@ -519,7 +519,7 @@ export function ClosingCostCard({ purchasePrice }: { purchasePrice?: number | nu
 
   const compute = async () => {
     try {
-      const res = await fetch(`/api/closing/costs?price=${price}`, { headers: authHeaders() })
+      const res = await authenticatedFetch(`/api/closing/costs?price=${price}`, { headers: {} })
       const j = await res.json()
       if (j.ok) setCosts(j.breakdown)
     } catch { /* non-fatal */ }
@@ -564,9 +564,9 @@ export function CompetitiveBoardCard({ listingId, enabled }: { listingId: string
   const toggle = async (next: boolean) => {
     setBusy(true)
     try {
-      const res = await fetch('/api/buyers/pipeline', {
+      const res = await authenticatedFetch('/api/buyers/pipeline', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({ action: 'competitive', listingId, enabled: next }),
       })
       const j = await res.json()
@@ -613,7 +613,7 @@ export function VoiceIntakeCard({ onDraft }: { onDraft?: (draft: any) => void })
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/calls?hours=168&includeTranscripts=1', { headers: authHeaders() })
+      const res = await authenticatedFetch('/api/calls?hours=168&includeTranscripts=1', { headers: {} })
       const j = await res.json()
       setCalls(Array.isArray(j.calls) ? j.calls.filter((c: any) => (c.transcripts || []).length > 0).slice(0, 8) : [])
     } catch {
@@ -632,9 +632,9 @@ export function VoiceIntakeCard({ onDraft }: { onDraft?: (draft: any) => void })
       const transcript = (call.transcripts || [])
         .map((s: any) => `${s.speaker === 'caller' ? 'Caller' : s.speaker === 'assistant' ? 'Assistant' : 'Broker'}: ${s.content}`)
         .join('\n')
-      const res = await fetch('/api/listings/intake', {
+      const res = await authenticatedFetch('/api/listings/intake', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({ mode: 'full', context: transcript }),
       })
       const j = await res.json()
@@ -734,9 +734,9 @@ export function PhotoAICard({ listingId }: { listingId: string }) {
     setRunning(true)
     setError(null)
     try {
-      const res = await fetch('/api/ai/photo-analysis', {
+      const res = await authenticatedFetch('/api/ai/photo-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        headers: { 'Content-Type': 'application/json',  },
         body: JSON.stringify({ listingId }),
       })
       const j = await res.json()

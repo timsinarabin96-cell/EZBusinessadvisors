@@ -75,10 +75,9 @@ test('referrals: dashboard page renders form + list with status pills and advanc
   assert.match(page, /Referral Program/)
 })
 
-test('referrals: dashboard fetches with Bearer token and advances status', () => {
+test('referrals: dashboard fetches with authenticated session and advances status', () => {
   assert.match(page, /\/api\/referrals/)
-  assert.match(page, /getStoredAccessToken/)
-  assert.match(page, /Bearer/)
+  assert.match(page, /authenticatedFetch/)
   assert.match(page, /STATUS_FLOW/)
   assert.match(page, /Mark \{next\}/)
   assert.match(page, /next === 'converted'/)

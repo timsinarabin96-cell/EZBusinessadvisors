@@ -13,6 +13,7 @@
 // =============================================================================
 
 import { useEffect } from 'react'
+import { useDocViewUrl } from '@/lib/docViewUrl'
 import {
   FileKind, FILE_ICON, FILE_COLOR, FILE_LABEL,
   FinancialCategory, CATEGORY_LABELS, CATEGORY_COLORS,
@@ -99,8 +100,12 @@ export function FilePreviewModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  const kind = doc ? previewKind(doc.file_kind) : 'none'
+  // Resolve the viewable URL (public documents bucket → as-is; private
+  // financial_docs → signed URL). Fixes "Bucket not found" on every click.
+  const viewUrl = useDocViewUrl(doc)
+
   if (!doc) return null
-  const kind = previewKind(doc.file_kind)
 
   return (
     <div
@@ -126,7 +131,7 @@ export function FilePreviewModal({
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <a
-              href={doc.file_url}
+              href={viewUrl || doc.file_url}
               download={doc.file_name}
               target="_blank"
               rel="noreferrer"
@@ -141,12 +146,12 @@ export function FilePreviewModal({
         {/* Body */}
         <div style={{ flex: 1, overflow: 'auto', background: '#f0f0f4' }}>
           {kind === 'pdf' && (
-            <iframe src={doc.file_url} title={doc.file_name} style={{ width: '100%', height: '72vh', border: 'none', background: '#fff' }} />
+            <iframe src={viewUrl || doc.file_url} title={doc.file_name} style={{ width: '100%', height: '72vh', border: 'none', background: '#fff' }} />
           )}
           {kind === 'img' && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={doc.file_url} alt={doc.file_name} style={{ maxWidth: '100%', maxHeight: '72vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }} />
+              <img src={viewUrl || doc.file_url} alt={doc.file_name} style={{ maxWidth: '100%', maxHeight: '72vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }} />
             </div>
           )}
           {kind === 'none' && (
@@ -155,7 +160,7 @@ export function FilePreviewModal({
               <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--navy)', marginBottom: 6 }}>Preview not available for this file type</div>
               <div style={{ fontSize: 13 }}>Download the file to open it in its native app.</div>
               <a
-                href={doc.file_url}
+                href={viewUrl || doc.file_url}
                 download={doc.file_name}
                 target="_blank"
                 rel="noreferrer"

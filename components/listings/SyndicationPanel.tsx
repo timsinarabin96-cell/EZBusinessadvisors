@@ -8,7 +8,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { useToast } from '@/components/ui/Toast'
 import {
   SYNDICATION_PROVIDERS,
@@ -55,9 +55,9 @@ export default function SyndicationPanel({ listingId }: { listingId: string }) {
     if (providers.length === 0) { toast('Pick at least one marketplace', 'error'); return }
     setBusy('push')
     try {
-      const res = await fetch('/api/listings/syndication', {
+      const res = await authenticatedFetch('/api/listings/syndication', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...authHeaders() },
+        headers: { 'content-type': 'application/json',  },
         body: JSON.stringify({ listingId, providers }),
       })
       const j = await res.json().catch(() => ({}))

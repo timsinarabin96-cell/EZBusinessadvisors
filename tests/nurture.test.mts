@@ -95,7 +95,7 @@ test('nurture: dashboard page renders seed button, enroll form, and lists', () =
   assert.match(page, /Sequences/)
   assert.match(page, /Enrolled contacts/)
   assert.match(page, /\/api\/nurture/)
-  assert.match(page, /getStoredAccessToken/)
+  assert.match(page, /authenticatedFetch/)
   assert.match(page, /action: 'seed'/)
   assert.match(page, /action: 'enroll'/)
 })

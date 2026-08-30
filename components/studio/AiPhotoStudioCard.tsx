@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { buildAiPhotoPrompt, aiPhotoStyleById, AI_PHOTO_STYLES, type GeneratedAiImage } from '@/lib/aiPhotos'
 
 // =============================================================================
@@ -57,9 +57,9 @@ export default function AiPhotoStudioCard({
     setOptions([])
     setAdded(new Set())
     try {
-      const res = await fetch('/api/listings/ai-photos', {
+      const res = await authenticatedFetch('/api/listings/ai-photos', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...authHeaders() },
+        headers: { 'content-type': 'application/json',  },
         body: JSON.stringify({ listingId: listingId || undefined, prompt: prompt.trim(), count: 4 }),
       })
       const json = await res.json()
@@ -81,9 +81,9 @@ export default function AiPhotoStudioCard({
     setCommitting(url)
     try {
       if (listingId) {
-        const res = await fetch('/api/listings/ai-photos', {
+        const res = await authenticatedFetch('/api/listings/ai-photos', {
           method: 'POST',
-          headers: { 'content-type': 'application/json', ...authHeaders() },
+          headers: { 'content-type': 'application/json',  },
           body: JSON.stringify({ action: 'commit', listingId, urls: [url] }),
         })
         const json = await res.json()

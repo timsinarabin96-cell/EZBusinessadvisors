@@ -25,6 +25,7 @@ import {
 } from '@/lib/financialFiles'
 import { detectUniversalDocTypeClient, UNIVERSAL_TYPE_SHORT_LABELS } from '@/lib/financialExtractor'
 import { useToast } from '@/components/ui/Toast'
+import DocOpenLink from '@/components/financial/DocOpenLink'
 
 const MAX_YEARS = 5
 
@@ -293,7 +294,7 @@ export default function MultiYearFinancialUpload({ onAnalyzed }: { onAnalyzed?: 
                     {doc.fiscal_year ? `Year ${doc.fiscal_year}` : 'No year'} · {doc.category.replace(/_/g, ' ')}{doc.doc_type ? ` · ${doc.doc_type.replace(/_/g, ' ')}` : ''} · {formatBytes(doc.file_size)}
                   </div>
                 </div>
-                <a href={doc.file_url} target="_blank" rel="noreferrer" style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid var(--line)', color: 'var(--navy)', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>👁 Preview</a>
+                <DocOpenLink doc={doc} style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid var(--line)', color: 'var(--navy)', textDecoration: 'none', fontSize: 12, fontWeight: 700 }}>👁 Preview</DocOpenLink>
                 <button onClick={() => removeStored(doc)} disabled={!!busy} style={{ padding: '6px 12px', borderRadius: 7, border: '1px solid #fecaca', background: '#fff', color: '#b91c1c', fontSize: 12, fontWeight: 700, cursor: busy ? 'wait' : 'pointer' }}>Delete</button>
               </div>
             ))}

@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import MoneyInput from '@/components/ui/MoneyInput'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 interface Commission {
   id: string
@@ -53,8 +54,7 @@ export function CommissionsPanel() {
   const [notes, setNotes] = useState('')
 
   const load = useCallback(async (agency: string) => {
-    const token = getStoredAccessToken()
-    const res = await fetch(`/api/commissions?agencyId=${agency}`, { headers: { authorization: `Bearer ${token}` } })
+    const res = await authenticatedFetch(`/api/commissions?agencyId=${agency}`)
     const data = await res.json().catch(() => ({}))
     setCommissions(data.commissions || [])
   }, [])
@@ -71,15 +71,14 @@ export function CommissionsPanel() {
   }, [])
 
   const authHeaders = () => ({
-    authorization: `Bearer ${getStoredAccessToken()}`,
     'content-type': 'application/json',
   })
 
   const record = async () => {
     setSaving(true)
-    const res = await fetch('/api/commissions', {
+    const res = await authenticatedFetch('/api/commissions', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({
         agencyId,
         listingId: listingId || null,
@@ -108,9 +107,9 @@ export function CommissionsPanel() {
     const idx = STATUS_FLOW.indexOf(commission.status)
     const next = STATUS_FLOW[idx + 1]
     if (!next) return
-    const res = await fetch('/api/commissions', {
+    const res = await authenticatedFetch('/api/commissions', {
       method: 'PATCH',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({ id: commission.id, status: next }),
     })
     const data = await res.json().catch(() => ({}))
@@ -124,7 +123,7 @@ export function CommissionsPanel() {
 
   const exportCsv = async () => {
     const token = getStoredAccessToken()
-    const res = await fetch(`/api/commissions?agencyId=${agencyId}&format=csv`, { headers: { authorization: `Bearer ${token}` } })
+    const res = await authenticatedFetch(`/api/commissions?agencyId=${agencyId}&format=csv`, { headers: { authorization: `Bearer ${token}` } })
     if (!res.ok) {
       toast('Could not export CSV', 'error')
       return

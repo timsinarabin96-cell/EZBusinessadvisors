@@ -269,7 +269,18 @@ export default function DealRoom({
           files.map((f) => (
             <FileRow
               key={f.id} file={f} folder={folders.find((x) => x.id === f.folder_id)} isAgent={isAgent}
-              onOpen={() => window.open(f.file_url, '_blank', 'noreferrer')}
+              onOpen={() => {
+                // Resolve private-bucket files (data room = financial_docs) to
+                // a signed URL at view time — stored file_url is never a public link.
+                if (f.storage_path) {
+                  void import('@/lib/docViewUrl').then(async ({ resolveDocViewUrl }) => {
+                    const url = await resolveDocViewUrl({ file_url: f.file_url, storage_path: f.storage_path, deal_id: dealId })
+                    if (url) window.open(url, '_blank', 'noreferrer')
+                  })
+                } else {
+                  window.open(f.file_url, '_blank', 'noreferrer')
+                }
+              }}
               onRename={() => setRenaming({ kind: 'file', id: f.id, name: f.file_name })}
               onMove={() => setMoving({ id: f.id, name: f.file_name, folderId: f.folder_id })}
               onAccess={() => setAccessTarget({ kind: 'file', id: f.id, name: f.file_name, level: f.access_level || 'all_parties' })}

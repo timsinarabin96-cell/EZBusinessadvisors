@@ -13,6 +13,7 @@ import { LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 interface DataRoomOpt {
   id: string
@@ -76,7 +77,7 @@ export default function DataRoomQaPanel() {
   const authHeaders = () => ({ authorization: `Bearer ${token()}`, 'content-type': 'application/json' })
 
   const loadRooms = useCallback(async (agency: string) => {
-    const res = await fetch(`/api/intelligence/data-room-qa?agencyId=${agency}&action=rooms`, {
+    const res = await authenticatedFetch(`/api/intelligence/data-room-qa?agencyId=${agency}&action=rooms`, {
       headers: { authorization: `Bearer ${token()}` },
     })
     const data = await res.json().catch(() => ({}))
@@ -84,7 +85,7 @@ export default function DataRoomQaPanel() {
   }, [])
 
   const loadQuestions = useCallback(async (agency: string, roomId: string) => {
-    const res = await fetch(`/api/intelligence/data-room-qa?agencyId=${agency}&dataRoomId=${roomId}`, {
+    const res = await authenticatedFetch(`/api/intelligence/data-room-qa?agencyId=${agency}&dataRoomId=${roomId}`, {
       headers: { authorization: `Bearer ${token()}` },
     })
     const data = await res.json().catch(() => ({}))
@@ -92,7 +93,7 @@ export default function DataRoomQaPanel() {
   }, [])
 
   const loadIntent = useCallback(async (roomId: string) => {
-    const res = await fetch(`/api/data-rooms/intent?roomId=${roomId}`, {
+    const res = await authenticatedFetch(`/api/data-rooms/intent?roomId=${roomId}`, {
       headers: { authorization: `Bearer ${token()}` },
     })
     const data = await res.json().catch(() => ({}))
@@ -116,9 +117,9 @@ export default function DataRoomQaPanel() {
   const ask = async () => {
     if (!selectedRoom || !question.trim()) return
     setBusy(true)
-    const res = await fetch('/api/intelligence/data-room-qa', {
+    const res = await authenticatedFetch('/api/intelligence/data-room-qa', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({ dataRoomId: selectedRoom, question: question.trim() }),
     })
     const data = await res.json().catch(() => ({}))

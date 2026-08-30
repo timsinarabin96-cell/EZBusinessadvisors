@@ -16,7 +16,7 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from 'react'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 interface Msg {
   id: string
@@ -58,9 +58,9 @@ export default function ListingCopilot({ listingId, businessName }: { listingId:
     setLoading(true)
 
     try {
-      const res = await fetch('/api/ai/chat', {
+      const res = await authenticatedFetch('/api/ai/chat', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...authHeaders() },
+        headers: { 'content-type': 'application/json',  },
         body: JSON.stringify({
           agent: 'listing',
           entityId: listingId,

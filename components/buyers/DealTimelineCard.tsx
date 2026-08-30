@@ -8,7 +8,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // =============================================================================
 // DealTimelineCard — the unified deal timeline (Wave D).
@@ -26,7 +26,7 @@ export default function DealTimelineCard({ listingId }: { listingId: string }) {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`/api/deals/timeline?listingId=${encodeURIComponent(listingId)}`, { headers: authHeaders() })
+        const res = await authenticatedFetch(`/api/deals/timeline?listingId=${encodeURIComponent(listingId)}`, { headers: {} })
         const j = await res.json()
         if (!cancelled && j.ok) setEvents(Array.isArray(j.events) ? j.events : [])
       } catch { if (!cancelled) setEvents([]) }

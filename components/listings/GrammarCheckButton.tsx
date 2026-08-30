@@ -8,7 +8,7 @@
 'use client'
 
 import { useState } from 'react'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // =============================================================================
 // GrammarCheckButton — "✨ AI proofread" for a listing text field.
@@ -35,9 +35,9 @@ export default function GrammarCheckButton({
     setError('')
     setResult(null)
     try {
-      const res = await fetch('/api/ai/grammar', {
+      const res = await authenticatedFetch('/api/ai/grammar', {
         method: 'POST',
-        headers: { 'content-type': 'application/json', ...authHeaders() },
+        headers: { 'content-type': 'application/json',  },
         body: JSON.stringify({ text, kind }),
       })
       const data = await res.json()

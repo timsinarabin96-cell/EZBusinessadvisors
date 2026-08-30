@@ -46,7 +46,7 @@ import {
   groupUploadedDocs,
   type ExtractedFinancialRow,
 } from '@/lib/financialExtractor'
-import { FF_BUCKET } from '@/lib/storageBuckets'
+import { FF_BUCKET, DOCS_BUCKET } from '@/lib/storageBuckets'
 import type { FinancialStatus, FinancialDoc } from '@/lib/financialFiles'
 import { completeWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
 import type {
@@ -211,15 +211,18 @@ async function saveGeneratedDoc(step: {
   const stamp = Date.now()
   const storagePath = `financial-files/${step.listingId}/${stamp}-${safeName}.pdf`
 
+  // Generated deliverables (BOV/CIM/BLI/recast) → PUBLIC documents bucket so
+  // the stored URL is directly openable. (Source financials stay in the
+  // private financial_docs bucket and are resolved via signed URLs.)
   const { error: upErr } = await supabase.storage
-    .from(FF_BUCKET)
+    .from(DOCS_BUCKET)
     .upload(storagePath, Buffer.from(step.bytes), {
       contentType: 'application/pdf',
       upsert: false,
     })
   if (upErr) throw new Error(`Storage upload failed (${step.stage}): ${upErr.message}`)
 
-  const { data: urlData } = supabase.storage.from(FF_BUCKET).getPublicUrl(storagePath)
+  const { data: urlData } = supabase.storage.from(DOCS_BUCKET).getPublicUrl(storagePath)
   const publicUrl = urlData?.publicUrl || ''
 
   const fileName = `${safeName}.pdf`

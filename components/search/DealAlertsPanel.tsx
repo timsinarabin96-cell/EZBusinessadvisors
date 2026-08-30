@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
-import { getStoredAccessToken } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 interface Search {
   id: string
@@ -56,7 +56,7 @@ export function DealAlertsPanel() {
   const [error, setError] = useState('')
 
   const load = async () => {
-    const res = await fetch('/api/marketplace/watchlist', { headers: { authorization: `Bearer ${getStoredAccessToken()}` } })
+    const res = await authenticatedFetch('/api/marketplace/watchlist')
     if (!res.ok) {
       setError('Could not load watchlist')
       setLoading(false)
@@ -74,14 +74,14 @@ export function DealAlertsPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const authHeaders = () => ({ authorization: `Bearer ${getStoredAccessToken()}`, 'content-type': 'application/json' })
+  const authHeaders = () => ({ 'content-type': 'application/json' })
 
   const createSearch = async () => {
     setSaving(true)
     setError('')
-    const res = await fetch('/api/marketplace/watchlist', {
+    const res = await authenticatedFetch('/api/marketplace/watchlist', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({
         name: name.trim() || 'Untitled search',
         criteria: {
@@ -106,36 +106,36 @@ export function DealAlertsPanel() {
   }
 
   const toggleSearch = async (search: Search) => {
-    const res = await fetch('/api/marketplace/watchlist', {
+    const res = await authenticatedFetch('/api/marketplace/watchlist', {
       method: 'PATCH',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({ searchId: search.id, active: !search.active }),
     })
     if (res.ok) await load()
   }
 
   const toggleEmail = async (search: Search) => {
-    const res = await fetch('/api/marketplace/watchlist', {
+    const res = await authenticatedFetch('/api/marketplace/watchlist', {
       method: 'PATCH',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({ searchId: search.id, notify_email: !search.notify_email }),
     })
     if (res.ok) await load()
   }
 
   const deleteSearch = async (id: string) => {
-    const res = await fetch('/api/marketplace/watchlist', {
+    const res = await authenticatedFetch('/api/marketplace/watchlist', {
       method: 'DELETE',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({ searchId: id }),
     })
     if (res.ok) await load()
   }
 
   const removeBookmark = async (id: string) => {
-    const res = await fetch('/api/marketplace/watchlist', {
+    const res = await authenticatedFetch('/api/marketplace/watchlist', {
       method: 'DELETE',
-      headers: authHeaders(),
+      headers: {},
       body: JSON.stringify({ bookmarkId: id }),
     })
     if (res.ok) await load()

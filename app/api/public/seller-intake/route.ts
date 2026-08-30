@@ -151,8 +151,9 @@ export async function POST(req: NextRequest) {
         cacheControl: '3600', upsert: true, contentType: 'application/pdf',
       })
       if (!upErr) {
-        const { data: urlData } = svc.storage.from('financial_docs').getPublicUrl(pdfPath)
-        const pdfUrl = urlData?.publicUrl || ''
+        // Private bucket → email a long-lived SIGNED URL, never a public path.
+        const { data: su } = await svc.storage.from('financial_docs').createSignedUrl(pdfPath, 7 * 24 * 3600)
+        const pdfUrl = su?.signedUrl || ''
         await notify('generic', email, {
           title: `Your confidential valuation — ${businessName || 'Your Business'}`,
           message: [
