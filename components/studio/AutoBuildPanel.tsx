@@ -7,7 +7,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { authHeaders } from '@/lib/authToken'
 
@@ -25,11 +25,21 @@ export interface BuildStep {
   note?: string
 }
 
-export default function AutoBuildPanel({ listingId, onBuilt }: { listingId: string; onBuilt?: () => void }) {
+export default function AutoBuildPanel({ listingId, onBuilt, autoStart }: { listingId: string; onBuilt?: () => void; autoStart?: boolean }) {
   const [building, setBuilding] = useState(false)
   const [steps, setSteps] = useState<BuildStep[]>([])
   const [result, setResult] = useState<{ ok: boolean; notes: string[]; failed: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const autoFired = useRef(false)
+
+  // Auto-fire once the moment a deal record exists (no button press needed).
+  useEffect(() => {
+    if (autoStart && listingId && !autoFired.current) {
+      autoFired.current = true
+      run()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, listingId])
 
   const run = async () => {
     if (building) return

@@ -28,10 +28,32 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
   const [agreementUrl, setAgreementUrl] = useState('')
   const [agreementName, setAgreementName] = useState('')
   const [busy, setBusy] = useState(false)
+  const [previewDoc, setPreviewDoc] = useState<{ name: string; url: string } | null>(null)
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null)
 
   const load = async () => setDocs(await fetchListingDocuments(listingId))
 
   useEffect(() => { load() }, [listingId])
+
+  const deleteDoc = async (d: any) => {
+    if (!d?.id) { alert('Nothing to delete'); return }
+    if (!confirm(`Delete "${d.file_name || d.document_type}"? This removes it from the deal record and storage.`)) return
+    setDeletingDocId(d.id)
+    try {
+      const res = await fetch('/api/listings/documents/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, docId: d.id, fileUrl: d.file_url || '' }),
+      })
+      const j = await res.json().catch(() => ({ ok: false }))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Delete failed')
+      await load()
+    } catch (e: any) {
+      alert(e.message || 'Delete failed')
+    } finally {
+      setDeletingDocId(null)
+    }
+  }
 
   const addDoc = async (file: File, type: string) => {
     setBusy(true)
@@ -215,7 +237,7 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
         </div>
       </div>
 
-      {/* Uploaded docs list */}
+      {/* Uploaded docs list — preview + delete on every doc */}
       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {docs.map((d) => (
           <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 8 }}>
@@ -224,11 +246,39 @@ export default function Step1LegalDocs({ listingId, onNext }: { listingId: strin
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.file_name || d.document_type}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)', textTransform: 'capitalize' }}>{d.document_type} · {d.status}</div>
             </div>
-            <a href={d.file_url} target="_blank" rel="noreferrer" style={{ fontSize: 13, color: 'var(--navy)', fontWeight: 600 }}>View ↗</a>
+            {d.file_url && (
+              <button onClick={() => setPreviewDoc({ name: d.file_name || d.document_type, url: d.file_url })} style={{ fontSize: 12, color: 'var(--navy)', fontWeight: 700, background: 'none', border: '1px solid var(--line)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}>👁 Preview</button>
+            )}
+            <button onClick={() => deleteDoc(d)} disabled={deletingDocId === d.id} style={{ fontSize: 12, color: '#dc2626', fontWeight: 700, background: 'none', border: '1px solid rgba(220,38,38,0.35)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer' }}>{deletingDocId === d.id ? '…' : '✕ Delete'}</button>
           </div>
         ))}
         {docs.length === 0 && <div style={{ fontSize: 13, color: 'var(--muted)' }}>No documents uploaded yet.</div>}
       </div>
+
+      {/* Document preview modal */}
+      {previewDoc && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,11,23,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 24 }} onClick={() => setPreviewDoc(null)}>
+          <div style={{ background: '#fff', borderRadius: 12, maxWidth: 860, width: '100%', maxHeight: '90vh', overflow: 'auto', padding: 18 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>👁 {previewDoc.name}</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a href={previewDoc.url} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, fontWeight: 700, color: '#1d4ed8' }}>Open in new tab ↗</a>
+                <button onClick={() => setPreviewDoc(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999' }}>✕</button>
+              </div>
+            </div>
+            {previewDoc.url ? (
+              /\.(png|jpe?g|gif|webp|svg)$/i.test(previewDoc.url) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={previewDoc.url} alt={previewDoc.name} style={{ width: '100%', borderRadius: 8 }} />
+              ) : (
+                <iframe src={previewDoc.url} title={previewDoc.name} style={{ width: '100%', height: '70vh', border: '1px solid #ece8dc', borderRadius: 8 }} />
+              )
+            ) : (
+              <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>No preview available — use “Open in new tab”.</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Deal Docs & eSign — one-click legal pack, auto-filled + signed */}
       <div style={{ marginTop: 28 }}>

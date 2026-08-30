@@ -13,6 +13,7 @@ import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getStoredAccessToken } from '@/lib/authToken'
 import StudioConcierge from '@/components/studio/StudioConcierge'
 import AutoBuildPanel from '@/components/studio/AutoBuildPanel'
+import GoLiveCard from '@/components/studio/GoLiveCard'
 import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
 import WorkflowDashboard from '@/components/listings/WorkflowDashboard'
 import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
@@ -339,7 +340,7 @@ export default function AIDealStudio() {
                 onDraftCreated={(id) => { if (!listingId) setPhase('capture', id, 1) }}
                 onLiveState={setLiveState}
               />
-              {listingId && <AutoBuildPanel listingId={listingId} onBuilt={() => { setPhase('verify', listingId, 1) }} />}
+              {listingId && <AutoBuildPanel listingId={listingId} onBuilt={() => { setPhase('verify', listingId, 1) }} autoStart />}
             </>
           )}
 
@@ -351,6 +352,7 @@ export default function AIDealStudio() {
               <div style={{ padding: 60, textAlign: 'center', color: 'var(--muted)' }}>Deal not found.</div>
             ) : (
               <>
+                <GoLiveCard listingId={listingId} onGoLive={() => setPhase('golive', listingId, 8)} />
                 <div style={{ marginBottom: 14 }}>
                   <WorkflowDashboard currentStep={workflow?.current_step || activeStep} completedSteps={workflow?.completed_steps} onNavigate={goStep} listingId={listingId} />
                 </div>
