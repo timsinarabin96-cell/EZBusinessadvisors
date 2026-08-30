@@ -6,7 +6,7 @@
  */
 
 import { supabase } from '@/lib/supabase/client'
-import { authHeaders } from '@/lib/authToken'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 // ---------------------------------------------------------------------------
 // Listings CRUD — configured to the REAL listings schema (probed live):
@@ -157,9 +157,9 @@ export async function deleteListing(id: string, opts?: { reason?: string; note?:
   // the listing owner and orphaned storage files. The API requires a Bearer
   // token (authenticateProfileRequest), so auth headers are mandatory. A
   // deletion reason is REQUIRED (400 without one).
-  const res = await fetch(`/api/listings/${encodeURIComponent(id)}`, {
+  const res = await authenticatedFetch(`/api/listings/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reason: opts?.reason || '', note: opts?.note || '' }),
   })
   const data = await res.json().catch(() => ({ ok: false, error: 'Delete failed' }))
@@ -170,9 +170,9 @@ export async function deleteListing(id: string, opts?: { reason?: string; note?:
 
 /** Restore a trashed (soft-deleted) listing back to its previous status. */
 export async function restoreListing(id: string): Promise<void> {
-  const res = await fetch(`/api/listings/${encodeURIComponent(id)}/restore`, {
+  const res = await authenticatedFetch(`/api/listings/${encodeURIComponent(id)}/restore`, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: { 'Content-Type': 'application/json' },
   })
   const data = await res.json().catch(() => ({ ok: false, error: 'Restore failed' }))
   if (!res.ok || !data.ok) {
