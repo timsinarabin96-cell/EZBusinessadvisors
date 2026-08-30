@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getStoredAccessToken } from '@/lib/authToken'
 import StudioConcierge from '@/components/studio/StudioConcierge'
+import AutoBuildPanel from '@/components/studio/AutoBuildPanel'
 import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
 import WorkflowDashboard from '@/components/listings/WorkflowDashboard'
 import WorkflowGuidance from '@/components/listings/WorkflowGuidance'
@@ -338,6 +339,7 @@ export default function AIDealStudio() {
                 onDraftCreated={(id) => { if (!listingId) setPhase('capture', id, 1) }}
                 onLiveState={setLiveState}
               />
+              {listingId && <AutoBuildPanel listingId={listingId} onBuilt={() => { setPhase('verify', listingId, 1) }} />}
             </>
           )}
 
