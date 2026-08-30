@@ -125,10 +125,13 @@ export default function AgencyAdmin() {
           {/* Selected agency detail */}
           {selected && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {/* Branding */}
+              {/* Branding — key remounts the form when the selected agency
+                  changes; otherwise local useState stays stale (shows the
+                  PREVIOUS agency's name/slug/colors after switching). */}
               <Card>
                 <CardHeader title={`${selected.name} — White-Label Branding`} subtitle="Customize subdomain, colors, and logo" />
                 <AgencyBrandingForm
+                  key={selected.id}
                   agency={selected}
                   onSave={handleUpdate}
                   onDelete={handleDelete}
