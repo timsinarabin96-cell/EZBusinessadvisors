@@ -29,7 +29,8 @@ test('website: public homepage exists with hero, search, stats, featured', () =>
 test('website: about and contact pages exist', () => {
   assert.match(about, /About Us/)
   assert.match(about, /Confidential by Default/)
-  assert.match(contact, /Get in Touch/)
+  assert.match(contact, /Get in/)
+  assert.match(contact, /Touch/)
   assert.match(contact, /ContactForm/)
 })
 

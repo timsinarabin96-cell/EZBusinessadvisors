@@ -31,8 +31,10 @@ export default function BrokersPage() {
     <div style={{ maxWidth: 1180, margin: '0 auto', padding: '60px 24px' }}>
       <SponsoredSlotInline slotKey="brokers_page_spot" />
       <div style={{ textAlign: 'center', marginBottom: 44 }}>
-        <div style={{ color: '#0e7490', fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 800 }}>Advisor Intelligence Network</div>
-        <h1 style={{ fontSize: 42, color: '#102a43', margin: '8px 0 12px' }}>Choose expertise, not just a name</h1>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(14,116,144,0.1)', border: '1px solid rgba(14,116,144,0.3)', borderRadius: 999, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#0e7490', marginBottom: 14 }}>
+              🤝 Advisor Intelligence Network
+        </div>
+        <h1 style={{ fontSize: 'clamp(30px, 4.5vw, 44px)', color: '#102a43', margin: '8px 0 12px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>Choose expertise, <span className="grad-gold">not just a name</span></h1>
         <p style={{ color: '#666', fontSize: 15, maxWidth: 560, margin: '0 auto', lineHeight: 1.6 }}>
           Licensed, experienced business brokerage professionals guiding you through every step of your transaction.
         </p>

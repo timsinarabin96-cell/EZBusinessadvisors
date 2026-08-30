@@ -18,16 +18,23 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div style={{ maxWidth: 860, margin: '0 auto', padding: '56px 24px' }}>
-      <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', fontWeight: 700 }}>About Us</div>
-      <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 36, color: '#1a1a2e', margin: '10px 0 20px' }}>
-        A Confidential, Professional Approach to Business Brokerage
-      </h1>
-      <p style={{ fontSize: 16, color: '#555', lineHeight: 1.8, marginBottom: 18 }}>
-        Concord helps business owners sell what they've built and helps qualified
-        buyers find their next acquisition — with the discretion, financial rigor, and process
-        a transaction of this size deserves.
-      </p>
+    <div>
+      {/* Premium hero */}
+      <section style={{ background: 'linear-gradient(160deg,#0b1020 0%,#101a38 42%,#0f2a52 100%)', color: '#fff', padding: '72px 24px 56px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div className="hero-aurora" />
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 999, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em', color: '#f0d98c', marginBottom: 16 }}>
+            🏛️ About Us
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px, 4.8vw, 46px)', margin: '0 0 12px', color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.08 }}>
+            A Confidential, <span className="grad-gold">Professional</span> Approach to Business Brokerage
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 620, margin: '0 auto', fontSize: 15.5, lineHeight: 1.65 }}>
+            Concord helps business owners sell what they've built and helps qualified buyers find their next acquisition — with the discretion, financial rigor, and process a transaction of this size deserves.
+          </p>
+        </div>
+      </section>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 24px' }}>
       <p style={{ fontSize: 16, color: '#555', lineHeight: 1.8, marginBottom: 18 }}>
         Every listing we bring to market goes through a structured internal review before it's
         published: financials are normalized (recast), a broker opinion of value is prepared, and
@@ -52,6 +59,7 @@ export default function AboutPage() {
           <Link href="/marketplace/listings" style={btnGhost}>Browse Businesses</Link>
           <Link href="/marketplace/brokers" style={btnGhost}>Meet Our Brokers</Link>
         </div>
+      </div>
       </div>
     </div>
   )

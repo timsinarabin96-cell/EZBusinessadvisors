@@ -19,13 +19,20 @@ export const metadata: Metadata = {
 export default function PricingPage() {
   return (
     <div>
-      {/* Header */}
-      <section style={{ background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%)', color: '#fff', padding: '72px 24px 56px', textAlign: 'center' }}>
-        <div style={{ color: '#c9a84c', fontSize: 12, letterSpacing: '0.25em', textTransform: 'uppercase', fontWeight: 700 }}>Pricing</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 'clamp(30px, 5vw, 44px)', margin: '12px 0 10px', color: '#fff', textShadow: '0 2px 12px rgba(0,0,0,0.35)' }}>Simple Plans. Serious Platform.</h1>
-        <p style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 600, margin: '0 auto', fontSize: 15.5, lineHeight: 1.65 }}>
-          Start free as a business owner. Post on our marketplace as a brokerage. Or own the entire CRM on your own domain — your brand, your API keys, your data.
-        </p>
+      {/* Header — premium hero (billion-dollar pass) */}
+      <section style={{ background: 'linear-gradient(160deg,#0b1020 0%,#101a38 42%,#0f2a52 100%)', color: '#fff', padding: '76px 24px 64px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div className="hero-aurora" />
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 999, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, letterSpacing: '0.04em', color: '#f0d98c', marginBottom: 18 }}>
+            💎 Pricing
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(34px, 5vw, 50px)', margin: '0 0 12px', color: '#fff', letterSpacing: '-0.03em', lineHeight: 1.06 }}>
+            Simple Plans. <span className="grad-gold">Serious Platform.</span>
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 600, margin: '0 auto', fontSize: 15.5, lineHeight: 1.65 }}>
+            Start free as a business owner. Post on our marketplace as a brokerage. Or own the entire CRM on your own domain — your brand, your API keys, your data.
+          </p>
+        </div>
       </section>
 
       {/* Subscription tiers — tiered pricing (monthly/annual toggle, limits) */}
