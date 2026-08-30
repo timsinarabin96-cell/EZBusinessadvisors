@@ -47,9 +47,12 @@ test('similar listings: zero-token recommendation engine', () => {
 })
 
 test('website: homepage has browse-by-industry SEO entry points', () => {
-  assert.match(homepage, /Browse by industry/)
-  assert.match(homepage, /marketplace\/industry/)
+  assert.match(homepage, /Browse by business type/)
+  assert.match(homepage, /CategoryCards/)
   assert.match(homepage, /slugify/)
+  const cards = readFileSync('components/public/CategoryCards.tsx', 'utf8')
+  assert.match(cards, /marketplace\/industry/)
+  assert.match(cards, /BUSINESS_CATEGORIES/)
 })
 
 test('website: detail page wires similar listings', () => {

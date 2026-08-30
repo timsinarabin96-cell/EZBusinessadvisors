@@ -210,7 +210,7 @@ export default async function HomePage() {
         </div>
 
         {/* Browse by industry — SEO entry points, now full-color category cards */}
-        <CategoryCards industries={industries} limit={12} />
+        <CategoryCards industries={industries} limit={12} title="Browse by business type" subtitle="Pick a category to see vetted businesses for sale" />
 
         {featured.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 24px', background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 12, color: '#888' }}>

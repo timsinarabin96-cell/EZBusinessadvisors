@@ -123,6 +123,7 @@ export default function StudioConcierge({
   const [industry, setIndustry] = useState('')
   // Live-agent recast state
   const [agentStatus, setAgentStatus] = useState<string | null>(null)
+  const [activeListingId, setActiveListingId] = useState<string | null>(listingId || null)
   const [baseSde, setBaseSde] = useState<number | null>(null)
   const [baseRevenue, setBaseRevenue] = useState<number | null>(null)
   const [baseEbitda, setBaseEbitda] = useState<number | null>(null)
@@ -141,12 +142,14 @@ export default function StudioConcierge({
     asking_price: null,
   })
 
-  // Load financial docs already attached to this deal record.
+  // Load financial docs already attached to this deal record (works in
+  // Capture too once a draft deal is auto-created on first upload).
   useEffect(() => {
-    if (!listingId) return
+    const dealId = activeListingId || listingId
+    if (!dealId) return
     ;(async () => {
       try {
-        const rows = await fetchListingDocuments(listingId)
+        const rows = await fetchListingDocuments(dealId)
         const financials = (rows || []).filter((d) =>
           /financial|tax_return|bank_statement/i.test(String(d.document_type || d.category || '')),
         )
@@ -155,7 +158,7 @@ export default function StudioConcierge({
         /* non-fatal */
       }
     })()
-  }, [listingId])
+  }, [activeListingId, listingId])
 
   const uploadFinancial = async (f: File) => {
     // No deal record yet (fresh Capture) → auto-create a draft listing so the
@@ -166,6 +169,7 @@ export default function StudioConcierge({
         const { createListing } = await import('@/lib/listings')
         const created = await createListing({ business_name: 'Untitled deal', status: 'draft' })
         targetListingId = created.id
+        setActiveListingId(created.id)
         onListingCreated?.(created.id)
       } catch (e: any) {
         toast(e.message || 'Could not create the deal record for this upload', 'error')
@@ -239,7 +243,7 @@ export default function StudioConcierge({
   /** Save the recast PDF to the deal's financial folder + record it. */
   const saveRecast = async () => {
     if (!recastResult) { toast('Apply add-backs first, then save', 'error'); return }
-    const dealId = listingId || null
+    const dealId = activeListingId || listingId || null
     if (!dealId) { toast('Save the deal record first (or upload once so a draft deal is created)', 'error'); return }
     setSavingRecast(true)
     try {
@@ -272,14 +276,15 @@ export default function StudioConcierge({
   }
 
   const deleteFinancial = async (doc: { id: string; name: string; url: string }) => {
-    if (!listingId || !doc.id) { toast('Nothing to delete', 'error'); return }
+    const dealId = activeListingId || listingId
+    if (!dealId || !doc.id) { toast('Nothing to delete', 'error'); return }
     if (!confirm(`Delete "${doc.name}"? This removes it from the deal record and storage.`)) return
     setUploading(true)
     try {
       const res = await fetch('/api/listings/documents/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId, docId: doc.id, fileUrl: doc.url }),
+        body: JSON.stringify({ listingId: dealId, docId: doc.id, fileUrl: doc.url }),
       })
       const j = await res.json().catch(() => ({ ok: false }))
       if (!res.ok || !j.ok) throw new Error(j.error || 'Delete failed')
@@ -616,11 +621,15 @@ export default function StudioConcierge({
                   <button onClick={() => setPreview(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999' }}>✕</button>
                 </div>
               </div>
-              {/\.(png|jpe?g|gif|webp|svg)$/i.test(preview.url) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview.url} alt={preview.name} style={{ width: '100%', borderRadius: 8 }} />
+              {preview.url ? (
+                /\.(png|jpe?g|gif|webp|svg)$/i.test(preview.url) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={preview.url} alt={preview.name} style={{ width: '100%', borderRadius: 8 }} />
+                ) : (
+                  <iframe src={preview.url} title={preview.name} style={{ width: '100%', height: '70vh', border: '1px solid #ece8dc', borderRadius: 8 }} />
+                )
               ) : (
-                <iframe src={preview.url} title={preview.name} style={{ width: '100%', height: '70vh', border: '1px solid #ece8dc', borderRadius: 8 }} />
+                <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>No preview available — use “Open in new tab”.</div>
               )}
             </div>
           </div>

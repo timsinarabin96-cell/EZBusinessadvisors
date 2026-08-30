@@ -20,12 +20,26 @@ import { isPlainTextType, truncateForClaude } from '@/lib/ai/documentAnalyzer'
 export { isPlainTextType, truncateForClaude }
 
 // Lazy, memoized pdf-parse (keeps module load cost off cold start hot path).
+// pdf-parse v2 exposes a PDFParse CLASS — the old v1 `fn(data)` call silently
+// returned nothing, which is why every PDF failed to read in production.
 let pdfParse: ((data: Buffer) => Promise<{ text: string }>) | null = null
 async function getPdfParser() {
   if (!pdfParse) {
     const mod: any = await import('pdf-parse')
-    const fn = mod?.default || mod
-    pdfParse = (data: Buffer) => fn(data)
+    const v2 = mod?.PDFParse
+    pdfParse = async (data: Buffer) => {
+      try {
+        // v2: new PDFParse({ data }).getText()
+        const parser = new v2({ data })
+        const r = await parser.getText()
+        return { text: r?.text || '' }
+      } catch {
+        // v1 fallback: fn(data)
+        const fn = mod?.default || mod
+        if (typeof fn === 'function') return await fn(data)
+        return { text: '' }
+      }
+    }
   }
   return pdfParse
 }
@@ -41,6 +55,33 @@ async function getOcrWorker() {
     ocrWorker = worker
   }
   return ocrWorker
+}
+
+// ── Excel/CSV workbooks → tabular text ─────────────────────────────────────
+// Reads every sheet via SheetJS (xlsx) and flattens cells into pipe-delimited
+// rows so POS reports, bank statements, and P&L workbooks become readable by
+// the AI analyzer. Zero API cost, server-side.
+let xlsxLib: any = null
+async function excelToText(data: Buffer): Promise<string> {
+  try {
+    if (!xlsxLib) xlsxLib = await import('xlsx')
+    const wb = xlsxLib.read(data, { type: 'buffer', cellDates: true })
+    const parts: string[] = []
+    for (const name of wb.SheetNames.slice(0, 12)) {
+      const sheet = wb.Sheets[name]
+      const rows = xlsxLib.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' }) as unknown[][]
+      const lines = rows
+        .map((r) => (r as unknown[]).map((c) => String(c ?? '').trim()).filter(Boolean).join(' | '))
+        .filter((l) => l)
+      if (lines.length) {
+        parts.push(`[Sheet: ${name}]`)
+        parts.push(...lines.slice(0, 400))
+      }
+    }
+    return parts.join('\n')
+  } catch {
+    return ''
+  }
 }
 
 const IMAGE_MIME_RE = /^image\/(png|jpe?g|webp|bmp|gif|tiff?)$/i
@@ -126,6 +167,9 @@ export async function extractDocumentText({
       if (!raw.trim()) {
         raw = await ocrScannedPdf(data)
       }
+    } else if (n.endsWith('.xlsx') || n.endsWith('.xls') || m.includes('spreadsheet') || m.includes('excel')) {
+      // Excel / CSV workbooks → read every sheet as text rows.
+      raw = await excelToText(data)
     } else if (IMAGE_MIME_RE.test(m) || IMAGE_EXT_RE.test(n)) {
       // Scanned bank statements / POS summaries / paper financials → OCR.
       raw = await ocrImageBuffer(data)

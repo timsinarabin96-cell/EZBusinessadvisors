@@ -19,7 +19,7 @@ test('website: public homepage exists with hero, search, stats, featured', () =>
   assert.match(homepage, /Buy or Sell a Business/)
   assert.match(homepage, /fetchFeaturedListings/)
   assert.match(homepage, /fetchMarketplaceStats/)
-  assert.match(homepage, /grid-responsive/)
+  assert.match(homepage, /hero-grid/)
   assert.match(homepage, /AuthRedirect/)
   assert.match(homepage, /PublicListingCard/)
   assert.match(homepage, /Browse All Listings/)
