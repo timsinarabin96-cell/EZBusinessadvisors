@@ -14,6 +14,7 @@ import { authHeaders } from '@/lib/authToken'
 import { createListing, fetchListing } from '@/lib/listings'
 import { ONE_SHOT_STAGES, type BuildStep } from '@/lib/oneShotDeal'
 import AiPhotoStudioCard from '@/components/studio/AiPhotoStudioCard'
+import LegalDocsCard from '@/components/studio/LegalDocsCard'
 
 // =============================================================================
 // OneShotDealBuilder — THE HEART of the platform.
@@ -64,6 +65,14 @@ export default function OneShotDealBuilder() {
 
   const loadDeal = async (id: string) => {
     setPhase('deal')
+    // Sync the URL so the deal is deep-linkable / refreshable (?listing=<id>).
+    try {
+      const u = new URL(window.location.href)
+      if (u.searchParams.get('listing') !== id) {
+        u.searchParams.set('listing', id)
+        window.history.replaceState(null, '', u.toString())
+      }
+    } catch { /* best-effort */ }
     try {
       const l = await fetchListing(id)
       setListing(l)
@@ -374,6 +383,9 @@ export default function OneShotDealBuilder() {
                   </div>
                 )}
               </div>
+
+              {/* Legal — the gate (listing agreement eSign + disclosures + NDA) */}
+              <LegalDocsCard listingId={listing.id} />
 
               {/* Photos */}
               <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>

@@ -121,9 +121,53 @@ export async function POST(req: NextRequest) {
     buyer_profile: buyerProfile,
     guide_acknowledged: guideAcknowledged,
     pdf_url: pdfPath,
+    qualification_score: body?.qualificationScore != null ? Number(body.qualificationScore) : null,
+    qualification_decision: String(body?.qualificationDecision || '').trim() || null,
   })
   if (insErr) {
     return NextResponse.json({ ok: false, error: 'Could not record signature. Please try again.' }, { status: 500 })
+  }
+
+  // --- AUTO COUNTER-SIGN + ARCHIVE + BUYER COPY (best-effort, never blocks) ---
+  try {
+    const { data: listingRow } = await svc.from('listings').select('agency_id, business_name').eq('id', listingId).maybeSingle()
+    const agencyId = (listingRow as any)?.agency_id || null
+    let signer: { name: string; title: string } = { name: 'Broker', title: 'Licensed Business Broker' }
+    if (agencyId) {
+      const { data: ag } = await svc.from('agencies').select('signing_name, signing_title').eq('id', agencyId).maybeSingle()
+      if (ag?.signing_name) signer = { name: String(ag.signing_name), title: String(ag.signing_title || 'Broker') }
+    }
+    // 1) Mark the NDA row counter-signed with the agency's stored signature.
+    await svc.from('listing_nda_signatures').update({
+      counter_signed_at: new Date().toISOString(),
+      counter_signer_name: signer.name,
+      counter_signer_title: signer.title,
+    }).eq('unlock_token', token)
+    // 2) Archive a copy into the deal's documents (visible in the deal review).
+    if (pdfPath) {
+      const { data: pub } = svc.storage.from(FF_BUCKET).getPublicUrl(pdfPath)
+      try {
+        await svc.from('listing_documents').insert({
+          listing_id: listingId,
+          category: 'nda',
+          party_type: 'buyer',
+          party_name: name,
+          party_email: email,
+          file_url: pub?.publicUrl || pdfPath,
+          signature_name: name,
+          status: 'signed',
+          signed_at: new Date().toISOString(),
+        })
+      } catch { /* archive is best-effort */ }
+    }
+    // 3) Email the buyer their signed copy (accountless unlock already works).
+    const { notify } = await import('@/lib/email')
+    await notify('nda_access_granted', email, {
+      name,
+      businessName: (listingRow as any)?.business_name || listing.business_name || listing.public_title || 'the business',
+    }).catch(() => {})
+  } catch {
+    /* non-fatal */
   }
 
   // --- Funnel: NDA signer → CRM buyer lead (so brokers see who's signing). ---
