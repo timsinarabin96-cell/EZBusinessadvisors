@@ -904,6 +904,13 @@ main[style*="display:grid"] > *, main[style*="display: grid"] > * {
   .step-connector::before { display: none; }
 }
 
+/* Footer social icon hover (CSS-only — the footer is a server component,
+   inline JS handlers there break React hydration). */
+.footer-icon-btn:hover {
+  transform: translateY(-3px);
+  background: rgba(201, 168, 76, 0.18) !important;
+}
+
 /* ---- GEORGIA KILLER: the entire site set fonts inline as Georgia. These
    attribute selectors override EVERY inline Georgia style in one shot —
    headings get the Space Grotesk display font, everything else gets Inter. */

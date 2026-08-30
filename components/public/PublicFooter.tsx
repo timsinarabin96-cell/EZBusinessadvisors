@@ -46,12 +46,12 @@ export default function PublicFooter() {
           <div style={{ marginTop: 16 }}>
             <NewsletterSignup />
           </div>
-          {/* Social / contact emoji row */}
+          {/* Social / contact emoji row — CSS hover only (PublicFooter is a
+              SERVER component; inline onMouseEnter/onMouseLeave serialize into
+              the HTML and break React hydration). */}
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
             {[['📧', '/contact'], ['💼', '/marketplace/brokers'], ['⚖️', '/marketplace/trust'], ['📰', '/marketplace/insights']].map(([e, href]) => (
-              <Link key={href} href={href} title={href} style={{ width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', fontSize: 17, textDecoration: 'none', transition: 'transform .15s ease, background .15s ease' }}
-                onMouseEnter={(ev) => { ev.currentTarget.style.transform = 'translateY(-3px)'; ev.currentTarget.style.background = 'rgba(201,168,76,0.18)' }}
-                onMouseLeave={(ev) => { ev.currentTarget.style.transform = 'translateY(0)'; ev.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}>
+              <Link key={href} href={href} title={href} className="footer-icon-btn" style={{ width: 38, height: 38, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.14)', fontSize: 17, textDecoration: 'none', transition: 'transform .15s ease, background .15s ease' }}>
                 {e}
               </Link>
             ))}
