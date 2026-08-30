@@ -13,11 +13,13 @@ import {
   buildRecordExtractionPrompt,
   fallbackExtractRecord,
   buildTeaserPrompt,
+  fallbackTeaser,
   runAudit,
   valuationFromMultiples,
   sbaEligibility,
   type BuildStep,
 } from '@/lib/oneShotDeal'
+import { withRetry } from '@/lib/aiRetry'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300 // doc reading + 4 PDF gens + AI photos can take a while
@@ -58,9 +60,11 @@ export async function POST(req: NextRequest) {
   if (!listingId) return NextResponse.json({ ok: false, error: 'listingId required' }, { status: 400 })
 
   // Agency gate (IDOR guard).
+  let listingRow: Record<string, unknown> | null = null
   try {
-    const { data: listing } = await db.from('listings').select('agency_id, agent_id').eq('id', listingId).maybeSingle()
+    const { data: listing } = await db.from('listings').select('agency_id, agent_id, ai_metadata').eq('id', listingId).maybeSingle()
     if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
+    listingRow = listing as Record<string, unknown> | null
     const agencyId = (listing as { agency_id?: string | null } | null)?.agency_id
     const agentId = (listing as { agent_id?: string | null } | null)?.agent_id
     const mine = new Set((auth.memberships || []).map((m) => m.agency_id))
@@ -71,23 +75,57 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Agency check failed' }, { status: 500 })
   }
 
-  const steps: BuildStep[] = ONE_SHOT_STAGES.map((s) => ({ key: s.key, label: s.label, status: 'pending' }))
+  // ── RESUME SUPPORT ────────────────────────────────────────────────────────
+  // Persist the build trail to ai_metadata.build after every stage so a crash
+  // / refresh / rate-limit wall mid-build can resume from the last completed
+  // stage instead of re-running the whole pipeline from zero. Already-done and
+  // already-skipped stages are kept; failed/pending ones are re-attempted.
+  const savedBuild = ((listingRow as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata?.build as { steps?: BuildStep[] } | undefined) || undefined
+  const savedByKey = new Map((savedBuild?.steps || []).map((s) => [s.key, s]))
+  const steps: BuildStep[] = ONE_SHOT_STAGES.map((s) => {
+    const prev = savedByKey.get(s.key)
+    if (prev && (prev.status === 'done' || prev.status === 'skipped')) {
+      return { key: s.key, label: s.label, status: prev.status, note: prev.note }
+    }
+    return { key: s.key, label: s.label, status: 'pending' }
+  })
   const set = (key: string, patch: Partial<BuildStep>) => {
     const s = steps.find((x) => x.key === key)
     if (s) Object.assign(s, patch)
   }
+  // Non-blocking persistence — never let a DB hiccup kill the stream.
+  const persistBuild = () => {
+    const meta = ((listingRow as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata) || {}
+    void (async () => {
+      try {
+        await db.from('listings').update({
+          ai_metadata: { ...meta, build: { steps: steps.map(({ key, status, note }) => ({ key, status, note })), updatedAt: new Date().toISOString() } },
+          updated_at: new Date().toISOString(),
+        }).eq('id', listingId)
+      } catch (e) {
+        console.error('[deals/build] persist failed:', (e as Error)?.message)
+      }
+    })()
+  }
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (line: unknown) => controller.enqueue(ndjson(line))
-      const run = async (key: string, fn: () => Promise<void>) => {
+      // Emit already-completed stages instantly so a resumed trail renders.
+      for (const s of steps) {
+        if (s.status === 'done' || s.status === 'skipped') send(stepEvent(s))
+      }
+      const run = async (key: string, fn: () => Promise<void>, attempts = 2) => {
+        const step = steps.find((s) => s.key === key)!
+        if (step.status === 'done' || step.status === 'skipped') return // resume: already complete
         set(key, { status: 'running' })
-        send(stepEvent(steps.find((s) => s.key === key)!))
+        send(stepEvent(step))
         try {
-          await fn()
+          await withRetry(fn, { attempts, onRetry: (e, attempt) => console.warn(`[deals/build] ${key} retry ${attempt}:`, (e as Error)?.message) })
           set(key, { status: 'done' })
         } catch (e: any) {
           set(key, { status: 'failed', note: e?.message || 'Failed' })
         }
+        persistBuild()
         send(stepEvent(steps.find((s) => s.key === key)!))
       }
 

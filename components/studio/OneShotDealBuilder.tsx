@@ -54,6 +54,7 @@ export default function OneShotDealBuilder() {
   const [error, setError] = useState<string | null>(null)
   const [docs, setDocs] = useState<any[]>([])
   const [publishing, setPublishing] = useState(false)
+  const [resumable, setResumable] = useState(false)
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   // Resume a deep link ?listing=<id> → straight to the deal review.
@@ -79,6 +80,18 @@ export default function OneShotDealBuilder() {
     try {
       const l = await fetchListing(id)
       setListing(l)
+      // RESUME SUPPORT: if a previous build was interrupted (persisted trail
+      // has pending/failed/running stages), restore the trail + offer resume
+      // instead of silently showing the review screen.
+      const savedSteps = (l as any)?.ai_metadata?.build?.steps as BuildStep[] | undefined
+      if (Array.isArray(savedSteps) && savedSteps.length) {
+        const incomplete = savedSteps.some((s) => s.status === 'pending' || s.status === 'failed' || s.status === 'running')
+        if (incomplete) {
+          setSteps(ONE_SHOT_STAGES.map((s) => savedSteps.find((x) => x.key === s.key) || { key: s.key, label: s.label, status: 'pending' }))
+          setResumable(true)
+          setPhase('building')
+        }
+      }
       const res = await authenticatedFetch(`/api/listings/options?listingId=${id}`).catch(() => null)
       void res
       // Documents (generated BOV/CIM/BLI + uploads).
@@ -92,13 +105,17 @@ export default function OneShotDealBuilder() {
 
   const build = async () => {
     if (phase === 'building') return
-    if (!notes.trim() && files.length === 0) {
+    // Resume path: a listing already exists (deep link / interrupted build) →
+    // allow re-running without needing to re-paste notes.
+    const resuming = !!listingId
+    if (!resuming && !notes.trim() && files.length === 0) {
       toast('Paste broker notes or upload at least one document first', 'error')
       return
     }
     setError(null)
+    setResumable(false)
     setPhase('building')
-    setSteps(ONE_SHOT_STAGES.map((s) => ({ key: s.key, label: s.label, status: 'pending' })))
+    if (!resuming) setSteps(ONE_SHOT_STAGES.map((s) => ({ key: s.key, label: s.label, status: 'pending' })))
 
     try {
       // 1. Ensure a draft listing exists.
@@ -302,6 +319,21 @@ export default function OneShotDealBuilder() {
             <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>
               The AI is reading, verifying and generating. This can take a minute — every stage updates live below.
             </div>
+            {resumable && (
+              <div style={{ marginBottom: 14, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 13, color: '#f5d97a', fontWeight: 800, marginBottom: 8 }}>⏸ This build was interrupted</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
+                  Finished stages are saved — resume and it picks up right where it stopped (no re-run from zero).
+                </div>
+                <button
+                  type="button"
+                  onClick={build}
+                  style={{ padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', fontWeight: 800, fontSize: 13.5, fontFamily: 'var(--font-sans)' }}
+                >
+                  ▶ Resume build
+                </button>
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {steps.map((s) => (
                 <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13 }}>
