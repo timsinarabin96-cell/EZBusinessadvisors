@@ -54,9 +54,10 @@ export default function Dashboard() {
 
   return (
     <div>
-      <header style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+      <header style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26 }}>Dashboard</h1>
+          <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold-dark)', fontWeight: 800 }}>Broker Command Center</div>
+          <h1 style={{ margin: '4px 0 0', fontSize: 28, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>Dashboard</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>
             EZ Business Advisors — deal overview · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
@@ -149,7 +150,7 @@ export default function Dashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <Card>
             <CardHeader title="Quick Actions" />
-            <div style={{ padding: '12px 20px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ padding: '12px 20px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {[
                 { href: '/listings', label: '+ New Listing', icon: '🏢' },
                 { href: '/pipeline', label: '+ New Deal', icon: '🤝' },
@@ -158,13 +159,13 @@ export default function Dashboard() {
                 { href: '/dashboard/reports', label: 'Generate BOV', icon: '⚖️' },
                 { href: '/dashboard/deal-room', label: 'Deal Room', icon: '📁' },
               ].map((a) => (
-                <Link key={a.href} href={a.href} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                  borderRadius: 8, border: '1px solid var(--line)', background: 'var(--cream)',
-                  textDecoration: 'none', color: 'var(--navy)', fontSize: 14, fontWeight: 600,
-                  transition: 'all 0.15s',
+                <Link key={a.href + a.label} href={a.href} className="lift" style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '13px 12px',
+                  borderRadius: 12, border: '1px solid var(--line)', background: '#fff',
+                  textDecoration: 'none', color: 'var(--navy)', fontSize: 13, fontWeight: 700,
+                  boxShadow: '0 1px 3px rgba(15,23,42,0.05)', transition: 'all 0.18s ease',
                 }}>
-                  <span style={{ fontSize: 18 }}>{a.icon}</span> {a.label}
+                  <span style={{ fontSize: 18, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.12))' }}>{a.icon}</span> {a.label}
                 </Link>
               ))}
             </div>

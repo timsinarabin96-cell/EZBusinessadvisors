@@ -124,18 +124,20 @@ export default function AppShell({
         key={item.href}
         href={item.href}
         onClick={() => { setOpen(false); recordRecent(item.href) }}
+        className="crm-nav-link"
         style={{
           display: 'flex', alignItems: 'center', gap: 12,
-          padding: '9px 14px', marginBottom: 2, borderRadius: 8,
+          padding: '9px 14px', marginBottom: 2, borderRadius: 10,
           textDecoration: 'none', fontSize: 14,
-          fontFamily: 'Georgia, serif',
-          color: activeItem ? '#fff' : 'rgba(255,255,255,0.65)',
-          background: activeItem ? 'rgba(201,168,76,0.18)' : 'transparent',
-          borderLeft: activeItem ? `3px solid var(--gold)` : '3px solid transparent',
-          transition: 'all 0.15s',
+          fontFamily: 'var(--font-sans)',
+          color: activeItem ? '#fff' : 'rgba(255,255,255,0.66)',
+          background: activeItem ? 'linear-gradient(90deg, rgba(201,168,76,0.22), rgba(201,168,76,0.06))' : 'transparent',
+          boxShadow: activeItem ? 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 14px rgba(0,0,0,0.25)' : 'none',
+          borderLeft: activeItem ? '3px solid var(--gold)' : '3px solid transparent',
+          transition: 'all 0.16s ease',
         }}
       >
-        {showIcon && <span style={{ fontSize: 16, width: 22, textAlign: 'center' }}>{item.icon}</span>}
+        {showIcon && <span style={{ fontSize: 16, width: 22, textAlign: 'center', filter: activeItem ? 'drop-shadow(0 2px 6px rgba(201,168,76,0.5))' : 'none' }}>{item.icon}</span>}
         {item.label}
       </Link>
     )
@@ -220,19 +222,24 @@ export default function AppShell({
           }}
         >
           {/* Brand — white-label: agency logo + name, or fallback text */}
-          <div style={{ padding: '26px 20px 20px', borderBottom: '1px solid rgba(201,168,76,0.3)' }}>
+          <div style={{ padding: '26px 20px 20px', borderBottom: '1px solid rgba(201,168,76,0.22)', background: 'linear-gradient(180deg, rgba(255,255,255,0.05), transparent)' }}>
             {brand?.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={brand.logo} alt="agency logo" style={{ maxHeight: 40, maxWidth: '100%', marginBottom: 6, objectFit: 'contain' }} />
             ) : (
-              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: brand?.font || 'Georgia, serif', color: '#fff', letterSpacing: 0.5 }}>
-                {brand?.name || 'EZ Business Advisors'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, rgba(201,168,76,0.9), rgba(176,141,53,0.75))', color: '#0f1023', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, boxShadow: '0 6px 18px rgba(201,168,76,0.35)' }}>🌒</span>
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 700, fontFamily: brand?.font || 'var(--font-display)', color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
+                    {brand?.name || 'EZ Business Advisors'}
+                  </div>
+                  <div style={{ fontSize: 10, letterSpacing: '0.28em', color: 'var(--gold-light)', textTransform: 'uppercase', marginTop: 3, fontWeight: 700 }}>
+                    Broker CRM
+                  </div>
+                </div>
               </div>
             )}
-            <div style={{ fontSize: 11, letterSpacing: '0.28em', color: 'var(--gold-light)', textTransform: 'uppercase', marginTop: 2 }}>
-              Broker CRM
-            </div>
-            <div style={{ height: 2, width: 40, background: 'var(--gold)', marginTop: 10 }} />
+            <div style={{ height: 2, width: 46, background: 'linear-gradient(90deg, var(--gold), transparent)', marginTop: 14, borderRadius: 2 }} />
           </div>
 
           {/* Nav */}
@@ -335,12 +342,12 @@ export default function AppShell({
 
         {/* Main */}
         <main className="app-shell-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-          {/* Top header with global search + back arrow */}
-          <div style={{ padding: '14px 40px', borderBottom: '1px solid var(--line)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          {/* Top header — frosted glass with global search + back arrow */}
+          <div className="crm-topbar" style={{ position: 'sticky', top: 0, zIndex: 40, padding: '12px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
             <button
               onClick={() => { if (window.history.length > 1) router.back(); else router.push('/dashboard') }}
               title="Go back"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid var(--line)', background: '#fff', color: 'var(--navy)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid rgba(15,23,42,0.1)', background: 'rgba(255,255,255,0.7)', color: 'var(--navy)', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }}
             >
               ← Back
             </button>
@@ -348,7 +355,7 @@ export default function AppShell({
               <SearchBar backdrop />
             </div>
           </div>
-          <div style={{ padding: '32px 40px' }}>
+          <div style={{ padding: '28px 40px 48px', background: 'linear-gradient(180deg, #faf9f5 0%, var(--paper) 40px)' }}>
             {children}
           </div>
         </main>

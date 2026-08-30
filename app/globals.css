@@ -911,6 +911,23 @@ main[style*="display:grid"] > *, main[style*="display: grid"] > * {
   background: rgba(201, 168, 76, 0.18) !important;
 }
 
+/* ---- CRM chrome (AppShell) polish ---- */
+.crm-nav-link:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}
+.app-shell-aside {
+  background: linear-gradient(180deg, #0d1330 0%, #101a38 55%, #0b1020 100%) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05), 8px 0 30px rgba(8, 12, 28, 0.25) !important;
+}
+.crm-topbar {
+  background: rgba(255, 255, 255, 0.86) !important;
+  backdrop-filter: blur(16px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.5) !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06) !important;
+}
+
 /* ---- GEORGIA KILLER: the entire site set fonts inline as Georgia. These
    attribute selectors override EVERY inline Georgia style in one shot —
    headings get the Space Grotesk display font, everything else gets Inter. */
