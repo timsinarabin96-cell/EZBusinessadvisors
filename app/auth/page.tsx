@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation'
 import { resolvePortalRole, resolveLoginDestination, PORTAL_LABEL } from '@/lib/authRouting'
 import { isEmailConfirmed } from '@/lib/emailVerification'
 
-type Step = 'signin' | 'verify' | 'mfa'
+type Step = 'signin' | 'verify' | 'mfa' | 'mfa_enroll'
 
 export default function AuthPage() {
   const [email, setEmail] = useState('')
@@ -38,6 +38,11 @@ export default function AuthPage() {
   const [success, setSuccess] = useState('')
   const [factorId, setFactorId] = useState('')
   const [landing, setLanding] = useState('')
+  // MFA enforcement: forced-enrollment state for required-but-unenrolled accounts.
+  const [enrollFactorId, setEnrollFactorId] = useState('')
+  const [enrollSecret, setEnrollSecret] = useState('')
+  const [enrollQr, setEnrollQr] = useState('')
+  const [enrollCode, setEnrollCode] = useState('')
   const router = useRouter()
 
   const redirectAfterLogin = async (): Promise<string> => {
@@ -105,6 +110,34 @@ export default function AuthPage() {
         }
       }
 
+      // MFA ENFORCEMENT: accounts REQUIRED to have 2FA (super_admin, or any
+      // agency member where require_2fa=true) with NO verified factor are
+      // BLOCKED here — the login flow refuses and forces enrollment. There is
+      // no path to the dashboard without a verified TOTP factor.
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const mfaRes = await fetch('/api/auth/mfa-status', {
+          cache: 'no-store',
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        })
+        const mfaJson = await mfaRes.json().catch(() => ({}))
+        if (mfaRes.ok && mfaJson.required && !mfaJson.enrolled) {
+          const { data: enrollData, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Authenticator' })
+          if (enrollError) throw enrollError
+          setEnrollFactorId(enrollData.id)
+          setEnrollSecret(enrollData.totp.secret)
+          setEnrollQr(enrollData.totp.qr_code || '')
+          setStep('mfa_enroll')
+          setSuccess('🔐 Two-factor authentication is REQUIRED for your account. Add this code to your authenticator app to continue.')
+          setLoading(false)
+          return
+        }
+      } catch {
+        // Fail-open: a policy-endpoint hiccup must never lock out a valid
+        // password login — but when the policy responds, required accounts
+        // without MFA cannot proceed past this point.
+      }
+
       const dest = await redirectAfterLogin()
       setSuccess('✅ Signed in! Taking you to your workspace…')
       // Security alert (fire-and-forget): new sign-in notification.
@@ -136,6 +169,27 @@ export default function AuthPage() {
       setTimeout(() => router.push(dest), 600)
     } catch (err: any) {
       setError(err.message || 'Verification failed — check the code')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /** MFA ENFORCEMENT: verify the freshly-enrolled TOTP factor, then enter. */
+  const handleEnrollMfa = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!enrollFactorId || !enrollCode.trim()) return
+    setLoading(true)
+    setError('')
+    try {
+      const { data: challenge } = await supabase.auth.mfa.challenge({ factorId: enrollFactorId })
+      if (!challenge) throw new Error('Could not start verification challenge')
+      const { error } = await supabase.auth.mfa.verify({ factorId: enrollFactorId, challengeId: challenge.id, code: enrollCode.trim() })
+      if (error) throw error
+      setSuccess('✅ Two-factor authentication enabled! Taking you to your workspace…')
+      const dest = await redirectAfterLogin()
+      setTimeout(() => router.push(dest), 600)
+    } catch (err: any) {
+      setError(err.message || 'Verification failed — check the code and try again')
     } finally {
       setLoading(false)
     }
@@ -283,6 +337,52 @@ export default function AuthPage() {
                 <button onClick={() => { setStep('signin'); setSuccess(''); setCode(''); }} style={{ background: 'none', border: 'none', color: '#1a1a2e', fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
                   ← Back to sign in
                 </button>
+              </div>
+            </>
+          )}
+
+          {step === 'mfa_enroll' && (
+            <>
+              <h1 style={{ margin: '0 0 8px', fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e' }}>Set up two-factor authentication 🔐</h1>
+              <p style={{ fontSize: 13.5, color: '#666', lineHeight: 1.6 }}>
+                Two-factor authentication is <strong>required</strong> for your account. Scan the QR with your authenticator app (Google Authenticator, Authy, 1Password…), then enter the 6-digit code to finish signing in.
+              </p>
+              {enrollQr && (
+                <div style={{ textAlign: 'center', margin: '12px 0' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={enrollQr} alt="TOTP QR code" style={{ width: 180, height: 180, borderRadius: 10, border: '1px solid #d8d2c2' }} />
+                </div>
+              )}
+              {enrollSecret && (
+                <div style={{ fontSize: 11.5, color: '#888', textAlign: 'center', marginBottom: 10, wordBreak: 'break-all' }}>
+                  Manual entry code: <strong style={{ color: '#1a1a2e' }}>{enrollSecret}</strong>
+                </div>
+              )}
+              <form onSubmit={handleEnrollMfa}>
+                <input
+                  value={enrollCode}
+                  onChange={(e) => setEnrollCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="••••••"
+                  style={{ width: '100%', padding: '13px', border: '1px solid #d8d2c2', borderRadius: 8, fontSize: 20, letterSpacing: '0.4em', textAlign: 'center', outline: 'none', boxSizing: 'border-box', marginTop: 8 }}
+                  required
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={loading || enrollCode.length !== 6}
+                  style={{
+                    width: '100%', padding: '13px', borderRadius: 8, cursor: loading || enrollCode.length !== 6 ? 'not-allowed' : 'pointer',
+                    background: loading || enrollCode.length !== 6 ? '#aaa' : '#1a1a2e', color: '#c9a84c', border: 'none',
+                    fontSize: 14, fontWeight: 800, fontFamily: 'Georgia, serif', marginTop: 16,
+                  }}
+                >
+                  {loading ? 'Verifying…' : 'Enable 2FA & continue'}
+                </button>
+              </form>
+              <div style={{ fontSize: 11.5, color: '#94a3b8', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
+                You won&apos;t be able to access the portal until this is done.
               </div>
             </>
           )}

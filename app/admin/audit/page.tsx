@@ -42,7 +42,7 @@ const ACTION_COLOR: Record<string, string> = {
   expense_delete: '#b91c1c',
 }
 
-const TARGET_TYPES = ['user', 'agency', 'listing', 'subscription', 'expense', 'settings']
+const TARGET_TYPES = ['user', 'agency', 'listing', 'subscription', 'expense', 'settings', 'legal_vault']
 
 export default function AdminAuditPage() {
   const [entries, setEntries] = useState<AuditEntry[]>([])

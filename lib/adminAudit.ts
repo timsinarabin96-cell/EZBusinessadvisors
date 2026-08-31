@@ -17,7 +17,7 @@ export interface AdminAuditEntry {
   actorId: string | null
   actorEmail: string | null
   action: string
-  targetType: 'user' | 'agency' | 'listing' | 'subscription' | 'expense' | 'settings'
+  targetType: 'user' | 'agency' | 'listing' | 'subscription' | 'expense' | 'settings' | 'legal_vault'
   targetId?: string | null
   targetLabel?: string | null
   details?: Record<string, unknown>
