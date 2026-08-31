@@ -632,10 +632,10 @@ export function VoiceIntakeCard({ onDraft }: { onDraft?: (draft: any) => void })
       const transcript = (call.transcripts || [])
         .map((s: any) => `${s.speaker === 'caller' ? 'Caller' : s.speaker === 'assistant' ? 'Assistant' : 'Broker'}: ${s.content}`)
         .join('\n')
-      const res = await authenticatedFetch('/api/listings/intake', {
+      const res = await authenticatedFetch('/api/advisor/interview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json',  },
-        body: JSON.stringify({ mode: 'full', context: transcript }),
+        body: JSON.stringify({ mode: 'seed', context: transcript }),
       })
       const j = await res.json()
       if (!res.ok || !j.ok) throw new Error(j.error || j.detail || 'Extraction failed — the call transcript may be too short')

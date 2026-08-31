@@ -50,10 +50,10 @@ export default function ListingIntakeModal({
     setBusy(true)
     setError('')
     try {
-      const res = await authenticatedFetch('/api/listings/intake', {
+      const res = await authenticatedFetch('/api/advisor/interview', {
         method: 'POST',
         headers: { 'content-type': 'application/json',  },
-        body: JSON.stringify({ notes, mode: 'full' }),
+        body: JSON.stringify({ notes, mode: 'seed' }),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j.ok) throw new Error(j.error || j.detail || 'AI intake failed')

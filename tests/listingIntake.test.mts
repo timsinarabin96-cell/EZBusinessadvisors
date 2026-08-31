@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import test from 'node:test'
 
 const core = readFileSync('lib/listingIntakeCore.ts', 'utf8')
-const route = readFileSync('app/api/listings/intake/route.ts', 'utf8')
+const advisorLib = readFileSync('lib/advisorInterview.ts', 'utf8')
+const advisorRoute = readFileSync('app/api/advisor/interview/route.ts', 'utf8')
 const modal = readFileSync('components/listings/ListingIntakeModal.tsx', 'utf8')
 const form = readFileSync('components/listings/IntelligentListingForm.tsx', 'utf8')
+const studio = readFileSync('components/studio/StudioInsights.tsx', 'utf8')
 
 // Import the pure helpers (dependency-free core — no path aliases).
 const { sanitizeIntakeDraft, normalizeNumber, anonymizePublic, draftCoverage } =
@@ -56,28 +58,37 @@ test('intake: coverage counts filled fields', () => {
   assert.ok(c2.total > 30)
 })
 
-test('intake: API route is auth-gated, zod-validated, server-only', () => {
-  assert.match(route, /export const runtime = 'nodejs'/)
-  assert.match(route, /authenticateProfileRequest/)
-  assert.match(route, /notes: z\.string\(\)\.max\(8000\)\.optional\(\)/)
-  assert.match(route, /mode: z\.enum/)
-  assert.match(route, /complete\(\{/)
-  assert.match(route, /isClaudeConfigured/)
-  assert.match(route, /sanitizeIntakeDraft/)
-  assert.match(route, /jsonMode: true/)
+test('intake: OLD one-shot notes-intake route is GONE — single advisor surface', () => {
+  // Removal lock: the old /api/listings/intake route was replaced in place by
+  // the advisor interview's seed mode. No dual-running intake paths.
+  assert.equal(existsSync('app/api/listings/intake/route.ts'), false, 'old route must be deleted')
+  assert.match(advisorRoute, /mode === 'seed'/)
+  assert.match(advisorRoute, /advisorDraftFromTranscript/)
+  assert.match(advisorRoute, /mode: 'seed-public'/)
+  assert.match(advisorRoute, /draftPublicPreview/)
 })
 
-test('intake: public mode drafts only anonymized buyer-facing fields', () => {
-  assert.match(route, /SYSTEM_PUBLIC/)
-  assert.match(route, /public_title, public_summary, public_highlights/)
-  assert.match(route, /mode === 'public'/)
-  assert.match(route, /NEVER include/)
+test('intake: API route is auth-gated, tier-gated, server-only', () => {
+  assert.match(advisorRoute, /export const runtime = 'nodejs'/)
+  assert.match(advisorRoute, /authenticateProfileRequest/)
+  assert.match(advisorRoute, /canManageAgency/)
+  assert.match(advisorRoute, /tierAllowsAiIntake/)
+  assert.match(advisorRoute, /nextAdvisorQuestionClaude/)
+  assert.match(advisorRoute, /advisorDraftFromTranscript/)
+  assert.match(advisorLib, /jsonMode: true/)
 })
 
-test('intake: modal pastes notes and calls the intake endpoint', () => {
+test('intake: public preview drafts only anonymized buyer-facing fields', () => {
+  assert.match(advisorLib, /draftPublicPreview/)
+  assert.match(advisorLib, /public_title, public_summary, public_highlights/)
+  assert.match(advisorLib, /NEVER include/)
+  assert.match(form, /publicOnly: true/)
+})
+
+test('intake: modal pastes notes and calls the advisor seed endpoint', () => {
   assert.match(modal, /✨ AI Intake/)
-  assert.match(modal, /\/api\/listings\/intake/)
-  assert.match(modal, /mode: 'full'/)
+  assert.match(modal, /\/api\/advisor\/interview/)
+  assert.match(modal, /mode: 'seed'/)
   assert.match(modal, /Try an example/)
 })
 
@@ -89,4 +100,10 @@ test('intake: studio wires the button, draft apply, and market radar', () => {
   assert.match(form, /bandForIndustry/)
   assert.match(form, /pricePosition/)
   assert.match(form, /📈 Market check/)
+})
+
+
+test('intake: studio call-transcript draft uses the advisor seed endpoint', () => {
+  assert.match(studio, /\/api\/advisor\/interview/)
+  assert.match(studio, /mode: 'seed'/)
 })

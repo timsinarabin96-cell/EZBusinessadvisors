@@ -15,6 +15,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
+import { tierFromPlanId } from '@/lib/sellerTiers'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -76,6 +77,11 @@ export async function createSellerListingOrder(
   if (!draft.business_name?.trim()) return { ok: false, error: 'Business name is required' }
   if (!draft.seller_email?.trim()) return { ok: false, error: 'Seller email is required' }
 
+  // #2 seller tiers: map the order plan onto the self-serve tier (free =
+  // manual-entry only / Self-Reported; professional+ = full AI path).
+  const sellerTier = tierFromPlanId(planId)
+  const tierNow = sellerTier === 'paid' ? new Date().toISOString() : null
+
   // 1) Create the draft listing (status: draft; confidentiality: broker_only so
   //    nothing sensitive is exposed while awaiting broker review).
   const { data: listing, error: listingError } = await svc
@@ -102,6 +108,8 @@ export async function createSellerListingOrder(
       intake_source: 'seller_self_service',
       compliance_status: 'pending',
       ai_readiness_score: 0,
+      seller_tier: sellerTier,
+      tier_paid_at: tierNow,
     })
     .select()
     .single()

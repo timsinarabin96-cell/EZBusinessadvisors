@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { tierOfListing, tierAllowsAiIntake, type SellerTierId } from '@/lib/sellerTiers'
 import {
   advisorProgress,
   isAdvisorComplete,
@@ -55,6 +56,12 @@ async function resolveListingAgency(db: ReturnType<typeof createServerClient>, l
   return (data as { agency_id?: string | null } | null)?.agency_id || null
 }
 
+/** Resolve the listing's seller tier (drives AI vs manual intake per spec). */
+async function resolveListingTier(db: ReturnType<typeof createServerClient>, listingId: string): Promise<SellerTierId> {
+  const { data } = await db.from('listings').select('seller_tier').eq('id', listingId).maybeSingle()
+  return tierOfListing(data as { seller_tier?: string | null } | null)
+}
+
 export async function GET(req: NextRequest) {
   const db = createServerClient()
   if (!db) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
@@ -71,15 +78,22 @@ export async function GET(req: NextRequest) {
   const row = await loadOrCreate(db, listingId)
   if (!row) return NextResponse.json({ ok: false, error: 'Could not start interview session' }, { status: 500 })
 
+  // #2 tier gate: free-tier self-serve listings skip the AI interview — the
+  // manual form (Phase 2B) is their intake path. Agents can always interview.
+  const tier = await resolveListingTier(db, listingId)
+  const aiAllowed = tierAllowsAiIntake(tier)
+
   const qa = row.qa || []
   const complete = row.status === 'completed' || isAdvisorComplete(qa)
   // Adaptive next question — Claude when available, deterministic otherwise.
-  const next = complete ? null : await nextAdvisorQuestionClaude(qa)
+  const next = complete || !aiAllowed ? null : await nextAdvisorQuestionClaude(qa)
 
   return NextResponse.json({
     ok: true,
     listingId,
-    status: complete ? 'completed' : 'in_progress',
+    tier,
+    aiIntakeAllowed: aiAllowed,
+    status: complete ? 'completed' : aiAllowed ? 'in_progress' : 'manual_path',
     qa,
     next,
     progress: advisorProgress(qa),
@@ -101,13 +115,76 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Invalid JSON body.' }, { status: 400 })
   }
   const listingId = String((body as Record<string, unknown>)?.listingId || '')
+  const mode = String((body as Record<string, unknown>)?.mode || 'answer')
   const answer = String((body as Record<string, unknown>)?.answer || '').trim().slice(0, 3000)
+
+  // SEED MODE (migrated from the old one-shot notes-intake route — single
+  // intake surface now): paste notes/context → structured draft, no Q&A.
+  // listingId is OPTIONAL here: the intake modal runs before a listing exists,
+  // so seed extracts a pure draft when no listing is attached yet.
+  if (mode === 'seed') {
+    const notes = String((body as Record<string, unknown>)?.notes || (body as Record<string, unknown>)?.context || '').trim()
+    const publicOnly = (body as Record<string, unknown>)?.publicOnly === true
+    if (notes.length < 20) {
+      return NextResponse.json({ ok: false, error: 'Add more detail — at least 20 characters to build the record.' }, { status: 422 })
+    }
+    if (listingId) {
+      const agencyId = await resolveListingAgency(db, listingId)
+      if (!agencyId) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
+      if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
+      const tier = await resolveListingTier(db, listingId)
+      if (!tierAllowsAiIntake(tier)) {
+        return NextResponse.json({ ok: false, error: 'Free listings use the manual form — upgrade to the AI-Verified tier for AI intake.', tier, aiIntakeAllowed: false }, { status: 403 })
+      }
+    }
+
+    // Public-only seed: anonymous buyer-facing preview (never legal name /
+    // address / customer / owner identity) — the old intake 'public' mode,
+    // now on the single advisor intake surface.
+    if (publicOnly) {
+      let draft: Record<string, unknown> = {}
+      try {
+        draft = (await draftPublicPreview(notes)) as unknown as Record<string, unknown>
+      } catch {
+        draft = {}
+      }
+      const { draftCoverage } = await import('@/lib/listingIntakeCore')
+      return NextResponse.json({
+        ok: true,
+        listingId: listingId || null,
+        mode: 'seed-public',
+        draft,
+        coverage: draftCoverage(draft as never),
+        message: 'Drafted anonymous public preview — review before saving.',
+      })
+    }
+
+    const seedQa: AdvisorAnswer[] = [{
+      questionId: `seed_${Date.now()}`,
+      topic: 'business_basics',
+      question: '(pasted intake notes)',
+      answer: notes.slice(0, 8000),
+      answeredAt: new Date().toISOString(),
+    }]
+    let draft: Record<string, unknown> = {}
+    try {
+      draft = (await advisorDraftFromTranscript(seedQa)) as unknown as Record<string, unknown>
+    } catch {
+      draft = {}
+    }
+    const { draftCoverage } = await import('@/lib/listingIntakeCore')
+    return NextResponse.json({
+      ok: true,
+      listingId: listingId || null,
+      mode: 'seed',
+      draft,
+      coverage: draftCoverage(draft as never),
+      message: 'Drafted from pasted notes — review before saving.',
+    })
+  }
+
   if (!listingId) return NextResponse.json({ ok: false, error: 'listingId is required' }, { status: 400 })
   if (!answer) return NextResponse.json({ ok: false, error: 'Answer is required' }, { status: 400 })
-
-  const agencyId = await resolveListingAgency(db, listingId)
-  if (!agencyId) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
-  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
 
   const row = await loadOrCreate(db, listingId)
   if (!row) return NextResponse.json({ ok: false, error: 'Could not start interview session' }, { status: 500 })

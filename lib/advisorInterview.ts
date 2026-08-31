@@ -72,6 +72,48 @@ export interface AdvisorSessionState {
   completedAt?: string | null
 }
 
+const PUBLIC_SYSTEM = [
+  'You are a sell-side marketing writer. Given a business\'s PRIVATE record (description, industry, location, financials), draft the seller-approved ANONYMOUS public preview as JSON.',
+  'Rules:',
+  '- NEVER include: legal/operating business name, exact street address, phone, email, customer names, owner identity.',
+  '- public_title: short, attractive, anonymous headline (e.g. "Recurring-Revenue Home Care Agency in Central PA"), max ~70 chars.',
+  '- public_summary: 2-4 sentence buyer-facing summary using industry, region, and opportunity hooks. No dollar figures unless show_financials is true.',
+  '- public_highlights: 3-5 one-line bullet highlights (an array of strings).',
+  '- show_financials: true ONLY if the record explicitly authorizes public financials.',
+  'Respond with a single JSON object with keys: public_title, public_summary, public_highlights (array), show_financials.',
+].join('\n')
+
+/**
+ * Draft ONLY the anonymized public preview (public_title / public_summary /
+ * public_highlights / show_financials) from a private record. Never leaks the
+ * legal name, address, customer or owner identity. Deterministic fallback
+ * returns an empty draft on AI failure — the caller never shows a partial leak.
+ */
+export async function draftPublicPreview(privateRecord: string): Promise<IntakeDraft> {
+  const draft: IntakeDraft = {}
+  if (!isClaudeConfigured() || !privateRecord.trim()) return draft
+  try {
+    const res = await complete({
+      context: { kind: 'listing', entityId: 'public-preview', text: `PRIVATE RECORD:\n${privateRecord.slice(0, 8000)}\n\nDraft the anonymous public preview.` },
+      system: PUBLIC_SYSTEM,
+      message: 'Draft the anonymous public preview from the private record.',
+      jsonMode: true,
+      maxTokens: 800,
+    })
+    const raw = (res.data || {}) as Record<string, unknown>
+    if (typeof raw.public_title === 'string' && raw.public_title.trim()) draft.public_title = raw.public_title.trim()
+    if (typeof raw.public_summary === 'string' && raw.public_summary.trim()) draft.public_summary = raw.public_summary.trim()
+    if (Array.isArray(raw.public_highlights)) {
+      const lines = (raw.public_highlights as unknown[]).filter((h): h is string => typeof h === 'string' && h.trim().length > 0).map((h) => h.trim())
+      if (lines.length) draft.public_highlights = lines.join('\n')
+    }
+    if (typeof raw.show_financials === 'boolean') draft.show_financials = raw.show_financials
+  } catch {
+    // AI flake → empty draft (no partial leak)
+  }
+  return draft
+}
+
 // ---------------------------------------------------------------------------
 // Deterministic question bank (Claude-free fallback, one pass per topic)
 // ---------------------------------------------------------------------------

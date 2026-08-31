@@ -1046,10 +1046,10 @@ function PublicSection({ form, setValue }: SectionProps) {
     ].join('\n')
     setDrafting(true)
     try {
-      const res = await authenticatedFetch('/api/listings/intake', {
+      const res = await authenticatedFetch('/api/advisor/interview', {
         method: 'POST',
         headers: { 'content-type': 'application/json',  },
-        body: JSON.stringify({ notes: context, mode: 'public' }),
+        body: JSON.stringify({ notes: context, mode: 'seed', publicOnly: true }),
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j.ok) throw new Error(j.error || 'Draft failed')
