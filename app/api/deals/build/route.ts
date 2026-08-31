@@ -96,9 +96,12 @@ export async function POST(req: NextRequest) {
   }
   // Non-blocking persistence — never let a DB hiccup kill the stream. Merges
   // with the CURRENT ai_metadata (fresh read) so stage writes (audit/comps)
-  // are never clobbered by a stale snapshot from request start.
+  // are never clobbered by a stale snapshot from request start. Returns the
+  // promise so the DONE block can await the FINAL trail write — without that,
+  // a fresh reload right after done can re-read a trail whose last stage is
+  // still pending and wrongly show "build interrupted — resume".
   const persistBuild = () => {
-    void (async () => {
+    return (async () => {
       try {
         const { data: fresh } = await db.from('listings').select('ai_metadata').eq('id', listingId).maybeSingle()
         const meta = ((fresh as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata) || {}
@@ -222,13 +225,30 @@ export async function POST(req: NextRequest) {
           const name = String(patch.business_name || d.business_name || '').trim()
           if (!patch.headline && name) patch.headline = name.slice(0, 120)
           str('competitive_advantages'); str('growth_opportunities')
-          str('public_title'); str('public_summary'); str('contact_phone')
+          // public_title / public_summary / public_highlights are NOT listings
+          // columns (verified against live DB — they live on public_listings,
+          // and publish.ts reads ai_metadata.public_* first). Writing them
+          // top-level fails the whole build whenever the LLM returns them.
+          // Stash all three in ai_metadata.
+          str('contact_phone')
+          const teaserFields: Record<string, unknown> = {}
+          const tv = (k: string, max: number) => {
+            const v = d[k]
+            if (typeof v === 'string' && v.trim() && v !== 'null') teaserFields[k] = v.trim().slice(0, max)
+          }
+          tv('public_title', 120); tv('public_summary', 1000)
           if (Array.isArray(d.public_highlights)) {
             const hl = (d.public_highlights as unknown[]).filter((x) => typeof x === 'string' && x.trim()).slice(0, 8) as string[]
-            if (hl.length) patch.public_highlights = hl
+            if (hl.length) teaserFields.public_highlights = hl
           }
-          if (Object.keys(patch).length) {
-            const { error } = await db.from('listings').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', listingId)
+          if (Object.keys(patch).length || Object.keys(teaserFields).length) {
+            const update: Record<string, unknown> = { ...patch, updated_at: new Date().toISOString() }
+            if (Object.keys(teaserFields).length) {
+              const { data: freshMeta } = await db.from('listings').select('ai_metadata').eq('id', listingId).maybeSingle()
+              const meta = ((freshMeta as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata) || {}
+              update.ai_metadata = { ...meta, ...teaserFields }
+            }
+            const { error } = await db.from('listings').update(update).eq('id', listingId)
             if (error) throw new Error(`Record update failed: ${error.message}`)
           }
           const biz = String(patch.business_name || d.business_name || '').trim()
@@ -466,9 +486,10 @@ export async function POST(req: NextRequest) {
           }
         }),
         run('teaser', async () => {
-          const { data: listing } = await db.from('listings').select('business_name, industry, location_general, annual_revenue, sde, public_title').eq('id', listingId).maybeSingle()
+          const { data: listing } = await db.from('listings').select('business_name, industry, location_general, annual_revenue, sde, ai_metadata').eq('id', listingId).maybeSingle()
           const l = listing as Record<string, unknown> | null
-          if (l?.public_title && String(l.public_title).trim()) {
+          const existingTitle = String((l as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata?.public_title || '').trim()
+          if (existingTitle) {
             set('teaser', { status: 'skipped', note: 'Teaser already exists' })
             return
           }
@@ -488,18 +509,27 @@ export async function POST(req: NextRequest) {
             maxTokens: 800,
           })
           const d = (res.data || {}) as Record<string, unknown>
-          const patch: Record<string, unknown> = {}
-          if (typeof d.public_title === 'string' && d.public_title.trim()) patch.public_title = d.public_title.trim().slice(0, 120)
-          if (typeof d.public_summary === 'string' && d.public_summary.trim()) patch.public_summary = d.public_summary.trim().slice(0, 1000)
+          // public_title / public_summary / public_highlights are NOT listings
+          // columns (verified against live DB) — they live on public_listings
+          // and publish.ts reads ai_metadata.public_* first. Stash in
+          // ai_metadata, same as the intake stage.
+          const teaserFields: Record<string, unknown> = {}
+          if (typeof d.public_title === 'string' && d.public_title.trim()) teaserFields.public_title = d.public_title.trim().slice(0, 120)
+          if (typeof d.public_summary === 'string' && d.public_summary.trim()) teaserFields.public_summary = d.public_summary.trim().slice(0, 1000)
           if (Array.isArray(d.public_highlights)) {
             const hl = (d.public_highlights as unknown[]).filter((x) => typeof x === 'string' && x.trim()).slice(0, 6) as string[]
-            if (hl.length) patch.public_highlights = hl
+            if (hl.length) teaserFields.public_highlights = hl
           }
-          if (Object.keys(patch).length) {
-            patch.updated_at = new Date().toISOString()
-            await db.from('listings').update(patch).eq('id', listingId)
+          if (Object.keys(teaserFields).length) {
+            const { data: freshMeta } = await db.from('listings').select('ai_metadata').eq('id', listingId).maybeSingle()
+            const meta = ((freshMeta as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata) || {}
+            const { error } = await db.from('listings').update({
+              ai_metadata: { ...meta, ...teaserFields },
+              updated_at: new Date().toISOString(),
+            }).eq('id', listingId)
+            if (error) throw new Error(`Teaser update failed: ${error.message}`)
           }
-          set('teaser', { note: patch.public_title ? `"${patch.public_title}"` : 'Teaser written' })
+          set('teaser', { note: teaserFields.public_title ? `"${teaserFields.public_title}"` : 'Teaser written' })
         }),
         ])
 
@@ -513,6 +543,12 @@ export async function POST(req: NextRequest) {
         })
 
         // ── DONE ──
+        // Await the FINAL trail write BEFORE announcing done — otherwise a
+        // broker who reloads the deep link right after the build can re-read a
+        // trail whose last stage is still pending and get a bogus "interrupted"
+        // resume screen instead of the review (the justBuilt flag only covers
+        // the same-tab case, not a fresh load).
+        await persistBuild()
         const { data: listing } = await db.from('listings').select('*').eq('id', listingId).single()
         send({
           type: 'done',
