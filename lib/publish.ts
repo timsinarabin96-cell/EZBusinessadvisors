@@ -28,6 +28,7 @@ import { recordSuccessFee } from '@/lib/successFee'
 import { matchPublicSubscriptions } from '@/lib/notifySubscriptions'
 import { assessListingRisk, type RiskReport } from '@/lib/scamDetectionCore'
 import { assessLegitimacy, type LegitimacyReport } from '@/lib/listingLegitimacy'
+import { normalizeLegalChecklist, evaluateLegalChecklist, LEGAL_DOC_REQUIREMENTS, type LegalDocId } from '@/lib/legalChecklist'
 import { bestStockImage } from '@/lib/stockImages'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -161,7 +162,7 @@ async function firePublishBlast(listingId: string, agencyId: string): Promise<vo
  * Returns blocked with missing items when the gate fails.
  */
 export async function publishListing(listingId: string, actorProfileId?: string, opts?: { force?: boolean }): Promise<{
-  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }; risk?: { score: number; level: string; reasons: string[] } | null; sellerApproval?: { approved: boolean; reference: string | null }; legitimacy?: LegitimacyReport | null
+  ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }; risk?: { score: number; level: string; reasons: string[] } | null; sellerApproval?: { approved: boolean; reference: string | null }; legalGate?: { checklist: string[]; satisfied: string[]; missing: { id: string; label: string }[] }; legitimacy?: LegitimacyReport | null
 }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
   const { data: listing } = await svc.from('listings').select('*').eq('id', listingId).maybeSingle()
@@ -335,6 +336,27 @@ export async function publishListing(listingId: string, actorProfileId?: string,
     }
   }
 
+  // ── LEGAL-DOC GATE (#4, spec §5) — the per-agency CONFIGURABLE checklist.
+  // Every tier, no exceptions: a listing cannot go live until the agency's
+  // configured legal docs (default Marketing Agreement + LLC Resolution) are
+  // on file. Not hardcoded — read from agency_settings.legal_doc_checklist.
+  if (!force) {
+    const legalGate = await evaluateLegalGateForListing(listing)
+    if (legalGate.missing.length > 0) {
+      return {
+        ok: false,
+        blocked: true,
+        score: readiness.score,
+        missing: [
+          ...(readiness.missing || []),
+          `Legal gate: missing ${legalGate.missing.map((m) => m.label).join(', ')} — required before go-live.`,
+        ],
+        error: `Legal gate: ${legalGate.missing.map((m) => m.label).join(', ')} must be on file before this listing can go live (per this agency's required-docs checklist).`,
+        legalGate,
+      }
+    }
+  }
+
   // Premature / low-quality listings still go live on explicit Save, but get auto-flagged for review.
   const flagged = readiness.score < PUBLISH_READINESS_MIN
   const vetted = readiness.score >= VETTED_READINESS_MIN && Boolean(listing.revenue_verified)
@@ -416,6 +438,48 @@ async function syncPublicListingRow(listing: any, approval?: { approved: boolean
  * seller-role signature on any document for the listing (portal eSign), or
  * an explicit seller_approval_reference recorded during intake. Never throws.
  */
+/**
+ * #4 legal-doc gate: resolve the agency's CONFIGURED checklist and evaluate
+ * it against the listing's on-file + generated docs. Never zeroed — the two
+ * mandatory defaults (Marketing Agreement, LLC Resolution) always apply.
+ */
+async function evaluateLegalGateForListing(listing: any): Promise<{
+  checklist: string[]
+  satisfied: string[]
+  missing: { id: string; label: string }[]
+}> {
+  const empty = { checklist: [], satisfied: [], missing: [] }
+  if (!svc) return empty
+  try {
+    // Resolve the agency's configured checklist (defaults when unset).
+    let checklist: string[] = []
+    const agencyId = listing?.agency_id
+    if (agencyId) {
+      const { data: settings } = await svc.from('agency_settings').select('legal_doc_checklist').eq('agency_id', agencyId).maybeSingle()
+      checklist = normalizeLegalChecklist(settings?.legal_doc_checklist)
+    }
+    if (checklist.length === 0) checklist = normalizeLegalChecklist(null)
+
+    // Gather on-file + generated docs.
+    const [{ data: uploads }, { data: generated }] = await Promise.all([
+      svc.from('listing_documents').select('category, body_text').eq('listing_id', listing?.id),
+      svc.from('documents').select('title').eq('listing_id', listing?.id),
+    ])
+    const evalRes = evaluateLegalChecklist(
+      checklist as LegalDocId[],
+      (uploads || []) as { category?: string | null; body_text?: string | null }[],
+      (generated || []) as { title?: string | null }[],
+    )
+    return {
+      checklist,
+      satisfied: evalRes.satisfied,
+      missing: evalRes.missing.map((id) => ({ id, label: LEGAL_DOC_REQUIREMENTS[id]?.label || id })),
+    }
+  } catch {
+    return empty
+  }
+}
+
 async function sellerApprovalState(listing: any): Promise<{ approved: boolean; reference: string | null }> {
   if (!svc) return { approved: false, reference: null }
   try {

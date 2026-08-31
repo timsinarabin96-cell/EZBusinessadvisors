@@ -61,7 +61,7 @@ test('no API route still emits "Validation failed"', () => {
 const concierge = readFileSync('components/studio/OneShotDealBuilder.tsx', 'utf8')
 const insights = readFileSync('components/studio/StudioInsights.tsx', 'utf8')
 const form = readFileSync('components/listings/IntelligentListingForm.tsx', 'utf8')
-const intakeRoute = readFileSync('app/api/listings/intake/route.ts', 'utf8')
+const intakeRoute = readFileSync('app/api/advisor/interview/route.ts', 'utf8')
 
 test('One-Shot builder surfaces build errors with a friendly message', () => {
   assert.match(concierge, /setError\(/)
@@ -69,8 +69,8 @@ test('One-Shot builder surfaces build errors with a friendly message', () => {
 })
 
 test('intake API returns a human message with next-step guidance', () => {
-  assert.match(intakeRoute, /Add more detail — I need at least 20 characters/)
-  assert.match(intakeRoute, /tap Build my listing/)
+  assert.match(intakeRoute, /Add more detail — at least 20 characters to build the record/)
+  assert.match(intakeRoute, /mode === 'seed'/)
 })
 
 test('listing form tells you what is missing + where to tap next', () => {

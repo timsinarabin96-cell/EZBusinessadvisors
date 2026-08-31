@@ -146,6 +146,7 @@ export async function POST(req: NextRequest) {
       trends: [],
       tags: [type.replace(/_/g, ' '), 'no-parseable-text', yearMatch ? `FY ${yearMatch[0]}` : ''].filter(Boolean),
       lineItems: [],
+      crossCheck: { entityName: null, entityMatch: 'unknown', signature: 'n/a', periodCovered: null, flags: [] },
       summary: extracted.text.trim()
         ? 'Analysis unavailable — the file was uploaded but could not be fully parsed.'
         : 'No parseable text found (scanned image or unsupported format). Type inferred from the filename.',

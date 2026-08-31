@@ -600,7 +600,7 @@ $$;
 -- Name: get_public_listing_feed(text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.get_public_listing_feed(p_slug text DEFAULT NULL::text, p_agency text DEFAULT NULL::text) RETURNS TABLE(listing_id uuid, slug text, public_title text, public_summary text, industry text, sub_industry text, location_general text, asking_price numeric, annual_revenue numeric, sde numeric, ebitda numeric, public_highlights jsonb, gallery_json jsonb, is_featured boolean, is_confidential boolean, published_at timestamp with time zone, show_financials boolean, contact_phone text)
+CREATE FUNCTION public.get_public_listing_feed(p_slug text DEFAULT NULL::text, p_agency text DEFAULT NULL::text) RETURNS TABLE(listing_id uuid, slug text, public_title text, public_summary text, industry text, sub_industry text, location_general text, asking_price numeric, annual_revenue numeric, sde numeric, ebitda numeric, public_highlights jsonb, gallery_json jsonb, is_featured boolean, is_confidential boolean, published_at timestamp with time zone, show_financials boolean, contact_phone text, trust_label text)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
@@ -622,7 +622,8 @@ CREATE FUNCTION public.get_public_listing_feed(p_slug text DEFAULT NULL::text, p
     pl.is_confidential,
     pl.published_at,
     pl.show_financials,
-    l.contact_phone
+    l.contact_phone,
+    case when l.seller_tier = 'paid' then 'AI-Verified Financials' else 'Self-Reported' end
   from public.public_listings pl
   join public.listings l on l.id = pl.listing_id
   where pl.published = true

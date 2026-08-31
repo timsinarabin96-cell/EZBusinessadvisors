@@ -20,6 +20,8 @@ export interface PublicMarketplaceListing {
   public_title: string
   public_summary: string | null
   industry: string | null
+  /** #3 trust badge: AI-Verified Financials vs Self-Reported (from tier). */
+  trust_label?: string | null
   sub_industry: string | null
   location_general: string | null
   asking_price: number | null
@@ -182,6 +184,7 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     is_confidential: row.is_confidential !== false,
     published_at: row.published_at,
     show_financials: Boolean(row.show_financials),
+  trust_label: (row as any).trust_label || null,
     contact_phone: row.contact_phone || null,
     broker_id: row.broker_id || null,
     listing_ref: row.listing_ref || null,

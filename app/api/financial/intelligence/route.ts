@@ -222,6 +222,7 @@ async function analyzeFileNameOnly(fileName: string): Promise<DocumentAnalysis |
     tags: [type.replace(/_/g, ' '), 'no-parseable-text', yearMatch ? `FY ${yearMatch[0]}` : ''].filter(Boolean),
     keyMetrics: { parsed: 'no' },
     lineItems: [],
+    crossCheck: { entityName: null, entityMatch: 'unknown', signature: 'n/a', periodCovered: null, flags: [{ severity: 'warning', issue: 'No parseable text — cross-check skipped' }] },
     summary: `Document "${fileName}" could not be text-extracted server-side (likely a scanned/Office file). Type inferred from filename.`,
     raw: '',
   }

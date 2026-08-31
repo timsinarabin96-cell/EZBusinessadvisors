@@ -158,6 +158,24 @@ export interface ExtractedLineItem {
   source: ExtractedLineItemSource
 }
 
+// ---------------------------------------------------------------------------
+// Upload cross-check (#5/#11, spec §4): every uploaded document is checked for
+// correct type, entity/business-name match, missing signature, wrong dates.
+// Flagged to the agent — never silently accepted or rejected.
+// ---------------------------------------------------------------------------
+export interface DocumentCrossCheck {
+  /** Entity name found in the document, when stated. */
+  entityName?: string | null
+  /** Matches the business/entity the document should belong to. */
+  entityMatch: 'match' | 'mismatch' | 'unknown'
+  /** Signature / execution block present? (null when not applicable). */
+  signature: 'present' | 'missing' | 'n/a'
+  /** Period covered, when stated (e.g. "FY2026", "Jan-Mar 2026"). */
+  periodCovered?: string | null
+  /** Any anomalies flagged for the agent (severity + reason). */
+  flags: { severity: 'info' | 'warning' | 'critical'; issue: string }[]
+}
+
 export interface DocumentAnalysis {
   fileName: string
   type: UniversalDocType
@@ -178,6 +196,8 @@ export interface DocumentAnalysis {
   summary: string
   /** Sourced line items — every add-back / notable figure → source doc + page/line. */
   lineItems: ExtractedLineItem[]
+  /** Cross-check verdict for the upload (type/entity/signature/date). */
+  crossCheck: DocumentCrossCheck
   raw: string // last ~600 chars of doc text for context
 }
 

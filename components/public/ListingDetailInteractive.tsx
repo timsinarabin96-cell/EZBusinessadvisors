@@ -186,6 +186,8 @@ export default function ListingDetailInteractive({ listing, agencyLegalName }: {
           {listing.seller_verified && <span style={{ background: '#0e7490', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🛡️ Identity Verified Seller</span>}
           {listing.bov_on_file && <span style={{ background: '#7c3aed', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>📊 BOV on file</span>}
           {listing.revenue_verified && <span style={{ background: '#1e7e34', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>✅ Verified Revenue</span>}
+          {listing.trust_label === 'AI-Verified Financials' && <span style={{ background: '#1e7e34', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>🤖 AI-Verified Financials</span>}
+          {listing.trust_label === 'Self-Reported' && <span style={{ background: '#b45309', color: '#fff', padding: '6px 14px', borderRadius: 99, fontSize: 12.5, fontWeight: 800 }}>📝 Self-Reported — unaudited</span>}
         </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(min(280px, 100%), 1fr)', gap: 24, alignItems: 'start' }}>

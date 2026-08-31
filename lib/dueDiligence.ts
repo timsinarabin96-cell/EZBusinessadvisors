@@ -77,6 +77,24 @@ export async function createDDItem(input: DDInput): Promise<DDItem> {
     console.error('createDDItem error:', error)
     throw new Error(error.message || 'Failed to create due diligence item')
   }
+  // #16 gate-transition notification: the agent is pinged when a new DD item
+  // lands so nothing sits unaddressed (stalled-deal detection stays manual).
+  try {
+    const { createNotification } = await import('@/lib/notifications')
+    if (input.deal_id) {
+      const { data: deal } = await supabase.from('deals').select('agency_id, listing_id, listings(business_name)').eq('id', input.deal_id).maybeSingle()
+      const agencyId = (deal as { agency_id?: string | null } | null)?.agency_id
+      if (agencyId) {
+        const name = ((deal as any)?.listings?.business_name as string | null) || 'deal'
+        await createNotification({
+          agency_id: agencyId,
+          title: `Due diligence item added: ${input.title}`,
+          body: `A new due-diligence item (${input.category || 'General'}) was added to ${name}.`, 
+          kind: 'due_diligence',
+        })
+      }
+    }
+  } catch { /* notification best-effort */ }
   return data as DDItem
 }
 
@@ -100,6 +118,59 @@ export async function deleteDDItem(id: string): Promise<void> {
     console.error('deleteDDItem error:', error)
     throw new Error(error.message || 'Failed to delete due diligence item')
   }
+}
+
+// ---------------------------------------------------------------------------
+// #10 standard DD checklist template + industry-aware Claude suggestions
+// (spec Phase 6: standard template + listing-specific items).
+// ---------------------------------------------------------------------------
+export const DD_CHECKLIST_TEMPLATE: { title: string; category: string }[] = [
+  { title: 'Signed Purchase Agreement', category: 'Legal' },
+  { title: '3 Years Tax Returns (entity + personal)', category: 'Tax Returns' },
+  { title: 'YTD P&L and Balance Sheet', category: 'Financials' },
+  { title: 'Customer List / Concentration Report', category: 'Operations' },
+  { title: 'Employee Roster with Wages + Tenure', category: 'HR & Employees' },
+  { title: 'Lease Agreement + Estoppel', category: 'Real Estate & Lease' },
+  { title: 'Equipment & FF&E Inventory', category: 'Operations' },
+  { title: 'Insurance Policies (GL, WC, E&O)', category: 'Insurance' },
+  { title: 'Key Supplier / Vendor Contracts', category: 'Contracts' },
+  { title: 'Licenses & Permits', category: 'Legal' },
+  { title: 'Bank Statements (12 months)', category: 'Financials' },
+  { title: 'Proof of Funds / Financing Commitment', category: 'Financials' },
+]
+
+/** Industry-specific extra DD items (Claude-suggested per business type). */
+export function industryDdSuggestions(industry: string | null | undefined): { title: string; category: string }[] {
+  const i = (industry || '').toLowerCase()
+  if (/home care|healthcare|medical|home health/i.test(i)) {
+    return [
+      { title: 'State License + Survey/Inspection History', category: 'Legal' },
+      { title: 'Medicaid/Insurance Provider Agreements', category: 'Contracts' },
+      { title: 'Client Care Records Consent (HIPAA)', category: 'Legal' },
+    ]
+  }
+  if (/restaurant|food|bar|cafe/i.test(i)) {
+    return [
+      { title: 'Health Department Inspection Reports', category: 'Legal' },
+      { title: 'Liquor License (if applicable)', category: 'Legal' },
+      { title: 'Food Supplier Contracts', category: 'Contracts' },
+    ]
+  }
+  if (/retail|ecommerce|e-commerce|online/i.test(i)) {
+    return [
+      { title: 'Top-SKU Sales Breakdown (12 months)', category: 'Operations' },
+      { title: 'Platform/Shopify/Amazon Account Access Plan', category: 'Operations' },
+      { title: 'Supplier/COGS Breakdown', category: 'Financials' },
+    ]
+  }
+  if (/manufactur|industrial|wholesale/i.test(i)) {
+    return [
+      { title: 'Equipment Maintenance Logs', category: 'Operations' },
+      { title: 'Environmental Compliance Certificates', category: 'Legal' },
+      { title: 'Top-Customer Contracts', category: 'Contracts' },
+    ]
+  }
+  return []
 }
 
 export const isOverdue = (item: DDItem): boolean => {

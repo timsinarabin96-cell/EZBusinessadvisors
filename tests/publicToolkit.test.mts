@@ -21,7 +21,7 @@ const brokerFloat = readFileSync('components/public/BrokerFloat.tsx', 'utf8')
 const detailInteractive = readFileSync('components/public/ListingDetailInteractive.tsx', 'utf8')
 const suggestRoute = readFileSync('app/api/search/suggest/route.ts', 'utf8')
 const categoriesLib = readFileSync('lib/businessCategories.ts', 'utf8')
-const intakeRoute = readFileSync('app/api/listings/intake/route.ts', 'utf8')
+const intakeRoute = readFileSync('app/api/advisor/interview/route.ts', 'utf8')
 const recentViewed = readFileSync('components/public/RecentlyViewed.tsx', 'utf8')
 const buyerCapture = readFileSync('components/public/BuyerCapturePrompt.tsx', 'utf8')
 const healthScript = readFileSync('scripts/site-health.sh', 'utf8')
@@ -93,9 +93,10 @@ test('marketplace: recently viewed stores a real image and renders proxied + fal
 test('marketplace: intake accepts the studio context field (fixes Build my listing error)', () => {
   // The studio posts pasted text as `context`; the API used to require `notes`,
   // so every Build-my-listing click failed with "Field: notes".
-  assert.match(intakeRoute, /notes: z\.string\(\)\.max\(8000\)\.optional\(\)/)
-  assert.match(intakeRoute, /const rawNotes = \(notes \|\| context \|\| ''\)\.trim\(\)/)
-  assert.match(intakeRoute, /rawNotes\.length < 20/)
+  // Migrated: the advisor interview seed mode now owns notes/context intake.
+  assert.match(intakeRoute, /mode === 'seed'/)
+  assert.match(intakeRoute, /notes \|\| \(body as Record<string, unknown>\)\?\.context/)
+  assert.match(intakeRoute, /Add more detail/)
 })
 
 test('marketplace: buyer capture popup asks one question and saves profile + lead', () => {

@@ -29,6 +29,7 @@ alter table public.data_room_files add column if not exists stage_tag text not n
 alter table public.data_room_files add column if not exists source text not null default 'uploaded_by_agent';
 alter table public.data_room_files add column if not exists claude_check text not null default 'pending';
 alter table public.data_room_files add column if not exists claude_check_reason text;
+alter table public.data_room_files add column if not exists archived_at timestamptz;
 
 -- 2) Check constraints (idempotent — drop+re-add so re-runs are safe)
 do $$

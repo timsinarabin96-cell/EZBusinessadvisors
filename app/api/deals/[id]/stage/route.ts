@@ -58,6 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   // split are recorded: the agent who closed the deal, and the brokerage
   // (overseeing broker). Split defaults to 50/50 and comes from the listing.
   let commission: { ok: boolean; error?: string; data?: unknown; skipped?: boolean } = { ok: true, skipped: true }
+  let archive: { ok: boolean; error?: string; archived?: number } = { ok: true, archived: 0 }
   if (stage === 'closed') {
     const price = Number((deal as any).purchase_price ?? listing?.asking_price ?? 0)
     const feeRate = 10 // standard brokerage fee % — matches DealDetail economics
@@ -99,7 +100,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         commission = result
       }
     }
+
+    // #14 auto-archive on close (spec Phase 8): the entire deal file — every
+    // vault entry + generated document, timestamped — is archived into the
+    // closed-deal archive, and the listing is marked Closed (removed from the
+    // active marketplace). Best-effort; never blocks the close response.
+    try {
+      const { archiveDealOnClose } = await import('@/lib/dataRoomDelivery')
+      archive = await archiveDealOnClose({ dealId, listingId: (deal as any).listing_id || null })
+    } catch (e: any) {
+      archive = { ok: false, error: e?.message || 'archive failed' }
+    }
+    // Listing → Closed regardless (marketplace removal is the hard requirement).
+    try {
+      await db.from('listings').update({ status: 'sold', sold_at: new Date().toISOString() }).eq('id', (deal as any).listing_id)
+    } catch { /* best-effort */ }
   }
 
-  return NextResponse.json({ ok: true, stage, commission })
+  return NextResponse.json({ ok: true, stage, commission, archive })
 }

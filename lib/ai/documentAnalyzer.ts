@@ -29,6 +29,7 @@ import {
   type FinancialRatio,
   type FinancialTrend,
   type ExtractedLineItem,
+  type DocumentCrossCheck,
 } from '@/lib/ai/types'
 
 // ---------------------------------------------------------------------------
@@ -148,7 +149,7 @@ export async function analyzeDocumentText({
     'Use the FILENAME and first ~600 chars of content to set "tags" and "keyMetrics" (e.g. periods covered, entity, fiscal year).',
   ].join('\n\n')
 
-  const prompt = `Document file: ${fileName}\n\nFirst 600 chars of the document:\n${bounded.slice(0, 600)}\n\nFULL DOCUMENT TEXT:\n${bounded}\n\nReturn JSON:\n{\n "type": "<UniversalDocType from the supported list; confirm or correct the detected type>",\n "confidence": 0-1,\n "revenueTotal": int|null,\n "expenseTotal": int|null,\n "assets": int|null,\n "liabilities": int|null,\n "years": [ { "year": int, "label": string|null, "revenue": int|null, "cogs": int|null, "grossProfit": int|null, "operatingExpenses": int|null, "ownerComp": int|null, "depreciation": int|null, "interest": int|null, "otherExpenses": int|null, "netIncome": int|null } ],\n "balances": [ { "asOf": string, "cash": int|null, "accountsReceivable": int|null, "inventory": int|null, "totalAssets": int|null, "accountsPayable": int|null, "debt": int|null, "totalLiabilities": int|null, "equity": int|null } ],\n "ratios": [ { "name": string, "value": string, "benchmark": string, "healthy": bool, "note": string } ],\n "trends": [ { "label": string, "value": string, "direction": "up"|"down"|"flat", "note": string } ],\n "tags": [string],\n "keyMetrics": { string: string|number },\n "lineItems": [ { "label": string, "amount": int, "category": string, "recurring": bool, "period": string|null, "source": { "document": string, "page": int|null, "line": string|null } } ],\n "summary": "2-3 sentence professional summary"}\n\nLine item rules (diligence traceability):\n- List EVERY add-back candidate and notable figure: owner salary/benefits, depreciation, interest, one-time items, discretionary/personal expenses, related-party transactions. Also list revenue, COGS and net income by year as line items when clearly stated.\n- Every line item MUST carry a source: the document file name (use \"${fileName}\" when the figure came from this document), the page number if you can infer it, and the line/schedule reference (e.g. \"Schedule C, line 12\", \"P&L Owner Comp row\", \"Bank statement deposit #482\"). If you cannot determine the page, set page=null but ALWAYS give a line/label reference.\n- category: use one of owner_salary, owner_benefits, depreciation, amortization, interest, one_time, discretionary, personal, non_arm_length, revenue, cogs, operating_expense, other.\n- recurring: true for normal ongoing operating items; false for one-time/discretionary/personal/non-arm's-length.\n- NEVER invent a figure not present in the text — if a number is not in the document, omit the line item.`
+  const prompt = `Document file: ${fileName}\n\nFirst 600 chars of the document:\n${bounded.slice(0, 600)}\n\nFULL DOCUMENT TEXT:\n${bounded}\n\nReturn JSON:\n{\n "type": "<UniversalDocType from the supported list; confirm or correct the detected type>",\n "confidence": 0-1,\n "revenueTotal": int|null,\n "expenseTotal": int|null,\n "assets": int|null,\n "liabilities": int|null,\n "years": [ { "year": int, "label": string|null, "revenue": int|null, "cogs": int|null, "grossProfit": int|null, "operatingExpenses": int|null, "ownerComp": int|null, "depreciation": int|null, "interest": int|null, "otherExpenses": int|null, "netIncome": int|null } ],\n "balances": [ { "asOf": string, "cash": int|null, "accountsReceivable": int|null, "inventory": int|null, "totalAssets": int|null, "accountsPayable": int|null, "debt": int|null, "totalLiabilities": int|null, "equity": int|null } ],\n "ratios": [ { "name": string, "value": string, "benchmark": string, "healthy": bool, "note": string } ],\n "trends": [ { "label": string, "value": string, "direction": "up"|"down"|"flat", "note": string } ],\n "tags": [string],\n "keyMetrics": { string: string|number },\n "lineItems": [ { "label": string, "amount": int, "category": string, "recurring": bool, "period": string|null, "source": { "document": string, "page": int|null, "line": string|null } } ],\n "crossCheck": { "entityName": string|null, "entityMatch": "match"|"mismatch"|"unknown", "signature": "present"|"missing"|"n/a", "periodCovered": string|null, "flags": [ { "severity": "info"|"warning"|"critical", "issue": string } ] },\n "summary": "2-3 sentence professional summary"}\n\nCross-check rules (spec §4):\n- entityName: business/entity name stated in the document, if any.\n- entityMatch: "match" when it matches the expected business; "mismatch" when a DIFFERENT entity is clearly stated (filename says Acme, content says XYZ LLC).\n- signature: "present"/"missing" for docs that should be signed (tax returns, agreements); "n/a" for statements/reports.\n- periodCovered: fiscal period stated (e.g. "FY2026").\n- flags: EVERY anomaly — entity mismatch, missing signature, wrong/missing dates. Never fabricate; empty when clean. The broker sees these on upload.\n\nLine item rules (diligence traceability):\n- List EVERY add-back candidate and notable figure: owner salary/benefits, depreciation, interest, one-time items, discretionary/personal expenses, related-party transactions. Also list revenue, COGS and net income by year as line items when clearly stated.\n- Every line item MUST carry a source: the document file name (use \"${fileName}\" when the figure came from this document), the page number if you can infer it, and the line/schedule reference (e.g. \"Schedule C, line 12\", \"P&L Owner Comp row\", \"Bank statement deposit #482\"). If you cannot determine the page, set page=null but ALWAYS give a line/label reference.\n- category: use one of owner_salary, owner_benefits, depreciation, amortization, interest, one_time, discretionary, personal, non_arm_length, revenue, cogs, operating_expense, other.\n- recurring: true for normal ongoing operating items; false for one-time/discretionary/personal/non-arm's-length.\n- NEVER invent a figure not present in the text — if a number is not in the document, omit the line item.`
 
   const context: AgentContextPayload = { kind: 'document', entityId: fileName, text: prompt }
 
@@ -189,6 +190,7 @@ export async function analyzeDocumentText({
     tags: (Array.isArray(d.tags) ? d.tags : []).map(String).slice(0, 12),
     keyMetrics: (d.keyMetrics && typeof d.keyMetrics === 'object' ? d.keyMetrics as Record<string, string | number> : {}),
     lineItems: normalizeLineItems(d.lineItems, fileName),
+    crossCheck: normalizeCrossCheck(d.crossCheck, fileName),
     summary: typeof d.summary === 'string' ? d.summary : '',
     raw: bounded.slice(-600),
   }
@@ -293,6 +295,23 @@ function normalizeLineItems(v: unknown, fileName: string): ExtractedLineItem[] {
   }
   // Cap at a sane bound; keep the most material (largest) items first.
   return items.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, 60)
+}
+
+function normalizeCrossCheck(v: unknown, fileName: string): DocumentCrossCheck {
+  const src = (v && typeof v === 'object') ? v as Record<string, unknown> : {}
+  const entityMatch = src.entityMatch === 'match' || src.entityMatch === 'mismatch' ? src.entityMatch : 'unknown'
+  const signature = src.signature === 'present' || src.signature === 'missing' ? src.signature : 'n/a'
+  const flags: DocumentCrossCheck['flags'] = Array.isArray(src.flags)
+    ? src.flags.slice(0, 12).map((f: any) => ({
+        severity: (f?.severity === 'critical' || f?.severity === 'warning') ? f.severity : 'info',
+        issue: String(f?.issue || '').slice(0, 300),
+      })).filter((f) => f.issue)
+    : []
+  const entityName = src.entityName != null && String(src.entityName).trim() ? String(src.entityName).trim().slice(0, 120) : null
+  if (entityName && entityMatch === 'unknown' && /\b(acme|test|sample|example|placeholder)\b/i.test(entityName)) {
+    flags.push({ severity: 'warning', issue: 'Placeholder/sample entity name detected — verify this is the real business document.' })
+  }
+  return { entityName, entityMatch, signature, periodCovered: src.periodCovered != null ? String(src.periodCovered).slice(0, 80) : null, flags }
 }
 
 // Broker-grade derived SDE from the richest year: net income + owner comp +
