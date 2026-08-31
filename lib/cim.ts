@@ -7,7 +7,8 @@
 
 import { supabase } from '@/lib/supabase/client'
 import type { Listing } from '@/lib/listings'
-import { bandForIndustry, matchIndustry } from '@/lib/marketMultiplesCore.ts'
+import { bandForIndustry, matchIndustry, type MarketBand } from '@/lib/marketMultiplesCore.ts'
+import type { RecastResult } from '@/lib/recast.ts'
 
 // ---------------------------------------------------------------------------
 // CIM (Confidential Information Memorandum) generator — 25+ section,
@@ -47,9 +48,20 @@ const pct = (n: number | null | undefined): string =>
   n === null || n === undefined || isNaN(n) ? '—' : (n * 100).toFixed(1) + '%'
 
 // ---------------------------------------------------------------------------
-// Generate a print-ready, 25+ section CIM from listing data
+// Generate a print-ready, 30+ page CIM from listing data (Phase: send path
+// quality bar). Accepts an optional recast result so the financial sections
+// carry real multi-year tables + itemized add-back justifications instead of
+// boilerplate — the document a buyer's advisor will actually read.
 // ---------------------------------------------------------------------------
-export function generateCimContent(listing: Listing): CimContent {
+export interface CimInput {
+  listing: Listing
+  recast?: RecastResult | null
+  marketBand?: MarketBand | null
+}
+
+export function generateCimContent(listing: Listing, opts?: { recast?: RecastResult | null; marketBand?: MarketBand | null }): CimContent {
+  const recast = opts?.recast || null
+  const marketBand = opts?.marketBand || bandForIndustry(listing.industry, listing.ebitda ? 'EBITDA' : 'SDE') || null
   const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const price = listing.asking_price
   const revenue = listing.annual_revenue
@@ -61,6 +73,20 @@ export function generateCimContent(listing: Listing): CimContent {
   const grossMargin = revenue ? (revenue - (listing.inventory_value || 0)) / revenue : null
   const industry = listing.industry || 'business services'
 
+  // Multi-year financial rows from the recast (if supplied) — real tables.
+  const recastYears = recast?.years?.slice().sort((a, b) => a.year - b.year) || []
+  const multiYearRows = recastYears.map((yr) => ({
+    label: yr.label || String(yr.year),
+    revenue: yr.recast.revenue,
+    sde: yr.recast.sde,
+    ebitda: yr.recast.ebitda,
+    addBacks: yr.totalAddBacks,
+  }))
+  const analysis = recast?.analysis || null
+  const bandLine = marketBand
+    ? `${marketBand.industry} businesses typically transact at ${marketBand.min.toFixed(1)}-${marketBand.max.toFixed(1)}x ${marketBand.basis} in the current market (${marketBand.sourceNote || 'market data'}).`
+    : null
+
   const sections: CimSection[] = [
     // ---- Cover data / front matter ----
     { id: 'disclaimer', title: 'Important Notice & Confidentiality', subsections: [{ heading: 'Confidentiality', body: [
@@ -69,11 +95,11 @@ export function generateCimContent(listing: Listing): CimContent {
     ] }] },
     { id: 'table-of-contents', title: 'Table of Contents', subsections: [{ heading: 'Sections', body: [
       '1. Executive Summary', '2. The Offering', '3. Business Overview', '4. Products & Services', '5. Customer Analysis',
-      '6. Financial Summary', '7. Historical Financial Performance', '8. Recast / Normalized Earnings', '9. Valuation Metrics',
-      '10. Industry Analysis', '11. Market Position & Competitive Landscape', '12. Growth Opportunities', '13. Sales & Marketing',
-      '14. Operations & Facilities', '15. Equipment & Assets', '16. Real Estate', '17. Employees & Management', '18. Key Person Risk & Transition',
-      '19. Legal & Regulatory', '20. Franchise / Licensing (if applicable)', '21. Technology & Systems', '22. Risk Factors',
-      '23. Investment Highlights', '24. Reasons for Sale', '25. Transaction Summary & Process', '26. Confidential Buyer Questionnaire',
+      '6. Financial Summary', '7. Historical Financial Performance', '8. Recast / Normalized Earnings', '8A. Multi-Year Trend Analysis', '8B. Add-Back Justification',
+      '9. Valuation Metrics', '9A. Market Comparables', '10. Industry Analysis', '11. Market Position & Competitive Landscape', '12. Growth Opportunities',
+      '13. Sales & Marketing', '14. Operations & Facilities', '15. Equipment & Assets', '16. Real Estate', '17. Employees & Management', '18. Key Person Risk & Transition',
+      '19. Legal & Regulatory', '20. Franchise / Licensing (if applicable)', '21. Technology & Systems', '22. Risk Factors', '23. Investment Highlights',
+      '24. Reasons for Sale', '25. Transaction Summary & Process', '26. Confidential Buyer Questionnaire',
     ] }] },
 
     // ---- Business ----
@@ -142,23 +168,33 @@ export function generateCimContent(listing: Listing): CimContent {
         `SDE: ${fmt(sde)}`,
         ...(ebitda ? [`EBITDA: ${fmt(ebitda)}`] : []),
         `Gross Margin: ${pct(grossMargin)}`,
+        ...(bandLine ? [`Market Benchmark: ${bandLine}`] : []),
       ] },
       { heading: 'Key Ratios', body: [
-        `Revenue Growth: Stable / modest growth trajectory`,
         `SDE Margin: ${sde && revenue ? pct(sde / revenue) : '—'}`,
-        `Working Capital: Adequate for operating requirements`,
+        `SDE Multiple (asking): ${sdeMultiple ? sdeMultiple.toFixed(2) + 'x' : '—'}`,
+        `Price / Revenue: ${priceRev ? priceRev.toFixed(2) + 'x' : '—'}`,
+        ...(multiYearRows.length >= 2
+          ? [`Revenue Trajectory: ${fmt(multiYearRows[0].revenue)} → ${fmt(multiYearRows[multiYearRows.length - 1].revenue)} across ${multiYearRows.length} periods.`]
+          : []),
       ] },
     ] },
     { id: 'historical-financials', title: '7. Historical Financial Performance', subsections: [
       { heading: 'Performance Overview', body: [
         `The business has delivered annual revenue of approximately ${fmt(revenue)} with normalized earnings of ${fmt(sde)}.`,
-        'Detailed 3-year historical P&L statements, tax returns, and balance sheet information are available to qualified buyers under NDA.',
         'Owner-provided figures have been normalized to reflect true economic earnings (see Section 8).',
+        ...(analysis?.trendNote ? [analysis.trendNote] : []),
       ] },
+      ...(multiYearRows.length >= 2
+        ? [{ heading: 'Multi-Year Summary', body: [
+            ...multiYearRows.map((yr) => `${yr.label}: Revenue ${fmt(yr.revenue)} · Recast SDE ${fmt(yr.sde)} · Recast EBITDA ${fmt(yr.ebitda)}`),
+            'Figures reflect normalized earnings after the add-backs itemized in Section 8B. Detailed P&L statements, tax returns, and balance-sheet information are available to qualified buyers under NDA.',
+          ] }]
+        : []),
     ] },
     { id: 'recast-earnings', title: '8. Recast / Normalized Earnings', subsections: [
       { heading: 'Normalization Adjustments', body: [
-        'The SDE and EBITDA figures shown throughout this document reflect normalized earnings after standard broker add-backs, including:',
+        'The SDE and EBITDA figures shown throughout this document reflect normalized earnings after standard broker add-backs. Each adjustment is itemized and justified in Section 8B so that a buyer, lender, or independent accountant can verify every line during due diligence.',
       ] },
       { heading: 'Typical Add-Backs', body: [
         '• Owner compensation above market rate — added back',
@@ -169,19 +205,77 @@ export function generateCimContent(listing: Listing): CimContent {
         '• Non-arm\'s-length payments (family, related parties) — added back',
         '• Personal expenses (travel, meals, charitable) — added back',
       ] },
+      ...(analysis?.addBackMix
+        ? [{ heading: 'Quality of Earnings', body: [
+            analysis.qualityNote,
+            `Add-back mix (latest period): ${analysis.addBackMix.recurringPct}% recurring / ${100 - analysis.addBackMix.recurringPct}% one-time & discretionary.`,
+          ] }]
+        : []),
       { heading: 'Note', body: [
         'A complete, itemized recast is available to qualified buyers under NDA. Figures should be verified by the buyer\'s accountant or lender.',
       ] },
     ] },
+    ...(multiYearRows.length >= 2 && analysis
+      ? [{
+          id: 'multi-year-trend',
+          title: '8A. Multi-Year Trend Analysis',
+          subsections: [
+            { heading: 'Revenue & Earnings Trend', body: [
+              analysis.trendNote,
+              `Compound annual growth: Revenue ${analysis.cagr.revenue !== null ? (analysis.cagr.revenue * 100).toFixed(1) + '%' : '—'} · SDE ${analysis.cagr.sde !== null ? (analysis.cagr.sde * 100).toFixed(1) + '%' : '—'}.`,
+            ] },
+            { heading: 'Margin Profile', body: [
+              ...multiYearRows.map((yr, i) => {
+                const sm = analysis.margins.sdeMargin[i]
+                const em = analysis.margins.ebitdaMargin[i]
+                return `${yr.label}: SDE margin ${sm !== null && sm !== undefined ? (sm * 100).toFixed(1) + '%' : '—'} · EBITDA margin ${em !== null && em !== undefined ? (em * 100).toFixed(1) + '%' : '—'}`
+              }),
+            ] },
+            { heading: 'Year-over-Year Growth', body: [
+              ...multiYearRows.map((yr, i) => {
+                const g = analysis.yoy.revenue[i]
+                return `${yr.label}: revenue ${g === null || g === undefined ? '—' : (g * 100).toFixed(1) + '%'} YoY · SDE ${analysis.yoy.sde[i] === null || analysis.yoy.sde[i] === undefined ? '—' : (analysis.yoy.sde[i]! * 100).toFixed(1) + '%'} YoY`
+              }),
+            ] },
+          ],
+        }]
+      : []),
+    ...(analysis?.justifications?.length
+      ? [{
+          id: 'add-back-justification',
+          title: '8B. Add-Back Justification',
+          subsections: [
+            { heading: 'Why Each Adjustment Is Made', body: [
+              'Each add-back category is listed with its justification. These are standard, defensible normalization adjustments under IBBA-aligned sell-side practice; every line is traceable to source records.',
+            ] },
+            ...analysis.justifications.map((j) => ({ heading: j.label, body: [j.justification] })),
+          ],
+        }]
+      : []),
     { id: 'valuation-metrics', title: '9. Valuation Metrics', subsections: [
       { heading: 'Multiple Analysis', body: [
         `Asking Price: ${fmt(price)}`,
         `Price / Revenue: ${priceRev ? priceRev.toFixed(2) + 'x' : 'N/A'}`,
         `SDE Multiple: ${sdeMultiple ? sdeMultiple.toFixed(2) + 'x' : 'N/A'}`,
         ...(priceEbitda ? [`Price / EBITDA: ${priceEbitda.toFixed(2)}x`] : []),
-        'These multiples are within or favorable to current market comparables for businesses in this sector (see Section 11).',
+        ...(bandLine
+          ? [`Market context: ${bandLine} The asking-price multiple falls ${sdeMultiple && marketBand && sdeMultiple >= marketBand.min && sdeMultiple <= marketBand.max ? 'within' : 'outside/at the edge of'} that band and should be read together with Sections 9A and 11.`]
+          : []),
       ] },
     ] },
+    ...(bandLine
+      ? [{
+          id: 'market-comparables',
+          title: '9A. Market Comparables',
+          subsections: [
+            { heading: 'Sector Transaction Benchmarks', body: [
+              bandLine,
+              `Applying the band to normalized earnings of ${fmt(sde || ebitda || 0)} yields an indicative range of ${fmt((sde || ebitda || 0) * marketBand!.min)} to ${fmt((sde || ebitda || 0) * marketBand!.max)} on a ${marketBand!.basis} basis.`,
+              'Comparables are directional market evidence, not an appraisal. Final value is set by negotiation and confirmed through buyer diligence, financing capacity, and competitive bidding dynamics.',
+            ] },
+          ],
+        }]
+      : []),
 
     // ---- Market ----
     { id: 'industry-analysis', title: '10. Industry Analysis', subsections: [

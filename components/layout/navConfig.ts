@@ -75,6 +75,7 @@ export const NAV: NavItem[] = [
   // ── ADMIN ─────────────────────────────────────────────────
   { href: '/dashboard/finance', label: 'Finance', icon: '💰', minRole: 'admin', group: 'Admin', keywords: 'commissions payouts splits expenses ledger costs' },
   { href: '/dashboard/review-queue', label: 'Review Queue', icon: '🗂️', minRole: 'admin', group: 'Admin', keywords: 'moderation approval' },
+  { href: '/dashboard/approvals', label: 'Delivery Approvals', icon: '✅', minRole: 'admin', group: 'Admin', keywords: 'send approve reject cim bov recast deliverable email share' },
   { href: '/dashboard/tools', label: 'CSV Tools', icon: '🧰', minRole: 'broker', group: 'Admin', keywords: 'import export csv' },
   { href: '/dashboard/security', label: 'Security', icon: '🛂', minRole: 'admin', group: 'Admin', keywords: '2fa login access password vault credentials secrets' },
 

@@ -18,6 +18,7 @@
 export type RecastEntityType = 's_corp' | 'c_corp' | 'llc' | 'partnership' | 'sole_prop'
 
 import { supabase } from '@/lib/supabase/client'
+import { analyzeRecast, type TrendYear } from './recastAnalysis.ts'
 
 export const ENTITY_TYPES: { id: RecastEntityType; label: string }[] = [
   { id: 's_corp', label: 'S-Corp' },
@@ -125,6 +126,8 @@ export interface RecastResult {
   avgEBITDA: number
   trendNote: string
   // Used for the "Before vs After" visual
+  /** Multi-year trend + add-back justification analysis (Phase: send path). */
+  analysis?: import('./recastAnalysis.ts').RecastAnalysis
 }
 
 // Helper formatters
@@ -223,6 +226,29 @@ export function recastFinancials(input: RecastInput): RecastResult {
   }
 
   return { businessName: input.businessName, entityType: input.entityType, currency, years: yearResults, avgSDE, avgEBITDA, trendNote }
+}
+
+// ---------------------------------------------------------------------------
+// Attach the multi-year trend + add-back justification analysis (Phase: send
+// path + quality bar). Pure — call after recastFinancials to enrich the result
+// with CAGR/YoY/margins, quality-of-earnings mix, and per-category
+// justifications that a broker can defend in front of a buyer's advisor.
+// ---------------------------------------------------------------------------
+export function attachRecastAnalysis(result: RecastResult): RecastResult {
+  const years: TrendYear[] = result.years
+    .slice()
+    .sort((a, b) => a.year - b.year)
+    .map((yr) => ({
+      year: yr.year,
+      label: yr.label || String(yr.year),
+      revenue: yr.recast.revenue,
+      sde: yr.recast.sde,
+      ebitda: yr.recast.ebitda,
+      totalAddBacks: yr.totalAddBacks,
+      addBacksByCategory: Object.fromEntries(yr.addBackDetail.map((d) => [d.category, d.amount])),
+    }))
+  const analysis = analyzeRecast(years)
+  return { ...result, trendNote: analysis.trendNote, analysis }
 }
 
 // ---------------------------------------------------------------------------

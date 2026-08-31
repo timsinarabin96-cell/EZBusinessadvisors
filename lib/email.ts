@@ -92,6 +92,7 @@ export type EmailKind =
   | 'daily_brief'
   | 'portal_invite'
   | 'data_room_change'
+  | 'deliverable'
   | 'buyer_invite'
   | 'booking_confirmed'
   | 'password_reset'
@@ -107,6 +108,8 @@ export interface EmailOptions {
   html: string
   kind?: EmailKind
   meta?: Record<string, unknown>
+  /** Optional file attachments (base64 content) — used for deliverable sends. */
+  attachments?: { filename: string; content: string; contentType: string }[]
 }
 
 export interface EmailResult {
@@ -426,7 +429,7 @@ export const emailTemplates = {
 }
 
 // --- SMTP transport (nodemailer, lazily loaded) -----------------------------
-async function deliverViaSmtp(to: string, subject: string, html: string): Promise<boolean> {
+async function deliverViaSmtp(to: string, subject: string, html: string, attachments?: EmailOptions['attachments']): Promise<boolean> {
   let nodemailer: any
   try {
     nodemailer = await import('nodemailer')
@@ -442,7 +445,10 @@ async function deliverViaSmtp(to: string, subject: string, html: string): Promis
       secure: process.env.SMTP_SECURE === 'true',
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
     })
-    await transporter.sendMail({ from: FROM, to, subject, html })
+    await transporter.sendMail({
+      from: FROM, to, subject, html,
+      attachments: (attachments || []).map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64'), contentType: a.contentType })),
+    })
     return true
   } catch {
     return false
@@ -450,7 +456,7 @@ async function deliverViaSmtp(to: string, subject: string, html: string): Promis
 }
 
 // --- Resend transport (single API key — easiest provider to set up) ---------
-async function deliverViaResend(to: string, subject: string, html: string): Promise<boolean> {
+async function deliverViaResend(to: string, subject: string, html: string, attachments?: EmailOptions['attachments']): Promise<boolean> {
   const key = process.env.RESEND_API_KEY
   if (!key) return false
   try {
@@ -462,6 +468,7 @@ async function deliverViaResend(to: string, subject: string, html: string): Prom
         to: [to],
         subject,
         html,
+        attachments: (attachments || []).map((a) => ({ filename: a.filename, content: a.content })),
       }),
       signal: AbortSignal.timeout(15_000),
     })
@@ -476,7 +483,7 @@ async function deliverViaResend(to: string, subject: string, html: string): Prom
  * Refreshes the access token on every call (cheap at platform volumes) and
  * sends as the configured mailbox. Used when no SMTP/Resend is configured.
  */
-async function deliverViaGraph(to: string, subject: string, html: string): Promise<boolean> {
+async function deliverViaGraph(to: string, subject: string, html: string, attachments?: EmailOptions['attachments']): Promise<boolean> {
   const clientId = process.env.EMAIL_GRAPH_CLIENT_ID
   const tenant = process.env.EMAIL_GRAPH_TENANT || 'common'
   const refreshToken = process.env.EMAIL_GRAPH_REFRESH_TOKEN
@@ -511,6 +518,12 @@ async function deliverViaGraph(to: string, subject: string, html: string): Promi
           subject,
           body: { contentType: 'HTML', content: html },
           toRecipients: [{ emailAddress: { address: to } }],
+          attachments: (attachments || []).map((a) => ({
+            '@odata.type': '#microsoft.graph.fileAttachment',
+            name: a.filename,
+            contentType: a.contentType,
+            contentBytes: a.content,
+          })),
         },
         saveToSentItems: true,
       }),
@@ -561,11 +574,11 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
   // Attempt real delivery when configured (Resend first — easiest, then SMTP,
   // then Microsoft Graph as the business-mailbox sender).
   if (canDeliver) {
-    const viaResend = await deliverViaResend(to, subject, html)
+    const viaResend = await deliverViaResend(to, subject, html, opts.attachments)
     if (viaResend) return { ok: true, queued: false }
-    const delivered = await deliverViaSmtp(to, subject, html)
+    const delivered = await deliverViaSmtp(to, subject, html, opts.attachments)
     if (delivered) return { ok: true, queued: false }
-    const viaGraph = await deliverViaGraph(to, subject, html)
+    const viaGraph = await deliverViaGraph(to, subject, html, opts.attachments)
     if (viaGraph) return { ok: true, queued: false }
   }
 

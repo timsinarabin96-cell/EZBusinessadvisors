@@ -641,6 +641,44 @@ export function generateBovContent(listing: Listing): BovContent {
         },
       ],
     },
+
+    // 11. Valuation Sensitivity & Reconciliation (defensible under pushback)
+    {
+      id: 'sensitivity-reconciliation',
+      title: 'Valuation Sensitivity & Reconciliation',
+      subsections: [
+        {
+          heading: 'Sensitivity to the Earnings Multiple',
+          body: [
+            `The indicative range above is driven by the earnings multiple applied to normalized ${sde ? 'SDE' : 'EBITDA'} of ${fmt(base)}. The table below shows how the implied value moves with the multiple — the tool a buyer's advisor will reach for first when testing the price.`,
+            `• ${(lowMultiplier - 0.5).toFixed(1)}x → ${fmt(base * (lowMultiplier - 0.5))}`,
+            `• ${lowMultiplier.toFixed(1)}x (low end) → ${fmt(low)}`,
+            `• ${((lowMultiplier + highMultiplier) / 2).toFixed(1)}x (midpoint) → ${fmt(base * ((lowMultiplier + highMultiplier) / 2))}`,
+            `• ${highMultiplier.toFixed(1)}x (high end) → ${fmt(high)}`,
+            `• ${(highMultiplier + 0.5).toFixed(1)}x (premium) → ${fmt(base * (highMultiplier + 0.5))}`,
+            `At the asking price of ${fmt(price)}, the implied multiple is ${priceSde ? priceSde.toFixed(2) + 'x SDE' : priceEbitda ? priceEbitda.toFixed(2) + 'x EBITDA' : '—'} — the buyer can see exactly how much headroom the price embeds versus each sensitivity point.`,
+          ],
+        },
+        {
+          heading: 'Reconciliation of Methods',
+          body: [
+            'The twelve-method analysis brackets value from multiple independent directions (asset, earnings, market, debt-capacity, DCF). The single price conclusion is the average of the range extremes, consistent with the methodology documented in the Report Summary. Methods that return zero or degenerate values (e.g., Industry Method where no rule applies) are excluded so they cannot distort the conclusion.',
+            `The asset-based methods anchor the floor (${fmt(twelve.rangeLow)}); the earnings and market methods set the ceiling (${fmt(twelve.rangeHigh)}). The conclusion of ${fmt(twelve.conclusion)} sits ${twelve.conclusion >= price ? 'at or below' : 'above'} the asking price, and the asking price itself is supported by the debt-capacity analysis (a qualified buyer can service the debt from normalized cash flow).`,
+          ],
+        },
+        {
+          heading: 'How a Buyer\'s Advisor Might Push Back — And the Response',
+          body: [
+            `"Add-backs are overstated." — Every add-back is itemized and justified (see the recast schedule). Recurring owner-comp and D&A adjustments are standard; one-time items are flagged so they can be tested or excluded.`,
+            `"The multiple is too high for this sector." — The applied band of ${lowMultiplier.toFixed(1)}-${highMultiplier.toFixed(1)}x is drawn from current market data for ${industry === 'its industry' ? 'the subject sector' : industry} (see Market & Industry Analysis) and cross-checked against the comparable transactions listed in this report.`,
+            `"Revenue quality is unclear." — Customer concentration, retention characteristics, and revenue mix are addressed in the Company Overview and Customer Analysis sections; detailed client data is available in diligence.`,
+            `"The asking price implies growth I can't verify." — The valuation does not rely on growth: the midpoint is supported by current normalized earnings alone. Growth initiatives in the SWOT section are upside, not underwriting.`,
+            `"Seller financing terms are unknown." — Structure is negotiable; the debt-capacity method demonstrates the price is serviceable under conventional SBA financing without seller support.`,
+            'The advisor will provide the underlying recast work papers and comparable data to any qualified buyer under NDA, so every input can be independently verified.',
+          ],
+        },
+      ],
+    },
   ]
 
   return {

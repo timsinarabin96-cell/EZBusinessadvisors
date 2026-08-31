@@ -156,15 +156,15 @@ export function clawPageBg(doc: jsPDF): void {
 }
 
 // ---- Pull-quote watermark (72pt gold @ 15% opacity) ----------------------------
-export function clawWatermark(doc: jsPDF, fonts: ClawFonts, text: string): void {
+export function clawWatermark(doc: jsPDF, fonts: ClawFonts, text: string, opts?: { y?: number; size?: number; opacity?: number }): void {
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()
   doc.saveGraphicsState()
   try {
-    doc.setGState(new (doc as any).GState({ opacity: 0.15 }))
-    setHead(doc, fonts, 72, 2)
+    doc.setGState(new (doc as any).GState({ opacity: opts?.opacity ?? 0.15 }))
+    setHead(doc, fonts, opts?.size ?? 72, 2)
     doc.setTextColor(...CLAW_GOLD)
-    doc.text(text, W / 2, H / 2, { align: 'center' })
+    doc.text(text, W / 2, opts?.y ?? H / 2, { align: 'center' })
   } catch {
     /* watermark is decorative */
   }
@@ -268,13 +268,16 @@ export async function clawCover(
     }
   }
 
-  // Gradient overlay — 70% black at bottom → 0% at top (12 bands).
+  // Gradient overlay — full-page protection so headline text is always
+  // legible over the artwork: ~30% black at the top rising to ~85% at the
+  // bottom (12 bands). The title block sits in the 0.42H band, which now
+  // carries a solid floor of contrast instead of a near-zero scrim.
   const bands = 12
-  const startY = H * 0.32
+  const startY = 0
   for (let i = 0; i < bands; i++) {
     const t = i / (bands - 1)
-    const opacity = 0.7 * t * t
-    const bandH = (H - startY) / bands
+    const opacity = 0.35 + 0.5 * t * t
+    const bandH = H / bands
     doc.saveGraphicsState()
     try {
       doc.setGState(new (doc as any).GState({ opacity }))
@@ -285,6 +288,20 @@ export async function clawCover(
     }
     doc.restoreGraphicsState()
   }
+
+  // Solid text-protection panel behind the title block (guarantees legibility
+  // regardless of the artwork brightness at 0.42H–0.62H).
+  const panelTop = H * 0.40
+  const panelBottom = Math.min(H * 0.66, H - 120)
+  doc.saveGraphicsState()
+  try {
+    doc.setGState(new (doc as any).GState({ opacity: 0.62 }))
+    doc.setFillColor(8, 10, 12)
+    doc.roundedRect(0, panelTop, W, panelBottom - panelTop, 0, 0, 'F')
+  } catch {
+    /* noop */
+  }
+  doc.restoreGraphicsState()
 
   doc.setDrawColor(...CLAW_GOLD)
   doc.setLineWidth(2.5)

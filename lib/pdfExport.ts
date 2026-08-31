@@ -17,6 +17,7 @@ import type { CimContent } from '@/lib/cim'
 import type { BovContent } from '@/lib/bov'
 import type { RecastResult, RecastYearResult } from '@/lib/recast'
 import type { BliContent } from '@/lib/bli'
+import { ratePct } from '@/lib/recastAnalysis'
 import {
   CLAW_GOLD,
   CLAW_GOLD_DARK,
@@ -339,14 +340,13 @@ export async function exportRecastToPdf(result: RecastResult, opts?: PdfOpts): P
 
   // ---- Summary ----
   let y = clawSectionPage(doc, fonts, agency, 'Recast Summary')
-  clawWatermark(doc, fonts, fmtR(result.avgSDE, result.currency))
 
   const cols: ClawTableCol[] = [
-    { label: 'Metric', x: M + 4, w: 220 },
-    { label: 'Average', x: M + 230, w: CONTENT_W - 234, align: 'right' },
+    { label: 'Metric', x: M + 4, w: 260 },
+    { label: 'Average', x: M + 268, w: CONTENT_W - 272, align: 'right' },
   ]
   const rows: (string | number)[][] = [
-    ['Average SDE — Seller\'s Discretionary Earnings', fmtR(result.avgSDE, result.currency)],
+    ['Average SDE (Seller\'s Discretionary Earnings)', fmtR(result.avgSDE, result.currency)],
     ['Average EBITDA', fmtR(result.avgEBITDA, result.currency)],
   ]
   y = clawTable(doc, fonts, cols, rows, y, { rowH: 24, moneyCols: [1], highlightRows: [0] }) + 22
@@ -364,8 +364,58 @@ export async function exportRecastToPdf(result: RecastResult, opts?: PdfOpts): P
     y += 15
   }
 
+  // ---- Period overview table (fills the summary page with real substance) ----
+  if (result.years.length >= 2) {
+    y += 14
+    setHead(doc, fonts, 12, 0.5)
+    doc.setTextColor(...CLAW_TEAL)
+    doc.text('Period Overview', M, y)
+    y += 16
+    const pYears = result.years.slice().sort((a, b) => a.year - b.year)
+    const pCols: ClawTableCol[] = [
+      { label: 'Metric', x: M + 4, w: 190 },
+      ...pYears.map((yr, i) => ({ label: yr.label, x: M + 198 + i * ((CONTENT_W - 194) / pYears.length), w: (CONTENT_W - 194) / pYears.length, align: 'right' as const })),
+    ]
+    const pRows: (string | number)[][] = [
+      ['Revenue', ...pYears.map((yr) => fmtR(yr.recast.revenue, result.currency))],
+      ['As-Reported Net Income', ...pYears.map((yr) => fmtR(yr.asReported.netIncome, result.currency))],
+      ['Total Add-backs', ...pYears.map((yr) => '+' + fmtR(yr.totalAddBacks, result.currency))],
+      ['Recast SDE', ...pYears.map((yr) => fmtR(yr.recast.sde, result.currency))],
+      ['Recast EBITDA', ...pYears.map((yr) => fmtR(yr.recast.ebitda, result.currency))],
+    ]
+    y = clawTable(doc, fonts, pCols, pRows, y, { rowH: 20, moneyCols: pYears.map((_, i) => i + 1), highlightRows: [0, 3, 4] }) + 20
+
+    // Quality-of-earnings callout on the summary page (analysis available)
+    if (result.analysis) {
+      setHead(doc, fonts, 11, 0.4)
+      doc.setTextColor(...CLAW_TEAL)
+      doc.text('Quality of Earnings', M, y)
+      y += 15
+      setBody(doc, fonts, 10)
+      doc.setTextColor(...CLAW_BODY)
+      const q = doc.splitTextToSize(result.analysis.qualityNote, CONTENT_W) as string[]
+      for (const l of q) {
+        if (y > A4_H - 70) y = clawSectionPage(doc, fonts, agency, 'Recast Summary')
+        doc.text(l, M, y)
+        y += 15
+      }
+      y += 6
+      setBody(doc, fonts, 9.5)
+      doc.setTextColor(...CLAW_MUTED)
+      const mix = doc.splitTextToSize(
+        `Add-back mix (latest year): ${result.analysis.addBackMix.recurringPct}% recurring / ${100 - result.analysis.addBackMix.recurringPct}% one-time & discretionary — full itemized justifications follow in the Add-Back Justification section.`,
+        CONTENT_W,
+      ) as string[]
+      for (const l of mix) {
+        if (y > A4_H - 70) y = clawSectionPage(doc, fonts, agency, 'Recast Summary')
+        doc.text(l, M, y)
+        y += 13
+      }
+    }
+  }
+
   // ---- Before vs After ----
-  const yearsSorted = result.years.slice().sort((a, b) => b.year - a.year)
+  const yearsSorted = result.years.slice().sort((a, b) => a.year - b.year)
   const yearCols: ClawTableCol[] = [
     { label: 'Metric', x: M + 4, w: 150 },
     ...yearsSorted.map((yr, i) => ({ label: yr.label, x: M + 158 + i * ((CONTENT_W - 154) / yearsSorted.length), w: (CONTENT_W - 154) / yearsSorted.length, align: 'right' as const })),
@@ -411,6 +461,92 @@ export async function exportRecastToPdf(result: RecastResult, opts?: PdfOpts): P
       y += 15
     }
     y += 8
+  }
+
+  // ---- Multi-year trend analysis (Phase: send path quality bar) ----
+  const analysis = result.analysis
+  if (analysis && result.years.length >= 2) {
+    y = clawSectionPage(doc, fonts, agency, 'Multi-Year Trend Analysis')
+    clawWatermark(doc, fonts, ratePct(analysis.cagr.sde))
+    setBody(doc, fonts, 10.5)
+    doc.setTextColor(...CLAW_BODY)
+    const trendLines = doc.splitTextToSize(analysis.trendNote, CONTENT_W) as string[]
+    for (const l of trendLines) {
+      if (y > A4_H - 70) y = clawSectionPage(doc, fonts, agency, 'Multi-Year Trend Analysis')
+      doc.text(l, M, y)
+      y += 15
+    }
+    y += 10
+
+    // CAGR + YoY table
+    const trCols: ClawTableCol[] = [
+      { label: 'Metric', x: M + 4, w: 200 },
+      ...yearsSorted.map((yr, i) => ({ label: yr.label, x: M + 210 + i * ((CONTENT_W - 206) / yearsSorted.length), w: (CONTENT_W - 206) / yearsSorted.length, align: 'right' as const })),
+    ]
+    const trRows: (string | number)[][] = [
+      ['Revenue', ...yearsSorted.map((yr) => fmtR(yr.recast.revenue, result.currency))],
+      ['YoY Revenue Growth', ...yearsSorted.map((yr, i) => (i === 0 ? '—' : ratePct(analysis.yoy.revenue[i])))],
+      ['Recast SDE', ...yearsSorted.map((yr) => fmtR(yr.recast.sde, result.currency))],
+      ['YoY SDE Growth', ...yearsSorted.map((yr, i) => (i === 0 ? '—' : ratePct(analysis.yoy.sde[i])))],
+      ['SDE Margin', ...yearsSorted.map((yr, i) => (analysis.margins.sdeMargin[i] == null ? '—' : (analysis.margins.sdeMargin[i]! * 100).toFixed(1) + '%'))],
+      ['EBITDA Margin', ...yearsSorted.map((yr, i) => (analysis.margins.ebitdaMargin[i] == null ? '—' : (analysis.margins.ebitdaMargin[i]! * 100).toFixed(1) + '%'))],
+    ]
+    y = clawTable(doc, fonts, trCols, trRows, y, { rowH: 20, moneyCols: yearsSorted.map((_, i) => i + 1), highlightRows: [0, 2] }) + 20
+
+    setHead(doc, fonts, 11, 0.4)
+    doc.setTextColor(...CLAW_TEAL)
+    doc.text('Quality of Earnings', M, y)
+    y += 16
+    setBody(doc, fonts, 10)
+    doc.setTextColor(...CLAW_BODY)
+    const qLines = doc.splitTextToSize(analysis.qualityNote, CONTENT_W) as string[]
+    for (const l of qLines) {
+      if (y > A4_H - 70) y = clawSectionPage(doc, fonts, agency, 'Multi-Year Trend Analysis')
+      doc.text(l, M, y)
+      y += 15
+    }
+    y += 8
+    const mixLines = doc.splitTextToSize(
+      `Add-back mix (latest year): ${analysis.addBackMix.recurringPct}% recurring / ${100 - analysis.addBackMix.recurringPct}% one-time & discretionary (recurring $${fmtR(analysis.addBackMix.recurringAmount, result.currency).replace(/^\$/, '').trim()}).`,
+      CONTENT_W,
+    ) as string[]
+    for (const l of mixLines) {
+      if (y > A4_H - 70) y = clawSectionPage(doc, fonts, agency, 'Multi-Year Trend Analysis')
+      doc.text(l, M, y)
+      y += 15
+    }
+
+    // Justification page — every add-back category defended
+    if (analysis.justifications.length) {
+      y = clawSectionPage(doc, fonts, agency, 'Add-Back Justification')
+      setBody(doc, fonts, 9.5)
+      doc.setTextColor(...CLAW_MUTED)
+      const intro = doc.splitTextToSize(
+        'Each add-back applied in this recast is listed with its justification, consistent with standard business-brokerage normalization practice. Buyers and lenders are encouraged to verify each item against source records during due diligence.',
+        CONTENT_W,
+      ) as string[]
+      for (const l of intro) {
+        doc.text(l, M, y)
+        y += 14
+      }
+      y += 8
+      for (const j of analysis.justifications) {
+        if (y > A4_H - 70) y = clawSectionPage(doc, fonts, agency, 'Add-Back Justification')
+        setHead(doc, fonts, 10, 0.3)
+        doc.setTextColor(...CLAW_TEAL)
+        doc.text(j.label, M, y)
+        y += 14
+        setBody(doc, fonts, 9.5)
+        doc.setTextColor(...CLAW_BODY)
+        const jLines = doc.splitTextToSize(j.justification, CONTENT_W) as string[]
+        for (const l of jLines) {
+          if (y > A4_H - 70) y = clawSectionPage(doc, fonts, agency, 'Add-Back Justification')
+          doc.text(l, M, y)
+          y += 13
+        }
+        y += 6
+      }
+    }
   }
 
   // ---- Disclaimer ----
