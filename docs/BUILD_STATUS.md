@@ -64,7 +64,7 @@
 | Legal gate — signed-status legal checklist (Marketing Agreement + LLC Resolution) | ✅ | `08fa085`, `46a8751` |
 | Stale-listing intelligence (deal doctor for listings) | ✅ | `08f5d30` |
 | Stale-draft nudge — parked drafts untouched 7d+ reuse stale-deal pattern + deduped agent notification | ✅ | `ff6dc03` |
-| Listing expiry + auto-renewal machine (30-day proposals, one-click renew) | ✅ | `ce3f72a`, `25cb893` |
+| Listing expiry + auto-renewal machine (30-day proposals, one-click renew) — **FIC Item 3 verified** | ✅ | `ce3f72a`, `25cb893` |
 | Walkthrough video support (video_url + player) | ✅ | `3d3c2ac`, `50f5307` |
 | Human-readable listing IDs + seller call-back reminders | ✅ | `25cb893` |
 | Duplicate-listing guard + dedupe | ✅ | `1567e1c`, `aaa9f13` |
@@ -91,12 +91,12 @@
 | Buyer pipeline CRM — kanban, heat, NQA, auto-log, competitive board | ✅ | `497b653` |
 | Offer Lab / offer compare + closing runway + cost estimator (Wave B) | ✅ | `0e2d6a1` |
 | LOI lifecycle — preview, 48h no-signature auto-nudge | ✅ | `b8ea220`, `f30fc83` |
-| Deal Room 2.0 — two-sided fillable agreements, invite/revoke, ZIP export, change alerts | ✅ | `5a3bc5a`, `2389ef4` |
+| Deal Room 2.0 — two-sided fillable agreements, invite/revoke, ZIP export, change alerts; **FIC Item 4 verified** (closingTracker `STAGE_TEMPLATES`/`loadStageTemplate` + DD folder template seeding) | ✅ | `5a3bc5a`, `2389ef4` |
 | Buyer/seller deal progress tracker in portal | ✅ | `4dfb260` |
 | Client portal — token-gated, milestones, docs, DD upload, broker chat | ✅ | `287d3af` |
 | Proof of Funds (buyer pack) | ✅ | `13e4e6d` |
 | Visitor intent tracking (see the anonymous 90%) → lead linkage | ✅ | `a88d948`, `6e5167f` |
-| Scam detection backend (visible trust badge for buyers) | 🟡 backend exists, UI badge not surfaced | `7b92367` |
+| Scam detection backend (visible trust badge for buyers) | ⚠️ **needs Rabin directly** — surfacing requires a live public-feed RPC change (`get_public_listing_feed` + legitimacy_verdict) + a product call on what buyers see; not applied unsupervised | PUNCHLIST |
 
 ## 4. Legal / e-Sign
 
