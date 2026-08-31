@@ -153,7 +153,7 @@ function SellerBody() {
         <div style={{ position: 'relative' }}>
           <div style={{ fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#f0d98c', fontWeight: 800 }}>Seller Portal</div>
           <h1 className="display-title" style={{ fontSize: 'clamp(28px, 4vw, 40px)', margin: '10px 0 6px', color: '#fff', letterSpacing: '-0.03em' }}>
-            <span className="grad-gold">{loading ? 'Loading…' : data?.lead?.business_name || 'Your Business'}</span>
+            <span className="grad-gold">{loading ? 'Loading…' : data?.lead?.business_name || data?.listing?.business_name || 'Your Business'}</span>
           </h1>
           <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
             {loading ? 'Fetching your details…' : 'Track your listing — confidentially, anytime.'}

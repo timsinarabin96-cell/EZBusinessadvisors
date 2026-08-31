@@ -200,6 +200,11 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    // SELLER-ORDER PATH: the token belongs to a LISTING, not a seller_leads
+    // row (free/paid plans create a listing + order, no lead). The portal UI
+    // renders off `lead` — synthesize a lead-equivalent from the listing so
+    // the seller sees their business name + status instead of "Link not
+    // found" (caught by the listing-flow sweep e2e).
     lead: lead
       ? {
           id: (lead as { id: string }).id,
@@ -210,7 +215,17 @@ export async function GET(req: NextRequest) {
           source: (lead as { source?: string | null }).source || null,
           created_at: (lead as { created_at?: string | null }).created_at || null,
         }
-      : null,
+      : listing
+        ? {
+            id: null,
+            business_name: listing.business_name,
+            industry: listing.industry,
+            location_general: listing.location_general,
+            status: listing.status,
+            source: 'seller_self_service',
+            created_at: null,
+          }
+        : null,
     listing,
     stats: { views7d, viewsTotal, ndaRequests },
     financials,
