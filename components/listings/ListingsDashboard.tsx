@@ -17,6 +17,7 @@ import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
 import { queueAutoPosts } from '@/lib/services/social'
 import { supabase } from '@/lib/supabase/client'
 import StaleListingPanel from '@/components/listings/StaleListingPanel'
+import ParkedDraftsPanel from '@/components/listings/ParkedDraftsPanel'
 import DeleteListingModal from '@/components/listings/DeleteListingModal'
 
 export default function ListingsDashboard() {
@@ -86,6 +87,9 @@ export default function ListingsDashboard() {
 
       {/* Stale-listing intelligence — views, inquiries, price vs market band */}
       <StaleListingPanel />
+
+      {/* Parked drafts — untouched 7+ days, waiting on seller input (boss 08-31) */}
+      <ParkedDraftsPanel />
 
       {/* Status filter */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>

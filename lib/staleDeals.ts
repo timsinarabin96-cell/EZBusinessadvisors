@@ -75,3 +75,101 @@ export async function findStaleDeals(agencyId: string, thresholdDays = 14): Prom
   stale.sort((a, b) => (b.days_since || 0) - (a.days_since || 0))
   return stale.slice(0, 100)
 }
+
+// =============================================================================
+// Stale-Draft Scanner (boss 08-31: reuse the stale-deal pattern, don't build a
+// separate reminder system)
+// -----------------------------------------------------------------------------
+// Finds DRAFT listings that have sat untouched (no `updated_at` change) past a
+// threshold — i.e. parked waiting on seller input/docs. Same shape as the stale
+// scanner above so the same UI + notification plumbing can surface them. The
+// nudge fires an in-app notification to the owning agent, deduped so a draft is
+// only re-nudged after it's been touched or the notification is read.
+// =============================================================================
+
+export interface StaleDraftItem {
+  entity_type: 'draft'
+  id: string
+  label: string
+  ref?: string | null
+  status?: string | null
+  agent_id?: string | null
+  updated_at: string | null
+  days_since: number
+}
+
+/** Pure: days since an ISO timestamp (Infinity when missing). */
+export const daysSinceIso = (iso: string | null | undefined): number => {
+  if (!iso) return Infinity
+  const t = new Date(iso).getTime()
+  if (!t) return Infinity
+  return Math.max(0, Math.floor((Date.now() - t) / 86400000))
+}
+
+/**
+ * Scan an agency for draft listings untouched in `thresholdDays` (default 7).
+ * Sorted most-stale first. Never throws.
+ */
+export async function findStaleDrafts(agencyId: string, thresholdDays = 7): Promise<StaleDraftItem[]> {
+  if (!svc) return []
+  const threshold = new Date(Date.now() - thresholdDays * 86400000).toISOString()
+  const { data } = await svc
+    .from('listings')
+    .select('id, business_name, listing_ref, status, agent_id, updated_at')
+    .eq('agency_id', agencyId)
+    .in('status', ['draft', 'changes_requested'])
+    .lt('updated_at', threshold)
+    .limit(200)
+
+  const out: StaleDraftItem[] = (data || []).map((r: any) => ({
+    entity_type: 'draft' as const,
+    id: r.id,
+    label: r.business_name || 'Unnamed draft',
+    ref: r.listing_ref || null,
+    status: r.status || null,
+    agent_id: r.agent_id || null,
+    updated_at: r.updated_at || null,
+    days_since: daysSinceIso(r.updated_at),
+  }))
+  out.sort((a, b) => b.days_since - a.days_since)
+  return out.slice(0, 100)
+}
+
+/**
+ * Fire a nudge notification to the owning agent of each stale draft — but only
+ * if there is no UNREAD draft-nudge notification already for that listing
+ * (dedupe: no spam, no separate reminder system). Returns how many nudges sent.
+ */
+export async function nudgeStaleDrafts(agencyId: string, thresholdDays = 7): Promise<{ nudged: number; skipped: number }> {
+  if (!svc) return { nudged: 0, skipped: 0 }
+  const drafts = await findStaleDrafts(agencyId, thresholdDays)
+  let nudged = 0
+  let skipped = 0
+
+  for (const d of drafts) {
+    if (!d.agent_id) { skipped += 1; continue }
+    // Dedupe: skip if an unread draft-nudge already exists for this listing.
+    const { data: existing } = await svc
+      .from('app_notifications')
+      .select('id')
+      .eq('agency_id', agencyId)
+      .eq('profile_id', d.agent_id)
+      .eq('kind', 'draft_nudge')
+      .is('read_at', null)
+      .eq('link', `/dashboard/studio?listing=${d.id}`)
+      .limit(1)
+    if (existing && existing.length > 0) { skipped += 1; continue }
+
+    const { error } = await svc.from('app_notifications').insert({
+      agency_id: agencyId,
+      profile_id: d.agent_id,
+      title: `⏸ Draft parked ${d.days_since} day${d.days_since === 1 ? '' : 's'} — waiting on seller input`,
+      body: `"${d.label}" hasn't been touched in ${d.days_since} day${d.days_since === 1 ? '' : 's'}. Nudge the seller or resume the build.`,
+      kind: 'draft_nudge',
+      link: `/dashboard/studio?listing=${d.id}`,
+    })
+    if (error) { skipped += 1; continue }
+    nudged += 1
+  }
+  return { nudged, skipped }
+}

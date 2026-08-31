@@ -31,6 +31,7 @@ const KIND_ICONS: Record<string, string> = {
   billing: '💳',
   system: '⚙️',
   training: '🎓',
+  draft_nudge: '⏸️',
 }
 
 const fmtTime = (iso: string | null | undefined) =>

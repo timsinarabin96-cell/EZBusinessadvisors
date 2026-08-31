@@ -475,7 +475,7 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
       router.push(`/dashboard/listings/${createdListingId}/workflow`)
       return
     }
-    router.push('/dashboard/listings')
+    router.push('/listings')
   }
 
   return (
