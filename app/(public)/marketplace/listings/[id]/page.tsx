@@ -81,22 +81,32 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   }
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 24px 48px' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
-      <Link href="/marketplace/listings" style={{ color: '#888', textDecoration: 'none', fontSize: 14, fontFamily: 'Georgia, serif' }}>← Back to listings</Link>
-      <div style={{ margin: '20px 0 24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 34, color: '#1a1a2e', margin: 0 }}>{listing.public_title}</h1>
-          <span style={{ background: '#f0ecdf', color: '#1a1a2e', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>{listing.industry || 'Business'}</span>
-          {meta?.listingRef && (
-            <span style={{ background: '#1a1a2e', color: '#c9a84c', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
-              🆔 {meta.listingRef}
-            </span>
-          )}
-          {listing.is_confidential && <span style={{ background: '#1a1a2e', color: '#fff', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>Confidential</span>}
+      {/* ══ PREMIUM HERO — dark aurora + grad-gold headline (billion-dollar pass) ══ */}
+      <section style={{ background: 'linear-gradient(160deg,#0b1020 0%,#101a38 42%,#0f2a52 100%)', color: '#fff', padding: '40px 24px 44px', margin: '0 -24px 28px', position: 'relative', overflow: 'hidden' }}>
+        <div className="hero-aurora" />
+        <div style={{ position: 'relative', maxWidth: 1080, margin: '0 auto' }}>
+          <Link href="/marketplace/listings" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: 13.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            ← Back to listings
+          </Link>
+          <div style={{ margin: '18px 0 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', lineHeight: 1.08, letterSpacing: '-0.03em', color: '#fff', margin: 0 }}>
+                <span className="grad-gold">{listing.public_title}</span>
+              </h1>
+              <span style={{ background: 'rgba(201,168,76,0.14)', border: '1px solid rgba(201,168,76,0.4)', color: '#f0d98c', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800 }}>{listing.industry || 'Business'}</span>
+              {meta?.listingRef && (
+                <span style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: '#f0d98c', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 800, fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                  🆔 {meta.listingRef}
+                </span>
+              )}
+              {listing.is_confidential && <span style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>Confidential</span>}
+            </div>
+            {listing.location_general && <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14.5, margin: '10px 0 0' }}>📍 {listing.location_general}</p>}
+          </div>
         </div>
-        {listing.location_general && <p style={{ color: '#888', fontSize: 14, margin: '8px 0 0' }}>📍 {listing.location_general}</p>}
-      </div>
+      </section>
       <BrokerFloat agent={meta?.agent || null} />
       <ListingMarketContextPanel ctx={marketCtx} />
       <ToastProvider>
@@ -105,10 +115,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
         <Link
           href={`/flyer/${listing.slug || listing.id}`}
-          style={{
-            padding: '11px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14,
-            background: '#1a1a2e', color: '#fff', fontFamily: 'Georgia, serif',
-          }}
+          className="cta-ghost-dark"
+          style={{ background: '#1a1a2e', border: '1px solid rgba(201,168,76,0.35)', color: '#f0d98c' }}
         >
           🖨️ Print / Save Flyer
         </Link>

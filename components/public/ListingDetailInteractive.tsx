@@ -191,7 +191,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) minmax(min(280px, 100%), 1fr)', gap: 24, alignItems: 'start' }}>
         <div>
           {listing.gallery_urls.length > 0 ? (
-            <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden' }}>
+            <div className="glass-light lift" style={{ overflow: 'hidden' }}>
               <div style={{ height: 420, background: '#1a1a2e', position: 'relative' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={listing.gallery_urls[activeImage]} alt={listing.public_title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />                {listing.gallery_urls.length > 1 && (
@@ -243,8 +243,8 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
             </div>
           )}
 
-          <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 28, marginTop: 20 }}>
-            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 14px' }}>Opportunity Overview</h2>
+          <div className="glass-light lift" style={{ padding: 28, marginTop: 20 }}>
+            <h2 className="display-title" style={{ fontSize: 22, color: '#1a1a2e', margin: '0 0 14px' }}>Opportunity Overview</h2>
             <p style={{ color: '#555', fontSize: 15, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
               {listing.public_summary || 'A confidential, established business opportunity. Additional information is available to qualified buyers after broker review and required confidentiality steps.'}
             </p>
@@ -262,8 +262,8 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
           </div>
 
           {/* EVERYTHING A BUYER NEEDS — operations & deal facts (no confidential data) */}
-          <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 28, marginTop: 20 }}>
-            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#1a1a2e', margin: '0 0 16px' }}>Everything You Need to Know</h2>
+          <div className="glass-light lift" style={{ padding: 28, marginTop: 20 }}>
+            <h2 className="display-title" style={{ fontSize: 22, color: '#1a1a2e', margin: '0 0 16px' }}>Everything You Need to Know</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 12 }}>
               {listing.established_year != null && <Fact icon="📅" label="Established" value={String(listing.established_year)} />}
               {listing.employees_full_time != null && <Fact icon="👥" label="Full-time employees" value={String(listing.employees_full_time)} />}
@@ -283,8 +283,8 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
         </div>
 
         <aside style={{ position: 'sticky', top: 24 }}>
-          <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 22 }}>
-            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 20, color: '#1a1a2e', margin: '0 0 16px' }}>Financial Snapshot</h2>
+          <div className="glass-light lift" style={{ padding: 22 }}>
+            <h2 className="display-title" style={{ fontSize: 20, color: '#1a1a2e', margin: '0 0 16px' }}>Financial Snapshot</h2>
             {listing.show_financials ? (
               <>
                 {/* BUSINESS MATERIALS — exact price only after qualification */}
@@ -317,14 +317,14 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
               <RequestPricingForm listingId={listing.id} listingTitle={listing.public_title} />
             </div>
 
-            <button onClick={() => setShowContact((current) => !current)} style={{ width: '100%', marginTop: 16, background: '#c9a84c', color: '#1a1a2e', border: 'none', borderRadius: 7, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+            <button onClick={() => setShowContact((current) => !current)} className="cta-glow" style={{ width: '100%', justifyContent: 'center', marginTop: 16, borderRadius: 12 }}>
               Request Confidential Details
             </button>
             {contactPhone && (
               <a
                 href={`tel:${contactPhone.replace(/[^+\d]/g, '')}`}
                 onClick={trackCall}
-                style={{ display: 'block', textAlign: 'center', marginTop: 10, background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 7, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'none', fontSize: 14 }}
+                style={{ display: 'block', textAlign: 'center', marginTop: 10, background: 'linear-gradient(135deg,#16203f,#0b1020)', color: '#fff', border: '1px solid rgba(201,168,76,0.35)', borderRadius: 12, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font-sans)', textDecoration: 'none', fontSize: 14 }}
               >
                 📞 Call the listing line — {contactPhone}
               </a>
@@ -333,7 +333,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
             {/* Make an Offer */}
             {listing.status === 'active' && (
               <>
-                <button onClick={() => setShowOffer((o) => !o)} style={{ width: '100%', marginTop: 10, background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 7, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                <button onClick={() => setShowOffer((o) => !o)} style={{ width: '100%', marginTop: 10, background: 'linear-gradient(135deg,#16203f,#0b1020)', color: '#f0d98c', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 12, padding: '13px 16px', fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 14 }}>
                   💵 Make an Offer
                 </button>
                 {showOffer && !offerDone && (
@@ -447,8 +447,8 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '11px 0', borderBottom: '1px solid #eee9dc' }}>
-      <span style={{ color: '#777', fontSize: 13 }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '11px 0', borderBottom: '1px solid rgba(201,168,76,0.22)' }}>
+      <span style={{ color: '#64748b', fontSize: 13 }}>{label}</span>
       <span style={{ color: '#1a1a2e', fontSize: 14, fontWeight: 800, textAlign: 'right' }}>{value}</span>
     </div>
   )
@@ -456,12 +456,12 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function Fact({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <div style={{ background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '14px 16px' }}>
-      <div style={{ fontSize: 11.5, color: '#c9a84c', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 4 }}>{icon}</div>
-      <div style={{ fontSize: 11.5, color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{label}</div>
+    <div className="lift" style={{ background: '#faf9f4', border: '1px solid rgba(201,168,76,0.25)', borderRadius: 14, padding: '14px 16px' }}>
+      <div style={{ fontSize: 11.5, color: '#b08d35', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 800, marginBottom: 4 }}>{icon}</div>
+      <div style={{ fontSize: 11.5, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{label}</div>
       <div style={{ fontSize: 14.5, color: '#1a1a2e', fontWeight: 800, marginTop: 3 }}>{value}</div>
     </div>
   )
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '11px 12px', border: '1px solid #d8d2c2', borderRadius: 6, fontSize: 14, fontFamily: 'Georgia, serif', outline: 'none', background: '#fff' }
+const inputStyle: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '11px 12px', border: '1px solid rgba(201,168,76,0.3)', borderRadius: 10, fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: '#fff' }
