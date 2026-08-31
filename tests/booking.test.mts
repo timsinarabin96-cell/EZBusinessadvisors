@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const booking = readFileSync('lib/booking.ts', 'utf8')
-const route = readFileSync('app/api/booking/route.ts', 'utf8')
 const chatRoute = readFileSync('app/api/ai/chat/route.ts', 'utf8')
 
 test('booking service extracts structured data with DeepSeek', () => {
@@ -22,17 +21,6 @@ test('booking service creates appointments in CRM calendar', () => {
 test('booking normalization rejects invented attendee details', () => {
   assert.match(booking, /Never invent a name, email, or phone/)
   assert.match(booking, /attendee_name: raw\.attendee_name \?/)
-})
-
-test('booking API validates input and requires agency context', () => {
-  assert.match(route, /bookingRequestSchema/)
-  assert.match(route, /An agency context is required to book appointments/)
-  assert.match(route, /needs_confirmation/)
-})
-
-test('booking API is shared by chat and phone agents', () => {
-  assert.match(route, /phone \(voice\) agent/)
-  assert.match(route, /chat AI agent/)
 })
 
 test('chat route supports the booking agent kind', () => {

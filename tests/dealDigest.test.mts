@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const lib = readFileSync('lib/dealDigest.ts', 'utf8')
-const route = readFileSync('app/api/digest/route.ts', 'utf8')
 const schema = readFileSync('sql/deal_digest_schema.sql', 'utf8')
 
 test('digest: fetches active approved listings for the agency', () => {
@@ -50,16 +49,4 @@ test('digest: schema is idempotent and RLS-on', () => {
   assert.match(schema, /grant select, insert, update, delete on public\.deal_digests to authenticated/)
   assert.match(schema, /^begin;/m)
   assert.match(schema, /^commit;/m)
-})
-
-test('digest: route has authed POST (broker) and GET (history)', () => {
-  assert.match(route, /export async function POST/)
-  assert.match(route, /export async function GET/)
-  assert.match(route, /export const runtime = 'nodejs'/)
-  assert.match(route, /authenticateProfileRequest/)
-  assert.match(route, /unauthorizedResponse\(\)/)
-  assert.match(route, /canManageAgency/)
-  assert.match(route, /forbiddenResponse\(\)/)
-  assert.match(route, /generateDigestForAgency/)
-  assert.match(route, /deal_digests/)
 })

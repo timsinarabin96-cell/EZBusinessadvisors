@@ -6,7 +6,7 @@
 > **Status legend:** ✅ done · 🟡 partial (works but has a known gap) · ❌ not built / open
 >
 > **Maintenance rule:** update this file in the same commit as any completed feature work.
-> Latest full-suite baseline: **977/977 unit tests green, typecheck clean** (2026-08-31).
+> Latest full-suite baseline: **955/955 unit tests green, typecheck clean** (2026-08-31, after dead-code sweep).
 > Live DB: Supabase project `ytcvlvisufxmmzeblmwx` · Deployed: Vercel `ezbusinessadvisors.vercel.app`
 
 ---
@@ -247,7 +247,7 @@
 | Supabase DB migrations — 6 applied to production + live-schema fixes | ✅ | `21faeab` |
 | **No migration runner** — SQL applied manually via Management API (lesson: apply after writing) | 🟡 tooling gap | current |
 | Nightly DB backup cron (14-day retention, off-site email copy) | ✅ | `c3f1711` |
-| Dead-code sweep | ❌ queued (next) | — |
+| **Dead-code sweep 08-31** — deleted 8 orphans w/ tests: `lib/stageTemplates` (closing tracker has own), `lib/voiceAgent` (twilio/vapi have own), `/api/booking` (lib used directly), `/api/social/oauth+callback` (no refs), `/api/compliance` (lib used by publish), `/api/syndication` (real: `/api/listings/syndication`), `/api/digest` (cron digest separate), `/api/proof-of-funds` (goes via `/api/public/qualify`). Kept: `/api/deal-files` (agent-facing), `/api/sms/inbound` (Twilio webhook). Also fixed vapi route EZ-brand fallback → 'our brokerage'. Suite 977 → 955 | ✅ | sweep commit |
 | Unit economics tracking (CAC/LTV, cost-per-listing, margin per tier, breakeven) | ❌ **needs Rabin directly** — business analysis with real usage data | PUNCHLIST |
 
 ## How to update

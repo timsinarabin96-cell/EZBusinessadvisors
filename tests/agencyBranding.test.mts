@@ -19,7 +19,8 @@ const loiRender = readFileSync('lib/loiRender.ts', 'utf8')
 const bundle = readFileSync('app/api/documents/bundle/route.ts', 'utf8')
 const pitchPdf = readFileSync('lib/advertiserPitchPdf.ts', 'utf8')
 const followups = readFileSync('lib/followups.ts', 'utf8')
-const voiceAgent = readFileSync('lib/voiceAgent.ts', 'utf8')
+const vapiRoute = readFileSync('app/api/voice/vapi/route.ts', 'utf8')
+const twilioRoute = readFileSync('app/api/voice/twilio/route.ts', 'utf8')
 
 test('branding: resolver exposes the full agency identity block', () => {
   assert.match(branding, /export interface AgencyBrand/)
@@ -78,12 +79,13 @@ test('branding: signed-pack bundle injects agency_name/broker_name from resolver
   assert.match(bundle, /if \(!filled\.broker_name\) filled\.broker_name = brand\.displayName/)
 })
 
-test('branding: advertiser pitch + SMS + voice agent no longer hardcode EZ', () => {
+test('branding: advertiser pitch + SMS + voice routes no longer hardcode EZ', () => {
   // Strip copyright headers (legal notices — always keep) before checking
   // user-facing text.
   const pitchBody = pitchPdf.split('\n').filter((l) => !l.includes('Copyright (c)')).join('\n')
   const followBody = followups.split('\n').filter((l) => !l.includes('Copyright (c)')).join('\n')
-  const voiceBody = voiceAgent.split('\n').filter((l) => !l.includes('Copyright (c)')).join('\n')
+  const vapiBody = vapiRoute.split('\n').filter((l) => !l.includes('Copyright (c)')).join('\n')
+  const twilioBody = twilioRoute.split('\n').filter((l) => !l.includes('Copyright (c)')).join('\n')
   // Advertiser pitch PDF footer.
   assert.match(pitchPdf, /agencyName\?: string/)
   assert.match(pitchPdf, /input\?\.agencyName\?\.trim\(\) \|\| 'Concord Deal Platform'/)
@@ -92,10 +94,11 @@ test('branding: advertiser pitch + SMS + voice agent no longer hardcode EZ', () 
   assert.match(followups, /NEXT_PUBLIC_AGENCY_NAME/)
   assert.match(followups, /from \$\{outreachAgency\}/)
   assert.doesNotMatch(followBody, /from EZ Business Advisors/, 'SMS must not hardcode EZ')
-  // Voice agent receptionist.
-  assert.match(voiceAgent, /NEXT_PUBLIC_AGENCY_NAME/)
-  assert.match(voiceAgent, /receptionist at \$\{AGENCY_NAME\}/)
-  assert.doesNotMatch(voiceBody, /receptionist at EZ Business Advisors/, 'voice agent must not hardcode EZ')
+  // Voice routes (vapi + twilio) — agency name is env-driven, never EZ.
+  assert.match(vapiRoute, /VOICE_AGENT_AGENCY_NAME/)
+  assert.match(twilioRoute, /VOICE_AGENT_AGENCY_NAME/)
+  assert.doesNotMatch(vapiBody, /EZ Business Advisors/, 'vapi voice route must not hardcode EZ')
+  assert.doesNotMatch(twilioBody, /EZ Business Advisors/, 'twilio voice route must not hardcode EZ')
 })
 
 test('branding: doc generators carry NO user-facing EZ string', () => {

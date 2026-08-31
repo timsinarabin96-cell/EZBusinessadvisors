@@ -7,7 +7,6 @@ const compliance = readFileSync('lib/compliance.ts', 'utf8')
 const stock = readFileSync('lib/stockImages.ts', 'utf8')
 const quality = readFileSync('lib/listingQuality.ts', 'utf8')
 const countryPage = readFileSync('app/(public)/marketplace/country/[code]/page.tsx', 'utf8')
-const complianceRoute = readFileSync('app/api/compliance/route.ts', 'utf8')
 const marketplace = readFileSync('lib/marketplace.ts', 'utf8')
 const recast = readFileSync('lib/recast.ts', 'utf8')
 const card = readFileSync('components/public/PublicListingCard.tsx', 'utf8')
@@ -109,13 +108,11 @@ test('global: country pages are worldwide SEO entry points', () => {
   assert.match(countryPage, /Sell your business — anywhere in the world/)
 })
 
-test('global: compliance API evaluates a listing (broker tooling)', () => {
-  assert.match(complianceRoute, /export async function GET/)
-  assert.match(complianceRoute, /authenticateProfileRequest/)
-  assert.match(complianceRoute, /evaluateListingCompliance/)
-  assert.match(complianceRoute, /scoreListingQuality/)
-  assert.match(complianceRoute, /jurisdictions=1/)
-  assert.match(complianceRoute, /Advisory only/)
+test('global: compliance lib evaluates a listing (used by publish, not a dead route)', () => {
+  assert.match(compliance, /export async function evaluateListingCompliance/)
+  assert.match(compliance, /compliance_jurisdictions/)
+  assert.match(compliance, /Advisory tooling \(NOT legal advice\)/)
+  assert.match(compliance, /export function extractStateCode/)
 })
 
 test('global: marketplace feed + search support country filter', () => {

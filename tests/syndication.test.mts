@@ -4,7 +4,6 @@ import test from 'node:test'
 
 const schema = readFileSync('sql/syndication_schema.sql', 'utf8')
 const lib = readFileSync('lib/syndication.ts', 'utf8')
-const api = readFileSync('app/api/syndication/route.ts', 'utf8')
 const hub = readFileSync('components/marketing/panels/SyndicationPanel.tsx', 'utf8')
 const shell = readFileSync('components/layout/navConfig.ts', 'utf8')
 
@@ -34,20 +33,6 @@ test('syndication: lib exposes inbox, outbox, offer, respond, withdraw, stats', 
   assert.match(lib, /split must be 0–100%/i)
   assert.match(lib, /createNotification/)
   assert.match(lib, /Co-brokerage offer received/)
-})
-
-test('syndication: API guards auth, validates splits, supports accept/decline/withdraw', () => {
-  assert.match(api, /view=inbox\|outbox/)
-  assert.match(api, /stats=1/)
-  assert.match(api, /authenticateProfileRequest/)
-  assert.match(api, /unauthorizedResponse/)
-  assert.match(api, /forbiddenResponse/)
-  assert.match(api, /export async function POST/)
-  assert.match(api, /export async function PATCH/)
-  assert.match(api, /splitPct must be 0–100/)
-  assert.match(api, /Cannot syndicate to your own agency/)
-  assert.match(api, /action \(accept\|decline\|withdraw\)/)
-  assert.match(api, /action === 'decline' \? 'declined' : 'withdrawn'/)
 })
 
 test('syndication: hub page renders inbox/outbox, stats, and offer composer', () => {

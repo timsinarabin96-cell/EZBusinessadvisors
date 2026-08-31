@@ -24,7 +24,7 @@ export const runtime = 'nodejs'
 // =============================================================================
 
 const AGENCY_ID = process.env.VOICE_AGENT_AGENCY_ID || ''
-const AGENCY_NAME = process.env.VOICE_AGENT_AGENCY_NAME || 'EZ Business Advisors'
+const AGENCY_NAME = process.env.VOICE_AGENT_AGENCY_NAME || 'our brokerage'
 
 function secretsMatch(received: string, expected: string) {
   const a = Buffer.from(received || '')
