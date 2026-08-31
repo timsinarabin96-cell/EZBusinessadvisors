@@ -137,6 +137,18 @@ export async function POST(req: NextRequest) {
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ ok: false, error: 'no file' }, { status: 400 })
     }
+
+    // #15 (spec §3 permissions): BUYER uploads are allowed ONLY during the
+    // due-diligence stage and are subject to agent review. Agents upload
+    // freely; sellers upload for their own listing.
+    if (role === 'buyer') {
+      const { data: deal } = await SVC.from('deals').select('status').eq('id', dealId).maybeSingle()
+      const dealStatus = (deal as { status?: string } | null)?.status
+      if (dealStatus !== 'due_diligence') {
+        return NextResponse.json({ ok: false, error: 'Buyer uploads are enabled during due diligence only.' }, { status: 403 })
+      }
+    }
+
     // SECURITY: hard caps on upload size (50 MB) and file type — prevents
     // storage abuse and malware/HTML payloads served from our domain.
     const MAX_BYTES = 50 * 1024 * 1024
