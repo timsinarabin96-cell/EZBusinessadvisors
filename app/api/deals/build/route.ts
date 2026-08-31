@@ -20,6 +20,7 @@ import {
   type BuildStep,
 } from '@/lib/oneShotDeal'
 import { withRetry } from '@/lib/aiRetry'
+import { sendEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300 // doc reading + 4 PDF gens + AI photos can take a while
@@ -130,6 +131,46 @@ export async function POST(req: NextRequest) {
         }
         persistBuild()
         send(stepEvent(steps.find((s) => s.key === key)!))
+      }
+
+      const buildStartedAt = Date.now()
+      // Observability + completion ping (fire-and-forget — never blocks the
+      // stream). Appends a run record to ai_metadata.build_history (JSONB —
+      // no migration needed) and emails the broker so they don't babysit.
+      const recordBuild = (status: 'done' | 'error', extra?: Record<string, unknown>) => {
+        void (async () => {
+          try {
+            const { data: fresh } = await db.from('listings').select('ai_metadata, business_name').eq('id', listingId).maybeSingle()
+            const meta = ((fresh as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata) || {}
+            const history = Array.isArray(meta.build_history) ? (meta.build_history as Record<string, unknown>[]) : []
+            const run = {
+              at: new Date().toISOString(),
+              durationMs: Date.now() - buildStartedAt,
+              status,
+              failed: steps.filter((s) => s.status === 'failed').length,
+              steps: steps.map(({ key, status, note }) => ({ key, status, note: note || null })),
+              ...extra,
+            }
+            await db.from('listings').update({
+              ai_metadata: { ...meta, build_history: [...history.slice(-19), run] },
+              updated_at: new Date().toISOString(),
+            }).eq('id', listingId)
+            const name = String((fresh as { business_name?: string | null } | null)?.business_name || 'Deal')
+            const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+            if (auth.user.email) {
+              await sendEmail({
+                to: auth.user.email,
+                subject: status === 'done' ? `✅ Deal built — ${name}` : `⚠️ Build needs attention — ${name}`,
+                html: status === 'done'
+                  ? `<h2>Your deal is ready</h2><p><strong>${name}</strong> finished building in ${Math.round((Date.now() - buildStartedAt) / 1000)}s.</p><p>${run.failed} stage${run.failed === 1 ? '' : 's'} need attention.</p><p><a href="${origin}/dashboard/studio?listing=${listingId}" style="display:inline-block;padding:12px 22px;background:#0e7490;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">Review the deal →</a></p>`
+                  : `<h2>Your build hit a snag</h2><p><strong>${name}</strong> failed after ${Math.round((Date.now() - buildStartedAt) / 1000)}s.</p><p><a href="${origin}/dashboard/studio?listing=${listingId}" style="display:inline-block;padding:12px 22px;background:#0e7490;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">Resume the build →</a></p>`,
+                kind: 'generic',
+              }).catch(() => {})
+            }
+          } catch (e) {
+            console.error('[deals/build] record failed:', (e as Error)?.message)
+          }
+        })()
       }
 
       try {
@@ -488,8 +529,10 @@ export async function POST(req: NextRequest) {
             failed: steps.filter((s) => s.status === 'failed').length,
           },
         })
+        recordBuild('done', { readiness: readiness?.score ?? null })
         controller.close()
       } catch (e: any) {
+        recordBuild('error', { error: e?.message || 'Build failed' })
         send({ type: 'error', error: e?.message || 'Build failed' })
         controller.close()
       }

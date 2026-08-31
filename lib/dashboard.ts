@@ -62,6 +62,45 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
   }
 }
 
+export interface BuildRunSummary {
+  at: string
+  durationMs: number
+  status: 'done' | 'error'
+  failed: number
+  readiness?: number | null
+  error?: string | null
+  businessName?: string
+  listingId?: string
+}
+
+/** Pipeline health — aggregates the persisted build_history trail (JSONB on
+ *  listings.ai_metadata) written by the One-Shot build route. Zero migration:
+ *  reads recent listings, flattens their build runs, and reports success rate,
+ *  avg duration, and the most recent runs for the dashboard widget. */
+export async function fetchBuildHealth(limit = 40): Promise<{
+  runs: BuildRunSummary[]
+  successRate: number | null
+  avgDurationMs: number | null
+}> {
+  try {
+    const { data } = await supabase.from('listings').select('id, business_name, ai_metadata').order('updated_at', { ascending: false }).limit(limit)
+    const runs: BuildRunSummary[] = []
+    for (const row of data || []) {
+      const history = ((row as any)?.ai_metadata?.build_history as BuildRunSummary[] | undefined) || []
+      for (const r of history) {
+        runs.push({ ...r, businessName: (row as any)?.business_name || undefined, listingId: (row as any)?.id })
+      }
+    }
+    runs.sort((a, b) => (a.at < b.at ? 1 : -1))
+    const done = runs.filter((r) => r.status === 'done').length
+    const successRate = runs.length ? Math.round((done / runs.length) * 100) : null
+    const avgDurationMs = runs.length ? Math.round(runs.reduce((s, r) => s + (r.durationMs || 0), 0) / runs.length) : null
+    return { runs: runs.slice(0, 8), successRate, avgDurationMs }
+  } catch {
+    return { runs: [], successRate: null, avgDurationMs: null }
+  }
+}
+
 export async function fetchPipelineFunnel(): Promise<FunnelPoint[]> {
   const deals = await fetchPipelineDeals()
   return PIPELINE_STAGES.map((s) => ({

@@ -11,8 +11,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import {
-  DashboardStats, FunnelPoint, ActivityItem,
-  fetchDashboardStats, fetchPipelineFunnel, fetchRecentActivity, fetchUpcomingTasks,
+  DashboardStats, FunnelPoint, ActivityItem, BuildRunSummary,
+  fetchDashboardStats, fetchPipelineFunnel, fetchRecentActivity, fetchUpcomingTasks, fetchBuildHealth,
 } from '@/lib/dashboard'
 import { Card, CardHeader, StatCard, LoadingState } from '@/components/ui'
 import LiveFeed from '@/components/dashboard/LiveFeed'
@@ -23,15 +23,16 @@ export default function Dashboard() {
   const [funnel, setFunnel] = useState<FunnelPoint[]>([])
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [tasks, setTasks] = useState<ActivityItem[]>([])
+  const [buildHealth, setBuildHealth] = useState<{ runs: BuildRunSummary[]; successRate: number | null; avgDurationMs: number | null } | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     (async () => {
       try {
-        const [s, f, a, t] = await Promise.all([
-          fetchDashboardStats(), fetchPipelineFunnel(), fetchRecentActivity(), fetchUpcomingTasks(),
+        const [s, f, a, t, bh] = await Promise.all([
+          fetchDashboardStats(), fetchPipelineFunnel(), fetchRecentActivity(), fetchUpcomingTasks(), fetchBuildHealth(),
         ])
-        setStats(s); setFunnel(f); setActivity(a); setTasks(t)
+        setStats(s); setFunnel(f); setActivity(a); setTasks(t); setBuildHealth(bh)
       } catch (e) {
         console.error(e)
       } finally {
@@ -148,6 +149,54 @@ export default function Dashboard() {
 
         {/* Right column: activity + quick actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <Card>
+            <CardHeader title="⚙️ Pipeline Health" subtitle="One-Shot build success rate & recent runs" />
+            <div style={{ padding: '14px 20px 20px' }}>
+              {!buildHealth || buildHealth.runs.length === 0 ? (
+                <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                  No builds yet — run the One-Shot builder and the pipeline health trail appears here.
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+                    <div style={{ flex: 1, textAlign: 'center', background: '#f8fafc', borderRadius: 10, padding: '10px 8px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: (buildHealth.successRate ?? 0) >= 90 ? '#15803d' : (buildHealth.successRate ?? 0) >= 70 ? '#b45309' : '#b91c1c' }}>
+                        {buildHealth.successRate}%
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Success rate</div>
+                    </div>
+                    <div style={{ flex: 1, textAlign: 'center', background: '#f8fafc', borderRadius: 10, padding: '10px 8px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>
+                        {buildHealth.avgDurationMs != null ? `${Math.round(buildHealth.avgDurationMs / 1000)}s` : '—'}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg build time</div>
+                    </div>
+                    <div style={{ flex: 1, textAlign: 'center', background: '#f8fafc', borderRadius: 10, padding: '10px 8px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{buildHealth.runs.length}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recent runs</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {buildHealth.runs.slice(0, 5).map((r, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                        <span>{r.status === 'done' ? '✅' : '❌'}</span>
+                        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>
+                          {r.businessName || 'Deal'}{r.failed ? ` · ${r.failed} flag(s)` : ''}
+                        </span>
+                        <span style={{ color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                          {Math.round((r.durationMs || 0) / 1000)}s
+                        </span>
+                        <span style={{ color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                          {new Date(r.at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </Card>
+
           <Card>
             <CardHeader title="Quick Actions" />
             <div style={{ padding: '12px 20px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
