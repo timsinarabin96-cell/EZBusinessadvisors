@@ -18,7 +18,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import type { Listing } from '@/lib/listings'
 import { generateCimContent, type CimContent } from '@/lib/cim'
 import { generateBovContent, type BovContent } from '@/lib/bov'
-import { recastFinancials, attachRecastAnalysis, type RecastInput, type RecastResult } from '@/lib/recast'
+import { recastFinancials, attachRecastAnalysis, assertRecastConsistency, type RecastInput, type RecastResult } from '@/lib/recast'
 import { exportCimToPdf, exportBovToPdf, exportRecastToPdf } from '@/lib/pdfExport'
 import { sendEmail } from '@/lib/email'
 import { DOCS_BUCKET } from '@/lib/storageBuckets'
@@ -178,6 +178,10 @@ export async function generateDeliveryPdf(
         }
         result = recastFinancials(input)
       }
+      // GATE 1 (boss 08-31): hard-validate the invariant before ANY PDF is
+      // produced — even when the recast was loaded from a stored project, so
+      // a stale/drifted result can never be sent to a buyer.
+      assertRecastConsistency(result)
       const bytes = await exportRecastToPdf(attachRecastAnalysis(result), opts)
       if (!bytes) return { ok: false, error: 'Recast PDF generation failed' }
       return { ok: true, bytes }
@@ -227,6 +231,9 @@ export async function approveDelivery(deliveryId: string, approverId: string): P
       const { data: project } = await db.from('recast_projects').select('result_json').eq('listing_id', delivery.listing_id).order('updated_at', { ascending: false }).limit(1).maybeSingle()
       if (project?.result_json) recastResult = project.result_json as RecastResult
     } catch { /* recast optional */ }
+    // GATE 1 (boss 08-31): a stored recast that fails the invariant must NOT
+    // be sendable — validate before upload/email/Deal Room, not after.
+    if (recastResult) assertRecastConsistency(recastResult)
 
     const gen = await generateDeliveryPdf(listing as Listing, delivery.doc_kind, recastResult)
     if (!gen.ok || !gen.bytes) return { ok: false, error: gen.error || 'PDF generation failed' }

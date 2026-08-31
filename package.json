@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node --experimental-strip-types --test tests/*.test.mts",
+    "test": "node --import ./scripts/paths-loader.mjs --experimental-strip-types --test tests/*.test.mts",
     "typecheck": "node --max-old-space-size=1536 node_modules/typescript/bin/tsc --noEmit",
     "dev": "next dev",
     "build": "next build",

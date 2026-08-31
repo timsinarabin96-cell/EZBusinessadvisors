@@ -109,6 +109,10 @@ export interface RecastYearResult {
     amount: number
   }[]
   totalAddBacks: number
+  /** Categories present in the source financials but NOT in the itemized
+   *  schedule — surfaced so the broker can add them as labeled lines instead
+   *  of the engine folding them in silently (boss 08-31, req #2). */
+  missingCategories: { category: AddBackCategory; label: string; amount: number }[]
   recast: {
     revenue: number
     sde: number        // seller's discretionary earnings
@@ -171,7 +175,8 @@ export function recastFinancials(input: RecastInput): RecastResult {
       yr.netIncome ||
       yr.grossRevenue - (yr.cogs + yr.operatingExpenses + yr.ownerComp + yr.depreciation + yr.interest + yr.otherExpenses)
 
-    // Add-backs that apply to this fiscal year
+    // Add-backs that apply to this fiscal year — the itemized schedule is the
+    // COMPLETE list of add-backs. Nothing else may enter the SDE formula.
     const yrAddBacks = addBacks.filter((a) => a.year === yr.year)
 
     // Aggregate by category
@@ -185,20 +190,38 @@ export function recastFinancials(input: RecastInput): RecastResult {
 
     const totalAddBacks = yrAddBacks.reduce((s, a) => s + a.amount, 0)
 
-    // D&A is added back for SDE; EBITDA also adds back interest + owner comp
-    const depreciationAndAmort = yr.depreciation + yrAddBacks.filter((a) => a.category === 'amortization').reduce((s, a) => s + a.amount, 0)
-    const ownerCompTotal = yr.ownerComp + yrAddBacks.filter((a) => a.category === 'owner_salary' || a.category === 'owner_benefits').reduce((s, a) => s + a.amount, 0)
-    const interestTotal = yr.interest + yrAddBacks.filter((a) => a.category === 'interest').reduce((s, a) => s + a.amount, 0)
+    // AUDIT FIX (boss 08-31): Recast SDE is COMPUTED bottom-up from the
+    // itemized schedule only — NEVER from YearFinancials ownerComp/depreciation
+    // fields added on top of it (that double-counted them: FY2026 gap was
+    // exactly 142k ownerComp + 24k depreciation = 166k).
+    // Recast SDE = Net Income + Σ(itemized add-back lines). No other inputs.
+    const sde = asReportedNet + totalAddBacks
 
-    // SDE = net income + ALL owner-related + D&A + other add-backs
-    const sde = asReportedNet + totalAddBacks + yr.ownerComp + yr.depreciation
+    // EBITDA is derived from the SAME itemized schedule so no hidden inputs
+    // exist in any document: NI + interest lines + D&A lines + non-owner
+    // one-time lines. (If a caller wants interest added back, it must appear as
+    // its own labeled interest line — never folded silently into the total.)
+    const sumCat = (cats: AddBackCategory[]): number =>
+      yrAddBacks.filter((a) => cats.includes(a.category)).reduce((s, a) => s + a.amount, 0)
+    const interestLines = sumCat(['interest'])
+    const daLines = sumCat(['depreciation', 'amortization'])
+    const nonOwnerOneTime = sumCat(['one_time', 'discretionary', 'personal', 'non_arm_length', 'other'])
+    const ebitda = asReportedNet + interestLines + daLines + nonOwnerOneTime
 
-    // EBITDA = net income + interest + taxes(assumed 0 absent data, we reflect via interest) + D&A + non-owner add-backs
-    // For broker-grade EBITDA we add back interest + D&A + one-time/non-recurring items
-    const nonOwnerOneTime = yrAddBacks
-      .filter((a) => ['one_time', 'discretionary', 'personal', 'non_arm_length', 'other'].includes(a.category))
-      .reduce((s, a) => s + a.amount, 0)
-    const ebitda = asReportedNet + interestTotal + depreciationAndAmort + nonOwnerOneTime
+    // Categories present in the source financials but absent from the itemized
+    // schedule (interest, depreciation, owner comp). The engine NEVER folds
+    // these in — they are surfaced so the broker can add a labeled line.
+    const itemizedCats = new Set(yrAddBacks.map((a) => a.category))
+    const missingCategories: { category: AddBackCategory; label: string; amount: number }[] = []
+    if (yr.interest && !itemizedCats.has('interest')) {
+      missingCategories.push({ category: 'interest', label: 'Interest Expense (non-operating)', amount: yr.interest })
+    }
+    if (yr.depreciation && !itemizedCats.has('depreciation') && !itemizedCats.has('amortization')) {
+      missingCategories.push({ category: 'depreciation', label: 'Depreciation & Amortization', amount: yr.depreciation })
+    }
+    if (yr.ownerComp && !itemizedCats.has('owner_salary') && !itemizedCats.has('owner_benefits')) {
+      missingCategories.push({ category: 'owner_salary', label: 'Owner Compensation (reported)', amount: yr.ownerComp })
+    }
 
     return {
       year: yr.year,
@@ -206,6 +229,7 @@ export function recastFinancials(input: RecastInput): RecastResult {
       asReported: { revenue: yr.grossRevenue, netIncome: asReportedNet },
       addBackDetail: detail,
       totalAddBacks,
+      missingCategories,
       recast: { revenue: yr.grossRevenue, sde, ebitda },
     }
   })
@@ -225,7 +249,55 @@ export function recastFinancials(input: RecastInput): RecastResult {
     else if (last < first) trendNote = `Earnings trending downward (${fmt$(last - first, currency)}) over the period.`
   }
 
-  return { businessName: input.businessName, entityType: input.entityType, currency, years: yearResults, avgSDE, avgEBITDA, trendNote }
+  // Build the result, then HARD-VALIDATE before anything can consume it.
+  // The invariant (boss 08-31): Recast SDE MUST equal Net Income + Σ(itemized
+  // add-back lines) for EVERY period. If it ever drifts, generation is
+  // rejected here — before any document (recast/BOV/CIM) can be produced.
+  const result: RecastResult = { businessName: input.businessName, entityType: input.entityType, currency, years: yearResults, avgSDE, avgEBITDA, trendNote }
+  const errors = recastConsistencyErrors(result)
+  if (errors.length > 0) {
+    throw new Error(`Recast consistency check failed — refusing to generate:\n${errors.join('\n')}`)
+  }
+  return result
+}
+
+// ---------------------------------------------------------------------------
+// Recast consistency invariant (boss 08-31, structural guarantee).
+// EVERY recast that leaves this engine satisfies:
+//   Recast SDE = Net Income + Σ(itemized add-back lines)   for every period
+// and Recast EBITDA is derived from the SAME itemized schedule. No document
+// may calculate its own earnings — they all read this validated result.
+// ---------------------------------------------------------------------------
+export function recastConsistencyErrors(result: RecastResult): string[] {
+  const errors: string[] = []
+  for (const yr of result.years) {
+    const expected = yr.asReported.netIncome + yr.totalAddBacks
+    const delta = Math.abs(expected - yr.recast.sde)
+    if (delta > 0.01) {
+      errors.push(
+        `${yr.label}: Net Income ${yr.asReported.netIncome.toLocaleString()} + itemized add-backs ${yr.totalAddBacks.toLocaleString()} = ${expected.toLocaleString()}, but Recast SDE = ${yr.recast.sde.toLocaleString()} (gap ${(yr.recast.sde - expected).toLocaleString()})`,
+      )
+    }
+    // EBITDA must also be reproducible from the schedule: NI + interest lines
+    // + D&A lines + non-owner one-time lines.
+    const schedEbitda = yr.asReported.netIncome +
+      yr.addBackDetail.filter((d) => d.category === 'interest').reduce((s, d) => s + d.amount, 0) +
+      yr.addBackDetail.filter((d) => d.category === 'depreciation' || d.category === 'amortization').reduce((s, d) => s + d.amount, 0) +
+      yr.addBackDetail.filter((d) => ['one_time', 'discretionary', 'personal', 'non_arm_length', 'other'].includes(d.category)).reduce((s, d) => s + d.amount, 0)
+    const ebitdaDelta = Math.abs(schedEbitda - yr.recast.ebitda)
+    if (ebitdaDelta > 0.01) {
+      errors.push(`${yr.label}: EBITDA is not reproducible from the itemized schedule (gap ${ebitdaDelta.toLocaleString()})`)
+    }
+  }
+  return errors
+}
+
+/** Throw when the invariant fails — used by docDelivery before PDF generation. */
+export function assertRecastConsistency(result: RecastResult): void {
+  const errors = recastConsistencyErrors(result)
+  if (errors.length > 0) {
+    throw new Error(`Recast consistency check failed:\n${errors.join('\n')}`)
+  }
 }
 
 // ---------------------------------------------------------------------------
