@@ -33,7 +33,7 @@ export const PITCH_RATE_CARD: Array<[string, string, string]> = [
   ['Newsletter Slot', 'One send, your message', '$150/send'],
 ]
 
-export function buildAdvertiserPitchPdf(input: { stats: { totalListings: number; avgAsking: number; totalBusinessesSold: number; industries: number }; contactEmail?: string; contactPhone?: string }): Uint8Array {
+export function buildAdvertiserPitchPdf(input: { stats: { totalListings: number; avgAsking: number; totalBusinessesSold: number; industries: number }; contactEmail?: string; contactPhone?: string; agencyName?: string }): Uint8Array {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' })
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()
@@ -166,7 +166,10 @@ export function buildAdvertiserPitchPdf(input: { stats: { totalListings: number;
   doc.setFont('times', 'normal')
   doc.setFontSize(9)
   doc.setTextColor(...MUTED)
-  doc.text('Concord Deal Platform — EZ Business Advisors LLC', M, H - 30)
+  // LICENSING: never hardcode EZ branding on a licensed broker's client doc —
+  // use the agency brand when provided, else a neutral platform line.
+  const pitchAgency = input?.agencyName?.trim() || 'Concord Deal Platform'
+  doc.text(`Concord Deal Platform — ${pitchAgency}`, M, H - 30)
 
   return new Uint8Array(doc.output('arraybuffer'))
 }

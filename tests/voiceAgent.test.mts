@@ -6,7 +6,10 @@ const agent = readFileSync('lib/voiceAgent.ts', 'utf8')
 const twilio = readFileSync('app/api/voice/twilio/route.ts', 'utf8')
 
 test('phone agent is a professional receptionist', () => {
-  assert.match(agent, /receptionist at EZ Business Advisors/)
+  // LICENSING: the receptionist announces the AGENCY's own name (env-driven),
+  // never a hardcoded EZ brand.
+  assert.match(agent, /NEXT_PUBLIC_AGENCY_NAME/)
+  assert.match(agent, /receptionist at \$\{AGENCY_NAME\}/)
   assert.match(agent, /real, polished human front-desk person/)
 })
 

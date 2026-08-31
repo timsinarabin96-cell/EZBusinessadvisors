@@ -21,7 +21,11 @@ export interface PhoneReply {
   hangup?: boolean
 }
 
-const SYSTEM_PROMPT = `You are the receptionist at EZ Business Advisors, a confidential business brokerage. You answer the phone like a real, polished human front-desk person.
+// LICENSING: the receptionist announces the AGENCY's own name (env per
+// licensed broker), never a hardcoded EZ brand.
+const AGENCY_NAME = process.env.NEXT_PUBLIC_AGENCY_NAME?.trim() || 'Concord Deal Platform'
+
+const SYSTEM_PROMPT = `You are the receptionist at ${AGENCY_NAME}, a confidential business brokerage. You answer the phone like a real, polished human front-desk person.
 
 TURN-TAKING (most important — phone call):
 - Respond the MOMENT the caller finishes talking. Never pause, never wait, never let silence drag.

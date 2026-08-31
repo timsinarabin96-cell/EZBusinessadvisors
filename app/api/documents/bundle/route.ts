@@ -55,6 +55,11 @@ export async function GET(req: NextRequest) {
 
   // CRM-only letterhead: agency logo on the signed-pack cover when on file.
   const agencyLogo = await loadAgencyLogo(listing.agency_id, db)
+  // LICENSING: the pack must carry the AGENCY's own legal name — inject it
+  // into every doc's filled_data so a licensed broker's pack never shows a
+  // blank [agency_name] or a hardcoded EZ brand.
+  const { resolveAgencyBranding } = await import('@/lib/agencyBranding')
+  const brand = await resolveAgencyBranding(listing.agency_id)
 
   // Gather docs + their signatures + audit trail.
   const { data: docs } = await db
@@ -178,8 +183,11 @@ export async function GET(req: NextRequest) {
     doc.text(`${tpl?.category || ''} · status: ${d.status?.replace(/_/g, ' ') || 'draft'}`, M, y + 12)
     y += 44
 
-    // Filled body (plain text).
-    const body = renderTemplateBody(tpl?.body_template || '', (d.filled_data || {}) as Record<string, unknown>)
+    // Filled body (plain text) — with agency identity injected per doc.
+    const filled = { ...((d.filled_data || {}) as Record<string, unknown>) }
+    if (!filled.agency_name) filled.agency_name = brand.displayName
+    if (!filled.broker_name) filled.broker_name = brand.displayName
+    const body = renderTemplateBody(tpl?.body_template || '', filled)
     if (body) {
       doc.setFont('courier', 'normal')
       doc.setFontSize(8.5)

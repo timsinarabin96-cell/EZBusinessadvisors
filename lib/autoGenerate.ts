@@ -284,13 +284,15 @@ export async function runAutoGeneration(input: {
   const artifacts: GeneratedArtifact[] = []
   const notes: string[] = []
 
-  // Agency branding for the document footer (Open Claw theme).
-  let agency: { name: string; phone?: string | null; email?: string | null } | null = null
+  // Agency branding for the document footer (Open Claw theme). Uses the
+  // resolver so a licensed broker's docs carry THEIR name — never EZ's.
+  let agency: { name: string; displayName?: string | null; phone?: string | null; email?: string | null } | null = null
   try {
     const agencyId = (listing as { agency_id?: string | null } | null)?.agency_id
     if (agencyId) {
-      const { data: ag } = await supabase.from('agencies').select('name, phone, email').eq('id', agencyId).maybeSingle()
-      if (ag) agency = { name: ag.name, phone: ag.phone, email: ag.email }
+      const { resolveAgencyBranding } = await import('@/lib/agencyBranding')
+      const brand = await resolveAgencyBranding(agencyId)
+      if (brand.agencyId) agency = { name: brand.displayName, displayName: brand.displayName, phone: brand.phone, email: brand.email }
     }
   } catch {
     /* footer falls back to generic */

@@ -1,5 +1,14 @@
 # Licensing Plan — EZ Business Advisors Platform as a Product
-_Status: Plan (approved for scoping, NOT yet building). Owner: Yavin + Rabin. Last updated: Aug 31, 2026_
+_Status: **Phase 0 IN PROGRESS** (approved). Owner: Yavin + Rabin. Last updated: Aug 31, 2026_
+
+## ✅ Decisions locked (Rabin, 08-31)
+1. **Connect: Express** — hosted onboarding, platform controls fees/transfers. Standard = brokers run their own full Stripe dashboard (weakens control); Custom = overkill (we'd own their onboarding/compliance UI).
+2. **Money flow: closing/commission only through Connect first** — deposits deferred (money-transmitter regulatory sensitivity). Add deposits once Connect is proven live.
+3. **Platform cut: STACK both** — flat license fee ($499/$899) = SaaS revenue regardless of deal volume; PLUS transaction % (3/2/1 tiers as default, configurable per broker) on closing. A zero-deal firm still pays the license; a high-volume firm pays more via the cut.
+4. **Owner listing fees: platform revenue by default** — every owner-listing fee goes to the platform regardless of which broker's site it appears on. Broker-routed toggle deferred until actual licensed brokers ask for it (Phase 4).
+5. **License seats: 3 seats included + $25/seat/mo after.**
+6. **Phase 0 (branding): approved, start now** — no dependency on 1–5.
+
 
 ## 0. Where the codebase stands today (grounded, not guessed)
 

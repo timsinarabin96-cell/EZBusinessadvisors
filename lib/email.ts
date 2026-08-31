@@ -122,9 +122,13 @@ const esc = (s: string | number | null | undefined): string =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string),
   )
 
-/** Base email shell matching the navy/gold brand. */
-function shell(title: string, body: string, cta?: { label: string; href: string }): string {
-  const logoUrl = `${APP_URL}/brand/ez-business-advisors.jpg`
+/** Base email shell — brand-aware (licensing: each agency's own identity). */
+function shell(title: string, body: string, cta?: { label: string; href: string }, brand?: { logoUrl?: string | null; name?: string | null; copyrightName?: string | null }): string {
+  // EZ is the PLATFORM default; licensed brokers override via the resolver
+  // (lib/agencyBranding.ts) so their clients never see EZ branding.
+  const bName = brand?.name?.trim() || 'EZ Business Advisors'
+  const bLogo = brand?.logoUrl?.trim() || `${APP_URL}/brand/ez-business-advisors.jpg`
+  const bCopy = brand?.copyrightName?.trim() || bName
   return `<!DOCTYPE html>
 <html><body style="margin:0;padding:0;background:#f4f3ef;font-family:Arial,Helvetica,sans-serif;color:#1a2332;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f3ef;padding:24px 0;">
@@ -134,7 +138,7 @@ function shell(title: string, body: string, cta?: { label: string; href: string 
           <td style="background:linear-gradient(135deg,#0b1f3a,#14294f);padding:20px 32px;">
             <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
               <td style="vertical-align:middle;">
-                <img src="${logoUrl}" alt="EZ Business Advisors" width="180" style="display:block;width:180px;max-width:180px;height:auto;border:0;"/>
+                <img src="${bLogo}" alt="${esc(bName)}" width="180" style="display:block;width:180px;max-width:180px;height:auto;border:0;"/>
               </td>
               <td align="right" style="vertical-align:middle;">
                 <div style="font-size:11px;letter-spacing:0.28em;color:#c9a84c;text-transform:uppercase;font-family:Georgia,serif;">Concord Deal Platform</div>
@@ -149,7 +153,7 @@ function shell(title: string, body: string, cta?: { label: string; href: string 
         </td></tr>
         <tr><td style="background:#f7f6f2;padding:16px 32px;font-size:12px;color:#8a8678;border-top:1px solid #e5e2d8;">
           You received this automated notification from Concord Deal Platform.
-          <br/>© ${new Date().getFullYear()} EZ Business Advisors · <a href="${esc(APP_URL)}" style="color:#c9a84c;">${esc(APP_URL)}</a>
+          <br/>© ${new Date().getFullYear()} ${esc(bCopy)} · <a href="${esc(APP_URL)}" style="color:#c9a84c;">${esc(APP_URL)}</a>
         </td></tr>
       </table>
     </td></tr>

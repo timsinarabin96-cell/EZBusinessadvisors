@@ -42,16 +42,23 @@ const fmtDate = (iso: string | null | undefined) =>
 const esc = (s: string | null | undefined) =>
   (s || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string)
 
-/** Render the LOI as a printable HTML document (letterhead style). */
-export function renderLoiHtml(content: LoiContent): string {
+/** Render the LOI as a printable HTML document (letterhead style).
+ *  `brand` = the AGENCY's own identity (licensing) — letterhead + footer
+ *  carry the broker's legal name, never a hardcoded EZ brand. */
+export function renderLoiHtml(content: LoiContent, brand?: { displayName?: string | null; legalName?: string | null; phone?: string | null; email?: string | null } | null): string {
   const financing = content.financing_contingency
     ? 'financing contingency (buyer financing approval)'
     : 'no financing contingency — cash transaction'
+  const agencyLine = [brand?.displayName || brand?.legalName || null, brand?.phone || null, brand?.email || null].filter(Boolean).join(' · ')
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8" /><title>Letter of Intent — ${esc(content.business_name)}</title>
 <style>
   body { font-family: Georgia, 'Times New Roman', serif; color: #1a1a2e; max-width: 760px; margin: 40px auto; padding: 0 24px; line-height: 1.55; }
-  h1 { font-size: 22px; border-bottom: 2px solid #102a43; padding-bottom: 10px; }
+  .letterhead { border-bottom: 2px solid #102a43; padding-bottom: 10px; margin-bottom: 6px; }
+  .letterhead .firm { font-size: 17px; font-weight: 800; }
+  .letterhead .firm-line { font-size: 12px; color: #64748b; }
+  h1 { font-size: 22px; margin: 18px 0 4px; }
+  h2 { font-size: 15px; margin-top: 26px; color: #102a43; }
   h2 { font-size: 15px; margin-top: 26px; color: #102a43; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
   td { padding: 7px 4px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
@@ -60,6 +67,7 @@ export function renderLoiHtml(content: LoiContent): string {
   .sig { margin-top: 48px; font-size: 14px; }
   .muted { color: #64748b; font-size: 12px; }
 </style></head><body>
+  ${agencyLine ? `<div class="letterhead"><div class="firm">${esc(agencyLine.split(' · ')[0])}</div><div class="firm-line">${esc(agencyLine.split(' · ').slice(1).join(' · '))}</div></div>` : ''}
   <h1>Letter of Intent</h1>
   <p class="muted">Prepared ${fmtDate(content.created_at)} · Confidential</p>
   <p><strong>${esc(content.buyer_name)}</strong>${content.buyer_company ? ` (${esc(content.buyer_company)})` : ''}

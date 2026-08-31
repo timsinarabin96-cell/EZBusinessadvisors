@@ -110,8 +110,11 @@ export async function sendFollowUpText(
   if (!lead.phone) return { ok: false, error: 'No phone number on file' }
 
   const firstName = (lead.name || 'there').split(' ')[0]
+  // LICENSING: never hardcode EZ branding — agency name from env (set per
+  // licensed broker), else a neutral platform line.
+  const outreachAgency = process.env.NEXT_PUBLIC_AGENCY_NAME?.trim() || 'Concord Deal Platform'
   const bodyText =
-    `Hi ${firstName}, this is ${process.env.NEXT_PUBLIC_AGENT_NAME || 'Yavin'} from EZ Business Advisors. ` +
+    `Hi ${firstName}, this is ${process.env.NEXT_PUBLIC_AGENT_NAME || 'your broker'} from ${outreachAgency}. ` +
     `Just checking in — are you still interested in buying or selling a business? ` +
     `Reply and I'll get you what you need.`
 

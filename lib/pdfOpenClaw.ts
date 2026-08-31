@@ -33,6 +33,8 @@ export interface DocAgency {
   name: string
   phone?: string | null
   email?: string | null
+  /** Display/legal name override (licensing: broker's own brand, never EZ). */
+  displayName?: string | null
 }
 
 /** Preloaded base64 assets (server pipeline). Keys are the public paths. */
@@ -130,10 +132,13 @@ export function clawFooter(doc: jsPDF, agency: DocAgency | null | undefined, fon
   doc.setDrawColor(...CLAW_GOLD)
   doc.setLineWidth(2)
   doc.line(M, H - 44, W - M, H - 44)
-  const name = agency?.name?.trim() || 'Concord Deal Platform'
+  // LICENSING: use the agency's OWN name. Never append "Business Advisors" —
+  // that was EZ's brand baked into the footer; a licensed broker's PDF must
+  // read "Harbor Acquisitions", not "Harbor Acquisitions | Business Advisors".
+  const name = agency?.displayName?.trim() || agency?.name?.trim() || 'Concord Deal Platform'
   const phone = agency?.phone?.trim() || ''
   const email = agency?.email?.trim() || ''
-  const parts = [name, 'Business Advisors']
+  const parts = [name]
   if (phone) parts.push(phone)
   if (email) parts.push(email)
   parts.push('Strictly Confidential')
