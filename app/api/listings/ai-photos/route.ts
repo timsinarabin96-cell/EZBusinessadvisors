@@ -16,6 +16,7 @@ import {
   fetchAiImageBytes,
   aiPhotoSeed,
   type GeneratedAiImage,
+  type AiPhotoProviderId,
 } from '@/lib/aiPhotos'
 import { writeAiPhotoPrompt } from '@/lib/aiPhotoPrompt'
 
@@ -174,33 +175,51 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'A prompt (3–600 chars) is required' }, { status: 400 })
   }
 
-  const provider = resolveAiPhotoProvider()
+  const resolvedProvider = resolveAiPhotoProvider()
   await ensureBucket(db)
 
   const folder = listingId || `pending-${auth.user.id.slice(0, 8)}`
   const stamp = Date.now()
-  const results: GeneratedAiImage[] = []
-  const failures: string[] = []
 
-  // Parallel per-option generation (each option = one image call).
-  await Promise.all(
-    Array.from({ length: count }, async (_, i) => {
-      const seed = aiPhotoSeed(i)
-      try {
-        const { bytes, mime } = await fetchAiImageBytes(provider, effectivePrompt as string, seed)
-        const ext = mime.includes('png') ? 'png' : 'jpg'
-        const path = `${folder}/ai-${stamp}-${i}.${ext}`
-        const { error: uploadError } = await db.storage
-          .from(BUCKET)
-          .upload(path, bytes, { contentType: mime, cacheControl: '3600', upsert: true })
-        if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`)
-        const { data: pub } = db.storage.from(BUCKET).getPublicUrl(path)
-        results.push({ url: pub.publicUrl, path, provider, seed })
-      } catch (e: any) {
-        failures.push(e?.message || 'Generation failed')
-      }
-    })
-  )
+  // Provider fallback ladder (boss 08-31: FAL confirmed primary). If the
+  // resolved provider fails (e.g. locked account / TOP_UP / quota), fall
+  // through to the next configured provider so generation never hard-fails.
+  const PRIORITY: AiPhotoProviderId[] = ['fal', 'openai', 'free']
+  const ladder = [resolvedProvider, ...PRIORITY.filter((p) => p !== resolvedProvider)]
+
+  let results: GeneratedAiImage[] = []
+  let failures: string[] = []
+  let provider = resolvedProvider
+
+  for (const candidate of ladder) {
+    const attempt: GeneratedAiImage[] = []
+    const attemptFailures: string[] = []
+    await Promise.all(
+      Array.from({ length: count }, async (_, i) => {
+        const seed = aiPhotoSeed(i)
+        try {
+          const { bytes, mime } = await fetchAiImageBytes(candidate, effectivePrompt as string, seed)
+          const ext = mime.includes('png') ? 'png' : 'jpg'
+          const path = `${folder}/ai-${stamp}-${i}.${ext}`
+          const { error: uploadError } = await db.storage
+            .from(BUCKET)
+            .upload(path, bytes, { contentType: mime, cacheControl: '3600', upsert: true })
+          if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`)
+          const { data: pub } = db.storage.from(BUCKET).getPublicUrl(path)
+          attempt.push({ url: pub.publicUrl, path, provider: candidate, seed })
+        } catch (e: any) {
+          attemptFailures.push(e?.message || 'Generation failed')
+        }
+      })
+    )
+    if (attempt.length > 0) {
+      results = attempt
+      failures = attemptFailures
+      provider = candidate
+      break
+    }
+    failures = attemptFailures
+  }
 
   if (results.length === 0) {
     return NextResponse.json(

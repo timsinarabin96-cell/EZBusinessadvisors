@@ -87,3 +87,14 @@ test('photo rebuild: generated options still commit to the gallery (unchanged co
   assert.match(route, /action === 'commit'/)
   assert.match(route, /merged = \[\.\.\.new Set\(\[\.\.\.existing, \.\.\.urls\]\)\]/)
 })
+
+test('photo rebuild: provider fallback ladder — a locked/failing provider never hard-fails generation', () => {
+  // FAL confirmed primary, but if it fails (locked account / TOP_UP / quota) the
+  // route falls through to OpenAI → free so generation always works (boss 08-31).
+  assert.match(route, /Provider fallback ladder \(boss 08-31: FAL confirmed primary\)/)
+  assert.match(route, /PRIORITY: AiPhotoProviderId\[\] = \['fal', 'openai', 'free'\]/)
+  assert.match(route, /for \(const candidate of ladder\)/)
+  assert.match(route, /if \(attempt\.length > 0\)/)
+  assert.match(route, /provider = candidate/)
+  assert.match(route, /break/)
+})
