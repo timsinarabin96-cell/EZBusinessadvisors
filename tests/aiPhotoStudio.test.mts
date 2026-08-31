@@ -82,11 +82,13 @@ test('ai-photos: route wires the provider ladder + storage upload', () => {
   assert.match(route, /maxDuration = 120/)
 })
 
-test('ai-photos: studio UI in the form — generate 4 options, add to gallery', () => {
+test('ai-photos: studio UI in the form — generate 4 options (Claude-written prompt), add to gallery', () => {
   const form = readFileSync('components/listings/IntelligentListingForm.tsx', 'utf8')
   assert.match(form, /AI Photo Studio/)
   assert.match(form, /Generate 4 photo options/)
-  assert.match(form, /buildAiPhotoPrompt/)
+  // Boss 08-31: Claude writes the prompt server-side — the templated client
+  // prompt builder is gone from the form (replace, don't run both).
+  assert.doesNotMatch(form, /buildAiPhotoPrompt/)
   assert.match(form, /AI_PHOTO_STYLES\.map/)
   assert.match(form, /api\/listings\/ai-photos/)
   assert.match(form, /Add to gallery/)

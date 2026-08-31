@@ -44,7 +44,7 @@ test('photo analysis returns 503 when Claude is not configured', () => {
 
 test('photo AI card is wired into the studio verify rail', () => {
   assert.match(insights, /export function PhotoAICard/)
-  assert.match(studio, /AiPhotoStudioCard/)
+  assert.match(studio, /ListingPhotosPicker/)
   assert.match(studio, /Approve & Go Live/)
 })
 
@@ -56,7 +56,7 @@ test('photo AI card surfaces the price signal verdict', () => {
 
 test('voice intake card is wired into the capture rail', () => {
   assert.match(insights, /export function VoiceIntakeCard/)
-  assert.match(studio, /AiPhotoStudioCard/)
+  assert.match(studio, /ListingPhotosPicker/)
   assert.match(studio, /Build Entire Deal/)
 })
 

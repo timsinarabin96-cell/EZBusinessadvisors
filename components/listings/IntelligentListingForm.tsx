@@ -28,7 +28,7 @@ import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import { pricePosition } from '@/lib/listingMarketContextCore.ts'
 import { uploadListingImages, deleteListingImage } from '@/lib/supabase/listings'
-import { buildAiPhotoPrompt, aiPhotoStyleById, AI_PHOTO_STYLES, type GeneratedAiImage } from '@/lib/aiPhotos'
+import { AI_PHOTO_STYLES, type GeneratedAiImage } from '@/lib/aiPhotos'
 import {
   buildListingInsert,
   calculateListingReadiness,
@@ -769,14 +769,14 @@ function AiPhotoStudio({ businessName, industry, subIndustry, location, descript
   const [providerLabel, setProviderLabel] = useState<string | null>(null)
   const [added, setAdded] = useState<Set<string>>(new Set())
 
-  // Suggested prompt tracks the deal record + chosen style until the broker edits it.
-  useEffect(() => {
-    if (touched) return
-    setPrompt(buildAiPhotoPrompt({ businessName, industry, subIndustry, location, description }, aiPhotoStyleById(styleId)))
-  }, [touched, styleId, businessName, industry, subIndustry, location, description])
+  // Prompt box is an OPTIONAL override — Claude writes the prompt from the
+  // listing record server-side. Empty box = Claude's prompt (boss 08-31).
 
+  // Claude writes the prompt from the listing record server-side (boss 08-31:
+  // prompt specificity is the quality lever). The textarea is an optional
+  // override — leaving it empty uses Claude's listing-specific prompt.
   const generate = async () => {
-    if (generating || prompt.trim().length < 3) return
+    if (generating) return
     setGenerating(true)
     setOptions([])
     setAdded(new Set())
@@ -784,7 +784,7 @@ function AiPhotoStudio({ businessName, industry, subIndustry, location, descript
       const res = await authenticatedFetch('/api/listings/ai-photos', {
         method: 'POST',
         headers: { 'content-type': 'application/json',  },
-        body: JSON.stringify({ listingId: listingId || undefined, prompt: prompt.trim(), count: 4 }),
+        body: JSON.stringify({ listingId: listingId || undefined, styleId, count: 4, prompt: prompt.trim() || undefined }),
       })
       const json = await res.json()
       if (!res.ok || !json.ok) throw new Error(json.error || 'AI photo generation failed')
@@ -807,7 +807,7 @@ function AiPhotoStudio({ businessName, industry, subIndustry, location, descript
 
   const resetPrompt = () => {
     setTouched(false)
-    setPrompt(buildAiPhotoPrompt({ businessName, industry, subIndustry, location, description }, aiPhotoStyleById(styleId)))
+    setPrompt('')
   }
 
   return <div style={{ marginBottom: 16, padding: 16, borderRadius: 12, background: 'linear-gradient(135deg,#f6f3ff,#eef4ff)', border: '1px solid #d8c8ff', fontSize: 13 }}>
@@ -854,16 +854,16 @@ function AiPhotoStudio({ businessName, industry, subIndustry, location, descript
       <button
         type="button"
         onClick={generate}
-        disabled={generating || prompt.trim().length < 3}
+        disabled={generating}
         style={{
           padding: '8px 18px', borderRadius: 8, border: 'none', cursor: generating ? 'wait' : 'pointer',
           background: 'linear-gradient(135deg,#4c1d95,#2563eb)', color: '#fff', fontSize: 13, fontWeight: 800,
-          opacity: generating || prompt.trim().length < 3 ? 0.6 : 1,
+          opacity: generating ? 0.6 : 1,
         }}
       >
-        {generating ? '🎨 Generating 4 options…' : '🎨 Generate 4 photo options'}
+        {generating ? '🎨 Writing prompt + generating 4…' : '🎨 Generate 4 photo options'}
       </button>
-      <span style={{ fontSize: 11.5, color: '#7c6a9e' }}>Uses OpenAI, FAL, or the free fallback — whichever is configured.</span>
+      <span style={{ fontSize: 11.5, color: '#7c6a9e' }}>Claude writes the prompt from your listing details; renders via FAL, OpenAI, or the free fallback. Leave the prompt box empty for Claude's version.</span>
     </div>
 
     {(generating || options.length > 0) && (

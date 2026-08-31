@@ -117,6 +117,6 @@ test('pipeline dashboard shows funnel + heat + per-listing breakdown', () => {
 })
 
 test('One-Shot Deal Builder mounts the AI photo studio + go-live', () => {
-  assert.match(studio, /AiPhotoStudioCard/)
+  assert.match(studio, /ListingPhotosPicker/)
   assert.match(studio, /Approve & Go Live/)
 })

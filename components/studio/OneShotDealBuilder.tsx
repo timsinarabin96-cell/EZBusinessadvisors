@@ -14,7 +14,7 @@ import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { createListing, fetchListing, updateListing } from '@/lib/listings'
 import DocOpenLink from '@/components/financial/DocOpenLink'
 import { ONE_SHOT_STAGES, type BuildStep } from '@/lib/oneShotDeal'
-import AiPhotoStudioCard from '@/components/studio/AiPhotoStudioCard'
+import ListingPhotosPicker from '@/components/studio/ListingPhotosPicker'
 import LegalDocsCard from '@/components/studio/LegalDocsCard'
 import Step9BuyerManagement from '@/components/listings/Step9BuyerManagement'
 import Step10DealClosing from '@/components/listings/Step10DealClosing'
@@ -712,27 +712,18 @@ export default function OneShotDealBuilder() {
               {/* Legal — the gate (listing agreement eSign + disclosures + NDA) */}
               <LegalDocsCard listingId={listing.id} />
 
-              {/* Photos */}
-              <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--navy)', fontFamily: 'Georgia, serif', marginBottom: 10 }}>📸 Photos</div>
-                {gallery.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, marginBottom: 12 }}>
-                    {gallery.slice(0, 8).map((u: string) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img key={u} src={u} alt="gallery" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--line)' }} />
-                    ))}
-                  </div>
-                )}
-                <AiPhotoStudioCard
-                  listingId={listing.id}
-                  businessName={listing.business_name}
-                  industry={listing.industry}
-                  subIndustry={listing.sub_industry}
-                  location={listing.location_general}
-                  description={listing.description}
-                  onAdded={() => fetchListing(listing.id).then(setListing).catch(() => {})}
-                />
-              </div>
+              {/* Photos — unified picker: upload your own + AI generate, mix both, star the cover */}
+              <ListingPhotosPicker
+                listingId={listing.id}
+                businessName={listing.business_name}
+                industry={listing.industry}
+                subIndustry={listing.sub_industry}
+                location={listing.location_general}
+                description={listing.description}
+                gallery={gallery}
+                primaryImageUrl={(listing as any)?.primary_image_url}
+                onGalleryChange={() => fetchListing(listing.id).then(setListing).catch(() => {})}
+              />
 
               {/* Sell & Close — buyers, LOI, purchase, closing (full lifecycle) */}
               <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 16 }}>

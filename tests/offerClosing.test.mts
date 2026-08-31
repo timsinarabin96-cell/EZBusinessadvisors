@@ -124,7 +124,7 @@ test('Wave B cards exist in the studio insights', () => {
 })
 
 test('One-Shot Deal Builder wires the deal review (photos, valuation, buyers, go-live)', () => {
-  assert.match(studio, /AiPhotoStudioCard/)
+  assert.match(studio, /ListingPhotosPicker/)
   assert.match(studio, /Approve & Go Live/)
   assert.match(studio, /valuation/)
   assert.match(studio, /buyerCount/)
