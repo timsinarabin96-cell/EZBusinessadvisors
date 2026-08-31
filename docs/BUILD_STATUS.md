@@ -6,7 +6,7 @@
 > **Status legend:** ✅ done · 🟡 partial (works but has a known gap) · ❌ not built / open
 >
 > **Maintenance rule:** update this file in the same commit as any completed feature work.
-> Latest full-suite baseline: **965/965 unit tests green, typecheck clean** (2026-08-31, after migration runner + advisor-routing hook).
+> Latest full-suite baseline: **966/966 unit tests green, typecheck clean** (2026-08-31, after migration runner + advisor-routing hook + `--mark`).
 > Live DB: Supabase project `ytcvlvisufxmmzeblmwx` · Deployed: Vercel `ezbusinessadvisors.vercel.app`
 
 ---
@@ -230,7 +230,7 @@
 | Paid tier price default $250/listing (boss explicit — was $19) | ✅ | `e433d10` |
 | Seller tiers — free vs paid (AI-Verified financials) | ✅ | `4866e2b` |
 | Trial system — agency control, limits, grace, reminders | ✅ | `3788571`, `14c2ef4` |
-| White-label provisioning — one-command spin-up (`scripts/provision-white-label.mjs`) | 🟡 manual, not self-serve | `5fd87bd` |
+| White-label provisioning — one-command spin-up (`scripts/provision-white-label.mjs`) | ⚠️ **needs Rabin directly** — audit 08-31: manual, not self-serve; self-serve means creating infra on Rabin's accounts (Supabase/Vercel) — not done unsupervised | `5fd87bd` |
 | Stripe + webhook setup checklist + seller portal token backfill | ✅ | `d032c9d` |
 | API cost tracking + admin API keys registry + provider cost sync | ✅ | `0461226` |
 
@@ -245,7 +245,7 @@
 | Test runner with `@/` alias support (paths-loader) | ✅ | `823d87a` |
 | Copyright header in all 836 source files | ✅ | `296a2c1` |
 | Supabase DB migrations — 6 applied to production + live-schema fixes | ✅ | `21faeab` |
-| **Migration runner** (`scripts/migrate.mjs`) — check-mode default, `schema_migrations` ledger, full-schema dumps excluded, applies pending sql/*.sql via Management API (built 08-31 after force-audit SQL never reached live DB) | ✅ | migration-runner commit |
+| **Migration runner** (`scripts/migrate.mjs`) — check-mode default, `schema_migrations` ledger, full-schema dumps excluded, applies pending sql/*.sql via Management API; `--mark` records already-live historical files without re-running (runner found 125 untracked historical SQLs — `--apply` would wrongly re-run them) | ✅ | migration-runner commits (`34e9903`, `2e73590`) |
 | Nightly DB backup cron (14-day retention, off-site email copy) | ✅ | `c3f1711` |
 | **Dead-code sweep 08-31** — deleted 8 orphans w/ tests: `lib/stageTemplates` (closing tracker has own), `lib/voiceAgent` (twilio/vapi have own), `/api/booking` (lib used directly), `/api/social/oauth+callback` (no refs), `/api/compliance` (lib used by publish), `/api/syndication` (real: `/api/listings/syndication`), `/api/digest` (cron digest separate), `/api/proof-of-funds` (goes via `/api/public/qualify`). Kept: `/api/deal-files` (agent-facing), `/api/sms/inbound` (Twilio webhook). Also fixed vapi route EZ-brand fallback → 'our brokerage'. Suite 977 → 955 | ✅ | sweep commit |
 | Unit economics tracking (CAC/LTV, cost-per-listing, margin per tier, breakeven) | ❌ **needs Rabin directly** — business analysis with real usage data | PUNCHLIST |
