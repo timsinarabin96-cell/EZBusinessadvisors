@@ -33,6 +33,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import type { Listing } from '@/lib/listings'
 import { recastFinancials, attachRecastAnalysis, type RecastResult, type RecastInput, type YearFinancials } from '@/lib/recast'
+import { runReconciliationLoop, type ReconciliationOutcome } from '@/lib/reconciliationFollowup'
 import { generateBovContent } from '@/lib/bov'
 import { enrichBovWithClaude } from '@/lib/bovClaude'
 import type { AgentContextPayload } from '@/types/ai'
@@ -258,6 +259,41 @@ async function saveGeneratedDoc(step: {
   }
 }
 
+/**
+ * Persist an open/flagged reconciliation follow-up so the broker sees it in
+ * the advisor chat / review queue (#7). Idempotent per issue detail: if the
+ * same issue is already open, only refresh the question.
+ */
+async function persistReconciliationFollowup(
+  supabase: ReturnType<typeof createServerClient>,
+  listingId: string,
+  outcome: ReconciliationOutcome,
+): Promise<void> {
+  if (!outcome.question || outcome.issues.length === 0) return
+  const issue = outcome.issues[0]
+  const key = issue.detail
+  try {
+    const { data: existing } = await supabase
+      .from('reconciliation_followups')
+      .select('id')
+      .eq('listing_id', listingId)
+      .eq('issue_kind', issue.kind)
+      .eq('status', 'open')
+      .limit(1)
+    if (existing && existing.length > 0) return // already open for this listing
+    await supabase.from('reconciliation_followups').insert({
+      listing_id: listingId,
+      status: outcome.status === 'flagged' ? 'flagged' : 'open',
+      issue_kind: issue.kind,
+      issue: { detail: key, category: issue.category ?? null, amount: issue.amount ?? null, label: issue.label ?? null, year: issue.year ?? null },
+      question: outcome.question.question,
+      suggested_answers: outcome.question.suggestedAnswers,
+    })
+  } catch {
+    // persistence is best-effort — the pipeline note still carries the message
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main pipeline
 // ---------------------------------------------------------------------------
@@ -337,9 +373,14 @@ export async function runAutoGeneration(input: {
   // 4) Build 3-year financial history from listing + extracted rows
   const history: YearFinancials[] = buildFinancialHistory(L, extraction.rows)
 
-  // 5) RECAST
+  // 5) RECAST — reconciliation gate with follow-up loop (#7, spec 08-31).
   // Hoisted so BOV + CIM consume the SAME recast result (single source of truth).
+  // REPLACED in place: the old path caught engine failure, noted it, and
+  // silently continued to BOV/CIM from listing.sde — a silent estimate. Now a
+  // failed/ambiguous reconciliation generates a targeted follow-up question
+  // for the broker and STOPS the pipeline until it resolves or is flagged.
   let recast: RecastResult | null = null
+  let reconciliationBlocked = false
   try {
     const recastInput: RecastInput = {
       listingId: L.id,
@@ -349,76 +390,90 @@ export async function runAutoGeneration(input: {
       years: history,
       addBacks: [], // auto recast uses the built-in add-back modeling in SDE/EBITDA
     }
-    recast = recastFinancials(recastInput)
-    const bytes = await exportRecastToPdf(attachRecastAnalysis(recast), { returnBytes: true, agency, assets })
-    if (bytes) {
-      const art = await saveGeneratedDoc({
-        listingId: L.id,
-        dealId,
-        stage: 'recast',
-        title: `${L.business_name || 'Business'} — Recast Report`,
-        bytes,
-        status: 'recast_done',
-      })
-      artifacts.push(art)
+    const outcome = await runReconciliationLoop(recastInput)
+    if (outcome.status === 'clean' && outcome.result) {
+      recast = outcome.result
+      const bytes = await exportRecastToPdf(attachRecastAnalysis(recast), { returnBytes: true, agency, assets })
+      if (bytes) {
+        const art = await saveGeneratedDoc({
+          listingId: L.id,
+          dealId,
+          stage: 'recast',
+          title: `${L.business_name || 'Business'} — Recast Report`,
+          bytes,
+          status: 'recast_done',
+        })
+        artifacts.push(art)
+      }
+    } else {
+      // needs_input → persist the follow-up so the broker sees it in the
+      // advisor chat / review queue; flagged → same, marked for review.
+      reconciliationBlocked = true
+      await persistReconciliationFollowup(supabase, L.id, outcome)
+      notes.push(outcome.message)
     }
   } catch (e: any) {
+    reconciliationBlocked = true
     notes.push(`Recast failed: ${e?.message || 'unknown'}`)
   }
 
-  // 6) BOV — 12-method engine + full-Claude narrative enrichment (best-effort).
-  try {
-    let bov = generateBovContent(L, { recast })
-    const bovFacts: AgentContextPayload = {
-      kind: 'listing',
-      entityId: L.id,
-      text: [
-        `Business: ${L.business_name || 'Subject Business'}`,
-        `Industry: ${L.industry || 'n/a'}`,
-        `Location: ${L.location_general || 'n/a'}`,
-        `Revenue: $${L.annual_revenue || 0}`,
-        `SDE: $${L.sde || 0}`,
-        `EBITDA: $${L.ebitda || 0}`,
-        `Asking price: $${L.asking_price || 0}`,
-        `Valuation range: ${bov.valuationRange}`,
-        `Conclusion: ${bov.conclusion}`,
-        `Comparables: ${bov.comparables.map((c) => `${c.business} (${c.multiple}x revenue)`).join('; ')}`,
-      ].join('\n'),
+  // 6) BOV — only when reconciliation is clean (never from unvalidated numbers).
+  if (!reconciliationBlocked) {
+    try {
+      let bov = generateBovContent(L, { recast })
+      const bovFacts: AgentContextPayload = {
+        kind: 'listing',
+        entityId: L.id,
+        text: [
+          `Business: ${L.business_name || 'Subject Business'}`,
+          `Industry: ${L.industry || 'n/a'}`,
+          `Location: ${L.location_general || 'n/a'}`,
+          `Revenue: $${L.annual_revenue || 0}`,
+          `SDE: $${L.sde || 0}`,
+          `EBITDA: $${L.ebitda || 0}`,
+          `Asking price: $${L.asking_price || 0}`,
+          `Valuation range: ${bov.valuationRange}`,
+          `Conclusion: ${bov.conclusion}`,
+          `Comparables: ${bov.comparables.map((c) => `${c.business} (${c.multiple}x revenue)`).join('; ')}`,
+        ].join('\n'),
+      }
+      bov = await enrichBovWithClaude(bov, bovFacts)
+      const bytes = await exportBovToPdf(bov, { returnBytes: true, agency, assets })
+      if (bytes) {
+        const art = await saveGeneratedDoc({
+          listingId: L.id,
+          dealId,
+          stage: 'bov',
+          title: `${L.business_name || 'Business'} — Broker Opinion of Value`,
+          bytes,
+          status: 'bov_done',
+        })
+        artifacts.push(art)
+      }
+    } catch (e: any) {
+      notes.push(`BOV failed: ${e?.message || 'unknown'}`)
     }
-    bov = await enrichBovWithClaude(bov, bovFacts)
-    const bytes = await exportBovToPdf(bov, { returnBytes: true, agency, assets })
-    if (bytes) {
-      const art = await saveGeneratedDoc({
-        listingId: L.id,
-        dealId,
-        stage: 'bov',
-        title: `${L.business_name || 'Business'} — Broker Opinion of Value`,
-        bytes,
-        status: 'bov_done',
-      })
-      artifacts.push(art)
-    }
-  } catch (e: any) {
-    notes.push(`BOV failed: ${e?.message || 'unknown'}`)
-  }
 
-  // 7) CIM
-  try {
-    const cim = generateCimContent(L)
-    const bytes = await exportCimToPdf(cim, { returnBytes: true, agency, assets })
-    if (bytes) {
-      const art = await saveGeneratedDoc({
-        listingId: L.id,
-        dealId,
-        stage: 'cim',
-        title: `${L.business_name || 'Business'} — Confidential Information Memorandum`,
-        bytes,
-        status: 'cim_done',
-      })
-      artifacts.push(art)
+    // 7) CIM — same gate: only from the validated engine output.
+    try {
+      const cim = generateCimContent(L)
+      const bytes = await exportCimToPdf(cim, { returnBytes: true, agency, assets })
+      if (bytes) {
+        const art = await saveGeneratedDoc({
+          listingId: L.id,
+          dealId,
+          stage: 'cim',
+          title: `${L.business_name || 'Business'} — Confidential Information Memorandum`,
+          bytes,
+          status: 'cim_done',
+        })
+        artifacts.push(art)
+      }
+    } catch (e: any) {
+      notes.push(`CIM failed: ${e?.message || 'unknown'}`)
     }
-  } catch (e: any) {
-    notes.push(`CIM failed: ${e?.message || 'unknown'}`)
+  } else {
+    notes.push('Recast/BOV/CIM generation paused — reconciliation needs broker input (see follow-up questions).')
   }
 
   // 8) BLI
