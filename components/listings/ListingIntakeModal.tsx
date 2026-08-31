@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { useToast } from '@/components/ui/Toast'
+import AdvisorRoutingCard from '@/components/listings/AdvisorRoutingCard'
 import type { IntakeDraft } from '@/lib/listingIntakeCore'
 
 // =============================================================================
@@ -41,6 +42,7 @@ export default function ListingIntakeModal({
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [showAdvisor, setShowAdvisor] = useState(false)
 
   const run = async () => {
     if (notes.trim().length < 20) {
@@ -56,7 +58,16 @@ export default function ListingIntakeModal({
         body: JSON.stringify({ notes, mode: 'seed' }),
       })
       const j = await res.json().catch(() => ({}))
-      if (!res.ok || !j.ok) throw new Error(j.error || j.detail || 'AI intake failed')
+      if (!res.ok || !j.ok) {
+        // 403 with aiIntakeAllowed:false + advisorRouting:true → offer the
+        // licensed-advisor lead capture instead of a bare error.
+        if (res.status === 403 && j?.aiIntakeAllowed === false && j?.advisorRouting === true) {
+          const err: any = new Error(j.error || 'AI intake is not available on the free tier')
+          err.declinedFreeTier = true
+          throw err
+        }
+        throw new Error(j.error || j.detail || 'AI intake failed')
+      }
       if (!j.draft || Object.keys(j.draft).length === 0) {
         throw new Error('AI found no extractable fields — try more detailed notes.')
       }
@@ -64,7 +75,13 @@ export default function ListingIntakeModal({
       toast(`AI extracted ${j.coverage?.filled || Object.keys(j.draft).length} fields — review before saving`, 'success')
       onClose()
     } catch (e: any) {
-      setError(e.message || 'AI intake failed')
+      // Free-tier decline is not a dead end — offer the licensed-advisor path.
+      if (typeof e === 'object' && e && (e as any).declinedFreeTier === true) {
+        setShowAdvisor(true)
+        setError('')
+      } else {
+        setError(e.message || 'AI intake failed')
+      }
     } finally {
       setBusy(false)
     }
@@ -97,6 +114,12 @@ export default function ListingIntakeModal({
         </div>
 
         {error && <div style={{ marginTop: 12, background: '#fee2e2', color: '#b91c1c', padding: '10px 14px', borderRadius: 8, fontSize: 13 }}>{error}</div>}
+
+        {showAdvisor && (
+          <div style={{ marginTop: 14 }}>
+            <AdvisorRoutingCard onClose={() => setShowAdvisor(false)} compact />
+          </div>
+        )}
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
           <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>

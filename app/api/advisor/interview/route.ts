@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
-import { tierOfListing, tierAllowsAiIntake, type SellerTierId } from '@/lib/sellerTiers'
+import { tierOfListing, tierAllowsAiIntake, sellerTierConfig, type SellerTierId } from '@/lib/sellerTiers'
 import {
   advisorProgress,
   isAdvisorComplete,
@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
     listingId,
     tier,
     aiIntakeAllowed: aiAllowed,
+    advisorRouting: sellerTierConfig(tier).advisorRouting,
     status: complete ? 'completed' : aiAllowed ? 'in_progress' : 'manual_path',
     qa,
     next,
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
       if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
       const tier = await resolveListingTier(db, listingId)
       if (!tierAllowsAiIntake(tier)) {
-        return NextResponse.json({ ok: false, error: 'Free listings use the manual form — upgrade to the AI-Verified tier for AI intake.', tier, aiIntakeAllowed: false }, { status: 403 })
+        return NextResponse.json({ ok: false, error: 'Free listings use the manual form — upgrade to the AI-Verified tier for AI intake.', tier, aiIntakeAllowed: false, advisorRouting: sellerTierConfig(tier).advisorRouting }, { status: 403 })
       }
     }
 

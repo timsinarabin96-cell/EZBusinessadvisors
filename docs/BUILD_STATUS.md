@@ -6,7 +6,7 @@
 > **Status legend:** ✅ done · 🟡 partial (works but has a known gap) · ❌ not built / open
 >
 > **Maintenance rule:** update this file in the same commit as any completed feature work.
-> Latest full-suite baseline: **955/955 unit tests green, typecheck clean** (2026-08-31, after dead-code sweep).
+> Latest full-suite baseline: **965/965 unit tests green, typecheck clean** (2026-08-31, after migration runner + advisor-routing hook).
 > Live DB: Supabase project `ytcvlvisufxmmzeblmwx` · Deployed: Vercel `ezbusinessadvisors.vercel.app`
 
 ---
@@ -160,7 +160,7 @@
 | AI chat widget — server-side DeepSeek replies | ✅ | `d8a796d`, `84399f8` |
 | Nav — Cmd+K palette, core sidebar, collapsible groups, 35→ nav consolidation | ✅ | `125b70e`, `ece10b9` |
 | White-label agency branding + custom-domain theming | ✅ | `627ed3e`, `2cb009c` |
-| Free-tier advisor-routing UI hook (decline → "work with licensed advisor" lead) | 🟡 tier config exists, UI surface not built | `4866e2b` |
+| Free-tier advisor-routing UI hook (decline → "work with licensed advisor" lead) | ✅ | advisor-routing commit (`advisorRouting` flag consumed: interview 403/GET carries it, modal shows AdvisorRoutingCard, `/api/advisor/routing` captures seller lead + notifies) |
 
 ## 6. Photos
 
