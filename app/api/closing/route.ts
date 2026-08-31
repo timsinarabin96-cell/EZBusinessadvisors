@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageTeam, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import {
   addMilestone,
   seedMilestones,
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
   const agencyId = req.nextUrl.searchParams.get('agencyId') || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
-  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
+  if (!canManageTeam(auth, agencyId)) return forbiddenResponse()
 
   const listingId = req.nextUrl.searchParams.get('listingId')
   if (listingId) {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   const agencyId = body.agencyId || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
 
-  if (body.listingId && !canManageAgency(auth, agencyId)) return forbiddenResponse()
+  if (body.listingId && !canManageTeam(auth, agencyId)) return forbiddenResponse()
 
   if (body.action === 'seed') {
     const { data: listing } = await db.from('listings').select('agency_id').eq('id', body.listingId).maybeSingle()
@@ -131,7 +131,7 @@ export async function PATCH(req: NextRequest) {
   if (body.milestoneId) {
     const { data: m } = await db.from('deal_closing_milestones').select('agency_id, listing_id, category').eq('id', body.milestoneId).maybeSingle()
     if (!m) return NextResponse.json({ ok: false, error: 'Milestone not found' }, { status: 404 })
-    if (!canManageAgency(auth, m.agency_id)) return forbiddenResponse()
+    if (!canManageTeam(auth, m.agency_id)) return forbiddenResponse()
     const result = await updateMilestone(
       body.milestoneId,
       {
@@ -175,7 +175,7 @@ export async function PATCH(req: NextRequest) {
   if (body.escrowId) {
     const { data: e } = await db.from('deal_escrow_accounts').select('agency_id, listing_id').eq('id', body.escrowId).maybeSingle()
     if (!e) return NextResponse.json({ ok: false, error: 'Escrow not found' }, { status: 404 })
-    if (!canManageAgency(auth, e.agency_id)) return forbiddenResponse()
+    if (!canManageTeam(auth, e.agency_id)) return forbiddenResponse()
     const result = await upsertEscrow({
       listing_id: e.listing_id,
       id: body.escrowId,
@@ -202,7 +202,7 @@ export async function DELETE(req: NextRequest) {
   if (!body.milestoneId) return NextResponse.json({ ok: false, error: 'milestoneId required' }, { status: 400 })
   const { data: m } = await db.from('deal_closing_milestones').select('agency_id').eq('id', body.milestoneId).maybeSingle()
   if (!m) return NextResponse.json({ ok: false, error: 'Milestone not found' }, { status: 404 })
-  if (!canManageAgency(auth, m.agency_id)) return forbiddenResponse()
+  if (!canManageTeam(auth, m.agency_id)) return forbiddenResponse()
   const result = await deleteMilestone(body.milestoneId)
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
   return NextResponse.json({ ok: true })

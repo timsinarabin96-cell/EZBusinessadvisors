@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest, canManageTeam, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { recordCommission, updateCommissionStatus, listCommissions, exportCommissionsCsv } from '@/lib/commissions'
 
 export const runtime = 'nodejs'
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   const agencyId = req.nextUrl.searchParams.get('agencyId')
   if (!agencyId) return NextResponse.json({ ok: false, error: 'agencyId query param is required' }, { status: 400 })
-  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
+  if (!canManageTeam(auth, agencyId)) return forbiddenResponse()
 
   const status = req.nextUrl.searchParams.get('status')
   const format = req.nextUrl.searchParams.get('format')
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const agencyId = typeof body.agencyId === 'string' ? body.agencyId : ''
   if (!agencyId) return NextResponse.json({ ok: false, error: 'agencyId is required' }, { status: 400 })
-  if (!canManageAgency(auth, agencyId)) return forbiddenResponse()
+  if (!canManageTeam(auth, agencyId)) return forbiddenResponse()
 
   const result = await recordCommission({
     agencyId,
@@ -96,7 +96,7 @@ export async function PATCH(req: NextRequest) {
     .eq('id', id)
     .maybeSingle()
   if (!existing) return NextResponse.json({ ok: false, error: 'commission record not found' }, { status: 404 })
-  if (!canManageAgency(auth, existing.agency_id)) return forbiddenResponse()
+  if (!canManageTeam(auth, existing.agency_id)) return forbiddenResponse()
 
   const result = await updateCommissionStatus(id, status)
   if (!result.ok) {

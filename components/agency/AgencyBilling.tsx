@@ -26,11 +26,13 @@ import { statusFromAgency, getAgencyUsage, DEFAULT_LIMITS, type TrialState, type
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { CRM_LICENSE } from '@/lib/billing'
 
-const PLANS = [
-  { id: 'free', name: 'Owner', monthly: 0, features: ['1 active listing', 'Login + add your listing', 'No CRM system'] },
-  { id: 'professional', name: 'Professional', monthly: 49, features: ['10 active listings on our site', '5 agent seats', 'Deal pipeline + lead management', 'CIM & BOV generation'] },
-  { id: 'enterprise', name: 'Enterprise', monthly: 99, features: ['20 active listings on our site', '10 agent seats', 'Everything in Professional', 'Financial recasting engine'] },
-] as const
+// ---------------------------------------------------------------------------
+// Plan cards — single source of truth is lib/pricing.ts (CRM_PLANS). Never
+// hardcode prices here again (audit #1: was $49/$99/$149 vs $499/$899).
+// ---------------------------------------------------------------------------
+import { CRM_PLANS } from '@/lib/pricing'
+
+const PLANS = CRM_PLANS.map((p) => ({ id: p.id, name: p.name, monthly: p.monthly, features: p.features }))
 
 interface SubRow { plan_type: string | null; start_date: string | null; end_date: string | null; amount: number | null; status: string | null; notes: string | null }
 
@@ -79,7 +81,8 @@ export default function AgencyBilling() {
     ]
   }, [usage])
 
-  async function upgrade(planId: 'free' | 'professional' | 'enterprise') {
+  async function upgrade(planId: string) {
+    if (!['free', 'professional', 'enterprise'].includes(planId)) return
     if (!agency) return
     setPaying(planId)
     try {

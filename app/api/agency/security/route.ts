@@ -24,6 +24,10 @@ export async function GET(req: NextRequest) {
 
   const agencyId = req.nextUrl.searchParams.get('agencyId') || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
+  // #6: require2fa is agency-internal config — only members of THIS agency may
+  // read it. Previously any authenticated user could pass any agencyId.
+  const isMember = auth.memberships.some((m) => m.agency_id === agencyId)
+  if (!isMember) return forbiddenResponse()
 
   const require2fa = await getRequire2fa(agencyId)
   return NextResponse.json({ ok: true, require2fa, canManage: canManageAgency(auth, agencyId) })

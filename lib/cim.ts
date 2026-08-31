@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase/client'
 import type { Listing } from '@/lib/listings'
 import { bandForIndustry, matchIndustry, type MarketBand } from '@/lib/marketMultiplesCore.ts'
 import type { RecastResult } from '@/lib/recast.ts'
+import { resolveNormalizedEarnings, latestYoYRevenue, latestSdeMargin } from '@/lib/normalizedEarnings.ts'
 
 // ---------------------------------------------------------------------------
 // CIM (Confidential Information Memorandum) generator — 25+ section,
@@ -64,22 +65,27 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
   const marketBand = opts?.marketBand || bandForIndustry(listing.industry, listing.ebitda ? 'EBITDA' : 'SDE') || null
   const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const price = listing.asking_price
-  const revenue = listing.annual_revenue
-  const sde = listing.sde
-  const ebitda = listing.ebitda
+  // SINGLE SOURCE OF TRUTH (audit fix 08-31): normalized earnings always come
+  // from the recast when one exists — never from the raw listing fields, which
+  // were a second, divergent calculation (cover $318k vs recast $572k).
+  const earnings = resolveNormalizedEarnings(listing, recast)
+  const revenue = earnings.revenue
+  const sde = earnings.sde
+  const ebitda = earnings.ebitda
   const priceRev = revenue && price ? price / revenue : null
   const priceEbitda = ebitda && price ? price / ebitda : null
   const sdeMultiple = sde && price ? price / sde : null
   const grossMargin = revenue ? (revenue - (listing.inventory_value || 0)) / revenue : null
   const industry = listing.industry || 'business services'
+  const yoyRevenue = latestYoYRevenue(earnings)
 
-  // Multi-year financial rows from the recast (if supplied) — real tables.
-  const recastYears = recast?.years?.slice().sort((a, b) => a.year - b.year) || []
-  const multiYearRows = recastYears.map((yr) => ({
-    label: yr.label || String(yr.year),
-    revenue: yr.recast.revenue,
-    sde: yr.recast.sde,
-    ebitda: yr.recast.ebitda,
+  // Multi-year financial rows from the canonical earnings (recast years when
+  // present, else the single derived year) — real tables, one source.
+  const multiYearRows = earnings.years.map((yr) => ({
+    label: yr.label,
+    revenue: yr.revenue,
+    sde: yr.sde,
+    ebitda: yr.ebitda,
     addBacks: yr.totalAddBacks,
   }))
   const analysis = recast?.analysis || null

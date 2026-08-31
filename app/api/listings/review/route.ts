@@ -85,6 +85,22 @@ export async function POST(req: NextRequest) {
     notes: notes || null,
   }).maybeSingle()
 
+  // #5: mirror the review decision into the platform admin audit log so the
+  // trail actually accumulates security-relevant events with a real actor
+  // (resolveAdminActor now reads the caller's JWT — was always null before).
+  try {
+    const { recordAdminAudit } = await import('@/lib/adminAudit')
+    await recordAdminAudit({
+      actorId: authenticated.user.id,
+      actorEmail: authenticated.user.email || null,
+      action: `listing_${action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'changes_requested'}`,
+      targetType: 'listing',
+      targetId: listingId,
+      targetLabel: listing.business_name || null,
+      details: { notes: notes || null, from_stage: listing.status || 'draft', to_stage: patch.review_stage as string },
+    })
+  } catch { /* audit is best-effort */ }
+
   // Notify the SELLER of their listing's review outcome — they submitted it
   // through the public form and deserve to know what happens next.
   const sellerEmail = (listing as { owner_email?: string | null }).owner_email || null

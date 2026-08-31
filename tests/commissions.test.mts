@@ -68,7 +68,8 @@ test('commissions: API supports GET (json + csv), POST, PATCH with broker auth',
   assert.match(route, /export async function PATCH\(req: NextRequest\)/)
   assert.match(route, /export const runtime = 'nodejs'/)
   assert.match(route, /authenticateProfileRequest\(req\)/)
-  assert.match(route, /canManageAgency\(auth, agencyId\)/)
+  // #3: widened to canManageTeam — original intent was "authenticated broker".
+  assert.match(route, /canManageTeam\(auth, agencyId\)/)
   assert.match(route, /forbiddenResponse\(\)/)
   assert.match(route, /unauthorizedResponse\(\)/)
 })

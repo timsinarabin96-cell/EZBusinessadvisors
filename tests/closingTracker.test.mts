@@ -47,7 +47,8 @@ test('closing: API supports GET/POST/PATCH/DELETE with agency gating', () => {
   assert.match(route, /export async function POST/)
   assert.match(route, /export async function PATCH/)
   assert.match(route, /export async function DELETE/)
-  assert.match(route, /canManageAgency/)
+  // #2: widened to canManageTeam (owner/admin/broker) — nav shows broker.
+  assert.match(route, /canManageTeam/)
   assert.match(route, /forbiddenResponse\(\)/)
   assert.match(route, /action: 'seed' | 'milestone' | 'escrow'/)
   assert.match(route, /listTrackedListings/)

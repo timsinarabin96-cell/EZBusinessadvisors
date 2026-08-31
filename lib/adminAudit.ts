@@ -6,6 +6,8 @@
  */
 
 import { createServerClient } from '@/lib/supabase/server'
+import { authenticateRequest } from '@/lib/supabase/auth'
+import type { NextRequest } from 'next/server'
 
 // =============================================================================
 // Admin audit trail — every platform-admin action is recorded so the boss can
@@ -45,11 +47,13 @@ export async function recordAdminAudit(entry: AdminAuditEntry): Promise<void> {
 /** Resolve the acting profile (id + email) from a request for audit purposes. */
 export async function resolveAdminActor(req: Request): Promise<{ id: string | null; email: string | null }> {
   try {
-    const db = createServerClient()
-    if (!db) return { id: null, email: null }
-    const { data } = await db.auth.getUser()
-    if (!data.user) return { id: null, email: null }
-    return { id: data.user.id, email: data.user.email || null }
+    // The request carries the caller's Bearer JWT — resolve THAT user. The old
+    // implementation called getUser() on a token-less service-role client,
+    // which ALWAYS returned null (audit #5: entries were written with no
+    // actor, making the trail useless as a security control).
+    const auth = await authenticateRequest(req as NextRequest)
+    if (!auth) return { id: null, email: null }
+    return { id: auth.user.id, email: auth.user.email || null }
   } catch {
     return { id: null, email: null }
   }
