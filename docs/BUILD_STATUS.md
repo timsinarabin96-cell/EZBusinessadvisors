@@ -217,7 +217,7 @@
 | SOC 2 readiness mapping (Trust Services Criteria) + audit export | ✅ | `1f9062f`, `9cdc4a6` |
 | 13 regression tests locking audit rounds 1–7 | ✅ | `0926bd9` |
 | Point-in-time recovery (PITR) — **decision: deferred** (daily backups running) | 🟡 deferred | PUNCHLIST 08-31 |
-| Independent pentest on NDA gate with real buyer account | ❌ not started | PUNCHLIST |
+| Independent pentest on NDA gate with real buyer account | ❌ **needs Rabin directly** — third-party or structured internal security review, not Yavin self-audit | PUNCHLIST |
 | Upstash rate limiting at scale | ❌ deferred (needed only at traffic scale) | PUNCHLIST |
 
 ## 9. Billing / Licensing / Tiers
@@ -248,7 +248,7 @@
 | **No migration runner** — SQL applied manually via Management API (lesson: apply after writing) | 🟡 tooling gap | current |
 | Nightly DB backup cron (14-day retention, off-site email copy) | ✅ | `c3f1711` |
 | Dead-code sweep | ❌ queued (next) | — |
-| Unit economics tracking (CAC/LTV per agency) | ❌ not started | PUNCHLIST |
+| Unit economics tracking (CAC/LTV, cost-per-listing, margin per tier, breakeven) | ❌ **needs Rabin directly** — business analysis with real usage data | PUNCHLIST |
 
 ## How to update
 1. After any feature work: add/update the row, set status, copy the commit hash.
