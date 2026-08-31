@@ -161,8 +161,17 @@ export function clawWatermark(doc: jsPDF, fonts: ClawFonts, text: string, opts?:
   const H = doc.internal.pageSize.getHeight()
   doc.saveGraphicsState()
   try {
+    // Auto-fit: shrink the font until the text fits the page width so long
+    // strings (e.g. "$79,500 – $2,394,000") never clip their last digits.
+    let size = opts?.size ?? 72
+    const maxWidth = W - 40
+    for (let i = 0; i < 8; i++) {
+      setHead(doc, fonts, size, 2)
+      if ((doc.getTextWidth(text) || 0) <= maxWidth) break
+      size = Math.max(18, size - 6)
+    }
     doc.setGState(new (doc as any).GState({ opacity: opts?.opacity ?? 0.15 }))
-    setHead(doc, fonts, opts?.size ?? 72, 2)
+    setHead(doc, fonts, size, 2)
     doc.setTextColor(...CLAW_GOLD)
     doc.text(text, W / 2, opts?.y ?? H / 2, { align: 'center' })
   } catch {

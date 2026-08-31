@@ -192,7 +192,7 @@ export async function generateDeliveryPdf(
     }
 
     if (docKind === 'bov') {
-      const content: BovContent = generateBovContent(listing)
+      const content: BovContent = generateBovContent(listing, { recast })
       const bytes = await exportBovToPdf(content, opts)
       if (!bytes) return { ok: false, error: 'BOV PDF generation failed' }
       return { ok: true, bytes }

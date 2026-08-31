@@ -186,3 +186,49 @@ test('ui: approval queue is mobile-friendly with single-tap approve', () => {
   assert.match(queue, /Awaiting your approval/)
   assert.match(queue, /decision/)
 })
+
+// =============================================================================
+// SAMPLE-OUTPUT REVIEW FIXES (boss 08-31): single source of truth for
+// normalized earnings + no generic padding + watermark fit + range context.
+// =============================================================================
+test('review: every document resolves earnings through the canonical resolver', () => {
+  const norm = readFileSync('lib/normalizedEarnings.ts', 'utf8')
+  const cim = readFileSync('lib/cim.ts', 'utf8')
+  const bov = readFileSync('lib/bov.ts', 'utf8')
+  assert.match(norm, /resolveNormalizedEarnings/)
+  assert.match(cim, /resolveNormalizedEarnings\(listing, recast\)/)
+  assert.match(bov, /resolveNormalizedEarnings\(listing, opts\?\.recast\)/)
+  // No document may read listing.sde/ebitda directly for normalized earnings.
+  assert.ok(!/const sde = listing\.sde/.test(cim), 'CIM must not read listing.sde')
+  assert.ok(!/const sde = guard\(listing\.sde\)/.test(bov), 'BOV must not read listing.sde')
+})
+
+test('review: CIM sections 3-5 and 10-21 use listing data, not generic padding', () => {
+  const cim = readFileSync('lib/cim.ts', 'utf8')
+  // Section 3 uses description + established year; 5 uses customer_concentration;
+  // 12 uses growth_opportunities; 14 uses facilities_summary/lease; 18 transition.
+  assert.match(cim, /listing\.description \|\|/)
+  assert.match(cim, /listing\.established_year/)
+  assert.match(cim, /listing\.customer_concentration/)
+  assert.match(cim, /listing\.growth_opportunities/)
+  assert.match(cim, /listing\.facilities_summary/)
+  assert.match(cim, /listing\.transition_support/)
+  assert.match(cim, /listing\.lease_monthly/)
+  // The old generic filler must be gone.
+  assert.ok(!cim.includes("The business provides a defined set of core products/services"), 'generic products filler removed')
+  assert.ok(!cim.includes('having established a presence that reflects years of consistent service'), 'generic history filler removed')
+})
+
+test('review: watermark auto-fits so long ranges never clip digits', () => {
+  const claw = readFileSync('lib/pdfOpenClaw.ts', 'utf8')
+  assert.match(claw, /Auto-fit: shrink the font/)
+  assert.match(claw, /getTextWidth\(text\)/)
+  assert.match(claw, /size = Math\.max\(18, size - 6\)/)
+})
+
+test('review: BOV range explanation sits under the indicative range', () => {
+  const bov = readFileSync('lib/bov.ts', 'utf8')
+  assert.match(bov, /Indicative Value Range: \$\{fmt\(twelve\.rangeLow\)\} to \$\{fmt\(twelve\.rangeHigh\)\}/)
+  assert.match(bov, /The wide spread is expected: it spans a/)
+  assert.match(bov, /The extremes are bounds, not price points/)
+})

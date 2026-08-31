@@ -32,7 +32,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import type { Listing } from '@/lib/listings'
-import { recastFinancials, type RecastResult, type RecastInput, type YearFinancials } from '@/lib/recast'
+import { recastFinancials, attachRecastAnalysis, type RecastResult, type RecastInput, type YearFinancials } from '@/lib/recast'
 import { generateBovContent } from '@/lib/bov'
 import { enrichBovWithClaude } from '@/lib/bovClaude'
 import type { AgentContextPayload } from '@/types/ai'
@@ -338,6 +338,8 @@ export async function runAutoGeneration(input: {
   const history: YearFinancials[] = buildFinancialHistory(L, extraction.rows)
 
   // 5) RECAST
+  // Hoisted so BOV + CIM consume the SAME recast result (single source of truth).
+  let recast: RecastResult | null = null
   try {
     const recastInput: RecastInput = {
       listingId: L.id,
@@ -347,8 +349,8 @@ export async function runAutoGeneration(input: {
       years: history,
       addBacks: [], // auto recast uses the built-in add-back modeling in SDE/EBITDA
     }
-    const recast = recastFinancials(recastInput)
-    const bytes = await exportRecastToPdf(recast, { returnBytes: true, agency, assets })
+    recast = recastFinancials(recastInput)
+    const bytes = await exportRecastToPdf(attachRecastAnalysis(recast), { returnBytes: true, agency, assets })
     if (bytes) {
       const art = await saveGeneratedDoc({
         listingId: L.id,
@@ -366,7 +368,7 @@ export async function runAutoGeneration(input: {
 
   // 6) BOV — 12-method engine + full-Claude narrative enrichment (best-effort).
   try {
-    let bov = generateBovContent(L)
+    let bov = generateBovContent(L, { recast })
     const bovFacts: AgentContextPayload = {
       kind: 'listing',
       entityId: L.id,

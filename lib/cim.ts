@@ -138,31 +138,45 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     ] },
     { id: 'business-overview', title: '3. Business Overview', subsections: [
       { heading: 'History & Background', body: [
-        `${listing.business_name || 'The Company'} operates in the ${industry} sector, having established a presence that reflects years of consistent service and customer relationships.`,
-        'The business has developed efficient operating processes and a repeatable service model, enabling stable performance with manageable capital requirements.',
+        `${listing.business_name || 'The Company'} operates in the ${industry} sector${listing.location_general ? `, serving the ${listing.location_general} market` : ''}${listing.established_year ? ` since ${listing.established_year}` : ''}.`,
+        listing.description || `${listing.business_name || 'The Company'} delivers services through an established operating model with documented processes and transferable vendor relationships.`,
+        ...(listing.sub_industry ? [`Primary niche: ${listing.sub_industry}.`] : []),
       ] },
       { heading: 'Business Model', body: [
-        'The company generates revenue through its core operating activities, with a mix of recurring and transactional revenue streams that provide financial stability.',
-        'Operating margins benefit from established supplier relationships, loyal clientele, and an asset-light structure.',
+        listing.description
+          ? `Revenue is generated through the business model described above: ${listing.description}`
+          : 'Revenue is generated through the company\'s core operating activities, with a mix of recurring and transactional streams.',
+        ...(listing.employees_full_time || listing.employees_part_time
+          ? [`The operation is staffed by ${[listing.employees_full_time ? `${listing.employees_full_time} full-time` : null, listing.employees_part_time ? `${listing.employees_part_time} part-time` : null].filter(Boolean).join(' and ')} employees.`]
+          : []),
+        ...(listing.owner_hours_weekly ? [`The current owner dedicates approximately ${listing.owner_hours_weekly} hours per week to the business.`] : []),
       ] },
     ] },
     { id: 'products-services', title: '4. Products & Services', subsections: [
       { heading: 'Core Offerings', body: [
-        'The business provides a defined set of core products/services within its market, delivered with consistent quality and service standards.',
-        'The service portfolio is structured to maximize recurring revenue and deepen client relationships over time.',
+        listing.description
+          ? `The business delivers: ${listing.description}`
+          : `The business provides a defined set of core services within the ${industry} sector, delivered with consistent quality and service standards.`,
+        ...(listing.competitive_advantages ? [`Service differentiation is anchored on: ${listing.competitive_advantages}`] : []),
       ] },
       { heading: 'Pricing', body: [
-        'Pricing reflects the competitive position in the market and is reviewed periodically to maintain margin while remaining attractive to clients.',
+        listing.description && /\$|price|fee|rate/i.test(listing.description)
+          ? `Pricing structure is described in the overview: ${listing.description}`
+          : 'Pricing reflects the competitive position in the market and is reviewed periodically to maintain margin while remaining attractive to clients.',
         'There is opportunity to introduce tiered pricing and premium service packages under new ownership.',
       ] },
     ] },
     { id: 'customer-analysis', title: '5. Customer Analysis', subsections: [
       { heading: 'Customer Base', body: [
-        'The customer base is diversified, reducing reliance on any single client and providing stable, recurring revenue.',
+        listing.customer_concentration
+          ? `Customer composition: ${listing.customer_concentration}`
+          : 'The customer base is diversified, reducing reliance on any single client and providing stable, recurring revenue.',
         'Client relationships are characterized by high retention, driven by service quality and account management.',
       ] },
       { heading: 'Concentration Risk', body: [
-        'Customer concentration is monitored; the largest clients contribute meaningfully but do not represent undue risk to the enterprise.',
+        listing.customer_concentration
+          ? `Concentration profile: ${listing.customer_concentration}`
+          : 'Customer concentration is monitored; the largest clients contribute meaningfully but do not represent undue risk to the enterprise.',
         'A detailed client list and concentration analysis is available to qualified buyers under NDA.',
       ] },
     ] },
@@ -286,13 +300,10 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     // ---- Market ----
     { id: 'industry-analysis', title: '10. Industry Analysis', subsections: [
       { heading: 'Market Overview', body: [
-        `The ${industry} industry continues to demonstrate resilience with steady demand. Businesses in this sector benefit from recurring revenue, established client relationships, and moderate capital requirements.`,
-        (() => {
-          const band = bandForIndustry(industry, ebitda ? 'EBITDA' : 'SDE')
-          return band
-            ? `Current market data indicates that ${band.industry} businesses typically transact at ${band.min.toFixed(1)}-${band.max.toFixed(1)}x ${band.basis}, providing a benchmark for the valuation metrics presented in Section 9.`
-            : 'Industry trends favor consolidation, creating opportunity for strategic and financial buyers to achieve scale and efficiency.'
-        })(),
+        `The ${industry} industry continues to demonstrate resilience with steady demand${listing.location_general ? ` in the ${listing.location_general} market` : ''}. Businesses in this sector benefit from recurring revenue, established client relationships, and moderate capital requirements.`,
+        marketBand
+          ? `Current market data indicates that ${marketBand.industry} businesses typically transact at ${marketBand.min.toFixed(1)}-${marketBand.max.toFixed(1)}x ${marketBand.basis} (${marketBand.sourceNote || 'market data'}), providing a benchmark for the valuation metrics presented in Section 9.`
+          : 'Industry trends favor consolidation, creating opportunity for strategic and financial buyers to achieve scale and efficiency.',
       ] },
       { heading: 'Key Drivers', body: [
         'Demand is supported by durable end-market fundamentals and recurring consumption patterns.',
@@ -301,26 +312,23 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     ] },
     { id: 'competitive-landscape', title: '11. Market Position & Competitive Landscape', subsections: [
       { heading: 'Positioning', body: [
-        'The market is fragmented, with a mix of owner-operated and regional players. The subject business has established a defensible position through its client base and reputation.',
+        listing.competitive_advantages
+          ? `The business differentiates itself through: ${listing.competitive_advantages}`
+          : 'The market is fragmented, with a mix of owner-operated and regional players. The subject business has established a defensible position through its client base and reputation.',
         'This fragmentation presents an opportunity to differentiate through service quality, technology adoption, and targeted marketing.',
       ] },
       { heading: 'Comparable Transactions', body: [
-        (() => {
-          const band = bandForIndustry(industry, ebitda ? 'EBITDA' : 'SDE')
-          return band
-            ? `Transactions in this sector typically transact at ${band.min.toFixed(1)}-${band.max.toFixed(1)}x ${band.basis} (${band.industry} market data).`
-            : 'Transactions in this sector typically transact at multiples with a strong correlation to profitability and growth.'
-        })(),
+        marketBand
+          ? `Transactions in this sector typically transact at ${marketBand.min.toFixed(1)}-${marketBand.max.toFixed(1)}x ${marketBand.basis} (${marketBand.industry} market data).`
+          : 'Transactions in this sector typically transact at multiples with a strong correlation to profitability and growth.',
         'Comparables and market data are available to qualified buyers as part of the due diligence package.',
       ] },
     ] },
     { id: 'growth-opportunities', title: '12. Growth Opportunities', subsections: [
       { heading: 'Strategic Growth Levers', body: [
-        '1. Expand client acquisition through digital marketing and referral programs.',
-        '2. Introduce tiered service offerings and recurring-retainer models to increase revenue per client.',
-        '3. Add complementary services to broaden the addressable market.',
-        '4. Leverage technology to improve operational efficiency and margins.',
-        '5. Geographic expansion into adjacent markets under new ownership.',
+        listing.growth_opportunities
+          ? listing.growth_opportunities
+          : '1. Expand client acquisition through digital marketing and referral programs.\n2. Introduce tiered service offerings and recurring-retainer models to increase revenue per client.\n3. Add complementary services to broaden the addressable market.\n4. Leverage technology to improve operational efficiency and margins.\n5. Geographic expansion into adjacent markets under new ownership.',
       ] },
       { heading: 'Upside Potential', body: [
         'These growth initiatives are largely incremental to current operations and require modest capital investment, offering attractive returns on investment.',
@@ -328,7 +336,9 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     ] },
     { id: 'sales-marketing', title: '13. Sales & Marketing', subsections: [
       { heading: 'Current Approach', body: [
-        'The business acquires customers through a combination of direct relationships, referrals, and local/industry marketing.',
+        listing.growth_opportunities && /marketing|referral|digital|lead/i.test(listing.growth_opportunities)
+          ? `Current and planned customer acquisition activity: ${listing.growth_opportunities}`
+          : 'The business acquires customers through a combination of direct relationships, referrals, and local/industry marketing.',
         'A portion of revenue is recurring, providing a stable base on which new marketing can layer growth.',
       ] },
       { heading: 'Opportunity', body: [
@@ -339,11 +349,17 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     // ---- Operations / Assets ----
     { id: 'operations-facilities', title: '14. Operations & Facilities', subsections: [
       { heading: 'Operations', body: [
-        'The business operates with established processes, vendor relationships, and operational controls that support consistent delivery.',
+        listing.description && /operat|process|team|deliver|service/i.test(listing.description)
+          ? `Operating model: ${listing.description}`
+          : 'The business operates with established processes, vendor relationships, and operational controls that support consistent delivery.',
         'Day-to-day operations are well-documented and transferable to a new owner.',
       ] },
       { heading: 'Facilities', body: [
-        `Facilities support current operations${listing.location_general ? ` at ${listing.location_general}` : ''}. Lease terms and facility details are available to qualified buyers.`,
+        listing.facilities_summary
+          ? `Facilities: ${listing.facilities_summary}`
+          : `Facilities support current operations${listing.location_general ? ` at ${listing.location_general}` : ''}.`,
+        ...(listing.lease_monthly ? [`Monthly lease cost: ${fmt(listing.lease_monthly)}${listing.lease_expires_on ? `, expiring ${new Date(listing.lease_expires_on).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` : ''}.`] : []),
+        'Lease terms and facility details are available to qualified buyers.',
       ] },
     ] },
     { id: 'equipment-assets', title: '15. Equipment & Assets', subsections: [
@@ -360,6 +376,7 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
         listing.real_estate_included
           ? 'Real estate is included in the sale, offering the buyer ownership of the underlying property in addition to the operating business.'
           : 'Real estate is not included in the sale. The business operates under a lease, with terms available to qualified buyers.',
+        ...(listing.lease_monthly ? [`Current lease: ${fmt(listing.lease_monthly)}/month${listing.lease_expires_on ? ` through ${new Date(listing.lease_expires_on).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}` : ''}.`] : []),
       ] },
       { heading: 'Implication', body: [
         'Potential buyers should evaluate financing structure and real estate strategy as part of their acquisition plan.',
@@ -369,7 +386,10 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     // ---- Human capital ----
     { id: 'employees', title: '17. Employees & Management', subsections: [
       { heading: 'Workforce', body: [
-        'The business employs a team that supports day-to-day operations and service delivery.',
+        ...(listing.employees_full_time || listing.employees_part_time
+          ? [`The business employs ${[listing.employees_full_time ? `${listing.employees_full_time} full-time` : null, listing.employees_part_time ? `${listing.employees_part_time} part-time` : null].filter(Boolean).join(' and ')} team members supporting day-to-day operations and service delivery.`]
+          : ['The business employs a team that supports day-to-day operations and service delivery.']),
+        ...(listing.owner_hours_weekly ? [`Owner involvement: approximately ${listing.owner_hours_weekly} hours per week.`] : []),
         'A detailed staffing summary, including roles, tenure, and compensation, is available to qualified buyers under NDA.',
       ] },
       { heading: 'Organizational Dependence', body: [
@@ -378,20 +398,25 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     ] },
     { id: 'key-person-transition', title: '18. Key Person Risk & Transition', subsections: [
       { heading: 'Owner Dependence', body: [
-        listing.real_estate_included
-          ? 'The current owner is a hands-on operator benefiting from strong client relationships. A transition period is available to transfer knowledge and introduce the new owner to key clients and vendors.'
+        listing.transition_support
+          ? `Transition plan: ${listing.transition_support}`
           : 'The current owner has established efficient operating processes. A defined transition period is available to transfer institutional knowledge, client relationships, and vendor relationships.',
+        ...(listing.training_period_weeks ? [`The owner will remain available for approximately ${listing.training_period_weeks} weeks of training and transition support.`] : []),
       ] },
       { heading: 'Post-Sale Support', body: [
         'A transition assistance period is included to support the buyer, covering introductions to clients, vendor relationships, and operational handover.',
-        'The owner is prepared to remain available for consultation to ensure a seamless transition.',
+        listing.seller_financing_available
+          ? `Seller financing is available${listing.financing_notes ? `: ${listing.financing_notes}` : ' for a qualified buyer.'}`
+          : 'The owner is prepared to remain available for consultation to ensure a seamless transition.',
       ] },
     ] },
 
     // ---- Legal / Risk ----
     { id: 'legal-regulatory', title: '19. Legal & Regulatory', subsections: [
       { heading: 'Compliance', body: [
-        'The business maintains the necessary licenses, permits, and registrations to operate in its jurisdiction.',
+        `The business maintains the licenses, permits, and registrations required to operate as a ${industry} business${listing.location_general ? ` in ${listing.location_general}` : ''}.`,
+        ...(listing.sub_industry ? [`Regulatory context: ${listing.sub_industry} operations carry specific compliance obligations; current status is available to qualified buyers.`] : []),
+        ...(listing.compliance_status ? [`Compliance status on the platform: ${listing.compliance_status}.`] : []),
         'Details of any regulatory exposure and compliance status are available to qualified buyers.',
       ] },
       { heading: 'Contracts', body: [
@@ -400,13 +425,17 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     ] },
     { id: 'franchise-licensing', title: '20. Franchise & Licensing (if applicable)', subsections: [
       { heading: 'Status', body: [
-        'The business operates under its own brand and does not rely on third-party franchises or restrictive licenses for ongoing operations.',
+        listing.sub_industry && /franchise|license/i.test(listing.sub_industry)
+          ? `The business operates under a franchise or license structure (${listing.sub_industry}); transfer terms are documented for buyer review.`
+          : 'The business operates under its own brand and does not rely on third-party franchises or restrictive licenses for ongoing operations.',
         'Any applicable transferable licenses are documented for buyer review.',
       ] },
     ] },
     { id: 'technology-systems', title: '21. Technology & Systems', subsections: [
       { heading: 'Systems Stack', body: [
-        'The business utilizes standard, transferable technology tools for operations, accounting, and customer management.',
+        listing.competitive_advantages && /tech|system|software|platform/i.test(listing.competitive_advantages)
+          ? `Technology is a stated differentiator: ${listing.competitive_advantages}`
+          : 'The business utilizes standard, transferable technology tools for operations, accounting, and customer management.',
         'Systems are documented and can be fully transitioned to the buyer, minimizing operational disruption.',
       ] },
       { heading: 'Data & IP', body: [
@@ -415,8 +444,12 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     ] },
     { id: 'risk-factors', title: '22. Risk Factors', subsections: [
       { heading: 'Considerations for Buyers', body: [
-        '• Owner transition: dependence on current ownership addressed via transition period.',
-        '• Customer concentration: monitored; detailed analysis provided under NDA.',
+        listing.customer_concentration
+          ? `• Customer concentration: ${listing.customer_concentration}`
+          : '• Customer concentration: monitored; detailed analysis provided under NDA.',
+        listing.owner_hours_weekly
+          ? `• Owner involvement: the current owner dedicates ~${listing.owner_hours_weekly} hrs/week — addressed via the transition plan${listing.training_period_weeks ? ` (${listing.training_period_weeks} weeks training)` : ''}.`
+          : '• Owner transition: dependence on current ownership addressed via transition period.',
         '• Market conditions: subject to industry and macroeconomic factors.',
         '• Financing: buyer must secure adequate financing to complete the transaction.',
         'These risks are typical for businesses of this type and are mitigated by the business model and transition support.',
@@ -427,8 +460,9 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     { id: 'investment-highlights', title: '23. Investment Highlights', subsections: [
       { heading: 'Key Strengths', body: [
         `Established business in the ${industry} sector with a track record of performance.`,
-        `Revenue of ${fmt(revenue)} with normalized earnings of ${fmt(sde)}.`,
-        'Diversified client base providing stability and recurring revenue characteristics.',
+        `Revenue of ${fmt(revenue)} with normalized earnings of ${fmt(sde)}${ebitda ? ` and EBITDA of ${fmt(ebitda)}` : ''} (single source of truth: the recast).`,
+        ...(listing.customer_concentration ? [`Customer base: ${listing.customer_concentration}`] : ['Diversified client base providing stability and recurring revenue characteristics.']),
+        ...(listing.competitive_advantages ? [`Competitive strengths: ${listing.competitive_advantages}`] : []),
         'Clear growth runway requiring modest incremental investment.',
         'Favorable valuation relative to comparable transactions in the market.',
       ] },

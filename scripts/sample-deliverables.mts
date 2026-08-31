@@ -120,7 +120,7 @@ const recast = attachRecastAnalysis(recastFinancials({
 
 const marketBand = bandForIndustry(listing.industry, 'EBITDA')
 const cim = generateCimContent(listing, { recast, marketBand })
-const bov = generateBovContent(listing)
+const bov = generateBovContent(listing, { recast })
 
 // ---------------------------------------------------------------------------
 // Render PDFs

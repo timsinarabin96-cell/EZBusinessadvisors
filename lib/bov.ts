@@ -8,6 +8,8 @@
 import { supabase } from '@/lib/supabase/client'
 import type { Listing } from '@/lib/listings'
 import { bandForIndustry, matchIndustry } from '@/lib/marketMultiplesCore.ts'
+import { resolveNormalizedEarnings, latestYoYRevenue } from '@/lib/normalizedEarnings.ts'
+import type { RecastResult } from '@/lib/recast.ts'
 
 // ---------------------------------------------------------------------------
 // BOV (Broker Opinion of Value) generator
@@ -264,12 +266,17 @@ export function computeTwelveMethods(input: {
   return { methods, rangeHigh, rangeLow, conclusion, assetValue: assets, intangibleValue }
 }
 
-export function generateBovContent(listing: Listing): BovContent {
+export function generateBovContent(listing: Listing, opts?: { recast?: RecastResult | null }): BovContent {
   const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const price = guard(listing.asking_price)
-  const revenue = guard(listing.annual_revenue)
-  const sde = guard(listing.sde)
-  const ebitda = guard(listing.ebitda)
+  // SINGLE SOURCE OF TRUTH (audit fix 08-31): normalized earnings come from the
+  // recast when one exists — the raw listing fields were a second, divergent
+  // calculation (BOV $318k vs recast $572k; YoY 3.6% fabricated vs 9.0% real).
+  const earnings = resolveNormalizedEarnings(listing, opts?.recast)
+  const revenue = guard(earnings.revenue)
+  const sde = guard(earnings.sde)
+  const ebitda = guard(earnings.ebitda)
+  const yoyRevenue = latestYoYRevenue(earnings)
   const name = listing.business_name || 'Subject Business'
   const industry = listing.industry || 'its industry'
   const location = listing.location_general || 'the Southeast United States'
@@ -304,20 +311,34 @@ export function generateBovContent(listing: Listing): BovContent {
   const disclaimer =
     'This Broker Opinion of Value (BOV) is an estimate of market value prepared for informational purposes and does not constitute an appraisal. It is based on information provided by the owner and market comparables considered reasonable at the date of preparation. Actual sale price may differ materially. This document is confidential and proprietary and is provided solely to qualified prospective purchasers for the purpose of evaluating the subject business. Recipients agree not to reproduce or distribute this document without the prior written consent of the seller and its advisor. This memorandum does not constitute an offer to sell, and no reliance may be placed on its contents for investment purposes.'
 
-  const hist = buildHistory(listing)
+  // Real multi-year history when a recast exists; fabricated fallback only
+  // when no recast has been run yet (and then labeled as an estimate).
+  // Newest-first (matches buildHistory convention: hist[0] = latest year).
+  const hist: HistoryYear[] = earnings.hasRecast
+    ? earnings.years.slice().sort((a, b) => b.year - a.year).map((y) => ({
+        year: y.year,
+        revenue: y.revenue,
+        sde: y.sde,
+        ebitda: y.ebitda,
+        sdeMargin: y.revenue > 0 ? y.sde / y.revenue : 0,
+        ebitdaMargin: y.revenue > 0 ? y.ebitda / y.revenue : 0,
+      }))
+    : buildHistory(listing)
   const latest = hist[0]
-  const y1 = hist[1]
-  const revTrend = ((latest.revenue - y1.revenue) / y1.revenue) * 100
-  const sdeTrend = ((latest.sde - y1.sde) / y1.sde) * 100
-  const ebitdaTrend = ((latest.ebitda - y1.ebitda) / y1.ebitda) * 100
+  const y1 = hist[1] || hist[0]
+  const revTrend = y1.revenue ? ((latest.revenue - y1.revenue) / y1.revenue) * 100 : 0
+  const sdeTrend = y1.sde ? ((latest.sde - y1.sde) / y1.sde) * 100 : 0
+  const ebitdaTrend = y1.ebitda ? ((latest.ebitda - y1.ebitda) / y1.ebitda) * 100 : 0
+  // Prefer the recast's real trend note when present (audit fix #2).
+  const trendNote = earnings.analysis?.trendNote || null
   const mgmtRisk = sde === 0 ? 'moderate' : sde / revenue < 0.15 ? 'elevated' : 'moderate'
 
   // ── TWELVE-METHOD ENGINE (the boss's Transworld-grade valuation) ──────────
   const twelve = computeTwelveMethods({
-    annualRevenue: listing.annual_revenue,
-    sde: listing.sde,
-    ebitda: listing.ebitda,
-    askingPrice: listing.asking_price,
+    annualRevenue: revenue,
+    sde,
+    ebitda,
+    askingPrice: price,
     assetsValue: (listing as any).total_value ?? null,
     industry: listing.industry,
   })
@@ -360,6 +381,7 @@ export function generateBovContent(listing: Listing): BovContent {
             `Normalized EBITDA: ${fmt(ebitda)}`,
             `Price / SDE: ${priceSde ? priceSde.toFixed(2) + 'x' : 'N/A'}`,
             `Price / Revenue: ${priceRev ? priceRev.toFixed(2) + 'x' : 'N/A'}`,
+            `Indicative Value Range: ${fmt(twelve.rangeLow)} to ${fmt(twelve.rangeHigh)}. The wide spread is expected: it spans a pure-asset floor to an aggressive debt-capacity ceiling. The extremes are bounds, not price points — the single price conclusion (the average of the range) is the value a qualified buyer should anchor on, and the earnings-supported midpoint is reconciled in the Valuation Analysis.`,
             'Structure: Sale of substantially all assets (or equity, at seller\u2019s election), with a negotiated transition period.',
             'Confidentiality: This memorandum is provided under strict confidentiality and may not be distributed without prior written consent.',
           ],
@@ -413,9 +435,10 @@ export function generateBovContent(listing: Listing): BovContent {
       title: 'Financial Performance',
       subsections: [
         {
-          heading: 'Revenue History (3 Years + Current)',
+          heading: 'Revenue History (Multi-Year + Current)',
           body: [
-            `${name} has delivered revenue of approximately ${fmt(hist[3].revenue)} (${hist[3].year}), ${fmt(hist[2].revenue)} (${hist[2].year}), ${fmt(hist[1].revenue)} (${hist[1].year}) and ${fmt(latest.revenue)} (latest trailing period). The trajectory demonstrates a ${revTrend >= 0 ? 'stable' : 'declining'} revenue base with a ${pct(Math.abs(revTrend) / 100)} ${revTrend >= 0 ? 'increase' : 'decrease'} in the most recent period, consistent with the Company\u2019s positioning and market conditions.`,
+            `${name} has delivered revenue of approximately ${hist.length >= 4 ? fmt(hist[3].revenue) + ' (' + hist[3].year + '), ' : ''}${hist.length >= 3 ? fmt(hist[2].revenue) + ' (' + hist[2].year + '), ' : ''}${hist.length >= 2 ? fmt(hist[1].revenue) + ' (' + hist[1].year + '), ' : ''}and ${fmt(latest.revenue)} (latest trailing period). The trajectory demonstrates a ${revTrend >= 0 ? 'stable' : 'declining'} revenue base with a ${pct(Math.abs(revTrend) / 100)} ${revTrend >= 0 ? 'increase' : 'decrease'} in the most recent period, consistent with the Company\u2019s positioning and market conditions.`,
+            ...(trendNote ? [trendNote] : []),
             'Revenue composition is characterized by recurring customer relationships and a diversified mix, providing a degree of resilience against any single-component interruption.',
           ],
         },
@@ -423,8 +446,8 @@ export function generateBovContent(listing: Listing): BovContent {
           heading: 'Normalized Earnings (SDE & EBITDA)',
           body: [
             'For valuation purposes, reported earnings have been normalized to reflect the benefits available to a non-operating owner. Add-backs include owner compensation in excess of market replacement cost, discretionary and non-recurring expenses, and certain one-time items, yielding the following normalized figures across the period:',
-            `• SDE: ${fmt(hist[3].sde)} (${hist[3].year}) → ${fmt(latest.sde)} (latest), a cumulative trend consistent with margin discipline.`,
-            `• EBITDA: ${fmt(hist[3].ebitda)} (${hist[3].year}) → ${fmt(latest.ebitda)} (latest).`,
+            `• SDE: ${fmt(hist[hist.length - 1].sde)} (${hist[hist.length - 1].year}) → ${fmt(latest.sde)} (latest), a cumulative trend consistent with margin discipline.`,
+            `• EBITDA: ${fmt(hist[hist.length - 1].ebitda)} (${hist[hist.length - 1].year}) → ${fmt(latest.ebitda)} (latest).`,
             `• Recast SDE margin: ${pct(latest.sdeMargin)}; Recast EBITDA margin: ${pct(latest.ebitdaMargin)}.`,
           ],
         },
@@ -450,7 +473,7 @@ export function generateBovContent(listing: Listing): BovContent {
         {
           heading: 'Earnings Quality & Margin Trend',
           body: [
-            `The Company\u2019s normalized SDE margin of ${pct(latest.sdeMargin)} and EBITDA margin of ${pct(latest.ebitdaMargin)} reflect a well-managed cost structure. Over the trailing three-year period, margins have ${latest.sdeMargin > hist[3].sdeMargin ? 'expanded' : 'remained stable'} as management realized operating efficiencies and refined discretionary spending.`,
+            `The Company\u2019s normalized SDE margin of ${pct(latest.sdeMargin)} and EBITDA margin of ${pct(latest.ebitdaMargin)} reflect a well-managed cost structure. Over the trailing period, margins have ${latest.sdeMargin > hist[hist.length - 1].sdeMargin ? 'expanded' : 'remained stable'} as management realized operating efficiencies and refined discretionary spending.`,
             'Earnings quality is supported by a diversified revenue base, low capital-intensity, and minimal reliance on non-recurring items, which lends confidence to the sustainability of normalized earnings.',
           ],
         },
