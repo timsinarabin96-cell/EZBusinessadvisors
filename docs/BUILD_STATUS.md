@@ -216,7 +216,7 @@
 | Sentry error tracking + Vercel Analytics/Speed Insights | ✅ | `7513180` |
 | SOC 2 readiness mapping (Trust Services Criteria) + audit export | ✅ | `1f9062f`, `9cdc4a6` |
 | 13 regression tests locking audit rounds 1–7 | ✅ | `0926bd9` |
-| Point-in-time recovery (PITR) — **decision: deferred** (daily backups running) | 🟡 deferred | PUNCHLIST 08-31 |
+| Point-in-time recovery (PITR) — **decision 08-31: managed PITR deferred** (DB is managed Supabase Cloud — `ytcvlvisufxmmzeblmwx.supabase.co` — so native WAL PITR on the VPS is NOT possible; self-hosting the full Supabase stack needs ~4GB RAM, VPS has 2GB — rejected). **Hourly local `pg_dump` cron now live** (`backup-hourly.sh`, keeps last 25, loss window ≤1h; daily 04:00 full + off-site email copy unchanged). **Revisit trigger: real deals with real money exposure, OR a restore drill that takes too long** — then buy managed PITR (~$125/mo) | 🟡 hourly dumps live; managed PITR deferred w/ trigger | 2026-08-31 |
 | Independent pentest on NDA gate with real buyer account | ❌ **needs Rabin directly** — third-party or structured internal security review, not Yavin self-audit | PUNCHLIST |
 | Upstash rate limiting at scale | ❌ deferred (needed only at traffic scale) | PUNCHLIST |
 
