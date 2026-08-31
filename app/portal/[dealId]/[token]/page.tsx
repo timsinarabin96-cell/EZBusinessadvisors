@@ -164,9 +164,9 @@ function PortalBody() {
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px' }}>
         {/* Deal progress — the client's at-a-glance tracker */}
         {progress && progress.total > 0 && (
-          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+          <div className="glass-light lift" style={{ padding: 20, marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-              <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: 0 }}>📈 Your deal's progress</h2>
+              <h2 className="display-title" style={{ fontSize: 18, color: 'var(--navy)', margin: 0 }}>📈 Your deal's progress</h2>
               <div style={{ fontSize: 15, fontWeight: 800, color: progress.percent === 100 ? '#15803d' : 'var(--navy)' }}>{progress.percent}%</div>
             </div>
             <div style={{ height: 10, borderRadius: 999, background: 'var(--line)', overflow: 'hidden' }}>
@@ -182,8 +182,8 @@ function PortalBody() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
           {/* Seller traction — anonymized listing performance */}
           {traction && (
-            <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 20, gridColumn: '1 / -1' }}>
-              <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>📊 Your listing's traction</h2>
+            <div className="glass-light lift" style={{ padding: 20, gridColumn: '1 / -1' }}>
+              <h2 className="display-title" style={{ fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>📊 Your listing's traction</h2>
               <p style={{ color: 'var(--muted)', fontSize: 13, margin: '0 0 14px' }}>How much interest your listing is generating — anonymized, updated live.</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
                 <div style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--paper)', border: '1px solid var(--line)' }}>
@@ -214,8 +214,8 @@ function PortalBody() {
           )}
 
           {/* Milestones */}
-          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 20 }}>
-            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>Transaction milestones</h2>
+          <div className="glass-light lift" style={{ padding: 20 }}>
+            <h2 className="display-title" style={{ fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>Transaction milestones</h2>
             <p style={{ color: 'var(--muted)', fontSize: 13, margin: '0 0 16px' }}>Key steps and due-diligence items for your deal.</p>
             {milestones.length === 0 ? (
               <p style={{ color: 'var(--muted)', fontSize: 13 }}>No milestones published yet.</p>
@@ -250,8 +250,8 @@ function PortalBody() {
           </div>
 
           {/* Chat */}
-          <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 20, gridColumn: '1 / -1' }}>
-            <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>Message your broker</h2>
+          <div className="glass-light lift" style={{ padding: 20, gridColumn: '1 / -1' }}>
+            <h2 className="display-title" style={{ fontSize: 18, color: 'var(--navy)', margin: '0 0 4px' }}>Message your broker</h2>
             <p style={{ color: 'var(--muted)', fontSize: 13, margin: '0 0 14px' }}>Ask questions about your transaction anytime.</p>
             <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
               {messages.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 13 }}>No messages yet — start the conversation.</p>}

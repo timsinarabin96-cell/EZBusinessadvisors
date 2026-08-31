@@ -147,15 +147,18 @@ function SellerBody() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#faf9f5', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #1a1a2e, #2b2b4a)', color: '#fff', padding: '44px 24px 70px', textAlign: 'center' }}>
-        <div style={{ fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#c9a84c', fontWeight: 700 }}>Seller Portal</div>
-        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 32, margin: '10px 0 6px' }}>
-          {loading ? 'Loading…' : data?.lead?.business_name || 'Your Business'}
-        </h1>
-        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
-          {loading ? 'Fetching your details…' : 'Track your listing — confidentially, anytime.'}
-        </p>
+      {/* Header — premium pass: aurora + grad-gold, matches the public design system */}
+      <div style={{ background: 'linear-gradient(160deg,#0b1020 0%,#101a38 42%,#0f2a52 100%)', color: '#fff', padding: '44px 24px 70px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div className="hero-aurora" />
+        <div style={{ position: 'relative' }}>
+          <div style={{ fontSize: 12, letterSpacing: '0.2em', textTransform: 'uppercase', color: '#f0d98c', fontWeight: 800 }}>Seller Portal</div>
+          <h1 className="display-title" style={{ fontSize: 'clamp(28px, 4vw, 40px)', margin: '10px 0 6px', color: '#fff', letterSpacing: '-0.03em' }}>
+            <span className="grad-gold">{loading ? 'Loading…' : data?.lead?.business_name || 'Your Business'}</span>
+          </h1>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, margin: 0 }}>
+            {loading ? 'Fetching your details…' : 'Track your listing — confidentially, anytime.'}
+          </p>
+        </div>
       </div>
 
       <div style={{ maxWidth: 860, margin: '-38px auto 0', padding: '0 20px 60px' }}>
@@ -399,19 +402,19 @@ function SellerBody() {
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 12, padding: '16px 18px', boxShadow: '0 4px 16px rgba(26,26,46,0.06)' }}>
-      <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#999', fontWeight: 700 }}>{label}</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: '#1a1a2e', marginTop: 4 }}>{value}</div>
-      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{sub}</div>
+    <div className="glass-light lift" style={{ padding: '16px 18px' }}>
+      <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 800 }}>{label}</div>
+      <div className="display-title" style={{ fontSize: 24, fontWeight: 800, color: '#1a1a2e', marginTop: 4 }}>{value}</div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{sub}</div>
     </div>
   )
 }
 
 function PreviewMetric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '12px 14px' }}>
+    <div style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(201,168,76,0.28)', borderRadius: 12, padding: '12px 14px' }}>
       <div style={{ fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>{label}</div>
-      <div style={{ fontSize: 17, fontWeight: 800, marginTop: 5, color: accent ? '#c9a84c' : '#fff' }}>{value}</div>
+      <div className="display-title" style={{ fontSize: 17, fontWeight: 800, marginTop: 5, color: accent ? '#f0d98c' : '#fff' }}>{value}</div>
     </div>
   )
 }
