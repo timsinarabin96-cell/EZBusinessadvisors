@@ -37,17 +37,30 @@ test('legal: normalize keeps known ids, drops junk, never zeroes the defaults', 
   assert.deepEqual(normalizeLegalChecklist(['marketing_agreement', 'corp_resolution', 'nda']), ['marketing_agreement', 'llc_resolution', 'corp_resolution', 'nda'])
 })
 
-test('legal: evaluate marks satisfied vs missing from uploaded + generated docs', () => {
-  const res = evaluateLegalChecklist(
+test('legal: evaluate marks satisfied vs missing — only SIGNED docs count (boss 08-31)', () => {
+  // Unsigned uploads (pending/null status) do NOT satisfy the gate.
+  const unsigned = evaluateLegalChecklist(
     ['marketing_agreement', 'llc_resolution', 'nda'],
     [
-      { category: 'llc_resolution', body_text: null },
-      { category: 'nda', body_text: 'signed' },
+      { category: 'llc_resolution', body_text: null, status: 'pending' },
+      { category: 'nda', body_text: 'signed', status: 'draft' },
     ],
-    [{ title: 'BrightPath Marketing Agreement' }],
+    [{ title: 'BrightPath Marketing Agreement', status: 'pending_signature' }],
   )
-  assert.deepEqual(res.satisfied.sort(), ['llc_resolution', 'marketing_agreement', 'nda'])
-  assert.deepEqual(res.missing, [])
+  assert.deepEqual(unsigned.satisfied, [])
+  assert.equal(unsigned.missing.length, 3)
+
+  // Signed uploads / generated docs DO satisfy.
+  const signed = evaluateLegalChecklist(
+    ['marketing_agreement', 'llc_resolution', 'nda'],
+    [
+      { category: 'llc_resolution', body_text: null, status: 'signed' },
+      { category: 'nda', body_text: 'signed', status: 'active' },
+    ],
+    [{ title: 'BrightPath Marketing Agreement', status: 'signed' }],
+  )
+  assert.deepEqual(signed.satisfied.sort(), ['llc_resolution', 'marketing_agreement', 'nda'])
+  assert.deepEqual(signed.missing, [])
 })
 
 test('legal: missing docs are reported for the gate block message', () => {
@@ -62,10 +75,12 @@ test('legal: SQL adds the configurable jsonb column with the spec default', () =
   assert.match(sql, /default '\["marketing_agreement", "llc_resolution"\]'::jsonb/)
 })
 
-test('legal: publish gate enforces the agency-configured checklist, not hardcoded', () => {
+test('legal: publish gate reads signature status, not just presence', () => {
+  assert.match(publish, /from\('listing_documents'\)\.select\('category, body_text, status'\)/)
+  assert.match(publish, /from\('documents'\)\.select\('title, status'\)/)
+  assert.match(publish, /SIGNED docs \(boss 08-31/)
+  assert.match(publish, /unsigned scan must not unlock go-live/)
   assert.match(publish, /evaluateLegalGateForListing/)
-  assert.match(publish, /normalizeLegalChecklist/)
   assert.match(publish, /legal_doc_checklist/)
   assert.match(publish, /Legal gate:/)
-  assert.match(publish, /LEGAL-DOC GATE \(#4, spec §5\)/)
 })

@@ -87,7 +87,7 @@ export async function requestNdaAccess(input: NdaRequestInput): Promise<{ ok: bo
   return { ok: true, requestId: data.id }
 }
 
-async function notifyAgencyBrokers(
+export async function notifyAgencyBrokers(
   agencyId: string,
   listingId: string,
   info: { requesterName: string; requesterEmail: string; businessName: string },

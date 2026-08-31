@@ -92,16 +92,67 @@ export async function POST(req: NextRequest) {
   // never the public one. pdf_url stores the storage PATH; the broker
   // dashboard resolves a signed URL on demand. Best-effort — a PDF failure
   // should never block the buyer's unlock.
+  //
+  // AGENCY TEMPLATE GATE (boss 08-31): when the listing's agency maintains its
+  // own NDA template (document_templates, agency-scoped — see TemplateManager),
+  // the buyer signs THAT fillable template (their name/info auto-populated,
+  // rendered through the same shared PDF engine as the broker pack) instead of
+  // the platform-default global PDF. Every agency owns its NDA language.
   let pdfPath: string | null = null
   try {
-    const bytes = await generateNdaProfilePdf({
-      listingId,
-      businessCategory: listing.industry,
-      businessName: listing.public_title || listing.business_name || null,
-      listingLocation: listing.location_general || null,
-      listingRef: (listing as any)?.listing_ref || null,
-      ndaFormData, buyerProfile, signerName: name, signedAt,
-    })
+    const { data: agencyRow } = await svc.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+    const agencyIdForNda = (agencyRow as { agency_id?: string | null } | null)?.agency_id || null
+    let agencyNdaTemplate: { name: string; body_template: string | null; fields: unknown[] } | null = null
+    if (agencyIdForNda) {
+      const { data: tpl } = await svc
+        .from('document_templates')
+        .select('name, body_template, fields')
+        .eq('agency_id', agencyIdForNda)
+        .ilike('name', '%nda%')
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+      if (tpl?.body_template) agencyNdaTemplate = tpl as typeof agencyNdaTemplate
+    }
+
+    let bytes: Uint8Array | null = null
+    if (agencyNdaTemplate?.body_template) {
+      // Render the AGENCY's fillable NDA template through the shared engine.
+      const { buildDocumentPdfBase64 } = await import('@/lib/documentPdf.server')
+      const b64 = await buildDocumentPdfBase64(
+        {
+          title: agencyNdaTemplate.name,
+          body_template: agencyNdaTemplate.body_template,
+          filled_data: {
+            prospect_name: name,
+            prospect_entity: String((buyerProfile as any)?.company || (ndaFormData as any)?.entity || ''),
+            buyer_name: name,
+            buyer_email: email,
+            buyer_phone: String((buyerProfile as any)?.phone || (ndaFormData as any)?.phone || ''),
+            buyer_address: String((buyerProfile as any)?.address || ''),
+            business_name: listing.business_name || listing.public_title || 'the business',
+            nda_date: signedAt.slice(0, 10),
+            agency_name: 'The Brokerage',
+            broker_name: 'Licensed Business Broker',
+            confidentiality_period: '2',
+            ...(ndaFormData as Record<string, unknown>),
+          },
+        },
+        { agencyName: 'Business Brokerage', appUrl: process.env.NEXT_PUBLIC_APP_URL },
+      )
+      if (b64) bytes = new Uint8Array(Buffer.from(b64, 'base64'))
+    }
+    if (!bytes) {
+      // Fallback: the platform default NDA PDF (existing behavior).
+      bytes = await generateNdaProfilePdf({
+        listingId,
+        businessCategory: listing.industry,
+        businessName: listing.public_title || listing.business_name || null,
+        listingLocation: listing.location_general || null,
+        listingRef: (listing as any)?.listing_ref || null,
+        ndaFormData, buyerProfile, signerName: name, signedAt,
+      })
+    }
 
     const path = `nda-forms/${listingId}/${Date.now()}-${email.replace(/[^a-zA-Z0-9._-]/g, '_')}.pdf`
     const { error: upErr } = await svc.storage.from(FF_BUCKET).upload(path, Buffer.from(bytes), { contentType: 'application/pdf', upsert: false })
@@ -176,6 +227,53 @@ export async function POST(req: NextRequest) {
     }).catch(() => {})
   } catch {
     /* non-fatal */
+  }
+
+  // --- AGENT REVIEW → DATA-ROOM UNLOCK (boss 08-31, same flow as the broker
+  // NDA request path) ---
+  // The buyer's signature creates a PENDING data_room_access_request so the
+  // agency's agent reviews it; approval grants the buyer a data-room record
+  // (lib/ndaAccess.reviewNdaRequest → data_room_buyers). One NDA pipeline,
+  // not a separate accountless side-path. Best-effort — financials unlock
+  // via token still works immediately; the DATA ROOM waits for the agent.
+  try {
+    const { data: listingRow2 } = await svc.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+    const agencyId2 = (listingRow2 as { agency_id?: string | null } | null)?.agency_id || null
+    let dataRoomId: string | null = null
+    if (agencyId2) {
+      const { data: room } = await svc
+        .from('data_rooms')
+        .select('id')
+        .eq('listing_id', listingId)
+        .eq('status', 'active')
+        .maybeSingle()
+      dataRoomId = room?.id || null
+    }
+    if (agencyId2) {
+      await svc.from('data_room_access_requests').insert({
+        agency_id: agencyId2,
+        data_room_id: dataRoomId,
+        listing_id: listingId,
+        requester_name: name,
+        requester_email: email,
+        requester_company: String((buyerProfile as any)?.company || '').trim() || null,
+        rationale: String((ndaFormData as any)?.rationale || '').trim() || null,
+        nda_signature: name, // typed-name e-signature consent (same field as the broker NDA flow)
+        ip_address: ip,
+        status: 'pending',
+      })
+      // Alert the agency's brokers so the review queue is actionable.
+      try {
+        const { notifyAgencyBrokers } = await import('@/lib/ndaAccess')
+        await notifyAgencyBrokers(agencyId2, listingId, {
+          requesterName: name,
+          requesterEmail: email,
+          businessName: listing.business_name || listing.public_title || 'a listing',
+        })
+      } catch { /* alert best-effort */ }
+    }
+  } catch {
+    /* review-request creation is best-effort — never blocks the signature */
   }
 
   // --- Funnel: NDA signer → CRM buyer lead (so brokers see who's signing). ---

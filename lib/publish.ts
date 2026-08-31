@@ -460,15 +460,17 @@ async function evaluateLegalGateForListing(listing: any): Promise<{
     }
     if (checklist.length === 0) checklist = normalizeLegalChecklist(null)
 
-    // Gather on-file + generated docs.
+    // Gather on-file + generated docs — WITH signature status. The gate only
+    // counts SIGNED docs (boss 08-31: "on file" ≠ "signed"; an uploaded-but-
+    // unsigned scan must not unlock go-live, same risk class as the BOV gate).
     const [{ data: uploads }, { data: generated }] = await Promise.all([
-      svc.from('listing_documents').select('category, body_text').eq('listing_id', listing?.id),
-      svc.from('documents').select('title').eq('listing_id', listing?.id),
+      svc.from('listing_documents').select('category, body_text, status').eq('listing_id', listing?.id),
+      svc.from('documents').select('title, status').eq('listing_id', listing?.id),
     ])
     const evalRes = evaluateLegalChecklist(
       checklist as LegalDocId[],
-      (uploads || []) as { category?: string | null; body_text?: string | null }[],
-      (generated || []) as { title?: string | null }[],
+      (uploads || []) as { category?: string | null; body_text?: string | null; status?: string | null }[],
+      (generated || []) as { title?: string | null; status?: string | null }[],
     )
     return {
       checklist,

@@ -105,19 +105,30 @@ export function legalChecklistLabels(list: LegalDocId[]): string[] {
  */
 export function evaluateLegalChecklist(
   checklist: LegalDocId[],
-  uploadedDocs: { category?: string | null; body_text?: string | null }[],
-  generatedDocs: { title?: string | null }[],
+  uploadedDocs: { category?: string | null; body_text?: string | null; status?: string | null }[],
+  generatedDocs: { title?: string | null; status?: string | null }[],
 ): { satisfied: LegalDocId[]; missing: LegalDocId[] } {
   const satisfied = new Set<LegalDocId>()
-  const uploadedText = uploadedDocs.map((d) => `${d.category || ''} ${d.body_text || ''}`).join(' ')
-  const generatedText = generatedDocs.map((d) => d.title || '').join(' ')
+
+  // LIABILITY GATE (boss 08-31): "on file" is NOT enough — a document only
+  // satisfies the checklist when it is SIGNED. Uploads must carry
+  // status='signed'/'active'; generated docs must be signed (all parties).
+  // An uploaded-but-unsigned scan (status pending/draft/null) does NOT count,
+  // exactly like a BOV that isn't agent-finalized.
+  const signedUpload = (d: { category?: string | null; status?: string | null }) =>
+    d.status === 'signed' || d.status === 'active'
+  const signedGenerated = (d: { title?: string | null; status?: string | null }) =>
+    d.status === 'signed' || d.status === 'active'
 
   for (const id of checklist) {
     const req = LEGAL_DOC_REQUIREMENTS[id]
     if (!req) continue
-    const viaUpload = uploadedDocs.some((d) => req.satisfiedBy.includes(d.category || ''))
-    const viaText = req.titleRe.test(uploadedText) || req.titleRe.test(generatedText)
-    if (viaUpload || viaText) satisfied.add(id)
+    const signedUploads = uploadedDocs.filter(signedUpload)
+    const signedUploadText = signedUploads.map((d) => `${d.category || ''} ${d.body_text || ''}`).join(' ')
+    const viaUpload = signedUploads.some((d) => req.satisfiedBy.includes(d.category || ''))
+    const viaGenerated = generatedDocs.some((d) => signedGenerated(d) && req.titleRe.test(d.title || ''))
+    const viaText = req.titleRe.test(signedUploadText)
+    if (viaUpload || viaGenerated || viaText) satisfied.add(id)
   }
 
   return {
