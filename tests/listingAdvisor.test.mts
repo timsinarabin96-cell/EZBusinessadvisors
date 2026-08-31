@@ -28,10 +28,10 @@ test('advisor engine is gap-driven (lease, inventory, concentration, reason-for-
   assert.match(src, /owner hours/i)
 })
 
-test('advisor uses the shared financial metrics + DeepSeek polish with silent fallback', () => {
+test('advisor uses the shared financial metrics + Claude polish with silent fallback', () => {
   const src = readFileSync('lib/listingAdvisor.ts', 'utf8')
   assert.match(src, /computeFinancialMetrics/)
-  assert.match(src, /completeWithDeepSeek/)
+  assert.match(src, /complete\(\{/)
   assert.match(src, /jsonMode: true/)
   assert.match(src, /model: 'deterministic'/)
   assert.match(src, /catch \{[\s\S]*return deterministic/)

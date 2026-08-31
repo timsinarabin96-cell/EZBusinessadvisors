@@ -183,11 +183,11 @@ export async function POST(req: NextRequest) {
             set('intake', { status: 'skipped', note: 'No notes — using the existing record' })
             return
           }
-          const { completeWithDeepSeek } = await import('@/lib/deepseek/client')
+          const { complete } = await import('@/lib/claude/client')
           const { system, user } = buildRecordExtractionPrompt({ notes })
           let d: Record<string, unknown> = {}
           try {
-            const res = await completeWithDeepSeek({
+            const res = await complete({
               context: { kind: 'listing', entityId: listingId, text: user },
               system,
               message: 'Extract the deal record from the context above.',
@@ -493,7 +493,7 @@ export async function POST(req: NextRequest) {
             set('teaser', { status: 'skipped', note: 'Teaser already exists' })
             return
           }
-          const { completeWithDeepSeek } = await import('@/lib/deepseek/client')
+          const { complete } = await import('@/lib/claude/client')
           const { system, user } = buildTeaserPrompt({
             businessName: (l?.business_name as string | null) || null,
             industry: (l?.industry as string | null) || null,
@@ -501,7 +501,7 @@ export async function POST(req: NextRequest) {
             revenue: (l?.annual_revenue as number | null) ?? null,
             sde: (l?.sde as number | null) ?? null,
           })
-          const res = await completeWithDeepSeek({
+          const res = await complete({
             context: { kind: 'listing', entityId: listingId, text: user },
             system,
             message: 'Write the anonymous teaser.',

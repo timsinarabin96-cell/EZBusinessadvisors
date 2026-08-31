@@ -10,8 +10,7 @@ import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import { validationErrorJson } from '@/lib/friendlyValidation'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
-import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
-import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
+import { complete, isClaudeConfigured } from '@/lib/claude/client'
 import { sanitizeIntakeDraft, draftCoverage, type IntakeDraft } from '@/lib/listingIntakeCore'
 
 export const runtime = 'nodejs'
@@ -61,7 +60,7 @@ Rules:
 Respond with a single JSON object with keys: public_title, public_summary, public_highlights (array), show_financials.`
 
 export async function POST(req: NextRequest) {
-  if (!isDeepSeekConfigured()) {
+  if (!isClaudeConfigured()) {
     return NextResponse.json({ ok: false, error: 'AI intake is unavailable right now (not configured). No problem — you can still fill the form below manually and the listing saves fine.' }, { status: 503 })
   }
 
@@ -97,13 +96,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Per-tenant AI credentials (sold CRMs bring their own key).
-  let tenant = null
-  try {
-    const { getAgencyContext } = await import('@/lib/agencyContext')
-    const ctx = await getAgencyContext()
-    tenant = toDeepSeekTenant(await resolveTenantAiConfig(ctx?.userId))
-  } catch { /* best-effort */ }
+  // Claude (Anthropic Messages API) — the spec provider. Uses the server
+  // ANTHROPIC_API_KEY; per-tenant key override is a future add (DeepSeek-only
+  // today), flagged in the lifecycle audit.
 
   const isPublic = mode === 'public'
   const userMessage = isPublic
@@ -111,12 +106,16 @@ export async function POST(req: NextRequest) {
     : `BROKER NOTES:\n${rawNotes}`
 
   try {
-    const result = await chatWithDeepSeek({
+    // Claude (Anthropic Messages API) — the spec provider. Per-tenant key
+    // override is a DeepSeek-only path today; Claude uses the server key.
+    const result = await complete({
+      context: { kind: 'listing', entityId: 'intake', text: userMessage },
       system: isPublic ? SYSTEM_PUBLIC : SYSTEM_FULL,
-      userMessage,
+      message: isPublic
+        ? 'Draft the anonymous public preview from the private record.'
+        : 'Build the structured listing record from the broker notes.',
       jsonMode: true,
       maxTokens: isPublic ? 800 : 1600,
-      tenant,
     })
 
     const raw = (result.data || (() => {

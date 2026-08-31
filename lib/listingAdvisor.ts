@@ -21,7 +21,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { completeWithDeepSeek } from './deepseek/client'
+import { complete, isClaudeConfigured } from './claude/client'
 import { computeFinancialMetrics } from './financialExtractor'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -318,7 +318,7 @@ async function polishWithAi(ctx: AdvisorContext, deterministic: AdvisorReport): 
     Object.entries(listing).filter(([, v]) => v != null && String(v).trim() !== ''),
   )
   try {
-    const result = await completeWithDeepSeek({
+    const result = await complete({
       context: { kind: 'support', entityId: listing.id, text: JSON.stringify(compactListing) },
       message:
         'Act as a senior business-broker advisor. Based on the listing facts and the uploaded-doc summary below, return JSON with exactly: ' +
@@ -429,7 +429,7 @@ export async function runListingAdvisor(listingId: string): Promise<AdvisorRepor
       model: 'deterministic',
     }
 
-    if (process.env.DEEPSEEK_API_KEY) {
+    if (isClaudeConfigured()) {
       return await polishWithAi(ctx, deterministic)
     }
     return deterministic

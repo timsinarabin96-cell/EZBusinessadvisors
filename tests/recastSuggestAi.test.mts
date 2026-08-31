@@ -8,17 +8,17 @@ import test from 'node:test'
 const ai = readFileSync('lib/recastSuggestAi.ts', 'utf8')
 const route = readFileSync('app/api/listings/recast-suggest/route.ts', 'utf8')
 
-test('recast AI pass: server-only module using DeepSeek client', () => {
-  assert.match(ai, /lib\/deepseek\/client/)
-  assert.match(ai, /completeWithDeepSeek/)
-  assert.match(ai, /isDeepSeekConfigured/)
+test('recast AI pass: server-only module using Claude client', () => {
+  assert.match(ai, /lib\/claude\/client/)
+  assert.match(ai, /complete\(\{/)
+  assert.match(ai, /isClaudeConfigured/)
   assert.doesNotMatch(ai, /'use client'/)
 })
 
 test('recast AI pass: fail-safe — returns baseline on any error', () => {
   assert.match(ai, /catch \{/)
   assert.match(ai, /return baseline/)
-  assert.match(ai, /if \(!isDeepSeekConfigured\(\)\) return baseline/)
+  assert.match(ai, /if \(!isClaudeConfigured\(\)\) return baseline/)
 })
 
 test('recast AI pass: caps total add-backs at 40% of SDE', () => {

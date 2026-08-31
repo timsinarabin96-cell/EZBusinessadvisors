@@ -135,6 +135,29 @@ export interface FinancialRatio {
   note: string
 }
 
+// ---------------------------------------------------------------------------
+// Line-item sourcing (boss 08-31, diligence traceability): every extracted
+// figure carries a source reference — which document, and where in it
+// (page/line/label). Never a bare number.
+// ---------------------------------------------------------------------------
+export interface ExtractedLineItemSource {
+  /** Source document file name (matches the vault/financial_documents row). */
+  document: string
+  /** Page number within the source document, when determinable. */
+  page?: number | null
+  /** Line / schedule / section reference, e.g. "Schedule C, line 12", "P&L 'Owner Comp' row". */
+  line?: string | null
+}
+
+export interface ExtractedLineItem {
+  label: string
+  amount: number
+  category: string        // owner_salary | depreciation | interest | one_time | revenue | cogs | ...
+  recurring: boolean      // true = normal operating expense; false = one-time / discretionary
+  period?: string | null  // e.g. "FY2026", "Jan 2025", "2025"
+  source: ExtractedLineItemSource
+}
+
 export interface DocumentAnalysis {
   fileName: string
   type: UniversalDocType
@@ -153,6 +176,8 @@ export interface DocumentAnalysis {
   tags: string[]
   keyMetrics: Record<string, string | number>
   summary: string
+  /** Sourced line items — every add-back / notable figure → source doc + page/line. */
+  lineItems: ExtractedLineItem[]
   raw: string // last ~600 chars of doc text for context
 }
 

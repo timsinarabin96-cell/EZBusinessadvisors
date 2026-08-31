@@ -17,7 +17,7 @@
 // eSign pipeline. Per-agency: agency_id scopes it (NULL = platform default).
 // =============================================================================
 
-import { completeWithDeepSeek } from '@/lib/deepseek/client'
+import { complete } from '@/lib/claude/client'
 import type { AgentContextPayload } from '@/types/ai'
 import type { FieldType } from '@/lib/documentBuilder'
 
@@ -107,7 +107,7 @@ export async function inferTemplateFromText(input: {
     '- Prefer keys that match listing data when obvious: business_name, asking_price, annual_revenue, sde, seller_name, seller_email, buyer_name, agreement_date, closing_date, commission_pct, agency_name.',
   ].join('\n')
 
-  const res = await completeWithDeepSeek({
+  const res = await complete({
     context,
     system,
     message: 'Convert the document text into the fillable-template JSON. Preserve all legal language; only insert {{placeholders}} for blanks.',

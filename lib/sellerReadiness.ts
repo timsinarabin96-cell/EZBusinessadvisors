@@ -16,7 +16,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { completeWithDeepSeek } from './deepseek/client'
+import { complete, isClaudeConfigured } from './claude/client'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const svc =
@@ -162,9 +162,9 @@ export async function buildBlockingSummary(snapshot: ReadinessSnapshot): Promise
   const blockers = (snapshot.action_items || []).filter(Boolean)
   const summary = buildDeterministicSummary(snapshot.readiness_score, blockers)
 
-  if (blockers.length > 0 && process.env.DEEPSEEK_API_KEY) {
+  if (blockers.length > 0 && isClaudeConfigured()) {
     try {
-      const ai = await completeWithDeepSeek({
+      const ai = await complete({
         context: {
           kind: 'support',
           entityId: snapshot.listing_id,

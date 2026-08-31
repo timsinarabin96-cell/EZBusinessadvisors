@@ -106,7 +106,7 @@ test('readiness blocking summary: deterministic text with score-graded lead + ne
   assert.match(lib, /buildDeterministicSummary/)
   assert.match(lib, /Nothing is blocking this listing/)
   assert.match(lib, /Start with/)
-  assert.match(lib, /completeWithDeepSeek/)
+  assert.match(lib, /complete\(\{/)
   assert.match(lib, /model: 'deterministic'/)
 })
 

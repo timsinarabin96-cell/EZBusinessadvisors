@@ -13,7 +13,7 @@
 // into the platform's cost categories and deduped before insert.
 // =============================================================================
 
-import { chatWithDeepSeek } from '@/lib/deepseek/client'
+import { complete } from '@/lib/claude/client'
 
 export const IMPORT_CATEGORIES = ['ai_api', 'hosting', 'domain', 'sms_phone', 'email', 'tools', 'marketing', 'subscriptions', 'other']
 
@@ -133,7 +133,8 @@ export function parseExpenseCsv(text: string): ParsedExpense[] {
 /** AI categorize a vendor+description into a platform cost category. */
 export async function aiCategorizeExpense(vendor: string, description: string): Promise<string> {
   try {
-    const res = await chatWithDeepSeek({
+    const res = await complete({
+      context: { kind: 'support', entityId: `${vendor} ${description}`, text: `Vendor: ${vendor}. Description: ${description}` },
       system:
         'You are a meticulous accountant. Classify this business expense into exactly one category. ' +
         `Allowed categories: ${IMPORT_CATEGORIES.join(', ')}. ` +
@@ -142,7 +143,7 @@ export async function aiCategorizeExpense(vendor: string, description: string): 
         'SendGrid/Postmark/Resend/email = email; Figma/Notion/Zapier/Linear/GitHub/Microsoft/Google Workspace = tools; ' +
         'Meta/Google Ads/SEO/marketing = marketing; Stripe/SaaS subscriptions = subscriptions; otherwise other. ' +
         'Reply with ONLY the category word, nothing else.',
-      userMessage: `Vendor: ${vendor}. Description: ${description}`,
+      message: 'Classify this expense into exactly one category word.',
       maxTokens: 10,
     })
     const cat = String(res.text || '').trim().toLowerCase()

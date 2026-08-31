@@ -13,7 +13,7 @@
 // better, never worse.
 // =============================================================================
 
-import { isDeepSeekConfigured, completeWithDeepSeek } from '@/lib/deepseek/client'
+import { complete, isClaudeConfigured } from '@/lib/claude/client'
 import type { AddBackSuggestion, RecastSuggestionInput } from '@/lib/recastSuggestions'
 
 const SYSTEM = `You are a senior M&A financial recasting specialist (business broker, CFE-grade).
@@ -42,7 +42,7 @@ export async function enhanceRecastSuggestions(
   input: RecastSuggestionInput,
   baseline: AddBackSuggestion[],
 ): Promise<AddBackSuggestion[]> {
-  if (!isDeepSeekConfigured()) return baseline
+  if (!isClaudeConfigured()) return baseline
 
   const rev = input.annual_revenue || 0
   const sde = input.sde || 0
@@ -65,7 +65,7 @@ export async function enhanceRecastSuggestions(
     : '(none from rules)'
 
   try {
-    const result = await completeWithDeepSeek({
+    const result = await complete({
       context: { kind: 'listing', text: profile },
       message:
         `Propose the add-backs a broker would apply to recast this business.\n` +

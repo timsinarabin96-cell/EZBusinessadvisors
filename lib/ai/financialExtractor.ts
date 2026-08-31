@@ -45,6 +45,8 @@ export interface AiExtractionOutput {
   ratios: DocumentAnalysis['ratios']
   trends: DocumentAnalysis['trends']
   tags: string[]
+  /** Sourced line items merged across every analyzed document (dedup by label+period, source kept). */
+  lineItems: DocumentAnalysis['lineItems']
   documents: FinancialIntelligence['documents']
 }
 
@@ -156,6 +158,20 @@ export function mergeAnalyses({
   const ratios = analyses.flatMap((a) => a.ratios).slice(0, 12)
   const trends = analyses.flatMap((a) => a.trends).slice(0, 12)
 
+  // Sourced line items — merge across all docs, dedup by label+period, keep the
+  // FIRST source seen (prefer tax/P&L, which come earlier in the analyses list
+  // per caller ordering). Never a bare number: every item has a source ref.
+  const seen = new Set<string>()
+  const lineItems: DocumentAnalysis['lineItems'] = []
+  for (const a of analyses) {
+    for (const li of a.lineItems || []) {
+      const key = `${li.category}|${li.period ?? ''}|${li.label}|${li.amount}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      lineItems.push(li)
+    }
+  }
+
   const documents = analyses.map((a) => ({
     fileName: a.fileName,
     type: a.type,
@@ -189,6 +205,7 @@ export function mergeAnalyses({
     ratios,
     trends,
     tags,
+    lineItems,
     documents,
   }
 }

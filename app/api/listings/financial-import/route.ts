@@ -11,7 +11,7 @@ import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase
 import { FF_BUCKET, autoTagCategory, fileKindOf } from '@/lib/storageBuckets'
 import { extractDocumentText } from '@/lib/ai/textExtract'
 import { analyzeDocumentText, detectUniversalDocType } from '@/lib/ai/documentAnalyzer'
-import { isDeepSeekConfigured } from '@/lib/deepseek/client'
+import { isClaudeConfigured } from '@/lib/claude/client'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
 
   // 3) Analyze — DeepSeek-backed structured extraction with filename fallback.
   let analysis = null
-  if (extracted.text.trim() && isDeepSeekConfigured()) {
+  if (extracted.text.trim() && isClaudeConfigured()) {
     try {
       analysis = await analyzeDocumentText({
         fileName,
@@ -145,6 +145,7 @@ export async function POST(req: NextRequest) {
       ratios: [],
       trends: [],
       tags: [type.replace(/_/g, ' '), 'no-parseable-text', yearMatch ? `FY ${yearMatch[0]}` : ''].filter(Boolean),
+      lineItems: [],
       summary: extracted.text.trim()
         ? 'Analysis unavailable — the file was uploaded but could not be fully parsed.'
         : 'No parseable text found (scanned image or unsupported format). Type inferred from the filename.',

@@ -28,7 +28,7 @@ test('financial-import: reuses the proven extraction pipeline', () => {
   assert.match(route, /extractDocumentText/)
   assert.match(route, /analyzeDocumentText/)
   assert.match(route, /detectUniversalDocType/)
-  assert.match(route, /isDeepSeekConfigured/)
+  assert.match(route, /isClaudeConfigured/)
 })
 
 test('financial-import: returns pre-fill financials incl. latest year', () => {

@@ -18,7 +18,7 @@
 //      tags and a professional summary, for ANY of the 15 supported types.
 // =============================================================================
 
-import { completeWithDeepSeek, isDeepSeekConfigured, DeepSeekConfigError } from '@/lib/deepseek/client'
+import { complete, isClaudeConfigured, ClaudeConfigError } from '@/lib/claude/client'
 import type { AgentContextPayload } from '@/types/ai'
 import {
   UNIVERSAL_DOC_TYPE_INFO,
@@ -28,6 +28,7 @@ import {
   type BalanceSnapshot,
   type FinancialRatio,
   type FinancialTrend,
+  type ExtractedLineItem,
 } from '@/lib/ai/types'
 
 // ---------------------------------------------------------------------------
@@ -131,8 +132,8 @@ export async function analyzeDocumentText({
   text: string
   hints?: { guessedType?: UniversalDocType }
 }): Promise<DocumentAnalysis> {
-  if (!isDeepSeekConfigured()) {
-    throw new DeepSeekConfigError()
+  if (!isClaudeConfigured()) {
+    throw new ClaudeConfigError()
   }
 
   const guess = hints?.guessedType || detectUniversalDocType(fileName)
@@ -147,11 +148,11 @@ export async function analyzeDocumentText({
     'Use the FILENAME and first ~600 chars of content to set "tags" and "keyMetrics" (e.g. periods covered, entity, fiscal year).',
   ].join('\n\n')
 
-  const prompt = `Document file: ${fileName}\n\nFirst 600 chars of the document:\n${bounded.slice(0, 600)}\n\nFULL DOCUMENT TEXT:\n${bounded}\n\nReturn JSON:\n{\n "type": "<UniversalDocType from the supported list; confirm or correct the detected type>",\n "confidence": 0-1,\n "revenueTotal": int|null,\n "expenseTotal": int|null,\n "assets": int|null,\n "liabilities": int|null,\n "years": [ { "year": int, "label": string|null, "revenue": int|null, "cogs": int|null, "grossProfit": int|null, "operatingExpenses": int|null, "ownerComp": int|null, "depreciation": int|null, "interest": int|null, "otherExpenses": int|null, "netIncome": int|null } ],\n "balances": [ { "asOf": string, "cash": int|null, "accountsReceivable": int|null, "inventory": int|null, "totalAssets": int|null, "accountsPayable": int|null, "debt": int|null, "totalLiabilities": int|null, "equity": int|null } ],\n "ratios": [ { "name": string, "value": string, "benchmark": string, "healthy": bool, "note": string } ],\n "trends": [ { "label": string, "value": string, "direction": "up"|"down"|"flat", "note": string } ],\n "tags": [string],\n "keyMetrics": { string: string|number },\n "summary": "2-3 sentence professional summary"}`
+  const prompt = `Document file: ${fileName}\n\nFirst 600 chars of the document:\n${bounded.slice(0, 600)}\n\nFULL DOCUMENT TEXT:\n${bounded}\n\nReturn JSON:\n{\n "type": "<UniversalDocType from the supported list; confirm or correct the detected type>",\n "confidence": 0-1,\n "revenueTotal": int|null,\n "expenseTotal": int|null,\n "assets": int|null,\n "liabilities": int|null,\n "years": [ { "year": int, "label": string|null, "revenue": int|null, "cogs": int|null, "grossProfit": int|null, "operatingExpenses": int|null, "ownerComp": int|null, "depreciation": int|null, "interest": int|null, "otherExpenses": int|null, "netIncome": int|null } ],\n "balances": [ { "asOf": string, "cash": int|null, "accountsReceivable": int|null, "inventory": int|null, "totalAssets": int|null, "accountsPayable": int|null, "debt": int|null, "totalLiabilities": int|null, "equity": int|null } ],\n "ratios": [ { "name": string, "value": string, "benchmark": string, "healthy": bool, "note": string } ],\n "trends": [ { "label": string, "value": string, "direction": "up"|"down"|"flat", "note": string } ],\n "tags": [string],\n "keyMetrics": { string: string|number },\n "lineItems": [ { "label": string, "amount": int, "category": string, "recurring": bool, "period": string|null, "source": { "document": string, "page": int|null, "line": string|null } } ],\n "summary": "2-3 sentence professional summary"}\n\nLine item rules (diligence traceability):\n- List EVERY add-back candidate and notable figure: owner salary/benefits, depreciation, interest, one-time items, discretionary/personal expenses, related-party transactions. Also list revenue, COGS and net income by year as line items when clearly stated.\n- Every line item MUST carry a source: the document file name (use \"${fileName}\" when the figure came from this document), the page number if you can infer it, and the line/schedule reference (e.g. \"Schedule C, line 12\", \"P&L Owner Comp row\", \"Bank statement deposit #482\"). If you cannot determine the page, set page=null but ALWAYS give a line/label reference.\n- category: use one of owner_salary, owner_benefits, depreciation, amortization, interest, one_time, discretionary, personal, non_arm_length, revenue, cogs, operating_expense, other.\n- recurring: true for normal ongoing operating items; false for one-time/discretionary/personal/non-arm's-length.\n- NEVER invent a figure not present in the text — if a number is not in the document, omit the line item.`
 
   const context: AgentContextPayload = { kind: 'document', entityId: fileName, text: prompt }
 
-  const res = await completeWithDeepSeek({
+  const res = await complete({
     context,
     system,
     message: 'Analyze the document and return the requested JSON based on the context above.',
@@ -187,6 +188,7 @@ export async function analyzeDocumentText({
     trends,
     tags: (Array.isArray(d.tags) ? d.tags : []).map(String).slice(0, 12),
     keyMetrics: (d.keyMetrics && typeof d.keyMetrics === 'object' ? d.keyMetrics as Record<string, string | number> : {}),
+    lineItems: normalizeLineItems(d.lineItems, fileName),
     summary: typeof d.summary === 'string' ? d.summary : '',
     raw: bounded.slice(-600),
   }
@@ -256,6 +258,41 @@ function normalizeTrends(v: unknown): FinancialTrend[] {
     direction: (r?.direction === 'up' || r?.direction === 'down') ? r.direction : 'flat',
     note: r?.note ? String(r.note) : '',
   })).filter((r) => r.label)
+}
+
+const LINE_ITEM_CATEGORIES = new Set([
+  'owner_salary', 'owner_benefits', 'depreciation', 'amortization', 'interest',
+  'one_time', 'discretionary', 'personal', 'non_arm_length', 'revenue', 'cogs',
+  'operating_expense', 'other',
+])
+
+function normalizeLineItems(v: unknown, fileName: string): ExtractedLineItem[] {
+  if (!Array.isArray(v)) return []
+  const items: ExtractedLineItem[] = []
+  for (const r of v) {
+    if (!r || typeof r !== 'object') continue
+    const label = r?.label ? String(r.label) : ''
+    const amount = intOrNull(r?.amount)
+    if (!label || amount === null || amount === 0) continue
+    const category = LINE_ITEM_CATEGORIES.has(String(r?.category))
+      ? String(r?.category)
+      : 'other'
+    const src = (r?.source && typeof r.source === 'object') ? r.source : {}
+    items.push({
+      label,
+      amount,
+      category,
+      recurring: Boolean(r?.recurring),
+      period: r?.period != null ? String(r.period) : null,
+      source: {
+        document: src?.document ? String(src.document) : fileName,
+        page: intOrNull(src?.page),
+        line: src?.line != null ? String(src.line) : null,
+      },
+    })
+  }
+  // Cap at a sane bound; keep the most material (largest) items first.
+  return items.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, 60)
 }
 
 // Broker-grade derived SDE from the richest year: net income + owner comp +

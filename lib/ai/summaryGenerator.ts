@@ -14,7 +14,7 @@
 // Claude-written professional overview.
 // =============================================================================
 
-import { completeWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
+import { complete, isClaudeConfigured } from '@/lib/claude/client'
 import type { AgentContextPayload } from '@/types/ai'
 import type { AiExtractionOutput } from '@/lib/ai/financialExtractor'
 
@@ -171,7 +171,7 @@ export async function generateFinancialSummary(
   const sections = buildStructuredSummary(ext, listingName)
 
   let executiveSummary = ''
-  if (isDeepSeekConfigured()) {
+  if (isClaudeConfigured()) {
     try {
       const prompt = [
         `Business: ${listingName}`,
@@ -185,7 +185,7 @@ export async function generateFinancialSummary(
       ].join('\n')
 
       const context: AgentContextPayload = { kind: 'document', entityId: listingName, text: prompt }
-      const res = await completeWithDeepSeek({
+      const res = await complete({
         context,
         system:
           'You are a senior business-broker financial analyst. Write a concise, professional 4-6 sentence executive financial summary for a confidential memorandum. Highlight revenue trajectory, earnings quality (SDE/EBITDA), normalization add-backs, valuation range and any red flags. Do not inflate figures.',
