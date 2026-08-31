@@ -216,3 +216,14 @@ export const LICENSE_MONTHLY_CENTS = cents(LICENSE_MONTHLY)
 export const FINANCIAL_INTELLIGENCE_CENTS = cents(FINANCIAL_INTELLIGENCE_MONTHLY)
 export const VERIFIED_REVENUE_PRICE_CENTS = cents(VERIFIED_REVENUE_PRICE)
 export const VALUATION_PRICE_CENTS = cents(VALUATION_PRICE)
+
+// ---------------------------------------------------------------------------
+// CRM license SUBSCRIPTION seats (Phase 3, locked 08-31): 3 seats included in
+// the base plan, +$25/seat/mo after. Annual seat = $250 (2 months free parity,
+// same 20%-off shape as the base plans).
+// ---------------------------------------------------------------------------
+export const LICENSE_SEATS_INCLUDED = 3
+export const SEAT_ADDON_MONTHLY = 25
+export const SEAT_ADDON_ANNUAL = 250 // 25 * 10 months (2 months free parity)
+export const SEAT_ADDON_MONTHLY_CENTS = cents(SEAT_ADDON_MONTHLY)
+export const SEAT_ADDON_ANNUAL_CENTS = cents(SEAT_ADDON_ANNUAL)

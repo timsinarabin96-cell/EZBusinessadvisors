@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { verifyStripeSignature } from '@/lib/stripeVerify'
 import { LICENSE_SETUP_FEE, CRM_PLANS } from '@/lib/pricing'
+import { syncLicenseFromStripeSubscription, handleLicenseSubscriptionDeleted, fetchLicenseByStripeSub, syncAgencyAccessFromLicense } from '@/lib/licenseSubscriptions'
+import { licenseAccessGranted } from '@/lib/licenseSubscriptionsCore'
 
 export const runtime = 'nodejs'
 
@@ -50,6 +52,27 @@ export async function POST(req: NextRequest) {
   // PAYMENT LIFECYCLE (2026-08-26 audit): handle failures + cancellations so
   // the books stay honest without trusting any client-side flag.
   // -------------------------------------------------------------------------
+  if (type === 'customer.subscription.created' || type === 'customer.subscription.updated') {
+    // Phase 3: recurring CRM license subscriptions — sync the licenses row
+    // (status, seats, period, cancel-at-period-end) from Stripe, then unlock
+    // or lock the agency to match. Handles prorated seat changes too.
+    const sub = payload?.data?.object || {}
+    try {
+      const saved = await syncLicenseFromStripeSubscription(sub)
+      if (saved?.agency_id && licenseAccessGranted(saved.status)) {
+        await db.from('agencies').update({
+          paid_plan_active: true,
+          trial_active: false,
+          plan_type: 'license',
+          locked_at: null,
+          archive_at: null,
+          grace_end_date: null,
+        }).eq('id', saved.agency_id)
+      }
+    } catch { /* sync is best-effort; checkout.completed also unlocks */ }
+    return NextResponse.json({ ok: true })
+  }
+
   if (type === 'invoice.payment_failed') {
     // Find the agency by Stripe subscription/customer, move to grace period.
     // The existing check-trials cron turns expired grace into a lock.
@@ -63,6 +86,14 @@ export async function POST(req: NextRequest) {
       else q = q.eq('stripe_customer', customer)
       const { data: subRow } = await q.maybeSingle()
       agencyId = subRow?.agency_id || null
+    }
+    // Phase 3: license subscriptions → mark past_due + grace.
+    if (!agencyId && stripeSub) {
+      const license = await fetchLicenseByStripeSub(stripeSub)
+      if (license) {
+        agencyId = license.agency_id
+        await db.from('licenses').update({ status: 'past_due', updated_at: new Date().toISOString() }).eq('id', license.id)
+      }
     }
     if (agencyId) {
       // 7-day grace, then the expiry cron locks the agency.
@@ -87,6 +118,14 @@ export async function POST(req: NextRequest) {
       const { data: subRow } = await q.maybeSingle()
       agencyId = subRow?.agency_id || null
     }
+    // Phase 3: license subscriptions → cancel the license row + revoke access.
+    if (stripeSub) {
+      const license = await fetchLicenseByStripeSub(stripeSub)
+      if (license) {
+        agencyId = agencyId || license.agency_id
+        await handleLicenseSubscriptionDeleted(stripeSub)
+      }
+    }
     if (agencyId) {
       await db.from('agencies').update({
         paid_plan_active: false,
@@ -104,6 +143,15 @@ export async function POST(req: NextRequest) {
     // Successful renewal: extend the period and clear any grace state.
     const inv = payload?.data?.object || {}
     const stripeSub = String(inv?.subscription || '')
+    // Phase 3: license subscription renewal — extend period, clear grace.
+    if (stripeSub) {
+      const license = await fetchLicenseByStripeSub(stripeSub)
+      if (license) {
+        const periodEnd = inv?.period_end ? new Date(inv.period_end * 1000).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString()
+        await db.from('licenses').update({ status: 'active', current_period_end: periodEnd, updated_at: new Date().toISOString() }).eq('id', license.id)
+        await syncAgencyAccessFromLicense(license.agency_id, 'active')
+      }
+    }
     if (stripeSub) {
       const periodEnd = new Date(Date.now() + 30 * 86400000).toISOString()
       await db.from('subscriptions').update({ status: 'active', current_period_end: periodEnd }).eq('stripe_sub', stripeSub)
@@ -212,6 +260,57 @@ export async function POST(req: NextRequest) {
     const result = await finalizeValuationReport(session?.id || '')
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // --- Recurring CRM subscription (Phase 3): create/refresh the licenses row --
+  if (kind === 'license_subscription') {
+    const agencyId = String(metadata?.agencyId || clientRef || '')
+    const planType = metadata?.planType === 'enterprise' ? 'enterprise' : 'professional'
+    const billingCycle = metadata?.billingCycle === 'annual' ? 'annual' : 'monthly'
+    const seats = Math.max(3, parseInt(String(metadata?.seats || '3'), 10) || 3)
+    const periodStart = session?.current_period_start ? new Date(session.current_period_start * 1000).toISOString() : now.toISOString()
+    const periodEnd = session?.current_period_end ? new Date(session.current_period_end * 1000).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString()
+
+    if (agencyId) {
+      await db.from('licenses').upsert({
+        agency_id: agencyId,
+        plan_type: planType,
+        billing_cycle: billingCycle,
+        status: 'active',
+        seats,
+        stripe_customer: session?.customer || null,
+        stripe_subscription: session?.subscription || null,
+        current_period_start: periodStart,
+        current_period_end: periodEnd,
+        cancel_at_period_end: false,
+        cancel_at: null,
+        updated_at: now.toISOString(),
+      }, { onConflict: 'agency_id' })
+
+      // Unlock the agency immediately (access granted on payment success).
+      await db.from('agencies').update({
+        paid_plan_active: true,
+        trial_active: false,
+        plan_type: 'license',
+        locked_at: null,
+        archive_at: null,
+        grace_end_date: null,
+      }).eq('id', agencyId)
+
+      // History entry (best-effort).
+      try {
+        await db.from('subscription_history').insert({
+          agency_id: agencyId,
+          plan_type: planType,
+          start_date: periodStart,
+          end_date: periodEnd,
+          amount: session?.amount_total ? Math.round(session.amount_total / 100) : null,
+          status: 'active',
+          notes: `CRM subscription — ${billingCycle} · ${seats} seats (3 included + ${seats - 3} add-on)`,
+        })
+      } catch { /* history is informational */ }
     }
     return NextResponse.json({ ok: true })
   }

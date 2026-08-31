@@ -21,6 +21,7 @@ import { supabase } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/Toast'
 import { fetchUserAgencyContext, type Agency } from '@/lib/agencies'
 import TrialStatusBadge from '@/components/agency/TrialStatusBadge'
+import LicenseSubscriptionPanel from '@/components/agency/LicenseSubscriptionPanel'
 import { statusFromAgency, getAgencyUsage, DEFAULT_LIMITS, type TrialState, type AgencyUsage } from '@/lib/trial'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { CRM_LICENSE } from '@/lib/billing'
@@ -158,6 +159,9 @@ export default function AgencyBilling() {
           {state.status === 'locked' ? '🔒 Account locked — contact support to restore access.' : '⚠️ Your trial has ended. Your data is preserved — upgrade to keep creating.'}
         </div>
       )}
+
+      {/* Phase 3: recurring CRM subscription (self-serve seats/cancel/checkout) */}
+      {agency && <LicenseSubscriptionPanel agencyId={agency.id} />}
 
       {/* Plan cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginBottom: 26 }}>
