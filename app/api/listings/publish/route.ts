@@ -49,7 +49,17 @@ export async function POST(req: NextRequest) {
   }
 
   // Immediate publish (quality gate; force = go live anyway + auto-flag).
-  const res = await publishListing(listingId, auth.user.id, { force: body.force === true })
+  // Force requires a broker-supplied reason — the override is audited.
+  const force = body.force === true
+  const forceReason = String(body.forceReason || '').trim()
+  if (force && !forceReason) {
+    return NextResponse.json({
+      ok: false, blocked: true,
+      error: 'Force-publish requires a reason (audited override) — provide forceReason.',
+      missing: ['A reason is required when overriding the publish gates (force). The override is audited.'],
+    }, { status: 422 })
+  }
+  const res = await publishListing(listingId, auth.user.id, { force, forceReason: forceReason || undefined, actorEmail: auth.user.email })
   if (!res.ok) {
     return NextResponse.json({
       ok: false,

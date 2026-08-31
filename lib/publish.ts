@@ -161,7 +161,7 @@ async function firePublishBlast(listingId: string, agencyId: string): Promise<vo
  * Publish a listing: readiness gate first, then flip to active + full blast.
  * Returns blocked with missing items when the gate fails.
  */
-export async function publishListing(listingId: string, actorProfileId?: string, opts?: { force?: boolean }): Promise<{
+export async function publishListing(listingId: string, actorProfileId?: string, opts?: { force?: boolean; forceReason?: string; actorEmail?: string | null }): Promise<{
   ok: boolean; error?: string; blocked?: boolean; score?: number; missing?: string[]; published?: boolean; flagged?: boolean; compliance?: import('@/lib/compliance').ComplianceEvaluation; trainingGate?: { required: boolean; satisfied: boolean; moduleId: string; moduleTitle: string }; risk?: { score: number; level: string; reasons: string[] } | null; sellerApproval?: { approved: boolean; reference: string | null }; legalGate?: { checklist: string[]; satisfied: string[]; missing: { id: string; label: string }[] }; legitimacy?: LegitimacyReport | null
 }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
@@ -180,6 +180,24 @@ export async function publishListing(listingId: string, actorProfileId?: string,
 
   const readiness = calculateListingReadiness(listingToReadinessInput(listing))
   const force = opts?.force === true
+  const forceReason = String(opts?.forceReason || '').trim()
+
+  // ── FORCE-OVERRIDE AUDIT GATE (boss 08-31) ─────────────────────────────
+  // Force is an audited exception, never a silent bypass: it REQUIRES a
+  // broker-supplied reason, and every use is recorded (who/when/reason/
+  // bypassed gates) + the compliance owner + agency team are notified. The
+  // studio no longer sends force by default — a listing must first fail a
+  // gate, then the broker consciously overrides with a reason.
+  const bypassedGates: string[] = []
+  if (force && !forceReason) {
+    return {
+      ok: false,
+      blocked: true,
+      score: readiness.score,
+      missing: [...(readiness.missing || []), 'A reason is required when overriding the publish gates (force). The override is audited.'],
+      error: 'Force-publish requires a reason — the override is recorded in the compliance audit trail.',
+    }
+  }
 
   // Certification gate — publishing requires CBI Module 1 (Introduction to
   // Business Brokerage) completion. Training is the workflow: brokers who
@@ -223,6 +241,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
   if (!force && readiness.score < PUBLISH_READINESS_MIN) {
     return { ok: false, blocked: true, score: readiness.score, missing: readiness.missing, error: `Readiness ${readiness.score}/100 — below the ${PUBLISH_READINESS_MIN} publish threshold` }
   }
+  if (force && readiness.score < PUBLISH_READINESS_MIN) bypassedGates.push('readiness')
 
   // ── LEGITIMACY GATE (AI-first anti-scam / anti-premature) ────────────────
   // Boss's rule: "we don't want premature businesses or scam listings".
@@ -316,6 +335,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
       error: `Legitimacy gate: ${reasons[0]}${legitimacy.verdict === 'pending' ? ' — upload 3 years of P&L / tax returns in your owner dashboard to activate.' : ' This listing cannot go live.'}`,
     }
   }
+  if (force && legitimacy && legitimacy.verdict !== 'auto_approved') bypassedGates.push('legitimacy')
 
   // ── SELLER-APPROVAL GATE ───────────────────────────────────────────────
   // Publishing requires the seller to have ACTUALLY approved — a signed
@@ -335,6 +355,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
       sellerApproval: approval,
     }
   }
+  if (force && !approval.approved) bypassedGates.push('seller_approval')
 
   // ── LEGAL-DOC GATE (#4, spec §5) — the per-agency CONFIGURABLE checklist.
   // Every tier, no exceptions: a listing cannot go live until the agency's
@@ -355,26 +376,82 @@ export async function publishListing(listingId: string, actorProfileId?: string,
         legalGate,
       }
     }
+  } else {
+    // Force: still evaluate so the audit records exactly which docs were absent.
+    try {
+      const legalGate = await evaluateLegalGateForListing(listing)
+      if (legalGate.missing.length > 0) bypassedGates.push(`legal_doc:${legalGate.missing.map((m) => m.label).join(',')}`)
+    } catch { /* audit-only */ }
   }
 
   // Premature / low-quality listings still go live on explicit Save, but get auto-flagged for review.
   const flagged = readiness.score < PUBLISH_READINESS_MIN
   const vetted = readiness.score >= VETTED_READINESS_MIN && Boolean(listing.revenue_verified)
+  const nowIso = new Date().toISOString()
   const { error } = await svc
     .from('listings')
     .update({
       status: 'active',
       review_stage: 'approved', // required by the public feed + enforce trigger
-      published_at: new Date().toISOString(),
+      published_at: nowIso,
       publish_at: null,
       vetted,
       published_by: actorProfileId || null,
       flagged: flagged || undefined,
       flag_reasons: flagged ? ['low_readiness', `readiness ${readiness.score}/100`, ...(readiness.missing || [])] : [],
       seller_verified: sellerVerified || undefined,
+      // Force override trail — stamped on the listing row itself (audit table
+      // below holds the full append-only history).
+      ...(force ? {
+        force_published_at: nowIso,
+        force_published_by: actorProfileId || null,
+        force_publish_reason: forceReason,
+      } : {}),
     })
     .eq('id', listingId)
   if (error) return { ok: false, error: error.message }
+
+  // ── FORCE-OVERRIDE AUDIT RECORD + NOTIFICATION (boss 08-31) ────────────
+  // Every force-publish is written to publish_force_audit (who/when/reason/
+  // bypassed gates) and the compliance owner + agency owner are notified so
+  // the override is never a silent event. Best-effort — never fails publish.
+  if (force) {
+    try {
+      await svc.from('publish_force_audit').insert({
+        listing_id: listingId,
+        actor_id: actorProfileId || null,
+        actor_email: opts?.actorEmail || null,
+        reason: forceReason,
+        bypassed_gates: bypassedGates,
+      })
+    } catch { /* audit best-effort */ }
+    try {
+      const { data: agencyRow } = await svc.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+      const agencyId = (agencyRow as { agency_id?: string | null } | null)?.agency_id || null
+      if (agencyId) {
+        await createNotification({
+          agency_id: agencyId,
+          title: '⚠️ Listing force-published (override audited)',
+          body: `${listing.business_name || 'Listing'} went live bypassing gates: ${bypassedGates.join(', ') || 'none recorded'}. Reason: ${forceReason}. By: ${opts?.actorEmail || actorProfileId || 'unknown'}.`,
+          kind: 'system',
+          link: `/dashboard/listings/${listingId}/edit`,
+        })
+        // Compliance-owner email: the agency's owner gets a direct audit notice.
+        const { data: ownerMembers } = await svc.from('agency_members').select('profile_id').eq('agency_id', agencyId).eq('is_owner', true)
+        for (const om of ownerMembers || []) {
+          const { data: ownerProfile } = await svc.from('profiles').select('email').eq('id', (om as any).profile_id).maybeSingle()
+          if (ownerProfile?.email) {
+            await sendEmail({
+              to: ownerProfile.email,
+              subject: `⚠️ Compliance: force-publish override on ${listing.business_name || 'a listing'}`,
+              html: `<p>A listing was force-published, bypassing the signature/quality gates.</p><p><strong>Listing:</strong> ${listing.business_name || '—'}</p><p><strong>Reason:</strong> ${forceReason}</p><p><strong>Bypassed:</strong> ${bypassedGates.join(', ') || 'none'}</p><p><strong>By:</strong> ${opts?.actorEmail || actorProfileId || 'unknown'}</p><p>Full trail: publish_force_audit (listing ${listingId}).</p>`,
+              kind: 'generic',
+            }).catch(() => {})
+          }
+        }
+      }
+    } catch { /* notification best-effort */ }
+  }
 
   // CRITICAL: create/update the public_listings row the public feed reads from.
   // Without this, a published listing never appears on the website.

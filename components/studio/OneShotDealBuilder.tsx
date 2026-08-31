@@ -57,6 +57,10 @@ export default function OneShotDealBuilder() {
   const [resumable, setResumable] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
+  const [overrideOpen, setOverrideOpen] = useState(false)
+  const [overrideMissing, setOverrideMissing] = useState<string[]>([])
+  const [overrideError, setOverrideError] = useState('')
+  const [forceReason, setForceReason] = useState('')
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState<Record<string, string>>({})
   const fileRef = useRef<HTMLInputElement | null>(null)
@@ -266,17 +270,54 @@ export default function OneShotDealBuilder() {
     }
     setPublishing(true)
     try {
+      // NORMAL publish first — the signature/quality gates actually run.
+      // Force is only offered when a gate blocks, and requires a reason.
       const res = await authenticatedFetch('/api/listings/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId, force: true }),
+        body: JSON.stringify({ listingId }),
       })
       const j = await res.json()
-      if (!res.ok || !j.ok) throw new Error(j.error || 'Publish failed')
+      if (!res.ok || !j.ok) {
+        if (j.blocked) {
+          setOverrideMissing(j.missing || [])
+          setOverrideError(j.error || 'The publish gate blocked this listing')
+          setOverrideOpen(true)
+          return
+        }
+        throw new Error(j.error || 'Publish failed')
+      }
       toast('🚀 Listing is LIVE on the marketplace', 'success')
       setListing({ ...listing, status: 'active', published_at: new Date().toISOString() })
     } catch (e: any) {
       toast(e.message || 'Publish failed', 'error')
+    } finally {
+      setPublishing(false)
+    }
+  }
+
+  /** Audited override: force-publish with a broker-supplied reason. */
+  const forcePublish = async () => {
+    if (!listingId || publishing) return
+    if (!forceReason.trim()) {
+      toast('A reason is required for the audited override', 'error')
+      return
+    }
+    setPublishing(true)
+    try {
+      const res = await authenticatedFetch('/api/listings/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, force: true, forceReason: forceReason.trim() }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Override failed')
+      toast('🚀 Listing is LIVE (override audited)', 'success')
+      setOverrideOpen(false)
+      setForceReason('')
+      setListing({ ...listing, status: 'active', published_at: new Date().toISOString() })
+    } catch (e: any) {
+      toast(e.message || 'Override failed', 'error')
     } finally {
       setPublishing(false)
     }
@@ -546,6 +587,40 @@ export default function OneShotDealBuilder() {
                 {listing.published_at ? '✓ Live on the marketplace' : publishing ? 'Publishing…' : '✅ Approve & Go Live'}
               </button>
             </div>
+
+            {overrideOpen && !listing.published_at && (
+              <div style={{ marginTop: 14, padding: '14px 16px', borderRadius: 12, background: '#fffbeb', border: '1px solid #fcd34d', fontSize: 13 }}>
+                <div style={{ fontWeight: 800, color: '#92400e', marginBottom: 6 }}>⚠️ Publish gate blocked — override is audited</div>
+                <div style={{ color: '#78350f', marginBottom: 8, lineHeight: 1.5 }}>
+                  {overrideError}
+                  {overrideMissing.length > 0 && (
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                      {overrideMissing.map((m, i) => <li key={i}>{m}</li>)}
+                    </ul>
+                  )}
+                </div>
+                <textarea
+                  value={forceReason}
+                  onChange={(e) => setForceReason(e.target.value)}
+                  placeholder="Reason for override (recorded in the compliance audit trail — who, when, why, and which gates were bypassed)"
+                  rows={3}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #d6a63a', fontSize: 13, fontFamily: 'var(--font-sans)', resize: 'vertical' }}
+                />
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button
+                    type="button"
+                    onClick={forcePublish}
+                    disabled={publishing}
+                    style={{ flex: 1, padding: '11px 16px', borderRadius: 10, border: 'none', cursor: publishing ? 'wait' : 'pointer', background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', fontWeight: 800, fontSize: 13.5, fontFamily: 'var(--font-sans)' }}
+                  >
+                    {publishing ? 'Overriding…' : '⚠️ Override & Publish (audited)'}
+                  </button>
+                  <button type="button" onClick={() => setOverrideOpen(false)} style={{ padding: '11px 16px', borderRadius: 10, background: 'transparent', border: '1px solid var(--line)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* AUDIT BANNER */}
