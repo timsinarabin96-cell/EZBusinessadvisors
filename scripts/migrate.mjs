@@ -19,6 +19,10 @@
 //   node scripts/migrate.mjs                 # check only (default, safe)
 //   node scripts/migrate.mjs --apply         # apply pending migrations
 //   node scripts/migrate.mjs --apply --only <stem>   # apply one migration
+//   node scripts/migrate.mjs --mark <stem>   # record a version as applied WITHOUT
+//                                            # re-running it (for historical SQL
+//                                            # files already live in the DB but
+//                                            # never recorded in schema_migrations)
 //
 // Env: SUPABASE_ACCESS_TOKEN (Management API), SUPABASE_PROJECT_REF.
 // =============================================================================
@@ -74,12 +78,25 @@ export { appliedVersions, pendingMigrations }
 async function main() {
   const args = process.argv.slice(2)
   const apply = args.includes('--apply')
+  const markIdx = args.indexOf('--mark')
+  const mark = markIdx >= 0 ? args[markIdx + 1] : null
   const onlyIdx = args.indexOf('--only')
   const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null
 
   if (!TOKEN) {
     console.error('[migrate] SUPABASE_ACCESS_TOKEN is required (Management API).')
     process.exit(1)
+  }
+
+  // --mark: record a version as applied WITHOUT executing SQL. Use for
+  // historical files that are already live in the DB (applied manually before
+  // the runner existed) so --apply never re-runs them.
+  if (mark) {
+    await managementQuery(
+      `insert into public.schema_migrations (version, source) values ('${mark.replace(/'/g, "''")}', 'marked:already-live') on conflict (version) do nothing`
+    )
+    console.log(`[migrate] marked ${mark} as applied (no SQL executed).`)
+    return
   }
 
   const applied = await appliedVersions()

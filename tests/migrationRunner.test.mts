@@ -45,6 +45,13 @@ test('migrate: applies via Supabase Management API and records after success', (
   assert.match(runner, /already-applied versions are skipped/)
 })
 
+test('migrate: --mark records an already-live version WITHOUT executing SQL', () => {
+  assert.match(runner, /--mark <stem>/)
+  assert.match(runner, /const mark = markIdx >= 0 \? args\[markIdx \+ 1\] : null/)
+  assert.match(runner, /marked:already-live/)
+  assert.match(runner, /marked \$\{mark\} as applied \(no SQL executed\)/)
+})
+
 test('migrate: pending scan is deterministic (sorted, idempotent per version)', () => {
   assert.match(runner, /\.endsWith\('\.sql'\)/)
   assert.match(runner, /\.sort\(\)/)
