@@ -172,7 +172,7 @@
 | Upload route — validated (JPG/PNG/WebP/HEIC, 10MB), first upload auto-cover | ✅ | `c3eb7bd` |
 | Provider ladder — **FAL (confirmed 08-31) → OpenAI → free Pollinations fallback** | ✅ | `c3eb7bd` + ladder reorder |
 | Old AI-only AiPhotoStudioCard deleted (replace, don't run both) | ✅ | `c3eb7bd` |
-| Photo API key — **needs boss to add `FAL_KEY`** (falls back to Pollinations free until then) | ❌ open | — |
+| Photo API key (FAL) — **LIVE 08-31 23:17: key added, top-up landed, verified generating through the real code path (664KB + 457KB JPEGs in ~4.5s). Fallback ladder (FAL → OpenAI → free) behind it** | ✅ working | `76ae1fb` |
 
 ## 7. Public Website
 
