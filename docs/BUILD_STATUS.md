@@ -245,7 +245,7 @@
 | Test runner with `@/` alias support (paths-loader) | ✅ | `823d87a` |
 | Copyright header in all 836 source files | ✅ | `296a2c1` |
 | Supabase DB migrations — 6 applied to production + live-schema fixes | ✅ | `21faeab` |
-| **No migration runner** — SQL applied manually via Management API (lesson: apply after writing) | 🟡 tooling gap | current |
+| **Migration runner** (`scripts/migrate.mjs`) — check-mode default, `schema_migrations` ledger, full-schema dumps excluded, applies pending sql/*.sql via Management API (built 08-31 after force-audit SQL never reached live DB) | ✅ | migration-runner commit |
 | Nightly DB backup cron (14-day retention, off-site email copy) | ✅ | `c3f1711` |
 | **Dead-code sweep 08-31** — deleted 8 orphans w/ tests: `lib/stageTemplates` (closing tracker has own), `lib/voiceAgent` (twilio/vapi have own), `/api/booking` (lib used directly), `/api/social/oauth+callback` (no refs), `/api/compliance` (lib used by publish), `/api/syndication` (real: `/api/listings/syndication`), `/api/digest` (cron digest separate), `/api/proof-of-funds` (goes via `/api/public/qualify`). Kept: `/api/deal-files` (agent-facing), `/api/sms/inbound` (Twilio webhook). Also fixed vapi route EZ-brand fallback → 'our brokerage'. Suite 977 → 955 | ✅ | sweep commit |
 | Unit economics tracking (CAC/LTV, cost-per-listing, margin per tier, breakeven) | ❌ **needs Rabin directly** — business analysis with real usage data | PUNCHLIST |
