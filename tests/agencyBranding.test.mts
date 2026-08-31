@@ -100,8 +100,21 @@ test('branding: advertiser pitch + SMS + voice agent no longer hardcode EZ', () 
 
 test('branding: doc generators carry NO user-facing EZ string', () => {
   // The four doc generators the boss called out — CIM, LOI, PA (legal pack),
-  // closing packet — plus PDF overlay. Copyright headers are legal notices and
-  // are excluded; USER-FACING text must never say "EZ Business Advisors".
+  // closing packet — plus PDF overlay, and the buyer/seller FORM SCHEMAS
+  // (NDA guide text, listing-agreement intro) that render on client-facing
+  // surfaces. Copyright headers and code comments are not user-facing and are
+  // excluded; USER-FACING text must never say "EZ Business Advisors".
+  const stripNonUserFacing = (src: string) =>
+    src
+      .split('\n')
+      .filter((l) => {
+        const t = l.trim()
+        if (!t) return false
+        if (l.includes('Copyright (c)')) return false
+        if (t.startsWith('//') || t.startsWith('*') || t.startsWith('/*')) return false
+        return true
+      })
+      .join('\n')
   for (const [name, src] of [
     ['CIM', readFileSync('lib/cim.ts', 'utf8')],
     ['BLI', readFileSync('lib/bli.ts', 'utf8')],
@@ -109,8 +122,10 @@ test('branding: doc generators carry NO user-facing EZ string', () => {
     ['legal pack templates', readFileSync('lib/legalPackTemplates.ts', 'utf8')],
     ['document builder', readFileSync('lib/documentBuilder.ts', 'utf8')],
     ['PDF export', readFileSync('lib/pdfExport.ts', 'utf8')],
+    ['buyer form schemas', readFileSync('lib/buyerFormSchemas.ts', 'utf8')],
+    ['seller form schemas', readFileSync('lib/sellerFormSchemas.ts', 'utf8')],
   ] as const) {
-    const userFacing = src.split('\n').filter((l) => !l.includes('Copyright (c)')).join('\n')
+    const userFacing = stripNonUserFacing(src)
     assert.doesNotMatch(userFacing, /EZ Business Advisors/, `${name} must not hardcode EZ branding`)
   }
 })

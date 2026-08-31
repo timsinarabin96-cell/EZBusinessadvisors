@@ -60,6 +60,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   // Listing ID (listing_ref) + assigned agent contact — server-side enrichment.
   const meta = await fetchPublicListingMeta(listing.slug || listing.id)
 
+  // Phase 0 brand resolver: the NDA guide text names the BROKER's firm, not
+  // the platform. meta.agent.agencyName is the listing agency's name (same
+  // source the resolver uses — live agencies have no separate legal_name
+  // column). Buyer gate defaults to the platform's own firm when unset.
+  const agencyLegalName = meta?.agent?.agencyName ?? undefined
+
   // Buyer-facing market context: typical sale multiple, price position, comps.
   const marketCtx = await fetchListingMarketContext({
     industry: listing.industry,
@@ -110,7 +116,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       <BrokerFloat agent={meta?.agent || null} />
       <ListingMarketContextPanel ctx={marketCtx} />
       <ToastProvider>
-        <ListingDetailInteractive listing={listing} />
+        <ListingDetailInteractive listing={listing} agencyLegalName={agencyLegalName} />
       </ToastProvider>
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
         <Link

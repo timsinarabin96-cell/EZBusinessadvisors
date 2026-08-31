@@ -24,7 +24,7 @@ import { fmt$ } from '@/lib/recast'
 import { useToast } from '@/components/ui/Toast'
 import type { PublicMarketplaceListing } from '@/lib/marketplace'
 import DynamicFormFields, { type FormValues } from '@/components/forms/DynamicFormFields'
-import { NDA_FORM_SECTIONS, BUYER_PROFILE_SECTIONS, BUYER_GUIDE_TEXT } from '@/lib/buyerFormSchemas'
+import { NDA_FORM_SECTIONS, BUYER_PROFILE_SECTIONS, buyerGuideText } from '@/lib/buyerFormSchemas'
 import { getVisitorId } from '@/lib/visitorIntent'
 import { QUALIFY_QUESTIONS } from '@/lib/buyerQualify'
 
@@ -41,7 +41,7 @@ type GateStep = 'locked' | 'qualify' | 'guide' | 'nda' | 'profile'
 
 type QualifyOutcome = { decision: 'qualified' | 'maybe' | 'not_now'; score: number; reasons: string[]; next: string } | null
 
-export default function NdaFinancialsGate({ listing, askingPrice }: { listing: PublicMarketplaceListing; askingPrice: number | null }) {
+export default function NdaFinancialsGate({ listing, askingPrice, agencyLegalName }: { listing: PublicMarketplaceListing; askingPrice: number | null; agencyLegalName?: string }) {
   const toast = useToast()
   const isPublic = listing.annual_revenue != null || listing.sde != null || listing.ebitda != null
   const [unlocked, setUnlocked] = useState<Financials | null>(
@@ -296,7 +296,7 @@ export default function NdaFinancialsGate({ listing, askingPrice }: { listing: P
         {step === 'guide' && (
           <div>
             <div style={{ fontSize: 13, color: '#444', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 320, overflowY: 'auto', padding: 14, background: '#faf9f4', borderRadius: 8, marginBottom: 16 }}>
-              {BUYER_GUIDE_TEXT}
+              {buyerGuideText(agencyLegalName ?? 'EZ Business Advisors LLC')}
             </div>
             <button
               onClick={() => setStep('nda')}

@@ -124,8 +124,15 @@ export const BUYER_PROFILE_SECTIONS: SellerFormSection[] = [
   },
 ]
 
-export const BUYER_GUIDE_TEXT = `The Confidentiality, Disclosure, and Registration Agreement (NDA) protects sensitive business information disclosed by Sellers and Broker. By proceeding you agree to: keep all business information strictly confidential; conduct all communications exclusively through Broker; and not contact the Seller, employees, customers, or suppliers without Broker's prior written approval.
+/**
+ * NDA guide text shown to buyers before they unlock financials. The entity
+ * name is the BROKER's legal name (per-agency via the Phase 0 resolver),
+ * supplied by the caller. Never hardcode a broker name here.
+ */
+export function buyerGuideText(legalName: string): string {
+  return `The Confidentiality, Disclosure, and Registration Agreement (NDA) protects sensitive business information disclosed by Sellers and Broker. By proceeding you agree to: keep all business information strictly confidential; conduct all communications exclusively through Broker; and not contact the Seller, employees, customers, or suppliers without Broker's prior written approval.
 
 The Buyer Profile Form (BPF) is a structured summary of your experience, background, financial capacity, and acquisition goals — it helps Broker and Seller confirm you're genuinely qualified and financially prepared before releasing sensitive business information. No confidential information is released until both are complete.
 
-EZ Business Advisors LLC acts solely as a business broker and transaction intermediary — not a real estate broker, attorney, accountant, or tax advisor. You are strongly encouraged to consult your own independent legal, financial, and tax professionals before making any acquisition decision.`
+${legalName} acts solely as a business broker and transaction intermediary — not a real estate broker, attorney, accountant, or tax advisor. You are strongly encouraged to consult your own independent legal, financial, and tax professionals before making any acquisition decision.`
+}

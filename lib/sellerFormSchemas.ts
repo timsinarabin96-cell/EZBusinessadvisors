@@ -155,7 +155,7 @@ export const SELLER_FORM_SCHEMAS: Record<SellerFormType, SellerFormSchema> = {
   listing_agreement: {
     type: 'listing_agreement',
     title: 'Exclusive Marketing & Listing Agreement',
-    intro: 'EZ Business Advisors LLC acts solely as a Business Broker and Transaction Intermediary. Not a Real Estate Broker or Real Estate Agent.',
+    intro: '{{legalName}} acts solely as a Business Broker and Transaction Intermediary. Not a Real Estate Broker or Real Estate Agent.',
     requiresSignature: true,
     sections: [
       {

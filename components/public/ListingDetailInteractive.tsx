@@ -19,7 +19,7 @@ import NdaFinancialsGate from '@/components/public/NdaFinancialsGate'
 import SbaCalculator from '@/components/public/SbaCalculator'
 import RequestPricingForm from '@/components/public/RequestPricingForm'
 
-export default function ListingDetailInteractive({ listing }: { listing: PublicMarketplaceListing }) {
+export default function ListingDetailInteractive({ listing, agencyLegalName }: { listing: PublicMarketplaceListing; agencyLegalName?: string }) {
   const toast = useToast()
   const [activeImage, setActiveImage] = useState(0)
   const [showContact, setShowContact] = useState(false)
@@ -309,7 +309,7 @@ export default function ListingDetailInteractive({ listing }: { listing: PublicM
                   )}
                   <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 10, lineHeight: 1.5 }}>{PRICING_HINT}</div>
                 </div>
-                <NdaFinancialsGate listing={listing} askingPrice={null} />
+                <NdaFinancialsGate listing={listing} askingPrice={null} agencyLegalName={agencyLegalName} />
               </>
             )}
 
