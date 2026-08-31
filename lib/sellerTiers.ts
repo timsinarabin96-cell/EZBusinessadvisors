@@ -62,8 +62,8 @@ export const SELLER_TIER_DEFAULTS: Record<SellerTierId, SellerTierConfig> = {
     aiIntake: true,
     financialDocuments: true,
     trustLabel: 'AI-Verified Financials',
-    priceUsd: 19, // default $19/listing one-time — covers 2–6¢/doc ingestion easily
-    billing: '$19 one-time per listing',
+    priceUsd: 250, // $250/listing one-time — explicit boss decision (undersells vs $2,500 human-agent BOV at $19)
+    billing: '$250 one-time per listing',
     advisorRouting: false,
   },
 }
