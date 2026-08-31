@@ -32,6 +32,13 @@ export interface RoomFile {
   uploaded_by_name: string | null
   uploaded_by_role?: string
   access_level?: string
+  // Vault lifecycle (boss 08-31 approved schema):
+  visibility?: 'internal_only' | 'buyer_visible' | 'seller_only'
+  stage_tag?: 'intake' | 'listing_live' | 'due_diligence' | 'closing'
+  source?: 'uploaded_by_seller' | 'uploaded_by_agent' | 'uploaded_by_buyer' | 'generated_by_claude'
+  claude_check?: 'pending' | 'verified' | 'flagged'
+  claude_check_reason?: string | null
+  category?: 'legal' | 'financial' | 'due_diligence' | 'buyer_submitted' | 'generated_document' | 'other'
 }
 
 export interface RoomFolder {

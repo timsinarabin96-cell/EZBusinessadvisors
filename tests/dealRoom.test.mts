@@ -11,6 +11,7 @@ import assert from 'node:assert/strict'
 
 const serverLib = readFileSync('lib/dataRoomServer.ts', 'utf8')
 const roomRoute = readFileSync('app/api/data-rooms/room/route.ts', 'utf8')
+const vaultSql = readFileSync('sql/vault_lifecycle_2026_08_31.sql', 'utf8')
 
 test('dealRoom: DD template has the standard due-diligence folders', () => {
   for (const folder of ['Financials', 'Legal', 'Operations', 'HR & Employees', 'Real Estate & Lease', 'Insurance', 'Contracts', 'Tax Returns', 'Intellectual Property']) {
@@ -31,6 +32,26 @@ test('dealRoom: role visibility matrix — agent all, buyer/seller scoped', () =
   assert.match(serverLib, /if \(role === 'agent'\) return \['all_parties', 'buyer_only', 'seller_only', 'agent_only'\]/)
   assert.match(serverLib, /if \(role === 'buyer'\) return \['all_parties', 'buyer_only'\]/)
   assert.match(serverLib, /return \['all_parties', 'seller_only'\]/)
+})
+
+test('vault: migration adds lifecycle columns — visibility/stage/source/claude_check/category', () => {
+  // Approved schema (boss 08-31): single source of truth on data_room_files.
+  assert.match(vaultSql, /add column if not exists visibility text not null default 'internal_only'/)
+  assert.match(vaultSql, /add column if not exists stage_tag text not null default 'intake'/)
+  assert.match(vaultSql, /add column if not exists source text not null default 'uploaded_by_agent'/)
+  assert.match(vaultSql, /add column if not exists claude_check text not null default 'pending'/)
+  assert.match(vaultSql, /add column if not exists claude_check_reason text/)
+  assert.match(vaultSql, /add column if not exists category text not null default 'other'/)
+  // Every constraint is idempotent-guarded (safe to re-run).
+  assert.match(vaultSql, /if not exists \(select 1 from pg_constraint where conname/)
+})
+
+test('vault: Visibility ↔ access_level mapping helpers exist and round-trip', () => {
+  assert.match(serverLib, /visibilityToAccess/)
+  assert.match(serverLib, /accessToVisibility/)
+  assert.match(serverLib, /case 'buyer_visible': return 'buyer_only'/)
+  assert.match(serverLib, /case 'internal_only': return 'agent_only'/)
+  assert.match(serverLib, /case 'buyer_only': return 'buyer_visible'/)
 })
 
 test('dealRoom: restore_file and access setters are agent-only', () => {

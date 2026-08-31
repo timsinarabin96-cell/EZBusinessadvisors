@@ -86,6 +86,13 @@ export interface RoomFile {
   uploaded_by_name: string | null
   uploaded_by_role: string
   access_level: string
+  // Vault lifecycle (boss 08-31 approved schema):
+  visibility: 'internal_only' | 'buyer_visible' | 'seller_only'
+  stage_tag: 'intake' | 'listing_live' | 'due_diligence' | 'closing'
+  source: 'uploaded_by_seller' | 'uploaded_by_agent' | 'uploaded_by_buyer' | 'generated_by_claude'
+  claude_check: 'pending' | 'verified' | 'flagged'
+  claude_check_reason: string | null
+  category: 'legal' | 'financial' | 'due_diligence' | 'buyer_submitted' | 'generated_document' | 'other'
 }
 
 export interface DataRoomSnapshot {
@@ -279,5 +286,24 @@ export function accessLabel(level: string): string {
     case 'seller_only': return 'Agent + Seller'
     case 'agent_only': return 'Agents only'
     default: return level
+  }
+}
+
+/** Map spec Visibility → room access_level (approved schema, boss 08-31). */
+export function visibilityToAccess(visibility: RoomFile['visibility']): RoomAccessLevel {
+  switch (visibility) {
+    case 'buyer_visible': return 'buyer_only'
+    case 'seller_only': return 'seller_only'
+    case 'internal_only': return 'agent_only'
+    default: return 'agent_only'
+  }
+}
+
+/** Map room access_level → spec Visibility (inverse of visibilityToAccess). */
+export function accessToVisibility(level: string | null | undefined): RoomFile['visibility'] {
+  switch (level) {
+    case 'buyer_only': return 'buyer_visible'
+    case 'seller_only': return 'seller_only'
+    default: return 'internal_only'
   }
 }
