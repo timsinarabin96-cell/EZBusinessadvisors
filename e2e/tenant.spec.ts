@@ -71,7 +71,7 @@ test.describe('sold CRM → Harbor Acquisitions tenant', () => {
     const { authHeaders } = await import('./helpers')
     const pub = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId, force: true },
+      data: { listingId, force: true, forceReason: 'E2E tenant: test identity publish (audited override)' },
     })
     const pubBody = await pub.json()
     expect(pub.ok(), `publish failed: ${JSON.stringify(pubBody)}`).toBeTruthy()

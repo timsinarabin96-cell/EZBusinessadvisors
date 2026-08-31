@@ -67,7 +67,7 @@ test.describe('brokerage team — Harbor Acquisitions', () => {
     // Agent 1 publishes their own listing → allowed (score ≥70).
     const res1 = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId, force: true },
+      data: { listingId, force: true, forceReason: 'E2E brokerage-team: wizard-created listing (audited override)' },
     })
     expect(res1.ok(), `own publish failed: ${await res1.text()}`).toBeTruthy()
 
@@ -77,7 +77,7 @@ test.describe('brokerage team — Harbor Acquisitions', () => {
     await expect(page).toHaveURL(/dashboard/, { timeout: 20_000 })
     const res2 = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId, force: true },
+      data: { listingId, force: true, forceReason: 'E2E brokerage-team: cross-agent probe (audited override)' },
     })
     const body2 = await res2.json()
     expect(res2.status(), `agent cross-publish should be 403, got ${res2.status()}: ${JSON.stringify(body2)}`).toBe(403)
@@ -111,7 +111,7 @@ test.describe('brokerage team — Harbor Acquisitions', () => {
 
     const res = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId, force: true },
+      data: { listingId, force: true, forceReason: 'E2E brokerage-team: broker publishes agent draft (audited override)' },
     })
     expect(res.ok(), `broker publish failed: ${await res.text()}`).toBeTruthy()
   })
@@ -141,7 +141,7 @@ test.describe('brokerage team — EZ/QA system mirror', () => {
 
     const res = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId, force: true },
+      data: { listingId, force: true, forceReason: 'E2E brokerage-team: EZ mirror publish (audited override)' },
     })
     expect(res.ok(), `EZ publish failed: ${await res.text()}`).toBeTruthy()
 

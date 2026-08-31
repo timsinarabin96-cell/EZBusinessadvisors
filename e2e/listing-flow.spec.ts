@@ -120,7 +120,7 @@ test.describe('LISTING FLOW — sell form → review → publish → marketplace
     //       exactly like the studio Go Live path). ─────────────────────────
     const publishRes = await request.post('/api/listings/publish', {
       headers,
-      data: { listingId, force: true },
+      data: { listingId, force: true, forceReason: 'E2E listing-flow: sweep publish, low readiness w/o docs (audited override)' },
     })
     const pubJson = await publishRes.json().catch(() => ({}))
     expect(publishRes.ok() || (publishRes.status() === 422 && pubJson.blocked === false), `publish: ${JSON.stringify(pubJson).slice(0, 200)}`).toBe(true)

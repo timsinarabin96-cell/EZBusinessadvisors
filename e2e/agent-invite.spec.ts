@@ -92,7 +92,7 @@ test.describe('agent invite flow — Harbor Acquisitions', () => {
     }
     const other = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId: foreignId, force: true },
+      data: { listingId: foreignId, force: true, forceReason: 'E2E agent-invite: foreign publish probe (audited override)' },
     })
     if (foreignId) {
       expect(other.status(), `expected 403 for foreign publish (got ${other.status()})`).toBe(403)

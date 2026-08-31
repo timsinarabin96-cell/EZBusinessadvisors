@@ -46,7 +46,7 @@ test.describe('full deal lifecycle', () => {
     //    record means readiness is publishable so nothing gets flagged back).
     const pub = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId, force: true },
+      data: { listingId, force: true, forceReason: 'E2E lifecycle: test identity bypass (audited override)' },
     })
     const pubBody = await pub.json()
     expect(pub.ok(), `publish failed: ${JSON.stringify(pubBody)}`).toBeTruthy()

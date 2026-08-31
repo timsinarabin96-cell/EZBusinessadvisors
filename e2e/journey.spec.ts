@@ -43,7 +43,7 @@ test.describe('full journey', () => {
     //    data, but still exercises the quality gate + NEW AI risk gate).
     const pub = await page.request.post('/api/listings/publish', {
       headers: await authHeaders(page),
-      data: { listingId, force: true },
+      data: { listingId, force: true, forceReason: 'E2E journey: thin test data (audited override)' },
     })
     const pubBody = await pub.json()
     expect(pub.ok(), `publish failed: ${JSON.stringify(pubBody)}`).toBeTruthy()
