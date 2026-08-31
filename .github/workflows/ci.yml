@@ -29,7 +29,7 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Unit tests (786)
+      - name: Unit tests (835)
         run: npm test
         env:
           # No Supabase token in CI: the RLS live-check test falls back to its
