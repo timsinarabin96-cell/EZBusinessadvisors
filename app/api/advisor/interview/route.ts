@@ -14,6 +14,7 @@ import {
   isAdvisorComplete,
   nextAdvisorQuestionClaude,
   advisorDraftFromTranscript,
+  draftPublicPreview,
   topicsRemaining,
   type AdvisorAnswer,
 } from '@/lib/advisorInterview'
