@@ -210,13 +210,33 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
 }
 
 export async function fetchPublicFeed(identifier: string | null = null, agency: string | null = null): Promise<PublicMarketplaceListing[]> {
+  // PERFORMANCE: the marketplace page calls this up to 4× per request with
+  // identical args (search + stats + industries + spotlight). Short-TTL memo
+  // collapses those into ONE feed RPC and keeps subsequent page loads off the
+  // DB for up to 30s — listings rarely change faster than that, and the RPC
+  // already filters to published/approved/active rows.
+  const cacheKey = `${identifier || ''}|${agency || ''}`
+  const now = Date.now()
+  const hit = feedCache.get(cacheKey)
+  if (hit && now - hit.at < FEED_CACHE_TTL_MS) return hit.value
   const { data, error } = await supabase.rpc('get_public_listing_feed', { p_slug: identifier, p_agency: agency })
   if (error) {
     console.error('get_public_listing_feed error:', error)
     return []
   }
-  return ((data || []) as PublicListingFeedRow[]).map(normalizePublicListing)
+  const value = ((data || []) as PublicListingFeedRow[]).map(normalizePublicListing)
+  feedCache.set(cacheKey, { at: now, value })
+  // Bounded cache: drop stale entries once it grows past 8 keys.
+  if (feedCache.size > 8) {
+    for (const [key, entry] of feedCache) {
+      if (now - entry.at >= FEED_CACHE_TTL_MS) feedCache.delete(key)
+    }
+  }
+  return value
 }
+
+const FEED_CACHE_TTL_MS = 30_000
+const feedCache = new Map<string, { at: number; value: PublicMarketplaceListing[] }>()
 
 export async function fetchPublicListing(identifier: string): Promise<PublicMarketplaceListing | null> {
   const listings = await fetchPublicFeed(identifier)
