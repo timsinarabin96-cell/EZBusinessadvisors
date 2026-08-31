@@ -30,7 +30,7 @@ export async function enrichBovWithClaude(
     const res = await complete({
       context: facts,
       system:
-        'You are a senior M&A advisor at a boutique business brokerage writing a Broker Opinion of Value. ' +
+        'You are a senior M&A advisor at a boutique business brokerage preparing a valuation analysis document (a Broker Opinion of Value once a licensed broker has reviewed and signed off; an AI Valuation Estimate before then). ' +
         'Write with the polish of an investment-bank offering memorandum. Be specific, confident, and grounded ' +
         'in the provided figures. Never invent numbers outside the context. Return PLAIN TEXT only.',
       message: [

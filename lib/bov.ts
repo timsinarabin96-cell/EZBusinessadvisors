@@ -16,7 +16,52 @@ import type { RecastResult } from '@/lib/recast.ts'
 // Produces a comprehensive, multi-page, investment-bank quality narrative
 // (10+ pages) covering all standard sell-side sections. Uses bov_versions
 // table (create via sql/full_schema.sql).
+//
+// LIABILITY LABEL GATE (boss 08-31, highest priority): a document may only
+// title itself "Broker Opinion of Value" when its bov_versions.status is
+// 'final' AND a licensed agent has explicitly signed off (reviewed_by +
+// reviewed_at recorded). Everything else — draft, review, or agent-untouched
+// (including all self-serve paid-tier output) — must title itself
+// "AI Valuation Estimate". ALL title/eyebrow/kindLabel call sites resolve
+// through the helpers below; never hardcode the label string.
 // ---------------------------------------------------------------------------
+
+export type BovReviewState = 'draft' | 'review' | 'final'
+
+export const BOV_LABEL_FINAL = 'Broker Opinion of Value'
+export const BOV_LABEL_AI = 'AI Valuation Estimate'
+
+/** The ONLY place the document label string is decided. */
+export function bovDocumentLabel(state: BovReviewState | string | null | undefined): string {
+  return state === 'final' ? BOV_LABEL_FINAL : BOV_LABEL_AI
+}
+
+/** Full document title: "<business> — <label>". */
+export function bovDocumentTitle(businessName: string | null | undefined, state: BovReviewState | string | null | undefined): string {
+  return `${businessName || 'Business'} — ${bovDocumentLabel(state)}`
+}
+
+/** Recover the label from an already-titled document (deliveries/email). */
+export function bovLabelFromTitle(title: string | null | undefined): string {
+  return title && title.includes(BOV_LABEL_FINAL) ? BOV_LABEL_FINAL : BOV_LABEL_AI
+}
+
+/**
+ * Latest review state for a listing's newest BOV version (draft/review/final),
+ * or 'draft' when no version exists. The delivery title + PDF label derive
+ * from this — never from the listing's tier.
+ */
+export async function latestBovReviewState(
+  db: { from: (table: string) => any },
+  listingId: string,
+): Promise<BovReviewState> {
+  try {
+    const { data } = await db.from('bov_versions').select('status').eq('listing_id', listingId).order('version', { ascending: false }).limit(1).maybeSingle()
+    return (data?.status === 'final' || data?.status === 'review' || data?.status === 'draft') ? (data.status as BovReviewState) : 'draft'
+  } catch {
+    return 'draft'
+  }
+}
 
 export interface Comparable {
   business: string
@@ -37,6 +82,12 @@ export interface BovSection {
 
 export interface BovContent {
   title: string
+  /** draft | review | final — drives the "AI Valuation Estimate" vs "BOV" label. */
+  reviewState?: BovReviewState
+  /** Who signed off (profiles.id) when status flipped to final. */
+  reviewedBy?: string | null
+  /** When the agent signed off. */
+  reviewedAt?: string | null
   businessName: string
   generatedAt: string
   preparedFor: string
@@ -266,7 +317,8 @@ export function computeTwelveMethods(input: {
   return { methods, rangeHigh, rangeLow, conclusion, assetValue: assets, intangibleValue }
 }
 
-export function generateBovContent(listing: Listing, opts?: { recast?: RecastResult | null }): BovContent {
+export function generateBovContent(listing: Listing, opts?: { recast?: RecastResult | null; reviewState?: BovReviewState; reviewedBy?: string | null; reviewedAt?: string | null }): BovContent {
+  const reviewState = opts?.reviewState ?? 'draft'
   const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
   const price = guard(listing.asking_price)
   // SINGLE SOURCE OF TRUTH (audit fix 08-31): normalized earnings come from the
@@ -309,7 +361,7 @@ export function generateBovContent(listing: Listing, opts?: { recast?: RecastRes
   ]
 
   const disclaimer =
-    'This Broker Opinion of Value (BOV) is an estimate of market value prepared for informational purposes and does not constitute an appraisal. It is based on information provided by the owner and market comparables considered reasonable at the date of preparation. Actual sale price may differ materially. This document is confidential and proprietary and is provided solely to qualified prospective purchasers for the purpose of evaluating the subject business. Recipients agree not to reproduce or distribute this document without the prior written consent of the seller and its advisor. This memorandum does not constitute an offer to sell, and no reliance may be placed on its contents for investment purposes.'
+    `This ${bovDocumentLabel(reviewState)} is an estimate of market value prepared for informational purposes and does not constitute an appraisal. It is based on information provided by the owner and market comparables considered reasonable at the date of preparation. Actual sale price may differ materially. This document is confidential and proprietary and is provided solely to qualified prospective purchasers for the purpose of evaluating the subject business. Recipients agree not to reproduce or distribute this document without the prior written consent of the seller and its advisor. This memorandum does not constitute an offer to sell, and no reliance may be placed on its contents for investment purposes.`
 
   // Real multi-year history when a recast exists; fabricated fallback only
   // when no recast has been run yet (and then labeled as an estimate).
@@ -705,7 +757,10 @@ export function generateBovContent(listing: Listing, opts?: { recast?: RecastRes
   ]
 
   return {
-    title: `${name} — Broker Opinion of Value`,
+    title: `${name} — ${bovDocumentLabel(reviewState)}`,
+    reviewState,
+    reviewedBy: opts?.reviewedBy ?? null,
+    reviewedAt: opts?.reviewedAt ?? null,
     businessName: name,
     generatedAt: now,
     preparedFor: 'Confidential Prospective Buyer',
@@ -722,7 +777,7 @@ export function generateBovContent(listing: Listing, opts?: { recast?: RecastRes
     comparables,
     assumptions,
     disclaimer,
-    sections: [...sections, ...transworldSections(twelve, name, industry, location, revenue, sde, ebitda, price)],
+    sections: [...sections, ...transworldSections(twelve, name, industry, location, revenue, sde, ebitda, price, reviewState)],
   }
 }
 
@@ -740,6 +795,7 @@ function transworldSections(
   sde: number,
   ebitda: number,
   price: number,
+  reviewState: BovReviewState = 'draft',
 ): BovSection[] {
   const money = (n: number) => `$${Math.round(n).toLocaleString()}`
   const methodTable = twelve.methods
@@ -864,7 +920,7 @@ function transworldSections(
         {
           heading: 'Read This Section Carefully',
           body: [
-            'This is a Broker Opinion of Value report and not a formal appraisal. There are a number of significant differences between an opinion of value and appraisals. An opinion of value is not nearly as rigorous as a formal appraisal, and is designed to give a general guideline or benchmark value rather than a formal determination of value. The formulas used in the various valuation methodologies in this opinion of value are based on thousands of evaluations performed over many years by business brokers, business buyers, and business sellers in real world buy/sell situations.',
+            `This ${bovDocumentLabel(reviewState)} is not a formal appraisal. There are a number of significant differences between an opinion of value and appraisals. An opinion of value is not nearly as rigorous as a formal appraisal, and is designed to give a general guideline or benchmark value rather than a formal determination of value. The formulas used in the various valuation methodologies in this report are based on thousands of evaluations performed over many years by business brokers, business buyers, and business sellers in real world buy/sell situations.`,
             'Tax and legal advice must be given by qualified professionals and based on individual cases. If you are planning a sale or transfer of stock, we strongly encourage you to consult with your tax attorney and accountant.',
           ],
         },

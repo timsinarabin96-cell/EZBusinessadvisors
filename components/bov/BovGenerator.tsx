@@ -10,11 +10,12 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { fetchListings, Listing } from '@/lib/listings'
-import { BovContent, generateBovContent, fetchBovVersions, saveBovVersion, BovVersion } from '@/lib/bov'
+import { BovContent, generateBovContent, fetchBovVersions, saveBovVersion, bovDocumentLabel, type BovVersion } from '@/lib/bov'
 import { exportBovToPdf } from '@/lib/pdfExport'
 import { fetchUserAgencyContext } from '@/lib/agencies'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState } from '@/components/ui'
+import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 export default function BovGenerator() {
   const toast = useToast()
@@ -78,6 +79,28 @@ export default function BovGenerator() {
     }
   }
 
+  const handleFinalize = async () => {
+    if (!versions.length) return
+    const latest = versions[0]
+    if (latest.status === 'final') return
+    setGenerating(true)
+    try {
+      const res = await authenticatedFetch('/api/financial/bov/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ versionId: latest.id }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.ok) throw new Error(j.error || 'Finalize failed')
+      setVersions(await fetchBovVersions(selectedId).catch(() => []))
+      toast('✓ Broker-reviewed — this version now titles itself "Broker Opinion of Value".', 'success')
+    } catch (e: any) {
+      toast(e.message || 'Finalize failed', 'error')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const row = (k: string, v: string) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0ecdf' }}>
       <span style={{ fontSize: 13.5, color: 'var(--muted)' }}>{k}</span>
@@ -120,14 +143,23 @@ export default function BovGenerator() {
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn btn-primary" onClick={handleSave}>💾 Save Version</button>
             <button className="btn btn-navy" onClick={() => exportBovToPdf(content, { agency })}>⬇️ Export PDF</button>
-            {versions.length > 0 && <span className="section-title">Version {versions[0].version}</span>}
+            {versions.length > 0 && (
+              <span className="section-title">
+                Version {versions[0].version} · {bovDocumentLabel(versions[0].status)}
+              </span>
+            )}
+            {versions.length > 0 && versions[0].status !== 'final' && (
+              <button className="btn" style={{ background: '#166534', color: '#fff', border: 'none' }} onClick={handleFinalize}>
+                ✓ Mark as Broker-Reviewed (Final)
+              </button>
+            )}
           </div>
 
           <div style={{ maxWidth: 820, margin: '0 auto' }}>
             <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 4, boxShadow: '0 12px 40px rgba(26,26,46,0.15)' }}>
               {/* Header band */}
               <div style={{ background: '#1a1a2e', padding: '30px 40px' }}>
-                <div className="section-title" style={{ color: 'var(--gold-light)' }}>BROKER OPINION OF VALUE</div>
+                <div className="section-title" style={{ color: 'var(--gold-light)' }}>{bovDocumentLabel(content.reviewState ?? 'draft').toUpperCase()}</div>
                 <div style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginTop: 8 }}>{content.title}</div>
               </div>
               <div style={{ height: 3, background: 'var(--gold)' }} />

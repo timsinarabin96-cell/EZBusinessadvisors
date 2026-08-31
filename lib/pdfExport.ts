@@ -14,7 +14,7 @@
 
 import { jsPDF } from 'jspdf'
 import type { CimContent } from '@/lib/cim'
-import type { BovContent } from '@/lib/bov'
+import { bovDocumentLabel, type BovContent } from '@/lib/bov'
 import type { RecastResult, RecastYearResult } from '@/lib/recast'
 import type { BliContent } from '@/lib/bli'
 import { ratePct } from '@/lib/recastAnalysis'
@@ -197,7 +197,7 @@ export async function exportBovToPdf(content: BovContent, opts?: PdfOpts): Promi
   // ---- Cover ----
   await clawCover(doc, fonts, {
     image: '/brand/claw-cover.jpg',
-    eyebrow: 'Broker Opinion of Value',
+    eyebrow: bovDocumentLabel(content.reviewState ?? 'draft'),
     title: content.businessName,
     subtitle: 'Valuation Analysis & Market Opinion',
     agency,

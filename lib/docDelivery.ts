@@ -17,7 +17,7 @@
 import { createServerClient } from '@/lib/supabase/server'
 import type { Listing } from '@/lib/listings'
 import { generateCimContent, type CimContent } from '@/lib/cim'
-import { generateBovContent, type BovContent } from '@/lib/bov'
+import { generateBovContent, bovDocumentTitle, bovLabelFromTitle, latestBovReviewState, type BovContent, type BovReviewState } from '@/lib/bov'
 import { recastFinancials, attachRecastAnalysis, assertRecastConsistency, type RecastInput, type RecastResult } from '@/lib/recast'
 import { exportCimToPdf, exportBovToPdf, exportRecastToPdf } from '@/lib/pdfExport'
 import { sendEmail } from '@/lib/email'
@@ -84,7 +84,7 @@ export async function createDelivery(input: CreateDeliveryInput): Promise<{ ok: 
 
   const title =
     input.docKind === 'cim' ? `${listing.business_name || 'Business'} — Confidential Information Memorandum`
-    : input.docKind === 'bov' ? `${listing.business_name || 'Business'} — Broker Opinion of Value`
+    : input.docKind === 'bov' ? bovDocumentTitle(listing.business_name, await latestBovReviewState(db, input.listingId))
     : input.docKind === 'recast' ? `${listing.business_name || 'Business'} — Recast Report`
     : `${listing.business_name || 'Business'} — Business Listing Information`
 
@@ -196,7 +196,8 @@ export async function generateDeliveryPdf(
     }
 
     if (docKind === 'bov') {
-      const content: BovContent = generateBovContent(listing, { recast })
+      const db = createServerClient()
+      const content: BovContent = generateBovContent(listing, { recast, reviewState: db ? await latestBovReviewState(db, listing.id) : 'draft' })
       const bytes = await exportBovToPdf(content, opts)
       if (!bytes) return { ok: false, error: 'BOV PDF generation failed' }
       return { ok: true, bytes }
@@ -322,7 +323,7 @@ export async function rejectDelivery(deliveryId: string, reason?: string): Promi
 // HTML email template — premium, client-facing.
 // ---------------------------------------------------------------------------
 function buildDeliveryEmailHtml(delivery: DeliveryRow, listing: any, shareUrl: string): string {
-  const kindLabel = { cim: 'Confidential Information Memorandum', bov: 'Broker Opinion of Value', recast: 'Recast / Normalized Earnings Report', bli: 'Business Listing Information' }[delivery.doc_kind] || 'Deliverable'
+  const kindLabel = { cim: 'Confidential Information Memorandum', bov: bovLabelFromTitle(delivery.doc_title), recast: 'Recast / Normalized Earnings Report', bli: 'Business Listing Information' }[delivery.doc_kind] || 'Deliverable'
   const esc = (s: string) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
   return `
   <div style="font-family:Georgia,serif;max-width:640px;margin:0 auto;color:#1a1a2e">

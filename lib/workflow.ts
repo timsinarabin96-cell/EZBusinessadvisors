@@ -311,9 +311,24 @@ export async function fetchVersions(listingId: string, table: 'bov_versions' | '
     return (data || []) as any[]
   } catch { return [] }
 }
-export async function finalizeVersion(table: 'bov_versions' | 'cim_versions' | 'bli_versions', id: string, status: string): Promise<boolean> {
+export async function finalizeVersion(
+  table: 'bov_versions' | 'cim_versions' | 'bli_versions',
+  id: string,
+  status: string,
+  opts?: { reviewerId?: string | null; db?: typeof supabase },
+): Promise<boolean> {
   try {
-    const { error } = await supabase.from(table).update({ status }).eq('id', id)
+    const db = opts?.db ?? supabase
+    const patch: Record<string, unknown> = { status }
+    // Liability label gate (boss 08-31): flipping to 'final' REQUIRES a named
+    // reviewer + timestamp — a BOV may only title itself "Broker Opinion of
+    // Value" with an explicit agent sign-off.
+    if (status === 'final') {
+      if (!opts?.reviewerId) return false
+      patch.reviewed_by = opts.reviewerId
+      patch.reviewed_at = new Date().toISOString()
+    }
+    const { error } = await db.from(table).update(patch).eq('id', id)
     return !error
   } catch { return false }
 }

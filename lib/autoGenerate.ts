@@ -444,7 +444,7 @@ export async function runAutoGeneration(input: {
           listingId: L.id,
           dealId,
           stage: 'bov',
-          title: `${L.business_name || 'Business'} — Broker Opinion of Value`,
+          title: bov.title,
           bytes,
           status: 'bov_done',
         })
