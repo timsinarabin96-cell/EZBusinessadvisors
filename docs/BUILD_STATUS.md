@@ -170,9 +170,9 @@
 | Unified picker — "Upload your own" + "Generate options" side by side, mix both | ✅ | `c3eb7bd` |
 | Cover/primary photo marking (⭐ star, reorder, `primary_image_url`) | ✅ | `c3eb7bd` |
 | Upload route — validated (JPG/PNG/WebP/HEIC, 10MB), first upload auto-cover | ✅ | `c3eb7bd` |
-| Provider ladder — FAL → OpenAI → free Pollinations (keyless fallback live) | ✅ | `c3eb7bd` (code), key pending |
+| Provider ladder — **FAL (confirmed 08-31) → OpenAI → free Pollinations fallback** | ✅ | `c3eb7bd` + ladder reorder |
 | Old AI-only AiPhotoStudioCard deleted (replace, don't run both) | ✅ | `c3eb7bd` |
-| Photo API key (FAL or OpenAI) — **needs boss's provider decision + key** | ❌ open | — |
+| Photo API key — **needs boss to add `FAL_KEY`** (falls back to Pollinations free until then) | ❌ open | — |
 
 ## 7. Public Website
 

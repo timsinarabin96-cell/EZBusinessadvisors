@@ -30,10 +30,12 @@ export const AI_PHOTO_PROVIDER_NOTE: Record<AiPhotoProviderId, string> = {
   free: 'Zero-cost fallback (Pollinations flux) — perfect for drafts',
 }
 
-/** Which provider will be used, in priority order. */
+/** Which provider will be used, in priority order. FAL is the confirmed
+ *  provider (boss 08-31); OpenAI remains as a fallback when FAL is not
+ *  configured, and the keyless Pollinations tier is the last resort. */
 export function resolveAiPhotoProvider(): AiPhotoProviderId {
-  if (process.env.OPENAI_API_KEY) return 'openai'
   if (process.env.FAL_KEY) return 'fal'
+  if (process.env.OPENAI_API_KEY) return 'openai'
   return 'free'
 }
 

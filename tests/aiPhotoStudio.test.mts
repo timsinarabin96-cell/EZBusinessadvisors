@@ -10,15 +10,15 @@ test('ai-photos: module loads cleanly', () => {
   assert.ok(aiPhotos.fetchAiImageBytes)
 })
 
-test('ai-photos: provider ladder — openai > fal > free', () => {
+test('ai-photos: provider ladder — fal > openai > free (FAL confirmed 08-31)', () => {
   const prev = { openai: process.env.OPENAI_API_KEY, fal: process.env.FAL_KEY }
   try {
     process.env.OPENAI_API_KEY = 'sk-test'
     process.env.FAL_KEY = 'fal-test'
-    assert.equal(aiPhotos.resolveAiPhotoProvider(), 'openai')
-    delete process.env.OPENAI_API_KEY
     assert.equal(aiPhotos.resolveAiPhotoProvider(), 'fal')
     delete process.env.FAL_KEY
+    assert.equal(aiPhotos.resolveAiPhotoProvider(), 'openai')
+    delete process.env.OPENAI_API_KEY
     assert.equal(aiPhotos.resolveAiPhotoProvider(), 'free')
   } finally {
     process.env.OPENAI_API_KEY = prev.openai
