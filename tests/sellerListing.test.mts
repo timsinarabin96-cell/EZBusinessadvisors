@@ -37,6 +37,13 @@ test('sell page offers paid plans and submits real orders', () => {
   assert.match(sellPage, /Listing order created/)
 })
 
+test('seller order API returns the portal URL so the thank-you screen can show it', () => {
+  // Audit fix 09-01: the portal box on the sell-page thank-you screen was
+  // dead because the order route never returned portalUrl (email-only).
+  assert.match(route, /portalUrl,/)
+  assert.match(route, /portalUrl\)/)
+})
+
 test('plans exist with the one-time tier model (free/manual + $250 AI-Verified)', () => {
   // Owner plans + upsells live in the single source of truth (pricing.ts).
   const pricing = readFileSync('lib/pricing.ts', 'utf8')
