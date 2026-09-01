@@ -40,6 +40,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     // Agent invite → create their OWN login (email + password), profile, and
     // agency membership. The email is locked to the invite's email when set.
     if (invite.target_type === 'agent') {
+      // Seat-limit gate (2026-09-01 usage overhaul, same as members API):
+      // enforced BEFORE the auth user is created so an over-limit agency
+      // never gets an orphan account.
+      if (agencyId) {
+        const { usageBlock } = await import('@/lib/usageEnforcement')
+        const blocked = await usageBlock(agencyId, 'agents')
+        if (blocked) {
+          return NextResponse.json({ ok: false, error: blocked.error, code: 'USAGE_LIMIT', upgradeUrl: blocked.upgradeUrl }, { status: 429 })
+        }
+      }
+
       const name = String(data.name || '').trim()
       const email = String(data.email || invite.email || '').trim().toLowerCase()
       const password = String(data.password || '')

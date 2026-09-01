@@ -38,6 +38,19 @@ export async function POST(req: NextRequest) {
   }
   const email = String(body?.email || '').trim() || null
 
+  // Seat-limit gate at INVITE CREATION too (2026-09-01 usage overhaul, same
+  // enforcement as the fill path — no exceptions): an agency at its agent-seat
+  // limit can't even send new agent invites. Professional/broker invites
+  // create network profiles (deal_professionals/broker_profiles), not seats,
+  // so only agent invites consume the agency's seat allowance here.
+  if (targetType === 'agent' && agencyId) {
+    const { usageBlock } = await import('@/lib/usageEnforcement')
+    const blocked = await usageBlock(agencyId, 'agents')
+    if (blocked) {
+      return NextResponse.json({ ok: false, error: blocked.error, code: 'USAGE_LIMIT', upgradeUrl: blocked.upgradeUrl }, { status: 429 })
+    }
+  }
+
   // Resolve agency name for the invite email (agent invites say who invited you).
   let agencyName = 'the team'
   if (agencyId) {
