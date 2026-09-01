@@ -44,6 +44,17 @@ const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
 const FROM = process.env.SMTP_FROM || 'CONCORD Deal Platform <no-reply@ezbusinessadvisors.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
 
+// ── Test-email guard (boss 09-01) ────────────────────────────────────────────
+// When EMAIL_TEST_MODE=true and EMAIL_TEST_TO is set, EVERY outgoing platform
+// email is rerouted to the test inbox — real recipients are never contacted.
+// The original recipient is preserved in meta + the log line so tests can
+// assert the intended target without ever delivering to them.
+const EMAIL_TEST_MODE = process.env.EMAIL_TEST_MODE === 'true'
+const EMAIL_TEST_TO = process.env.EMAIL_TEST_TO || ''
+function testRoute(to: string): string {
+  return EMAIL_TEST_MODE && EMAIL_TEST_TO ? EMAIL_TEST_TO : to
+}
+
 // Event emails that are now consolidated into the HOURLY DIGEST
 // (/api/cron/hourly-digest). When HOURY_DIGEST_ONLY=true (default), these
 // kinds are recorded in the email queue for history but NOT delivered — the
@@ -566,8 +577,11 @@ async function ensureEmailTables(): Promise<void> {
 }
 
 export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
-  const { to, subject, html, kind = 'generic', meta } = opts
-  if (!to) return { ok: false, queued: false, reason: 'no recipient' }
+  const { to: originalTo, subject, html, kind = 'generic', meta } = opts
+  if (!originalTo) return { ok: false, queued: false, reason: 'no recipient' }
+
+  // Test-email guard: reroute to the test inbox, never the real recipient.
+  const to = testRoute(originalTo)
 
   const canDeliver = EMAIL_ENABLED && (!!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY || !!process.env.EMAIL_GRAPH_REFRESH_TOKEN)
 
@@ -591,7 +605,7 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
       html,
       text: toText(html),
       kind,
-      meta,
+      meta: EMAIL_TEST_MODE ? { ...(meta || {}), original_to: originalTo, test_rerouted: true } : meta,
       status: canDeliver ? 'pending' : 'queued',
       created_at: new Date().toISOString(),
     })
@@ -600,7 +614,7 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
     }
   }
 
-  console.log(`[email] ${kind}: "${subject}" -> ${to} (${canDeliver ? 'pending' : 'queued — SMTP unconfigured'})`)
+  console.log(`[email] ${kind}: "${subject}" -> ${EMAIL_TEST_MODE ? `${originalTo} (TEST→${to})` : to} (${canDeliver ? 'pending' : 'queued — SMTP unconfigured'})`)
   return { ok: true, queued: !canDeliver }
 }
 
