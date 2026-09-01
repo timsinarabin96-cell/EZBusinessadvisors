@@ -52,6 +52,11 @@ export function getClaudeClient(): Anthropic {
   if (!cachedClient) {
     cachedClient = new Anthropic({
       apiKey: key,
+      // Zero Data Retention: opt-in ONLY via ANTHROPIC_ZDR=true (account must
+      // be ZDR-eligible on the Anthropic side — sending this header on a
+      // non-eligible account can cause requests to fail). Default: standard
+      // API terms (no training on API data, but up-to-30-day retention).
+      defaultHeaders: process.env.ANTHROPIC_ZDR === 'true' ? { 'x-api-zdr': 'true' } : {},
       // Optional: set a per-instance maxRetries / timeout here if needed.
       // maxRetries: 2,
     })

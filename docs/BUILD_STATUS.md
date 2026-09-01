@@ -210,6 +210,7 @@
 | MFA enforcement (super_admin always, agency toggle) + 2FA challenge | ✅ | `3133d95`, `1173bd8`, `5ce94c6` |
 | NDA-gated financials — bypass hardening (private bucket, signed URLs) | ✅ | `1173bd8`, `52ceb92` |
 | financial_documents METADATA RLS — agency/NDA scope (was `using (true)`; now uploader OR owning-agency member OR NDA-approved buyer w/ visible_to_buyer; insert/update/delete agency-scoped) — live probe `verify-fd-rls.cjs` 9/9 incl. cross-agency + no-NDA + NDA-approved + anonymous | ✅ | 09-01 (pending commit) |
+| Claude prompt-injection hardening — extraction/photo prompts mark uploaded content UNTRUSTED DATA + delimiters; regression test 4/4; env-gated ZDR opt-in (default OFF) | ✅ | 09-01 (pending commit) |
 | Legal vault access logging (admin_audit_log) | ✅ | `1173bd8` |
 | Stripe webhook HMAC verification + payment-trust hole closed | ✅ | `5d49d51`, `3b8033e` |
 | Account-change emails (password/email/sign-in alerts) | ✅ | `a9d2c42` |
