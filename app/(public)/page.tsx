@@ -18,6 +18,7 @@ import AuthRedirect from '@/components/public/AuthRedirect'
 import ValuationLeadForm from '@/components/public/ValuationLeadForm'
 import HomeSearchLocation from '@/components/public/HomeSearchLocation'
 import HomeSearchCategory from '@/components/public/HomeSearchCategory'
+import HomeSearchKeyword from '@/components/public/HomeSearchKeyword'
 import InstantValuation from '@/components/public/InstantValuation'
 import HomeCountUp from '@/components/public/HomeCountUp'
 import { CRM_LICENSE } from '@/lib/billing'
@@ -119,7 +120,7 @@ export default async function HomePage() {
                 backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
               } as React.CSSProperties}
             >
-              <input name="q" placeholder="Keyword (restaurant, HVAC…)" style={searchInput} />
+              <HomeSearchKeyword style={searchInput} />
               <HomeSearchCategory style={searchInput} />
               <HomeSearchLocation style={searchInput} />
               <button type="submit" className="home-glow" style={{ background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', border: 'none', borderRadius: 12, padding: '0 24px', fontWeight: 800, fontFamily: 'var(--font-sans)', fontSize: 14.5, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 6px 20px rgba(201,168,76,0.4)' }}>
