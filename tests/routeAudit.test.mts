@@ -46,6 +46,16 @@ function collectApis(): Set<string> {
   return apis
 }
 
+/** Collect real static assets under public/ (e.g. /samples/cim.pdf). */
+function collectPublicFiles(): Set<string> {
+  const files = new Set<string>()
+  for (const p of walk('public')) {
+    const rel = p.slice('public/'.length)
+    if (rel) files.add('/' + rel)
+  }
+  return files
+}
+
 function matches(path: string, table: Set<string>): boolean {
   if (table.has(path)) return true
   const seg = path.split('/')
@@ -84,10 +94,11 @@ function scanSources(): { links: Set<string>; apiCalls: Set<string> } {
   return { links, apiCalls }
 }
 
-test('route audit: every internal page link resolves to a real route', () => {
+test('route audit: every internal page link resolves to a real route or static asset', () => {
   const pages = collectPages()
+  const publicFiles = collectPublicFiles()
   const { links } = scanSources()
-  const broken = [...links].filter((l) => !matches(l, pages)).sort()
+  const broken = [...links].filter((l) => !matches(l, pages) && !publicFiles.has(l)).sort()
   assert.deepEqual(broken, [], `Dangling page links: ${broken.join(', ')}`)
 })
 

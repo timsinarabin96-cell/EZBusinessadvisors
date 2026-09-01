@@ -96,21 +96,33 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 3) Live stats: listing views (7d + total) + NDA requests.
+  // 3) Live stats: listing views (7d + total) + NDA/data-room access requests.
+  //    Audit fix 09-01: sellers got a bare count — now return the request list
+  //    (name/company/status/date) so they can see "who asked & where it stands".
   let views7d = 0
   let viewsTotal = 0
-  let ndaRequests = 0
+  const ndaList: Array<{ id: string; requester_name: string; requester_company: string | null; status: string; nda_signed_at: string | null; created_at: string | null }> = []
   if (listingId) {
     const since = new Date(Date.now() - 7 * 86400000).toISOString()
     const [viewsRes, ndaRes] = await Promise.all([
       db.from('listing_views').select('id, viewed_at').eq('listing_id', listingId),
-      db.from('data_room_access_requests').select('id').eq('listing_id', listingId),
+      db.from('data_room_access_requests').select('id, requester_name, requester_company, status, nda_signed_at, created_at').eq('listing_id', listingId).order('created_at', { ascending: false }).limit(50),
     ])
     const views = (viewsRes.data || []) as { viewed_at?: string }[]
     viewsTotal = views.length
     views7d = views.filter((v) => v.viewed_at && v.viewed_at >= since).length
-    ndaRequests = ((ndaRes.data || []) as unknown[]).length
+    for (const r of ((ndaRes.data || []) as Array<{ id: string; requester_name?: string | null; requester_company?: string | null; status?: string | null; nda_signed_at?: string | null; created_at?: string | null }>)) {
+      ndaList.push({
+        id: r.id,
+        requester_name: r.requester_name || 'Confidential buyer',
+        requester_company: r.requester_company || null,
+        status: r.status || 'pending',
+        nda_signed_at: r.nda_signed_at || null,
+        created_at: r.created_at || null,
+      })
+    }
   }
+  const ndaRequests = ndaList.length
 
   // 4) Financials: seller-uploaded docs + live recast preview (Phase 3).
   const financials: {
@@ -228,6 +240,7 @@ export async function GET(req: NextRequest) {
         : null,
     listing,
     stats: { views7d, viewsTotal, ndaRequests },
+    ndaList,
     financials,
     nextSteps,
   })

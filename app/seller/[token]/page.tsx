@@ -201,6 +201,34 @@ function SellerBody() {
               </div>
             )}
 
+            {/* Buyer access requests — audit fix 09-01: per-buyer status, not just a count */}
+            {data.ndaList && data.ndaList.length > 0 && (
+              <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 14, padding: '20px 22px', marginTop: 16 }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#8a6d1a', fontWeight: 800 }}>Buyer access requests</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                  {data.ndaList.map((r) => (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '11px 14px', flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>{r.requester_name}</div>
+                        <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>
+                          {[r.requester_company, r.created_at ? new Date(r.created_at).toLocaleDateString() : null].filter(Boolean).join(' · ') || 'Request received'}
+                        </div>
+                      </div>
+                      {r.status === 'approved' && <span style={{ fontSize: 11.5, fontWeight: 800, color: '#15803d', background: '#e8f7ee', padding: '4px 12px', borderRadius: 99 }}>✅ Approved — data room opened</span>}
+                      {r.status === 'pending' && <span style={{ fontSize: 11.5, fontWeight: 800, color: '#b45309', background: '#fdf3e3', padding: '4px 12px', borderRadius: 99 }}>⏳ Awaiting broker review</span>}
+                      {(r.status === 'rejected' || r.status === 'denied') && <span style={{ fontSize: 11.5, fontWeight: 800, color: '#b91c1c', background: '#fdeaea', padding: '4px 12px', borderRadius: 99 }}>✖ Not approved</span>}
+                      {r.status !== 'approved' && r.status !== 'pending' && r.status !== 'rejected' && r.status !== 'denied' && (
+                        <span style={{ fontSize: 11.5, fontWeight: 800, color: '#555', background: '#f0f0f0', padding: '4px 12px', borderRadius: 99, textTransform: 'capitalize' }}>{r.status}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11.5, color: '#999', marginTop: 12 }}>
+                  Your broker reviews each request and opens the data room when approved — buyers never see your financials before their NDA is signed.
+                </div>
+              </div>
+            )}
+
             {/* Live recast preview (Phase 3) — the 'wow' that makes the portal worth it */}
             {data.financials?.preview && (
               <div style={{ background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', borderRadius: 16, padding: '26px 28px', marginTop: 16, color: '#fff', boxShadow: '0 12px 40px rgba(16,42,67,0.25)' }}>

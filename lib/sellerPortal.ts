@@ -43,6 +43,16 @@ export interface SellerPortalData {
     viewsTotal: number
     ndaRequests: number
   }
+  // Audit fix 09-01: per-buyer access-request list (name/company/status/date)
+  // so the seller sees who asked and where it stands — not just a count.
+  ndaList: Array<{
+    id: string
+    requester_name: string
+    requester_company: string | null
+    status: string
+    nda_signed_at: string | null
+    created_at: string | null
+  }>
   financials: {
     docs: {
       id: string
@@ -70,6 +80,7 @@ export async function fetchSellerPortal(token: string): Promise<SellerPortalData
     lead: null,
     listing: null,
     stats: { views7d: 0, viewsTotal: 0, ndaRequests: 0 },
+    ndaList: [],
     financials: { docs: [], preview: null },
     nextSteps: [],
   }

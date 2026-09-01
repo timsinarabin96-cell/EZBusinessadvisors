@@ -57,6 +57,29 @@ interface BuyerProfile {
   ai_match_enabled: boolean
 }
 
+// Deal status surfaced to the buyer themselves (audit fix 09-01: the portal
+// API existed but no UI consumed it — buyers couldn't see their own pipeline).
+interface BuyerDeal {
+  buyerListId: string
+  pipeline_stage: string | null
+  stage_entered_at: string | null
+  heat_score: number | null
+  nda_signed: boolean
+  financial_qualified: boolean
+  is_primary_buyer: boolean
+  offers_count: number
+  listing: {
+    id: string
+    business_name: string | null
+    public_title: string | null
+    industry: string | null
+    location_general: string | null
+    asking_price: number | null
+    status: string | null
+    image_urls: string[]
+  } | null
+}
+
 export default function BuyerPortalPage() {
   const toast = useToast()
   const [sub, setSub] = useState<BuyerSubscription | null>(null)
@@ -68,6 +91,8 @@ export default function BuyerPortalPage() {
   const [savedSearches, setSavedSearches] = useState<{ id: string; name: string | null; query: string }[]>([])
   const [matches, setMatches] = useState<BuyerMatch[]>([])
   const [profile, setProfile] = useState<BuyerProfile | null>(null)
+  const [deals, setDeals] = useState<BuyerDeal[]>([])
+  const [dealsLoaded, setDealsLoaded] = useState(false)
   const [industries, setIndustries] = useState('')
   const [locations, setLocations] = useState('')
   const [minPrice, setMinPrice] = useState('')
@@ -112,6 +137,14 @@ export default function BuyerPortalPage() {
         const mat = await matchRes.json()
         if (mat.ok) setMatches(mat.matches || [])
       } catch { /* degrade */ }
+      // Buyer's own deal pipeline (portal API — status they're entitled to see).
+      try {
+        const dealRes = await authenticatedFetch('/api/buyers/portal')
+        const dealJson = await dealRes.json()
+        if (dealJson.ok) setDeals(dealJson.deals || [])
+      } catch { /* degrade */ } finally {
+        setDealsLoaded(true)
+      }
     } catch { /* degrade */ } finally {
       setLoading(false)
     }
@@ -220,6 +253,47 @@ export default function BuyerPortalPage() {
             </div>
           </div>
         )}
+
+        {/* Your deals — live pipeline status (audit fix 09-01: was API-only, never rendered) */}
+        <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+          <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a6d1a', fontWeight: 800, marginBottom: 4 }}>Your Deals</div>
+          <p style={{ fontSize: 12.5, color: '#888', margin: '0 0 14px' }}>
+            Where each business stands in your process — from first interest to offer.
+          </p>
+          {!dealsLoaded ? (
+            <p style={{ fontSize: 13, color: '#999' }}>Loading your deals…</p>
+          ) : deals.length === 0 ? (
+            <p style={{ fontSize: 13, color: '#888', margin: 0, lineHeight: 1.6 }}>
+              No active deals yet. When you express interest in a listing, your progress (NDA, data room, offer) will show up here.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {deals.map((d) => {
+                const l = d.listing
+                const stage = d.pipeline_stage || 'new'
+                return (
+                  <div key={d.buyerListId} style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#faf9f4', border: '1px solid #ece8dc', borderRadius: 10, padding: '12px 14px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Link href={`/marketplace/listings/${l?.id || ''}`} style={{ fontSize: 14.5, fontWeight: 800, color: '#1a1a2e', textDecoration: 'none' }}>
+                        {l?.public_title || l?.business_name || 'Business'}
+                      </Link>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                        {[l?.industry, l?.location_general].filter(Boolean).join(' · ')}
+                        {l?.asking_price ? ` · $${Number(l.asking_price).toLocaleString()}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <StagePill stage={stage} />
+                      {d.nda_signed ? <Pill color="#15803d" bg="#e6f4ea">✅ NDA signed</Pill> : <Pill color="#b45309" bg="#fdf3e3">📄 NDA pending</Pill>}
+                      {d.financial_qualified && <Pill color="#0e7490" bg="#e6f6fa">💰 Financially qualified</Pill>}
+                      {d.offers_count > 0 && <Pill color="#7c3aed" bg="#f3e8ff">🤝 {d.offers_count} offer{d.offers_count > 1 ? 's' : ''} submitted</Pill>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Buyer toolkit — saved searches + bookmarks (promised in the header) */}
         <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
@@ -378,6 +452,35 @@ function Perk({ icon, label, sub }: { icon: string; label: string; sub: string }
       <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1a1a2e', marginTop: 6 }}>{label}</div>
       <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{sub}</div>
     </div>
+  )
+}
+
+const STAGE_LABELS: Record<string, string> = {
+  new: '🆕 New',
+  contacted: '📞 Contacted',
+  nda_sent: '📄 NDA sent',
+  nda_signed: '✅ NDA signed',
+  qualified: '💰 Qualified',
+  data_room: '📁 Data room',
+  loi: '📝 LOI',
+  negotiation: '🤝 Negotiating',
+  closed: '🎉 Closed',
+  lost: '✖️ Closed (lost)',
+}
+
+function StagePill({ stage }: { stage: string }) {
+  return (
+    <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'capitalize', color: '#1a1a2e', background: '#fff', border: '1px solid #d8d2c0', padding: '4px 10px', borderRadius: 99 }}>
+      {STAGE_LABELS[stage] || stage.replace(/_/g, ' ')}
+    </span>
+  )
+}
+
+function Pill({ color, bg, children }: { color: string; bg: string; children: React.ReactNode }) {
+  return (
+    <span style={{ fontSize: 11, fontWeight: 700, color, background: bg, padding: '4px 10px', borderRadius: 99 }}>
+      {children}
+    </span>
   )
 }
 
