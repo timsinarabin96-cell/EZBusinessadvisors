@@ -10,7 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { isPlatformAdmin } from '@/lib/platform'
 import { recordAdminAudit, resolveAdminActor } from '@/lib/adminAudit'
 import { assessListingRisk, RiskReport } from '@/lib/scamDetectionCore'
-import { isDeepSeekConfigured, chatWithDeepSeek } from '@/lib/deepseek/client'
+import { chatSensitive, isSensitiveAiConfigured } from '@/lib/ai/sensitiveProvider'
 
 export const runtime = 'nodejs'
 
@@ -161,9 +161,9 @@ export async function POST(req: NextRequest) {
     const risk = riskFor(listing, owner?.created_at || null)
 
     let ai: { available: boolean; text?: string; data?: Record<string, unknown>; error?: string } = { available: false }
-    if (isDeepSeekConfigured()) {
+    if (isSensitiveAiConfigured()) {
       try {
-        const result = await chatWithDeepSeek({
+        const result = await chatSensitive({
           system:
             'You are a fraud-detection expert for a business-for-sale marketplace. Assess the listing for scam risk signals: unrealistic pricing vs stated financials, vague ownership, pressure tactics, missing contact/verification info, boilerplate copy. Return JSON: {"score": 0-100, "signals": ["..."], "summary": "one short sentence"}.',
           userMessage: `Business: ${listing.business_name || '?'}\nHeadline: ${listing.headline || '—'}\nIndustry: ${listing.industry || '—'}\nAsking: $${listing.asking_price || 0}\nRevenue: $${listing.annual_revenue || 0}\nSDE: $${listing.sde || 0}\nLocation: ${[listing.city, listing.state].filter(Boolean).join(', ') || '—'}\nDescription: ${(listing.description || '').slice(0, 1200)}`,

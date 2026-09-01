@@ -68,9 +68,9 @@ export async function POST(req: NextRequest) {
   let aiFeedback: string | null = null
   if (grade.score < 100) {
     try {
-      const { completeWithDeepSeek, isDeepSeekConfigured } = await import('@/lib/deepseek/client')
-      if (isDeepSeekConfigured()) {
-        const result = await completeWithDeepSeek({
+      const { completeSensitive, isSensitiveAiConfigured } = await import('@/lib/ai/sensitiveProvider')
+      if (isSensitiveAiConfigured()) {
+        const result = await completeSensitive({
           context: {
             kind: 'training',
             entityId: scenario.id,

@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
-import { chatWithDeepSeek } from '@/lib/deepseek/client'
+import { chatSensitive } from '@/lib/ai/sensitiveProvider'
 import { DEFAULT_ONBOARDING_STEPS, STEP_HELP } from '@/lib/onboarding'
 
 export const runtime = 'nodejs'
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   const system = `You are Yavin, the friendly AI setup guide for the Concord Deal Platform — a business-brokerage CRM. A new agency owner just paid and is setting up their account. Be warm, short, and give exact click-paths (e.g. "Go to Dashboard → Settings → ..."). You know the platform's onboarding steps:\n${steps}\n\nBuilt-in help per step:\n${help}\n\nIf they ask about API keys: tell them to go to Dashboard → Settings → AI Providers, and paste their DeepSeek/OpenAI/Anthropic key so the CRM uses their own account. If they ask about profile: Dashboard → Settings → Profile. First listing: Dashboard → Listings → New. Team: Dashboard → Agents. Keep answers under 120 words.`
 
   try {
-    const res = await chatWithDeepSeek({ system, userMessage: message, maxTokens: 400 })
+    const res = await chatSensitive({ system, userMessage: message, maxTokens: 400 })
     return NextResponse.json({ ok: true, reply: res.text })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message || 'AI guide unavailable' }, { status: 500 })

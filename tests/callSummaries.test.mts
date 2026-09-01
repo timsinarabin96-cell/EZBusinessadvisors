@@ -26,11 +26,10 @@ test('call summaries: deterministic summary covers intent keywords and duration'
 })
 
 test('call summaries: best-effort AI polish with deterministic fallback', () => {
-  assert.match(lib, /completeWithDeepSeek/)
+  assert.match(lib, /completeSensitive/)
   assert.match(lib, /try \{/)
   assert.match(lib, /catch \{/)
   assert.match(lib, /model = 'deterministic'/)
-  assert.match(lib, /model = 'deepseek'/)
 })
 
 test('call summaries: upserts one row per call and persists', () => {

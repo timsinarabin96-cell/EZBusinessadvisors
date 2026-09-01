@@ -15,7 +15,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { completeWithDeepSeek } from './deepseek/client'
+import { completeSensitive } from '@/lib/ai/sensitiveProvider'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -159,7 +159,7 @@ export async function askQuestion(
 
   // Best-effort AI polish with deterministic fallback (silent on failure).
   try {
-    const ai = await completeWithDeepSeek({
+    const ai = await completeSensitive({
       context: {
         kind: 'support',
         entityId: dataRoomId,

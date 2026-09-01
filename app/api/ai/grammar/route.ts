@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
-import { chatWithDeepSeek } from '@/lib/deepseek/client'
+import { chatSensitive } from '@/lib/ai/sensitiveProvider'
 
 export const runtime = 'nodejs'
 
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     'Keep the corrected text the same length/scope as the original — no padding, no marketing fluff.'
 
   try {
-    const res = await chatWithDeepSeek({
+    const res = await chatSensitive({
       system,
       userMessage: `Listing field: ${kind}\n\nOriginal text:\n${text}`,
       jsonMode: true,

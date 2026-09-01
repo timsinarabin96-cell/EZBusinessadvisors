@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { isPlatformAdmin } from '@/lib/platform'
 import { recordProviderCosts } from '@/lib/providerCosts'
-import { chatWithDeepSeek } from '@/lib/deepseek/client'
+import { chatSensitive } from '@/lib/ai/sensitiveProvider'
 
 export const runtime = 'nodejs'
 
@@ -26,7 +26,7 @@ const CATEGORIES = ['ai_api', 'hosting', 'domain', 'sms_phone', 'email', 'tools'
 
 async function aiCategorize(vendor: string, description: string): Promise<string> {
   try {
-    const res = await chatWithDeepSeek({
+    const res = await chatSensitive({
       system:
         'You are a meticulous accountant. Classify this business expense into exactly one category. ' +
         `Allowed categories: ${CATEGORIES.join(', ')}. ` +

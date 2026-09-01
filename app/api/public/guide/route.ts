@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { isDeepSeekConfigured, completeWithDeepSeek } from '@/lib/deepseek/client'
+import { completeSensitive, isSensitiveAiConfigured } from '@/lib/ai/sensitiveProvider'
 import {rateLimitAsync } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   if (!(await rateLimitAsync(clientIp(req), { limit: 10, windowMs: 60 * 1000 }))) {
     return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
   }
-  if (!isDeepSeekConfigured()) {
+  if (!isSensitiveAiConfigured()) {
     return NextResponse.json({ ok: false, error: 'Guide bot is not configured yet.' }, { status: 503 })
   }
 
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     : []
 
   try {
-    const result = await completeWithDeepSeek({
+    const result = await completeSensitive({
       context: { kind: 'support', text: mode === 'crm' ? 'User is inside the Concord CRM dashboard.' : 'Visitor is on the public Concord website.' },
       history,
       message,

@@ -11,7 +11,7 @@ import { validateServerInput } from '@cosmstack/blackshield/server'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 import { buildAgentContext } from '@/lib/claude/context'
 import { complete, isClaudeConfigured, ClaudeConfigError } from '@/lib/claude/client'
-import { completeWithDeepSeek, isDeepSeekConfigured, DeepSeekConfigError } from '@/lib/deepseek/client'
+import { completeSensitive, isSensitiveAiConfigured } from '@/lib/ai/sensitiveProvider'
 import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
 import { buildSystemPrompt } from '@/lib/claude/prompts'
 import { CLAUDE_MODELS, type AgentKind, type ClaudeModelName } from '@/types/ai'
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   // 0) Feature availability — fail fast with a clear, non-leaky message.
   // -------------------------------------------------------------------------
-  if (!isClaudeConfigured() && !isDeepSeekConfigured()) {
+  if (!isClaudeConfigured() && !isSensitiveAiConfigured()) {
     return fail(
       'AI is not configured yet. Add a server-side DeepSeek or Anthropic provider.',
       503,
@@ -208,16 +208,17 @@ export async function POST(req: NextRequest) {
   // appended after the message as the live instruction.
   const turns = (history || []).map((h) => ({ role: h.role, content: h.content }))
   // Provider routing — data-handling policy:
-  //   * Sensitive agents (document analysis, training, lead scoring) touch
-  //     real financial/legal data → ALWAYS route through Claude (Anthropic)
-  //     when configured; refuse rather than fall back to DeepSeek.
-  //   * Non-sensitive agents (support, booking) run on DeepSeek for cost,
+  //   * Sensitive agents (document analysis, training, lead scoring, listing
+  //     copilot) touch real financial/legal data → ALWAYS route through Claude
+  //     (Anthropic) when configured; refuse rather than fall back to DeepSeek.
+  //   * Non-sensitive agents (support, booking) prefer DeepSeek for cost,
   //     falling back to Claude if DeepSeek is unconfigured.
-  const sensitiveAgent = agent === 'document' || agent === 'training' || agent === 'lead'
+  const sensitiveAgent =
+    agent === 'document' || agent === 'training' || agent === 'lead' || agent === 'listing'
   if (sensitiveAgent && !isClaudeConfigured()) {
     return fail('Sensitive AI agents require the Anthropic provider (financial data policy).', 503, { code: 'AI_NOT_CONFIGURED' })
   }
-  const useClaude = sensitiveAgent || !isDeepSeekConfigured()
+  const useClaude = sensitiveAgent || !isSensitiveAiConfigured()
 
   // Per-tenant AI credentials — a sold CRM uses its OWN API key (billed to buyer).
   let tenantCfg = null
@@ -231,7 +232,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = useClaude
       ? await complete({ context, history: turns, message, system, model, jsonMode: Boolean(json), maxTokens: 2048 })
-      : await completeWithDeepSeek({ context, history: turns, message, system, jsonMode: Boolean(json), maxTokens: 1024, tenant })
+      : await completeSensitive({ context, history: turns, message, system, jsonMode: Boolean(json), maxTokens: 1024, tenant })
 
     return ok({
       ok: true,
@@ -243,7 +244,7 @@ export async function POST(req: NextRequest) {
     })
   } catch (err) {
     // ClaudeConfigError (key removed mid-flight) and SDK/network errors
-    if (err instanceof ClaudeConfigError || err instanceof DeepSeekConfigError) {
+    if (err instanceof ClaudeConfigError) {
       return fail('AI is not configured.', 503, { code: 'AI_NOT_CONFIGURED' })
     }
     const msg = (err as Error)?.message || 'Unknown AI error'

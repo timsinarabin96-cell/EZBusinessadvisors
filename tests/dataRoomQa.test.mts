@@ -32,7 +32,7 @@ test('dataRoomQa: deterministic keyword matching ranks files by name/notes with 
 })
 
 test('dataRoomQa: AI polish is best-effort inside try/catch with deterministic fallback', () => {
-  assert.match(lib, /completeWithDeepSeek/)
+  assert.match(lib, /completeSensitive/)
   assert.match(lib, /try \{/)
   assert.match(lib, /catch \{/)
   assert.match(lib, /deterministic/)

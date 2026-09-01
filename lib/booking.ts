@@ -15,7 +15,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { completeWithDeepSeek } from '@/lib/deepseek/client'
+import { completeSensitive } from '@/lib/ai/sensitiveProvider'
 import { resolveListingOwner } from '@/lib/callRouting'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -75,7 +75,7 @@ export async function extractBooking(
   now = new Date(),
 ): Promise<{ data: BookingInput | null; needs_confirmation?: boolean; question?: string }> {
   const prompt = `${BOOKING_EXTRACT_PROMPT}\n\nCurrent time: ${now.toISOString()}\n\nCaller message: "${message}"`
-  const result = await completeWithDeepSeek({
+  const result = await completeSensitive({
     message: prompt,
     context: { kind: 'support', text: '' },
     system: 'You extract structured booking data from natural language. Output JSON only.',

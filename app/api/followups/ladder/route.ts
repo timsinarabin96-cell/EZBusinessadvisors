@@ -10,7 +10,7 @@ import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { nextLadderStep, ESCALATION_LADDER } from '@/lib/buyerPipelineCore'
-import { completeWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
+import { completeSensitive, isSensitiveAiConfigured } from '@/lib/ai/sensitiveProvider'
 
 export const runtime = 'nodejs'
 
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   const auth = await authenticateProfileRequest(req)
   if (!auth) return unauthorizedResponse()
 
-  if (!isDeepSeekConfigured()) {
+  if (!isSensitiveAiConfigured()) {
     return NextResponse.json({ ok: false, error: 'AI is not configured yet.' }, { status: 503 })
   }
 
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   const dayLabel = ladderDay ? `Day ${ladderDay} of the follow-up sequence` : 'follow-up'
   const stageLine = stage ? `The lead is at stage: ${stage}.` : ''
 
-  const draft = await completeWithDeepSeek({
+  const draft = await completeSensitive({
     context: { kind: 'lead', text: '' },
     system: `You write warm, human follow-up texts for a business brokerage. One short text message, under 50 words, no hard sell, natural broker voice, one clear question or call-to-action. Never mention prices, deals, or confidential info.`,
     message: `Write a ${dayLabel} follow-up text to ${firstName} (a potential ${kind}).

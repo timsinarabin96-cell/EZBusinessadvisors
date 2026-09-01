@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createServerClient } from '@/lib/supabase/server'
 import { rateLimitAsync } from '@/lib/rateLimit'
-import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
+import { chatSensitive, isSensitiveAiConfigured } from '@/lib/ai/sensitiveProvider'
 
 export const runtime = 'nodejs'
 
@@ -99,33 +99,14 @@ export async function POST(req: NextRequest) {
   // picks it up unchanged.
   let aiError: string | null = null
   try {
-    if (isDeepSeekConfigured()) {
+    if (isSensitiveAiConfigured()) {
       const isCrm = mode === 'crm'
       const system = isCrm
         ? 'You are the AI assistant inside a business-brokerage CRM (EZ Business Advisors). Help the broker use the platform: listings, deal pipeline, lead management, NDA/listing agreements, documents, AI agents, calendar, communications, training. Answer briefly and concretely; point to the right tool/page when relevant. Never invent features that do not exist.'
         : 'You are the friendly AI assistant for a business brokerage website. Help visitors buy a business, sell their business, join the broker network, or contact a broker. Answer briefly and warmly. Do not disclose confidential business financials; tell buyers to request details through the site.'
-      // Direct DeepSeek call (bypasses client lib) — minimal payload that is
-      // proven to return content; no response_format/thinking params that could
-      // trigger empty-content responses in the serverless runtime.
-      const dsRes = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            { role: 'system', content: system },
-            { role: 'user', content: message },
-          ],
-          max_tokens: 400,
-          stream: false,
-        }),
-        signal: AbortSignal.timeout(40_000),
-      })
-      if (!dsRes.ok) {
-        aiError = `DeepSeek HTTP ${dsRes.status}`
-      } else {
-        const payload = await dsRes.json().catch(() => null) as { choices?: Array<{ message?: { content?: string | null } }> } | null
-        const reply = (payload?.choices?.[0]?.message?.content || '').trim().slice(0, 1500)
+      try {
+        const res = await chatSensitive({ system, userMessage: message, maxTokens: 400 })
+        const reply = (res.text || '').trim().slice(0, 1500)
         if (reply) {
           const { error: insErr } = await db.from('call_transcripts').insert({
             agency_id: agencyId,
@@ -136,8 +117,10 @@ export async function POST(req: NextRequest) {
           })
           if (insErr) aiError = 'insert failed: ' + insErr.message
         } else {
-          aiError = 'DeepSeek returned empty content'
+          aiError = 'AI returned empty content'
         }
+      } catch (e) {
+        aiError = e instanceof Error ? e.message : String(e)
       }
     }
   } catch (e) {

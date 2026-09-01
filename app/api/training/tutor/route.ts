@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
-import { completeWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
+import { completeSensitive, isSensitiveAiConfigured } from '@/lib/ai/sensitiveProvider'
 
 export const runtime = 'nodejs'
 
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const auth = await authenticateProfileRequest(req)
   if (!auth) return unauthorizedResponse()
 
-  if (!isDeepSeekConfigured()) {
+  if (!isSensitiveAiConfigured()) {
     return NextResponse.json({ ok: false, error: 'AI tutor is not configured yet — add DEEPSEEK_API_KEY.' }, { status: 503 })
   }
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
   ].join('\n')
 
   try {
-    const result = await completeWithDeepSeek({
+    const result = await completeSensitive({
       context: { kind: 'training', entityId: lessonId, text: contextText },
       history,
       message,

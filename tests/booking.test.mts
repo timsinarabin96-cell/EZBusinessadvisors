@@ -5,9 +5,9 @@ import test from 'node:test'
 const booking = readFileSync('lib/booking.ts', 'utf8')
 const chatRoute = readFileSync('app/api/ai/chat/route.ts', 'utf8')
 
-test('booking service extracts structured data with DeepSeek', () => {
+test('booking service extracts structured data via sensitive provider', () => {
   assert.match(booking, /export async function extractBooking/)
-  assert.match(booking, /completeWithDeepSeek/)
+  assert.match(booking, /completeSensitive/)
   assert.match(booking, /needs_confirmation/)
 })
 

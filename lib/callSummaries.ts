@@ -16,7 +16,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { completeWithDeepSeek } from './deepseek/client'
+import { completeSensitive } from '@/lib/ai/sensitiveProvider'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const svc =
@@ -150,7 +150,7 @@ export async function summarizeCall(callId: string): Promise<CallSummaryResult> 
 
     // 4. Best-effort AI polish (falls back silently to the deterministic output)
     try {
-      const ai = await completeWithDeepSeek({
+      const ai = await completeSensitive({
         context: {
           kind: 'support',
           entityId: callId,

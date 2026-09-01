@@ -19,7 +19,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail } from './email'
-import { completeWithDeepSeek } from '@/lib/deepseek/client'
+import { completeSensitive } from '@/lib/ai/sensitiveProvider'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -156,7 +156,7 @@ export function composeBriefing(data: BriefingData): { headline: string; body: s
 async function polishHeadline(data: BriefingData, fallback: string): Promise<string> {
   try {
     const summary = `${data.overdue.length} overdue, ${data.dueToday.length} due today, ${data.deadlines.length} deadlines in 72h, ${data.appointmentsToday.length} meetings, ${data.coldDeals.length} cold deals`
-    const result = await completeWithDeepSeek({
+    const result = await completeSensitive({
       message: `Write ONE short email subject line for a business broker's daily briefing. Data: ${summary}. Keep it under 70 chars, no quotes.`,
       context: { kind: 'support', text: '' },
       system: 'You write crisp, actionable email subject lines.',

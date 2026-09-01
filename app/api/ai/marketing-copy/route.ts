@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { chatWithDeepSeek, isDeepSeekConfigured } from '@/lib/deepseek/client'
+import { chatSensitive, isSensitiveAiConfigured } from '@/lib/ai/sensitiveProvider'
 import { resolveTenantAiConfig, toDeepSeekTenant } from '@/lib/tenantAi'
 import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
 
@@ -107,9 +107,9 @@ export async function POST(req: Request) {
   } catch { /* tenant resolution is best-effort */ }
 
   // --- Prefer a real DeepSeek generation when configured --------------------
-  if (isDeepSeekConfigured()) {
+  if (isSensitiveAiConfigured()) {
     try {
-      const { text } = await chatWithDeepSeek({
+      const { text } = await chatSensitive({
         system:
           'You are an expert business-brokerage marketing copywriter. Make every piece sound credible, premium, and on-brand. ' +
           'Return ONLY a valid JSON object with no markdown fences or surrounding prose. The JSON shape must be exactly: ' +
