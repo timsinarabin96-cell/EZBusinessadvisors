@@ -34,12 +34,16 @@ test('website: about and contact pages exist', () => {
   assert.match(contact, /ContactForm/)
 })
 
-test('website: contact API validates and emails', () => {
+test('website: contact API validates, emails, and creates a CRM lead', () => {
   assert.match(contactRoute, /export async function POST/)
   assert.match(contactRoute, /Name, email, and message are required/)
   assert.match(contactRoute, /valid email address/)
   assert.match(contactRoute, /sendEmail/)
   assert.match(contactRoute, /CONTACT_INBOX/)
+  // Contact-form submissions are real CRM leads (broker pipeline), not just inbox.
+  assert.match(contactRoute, /from\('buyer_leads'\)\.insert/)
+  assert.match(contactRoute, /source: 'contact_form'/)
+  assert.match(contactRoute, /createNotification/)
 })
 
 test('website: broker detail page uses public broker functions', () => {

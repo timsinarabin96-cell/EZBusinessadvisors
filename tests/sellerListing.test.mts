@@ -37,14 +37,17 @@ test('sell page offers paid plans and submits real orders', () => {
   assert.match(sellPage, /Listing order created/)
 })
 
-test('plans exist with the new monthly model', () => {
-  // Owner plans + upsells now live in the single source of truth (pricing.ts).
+test('plans exist with the one-time tier model (free/manual + $250 AI-Verified)', () => {
+  // Owner plans + upsells live in the single source of truth (pricing.ts).
   const pricing = readFileSync('lib/pricing.ts', 'utf8')
   assert.match(pricing, /Free Listing/)
-  assert.match(pricing, /per listing \/ month/)
+  assert.match(pricing, /AI-Verified Listing/)
+  assert.match(pricing, /price: 250, billing: 'one-time per listing'/)
   assert.match(pricing, /LISTING_UPSELL_OPTIONS/)
   assert.match(pricing, /CRM_MONTHLY = 499/)
   assert.match(pricing, /featured_30/)
+  // No recurring $50/mo plan in the listing tiers.
+  assert.doesNotMatch(pricing, /per listing \/ month/)
   // Brokerage SaaS plans remain in listingIntelligence.
   const intel = readFileSync('lib/listingIntelligence.ts', 'utf8')
   assert.match(intel, /Enterprise Network/)

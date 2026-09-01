@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   if (body.scheduleAt) {
     const res = await schedulePublish(listingId, String(body.scheduleAt))
     if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: 500 })
-    // Free window starts at go-live.
+    // Initial listing term starts at go-live.
     const goLive = new Date(String(body.scheduleAt))
     await setExpiry(listingId, new Date(goLive.getTime() + 60 * 86400000).toISOString()).catch(() => {})
     return NextResponse.json({ ok: true, scheduled: true, publishAt: body.scheduleAt })
@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
     }, { status: res.blocked ? 422 : 500 })
   }
 
-  // Free 2-month window starts now; renewal is $50/listing/month after.
+  // Initial 60-day listing term starts now; renewal reminders (refreshed
+  // valuation + one-click extend) keep the listing live — no recurring fee.
   await setExpiry(listingId, new Date(Date.now() + 60 * 86400000).toISOString()).catch(() => {})
   return NextResponse.json({ ok: true, published: true, score: res.score, flagged: res.flagged || false, compliance: res.compliance || null, risk: res.risk || null })
 }

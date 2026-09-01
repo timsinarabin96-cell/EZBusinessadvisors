@@ -121,16 +121,16 @@ export const CRM_LICENSE = {
 // ---------------------------------------------------------------------------
 export const OWNER_LISTING_PLANS = [
   {
-    id: 'free', name: 'Free Listing', price: 0, billing: 'first 2 months',
-    description: 'One-time free listing for business owners. Free for the first 2 months, then $50/month per listing to stay live.',
-    features: ['1 free listing for 2 months', 'Confidential by default', 'Buyer inquiry notifications', 'Renew at $50/mo after the free window'],
-    featured: true,
+    id: 'free', name: 'Free Listing', price: 0, billing: 'free',
+    description: 'Self-serve listing with manual entry. A broker reviews before it goes live.',
+    features: ['Manual entry only (no AI extraction)', 'Listed as “Self-Reported”', 'Confidential by default', 'Buyer inquiry notifications'],
+    featured: false,
   },
   {
-    id: 'professional', name: 'Owner Renewal', price: 50, billing: 'per listing / month',
-    description: 'Keep your listing live after the free window.',
-    features: ['Listing stays live', 'Unlimited inquiries', 'Cancel anytime'],
-    featured: false,
+    id: 'professional', name: 'AI-Verified Listing', price: 250, billing: 'one-time per listing',
+    description: 'Full AI path: advisor interview + document ingestion + BOV/Recast/CIM from the validated financial engine.',
+    features: ['AI advisor interview', 'Universal document reading', 'BOV / Recast / CIM reports', '“AI-Verified Financials” public badge'],
+    featured: true,
   },
 ] as const
 

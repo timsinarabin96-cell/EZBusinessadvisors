@@ -160,6 +160,7 @@ export async function POST(req: NextRequest) {
     ok: true,
     order: result.order,
     listing: result.listing,
+    portalUrl,
     message: 'Your listing is in the broker review queue. A broker will contact you to confirm details before it goes live.',
   })
 }

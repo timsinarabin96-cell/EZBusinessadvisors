@@ -6,7 +6,7 @@
 > **Status legend:** ✅ done · 🟡 partial (works but has a known gap) · ❌ not built / open
 >
 > **Maintenance rule:** update this file in the same commit as any completed feature work.
-> Latest full-suite baseline: **966/966 unit tests green, typecheck clean** (2026-08-31, after migration runner + advisor-routing hook + `--mark`).
+> Latest full-suite baseline: **967/967 unit tests green, typecheck clean** (2026-09-01, after public-sell-page tier rewire + contact-form CRM lead + digest cron).
 > Live DB: Supabase project `ytcvlvisufxmmzeblmwx` · Deployed: Vercel `ezbusinessadvisors.vercel.app`
 
 ---
@@ -55,6 +55,7 @@
 | AI Concierge → AI Deal Studio (13-advance waves 1–3: voice intake, photo AI, comps, buyers, syndication, offer intel) | ✅ | `964d2c5`, `795cad6`, `8769bcc`, `1d94494` |
 | AI Advisor Interview (conversational Claude intake, deterministic fallback) | ✅ | `d17149a` |
 | Seller tiers — free (manual/self-reported) vs paid (AI, AI-Verified) | ✅ | `4866e2b` |
+| **Seller tier pricing — $50/mo recurring model KILLED; public sell page now sells Free/manual ($0) + AI-Verified ($250 one-time per listing); publish term comment updated (no recurring fee)** | ✅ | this commit |
 | Advance-to-Listing (recast+BOV+CIM in one action, reconciliation invariant) | ✅ | `4866e2b` |
 | Intake migration — single AI intake surface, old intake route deleted | ✅ | `4866e2b`, `de36d11` |
 | Readiness engine + publish gate | ✅ | `b8061b0` |
