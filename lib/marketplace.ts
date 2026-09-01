@@ -115,6 +115,10 @@ export interface SearchFilters {
   query?: string
   industry?: string
   location?: string
+  /** US state code or full name (e.g. 'PA' or 'Pennsylvania'). */
+  state?: string
+  /** County/region display name (e.g. 'Harris County, TX'). */
+  county?: string
   minPrice?: number
   maxPrice?: number
   minRevenue?: number
@@ -144,6 +148,34 @@ function numberOrNull(value: number | string | null): number | null {
   if (value === null || value === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+const STATE_NAME_TO_CODE: Record<string, string> = {
+  Alabama: 'AL', Alaska: 'AK', Arizona: 'AZ', Arkansas: 'AR', California: 'CA', Colorado: 'CO',
+  Connecticut: 'CT', Delaware: 'DE', Florida: 'FL', Georgia: 'GA', Hawaii: 'HI', Idaho: 'ID',
+  Illinois: 'IL', Indiana: 'IN', Iowa: 'IA', Kansas: 'KS', Kentucky: 'KY', Louisiana: 'LA',
+  Maine: 'ME', Maryland: 'MD', Massachusetts: 'MA', Michigan: 'MI', Minnesota: 'MN',
+  Mississippi: 'MS', Missouri: 'MO', Montana: 'MT', Nebraska: 'NE', Nevada: 'NV',
+  'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
+  'North Carolina': 'NC', 'North Dakota': 'ND', Ohio: 'OH', Oklahoma: 'OK', Oregon: 'OR',
+  Pennsylvania: 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC', 'South Dakota': 'SD',
+  Tennessee: 'TN', Texas: 'TX', Utah: 'UT', Vermont: 'VT', Virginia: 'VA', Washington: 'WA',
+  'West Virginia': 'WV', Wisconsin: 'WI', Wyoming: 'WY', 'District of Columbia': 'DC',
+}
+
+/**
+ * Match a listing's location_general (e.g. "Harrisburg, PA" / "Texas") against
+ * a state filter given as a code ("PA") or full name ("Pennsylvania").
+ */
+function listingMatchesState(locationGeneral: string | null | undefined, stateFilter: string): boolean {
+  const loc = (locationGeneral || '').toLowerCase()
+  if (!loc) return false
+  const trimmed = stateFilter.trim()
+  const code = trimmed.toUpperCase()
+  const byName = Object.entries(STATE_NAME_TO_CODE).find(([n]) => n.toLowerCase() === trimmed.toLowerCase())
+  const targetCode = byName ? byName[1] : code
+  const fullName = Object.entries(STATE_NAME_TO_CODE).find(([, c]) => c === targetCode)?.[0]?.toLowerCase()
+  return loc.includes(targetCode.toLowerCase()) || (fullName ? loc.includes(fullName) : false)
 }
 
 function stringArray(value: unknown): string[] {
@@ -268,6 +300,8 @@ export async function searchPublicListings(filters: SearchFilters = {}, agency: 
   return (await fetchPublicFeed(null, agency))
     .filter((listing) => !country || (listing.country_code || 'US').toUpperCase() === country)
     .filter((listing) => !location || listing.location_general?.toLowerCase().includes(location))
+    .filter((listing) => !filters.state || listingMatchesState(listing.location_general, filters.state))
+    .filter((listing) => !filters.county || listing.location_general?.toLowerCase().includes(filters.county.toLowerCase()))
     .filter((listing) => !filters.minPrice || (listing.asking_price !== null && listing.asking_price >= filters.minPrice))
     .filter((listing) => !filters.maxPrice || (listing.asking_price !== null && listing.asking_price <= filters.maxPrice))
     .filter((listing) => !filters.minRevenue || (listing.annual_revenue !== null && listing.annual_revenue >= filters.minRevenue))

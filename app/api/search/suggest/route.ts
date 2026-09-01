@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get('limit')) || 8, 1), 15)
 
   try {
-    if (type === 'category') {
+    if (type === 'category' || type === 'keyword') {
       // Raw listing-derived values are cleaned (title-cased, trimmed) and then
       // merged with the curated business-category taxonomy so suggestions are
       // always real categories (Retail, Restaurant…) — never junk free-text.
@@ -56,7 +56,42 @@ export async function GET(req: NextRequest) {
         }
       }
       const suggestions = suggestBusinessCategories(q, listingValues)
-      return NextResponse.json({ ok: true, suggestions: suggestions.slice(0, limit), type: 'category' })
+      return NextResponse.json({ ok: true, suggestions: suggestions.slice(0, limit), type })
+    }
+
+    if (type === 'state') {
+      const prefix = `${q}%`
+      const { data: stateRows } = await db
+        .from('locations')
+        .select('display, state_code, place_type')
+        .eq('place_type', 'state')
+        .or(`name.ilike.${prefix},display.ilike.${prefix}`)
+        .order('display', { ascending: true })
+        .limit(60)
+      const suggestions = (stateRows || []).map((r) => ({
+        display: String((r as any).display || ''),
+        state_code: (r as any).state_code || null,
+        place_type: 'state',
+      }))
+      return NextResponse.json({ ok: true, suggestions: suggestions.slice(0, limit), type: 'state' })
+    }
+
+    if (type === 'county') {
+      const stateFilter = req.nextUrl.searchParams.get('state') || ''
+      const prefix = `${q}%`
+      let query = db
+        .from('locations')
+        .select('display, state_code, place_type')
+        .eq('place_type', 'county')
+      if (stateFilter) query = query.eq('state_code', stateFilter.toUpperCase())
+      query = query.or(`name.ilike.${prefix},display.ilike.${prefix}`).order('display', { ascending: true }).limit(80)
+      const { data: countyRows } = await query
+      const suggestions = (countyRows || []).map((r) => ({
+        display: String((r as any).display || ''),
+        state_code: (r as any).state_code || null,
+        place_type: 'county',
+      }))
+      return NextResponse.json({ ok: true, suggestions: suggestions.slice(0, limit), type: 'county' })
     }
 
     // ---- location: cities / counties / states from the locations table ----
@@ -82,16 +117,57 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 2) US locations table — cities, counties, states (case-insensitive prefix).
+    // 2) US locations table — states first, then counties, then cities, so
+    //    typing "H" surfaces Hawaii AND Harris County AND cities (boss: list of
+    //    City or state starting with the letter).
     const prefix = `${q}%`
+    const { data: stateRows } = await db
+      .from('locations')
+      .select('display, state_code, place_type')
+      .eq('place_type', 'state')
+      .or(`name.ilike.${prefix},display.ilike.${prefix}`)
+      .order('display', { ascending: true })
+      .limit(20)
+
+    const seenLoc = new Set<string>()
+    for (const row of stateRows || []) {
+      const display = String((row as any).display || '')
+      if (!display || seenLoc.has(display.toLowerCase())) continue
+      seenLoc.add(display.toLowerCase())
+      suggestions.push({
+        display,
+        state_code: (row as any).state_code || null,
+        place_type: 'state' as LocationSuggestion['place_type'],
+      })
+    }
+
+    const { data: countyRows } = await db
+      .from('locations')
+      .select('display, state_code, place_type')
+      .eq('place_type', 'county')
+      .or(`name.ilike.${prefix},display.ilike.${prefix}`)
+      .order('display', { ascending: true })
+      .limit(40)
+
+    for (const row of countyRows || []) {
+      const display = String((row as any).display || '')
+      if (!display || seenLoc.has(display.toLowerCase())) continue
+      seenLoc.add(display.toLowerCase())
+      suggestions.push({
+        display,
+        state_code: (row as any).state_code || null,
+        place_type: 'county' as LocationSuggestion['place_type'],
+      })
+    }
+
     const { data: cityRows } = await db
       .from('locations')
       .select('display, state_code, place_type')
+      .eq('place_type', 'city')
       .or(`name.ilike.${prefix},display.ilike.${prefix}`)
-      .order('place_type', { ascending: true }) // cities before counties/states
+      .order('display', { ascending: true })
       .limit(40)
 
-    const seenLoc = new Set<string>()
     for (const row of cityRows || []) {
       const display = String((row as any).display || '')
       if (!display || seenLoc.has(display.toLowerCase())) continue
@@ -99,7 +175,7 @@ export async function GET(req: NextRequest) {
       suggestions.push({
         display,
         state_code: (row as any).state_code || null,
-        place_type: ((row as any).place_type || 'city') as LocationSuggestion['place_type'],
+        place_type: 'city' as LocationSuggestion['place_type'],
       })
     }
 

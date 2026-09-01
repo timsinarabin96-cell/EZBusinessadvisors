@@ -18,13 +18,15 @@
 import { useEffect, useRef, useState } from 'react'
 
 interface AutocompleteInputProps {
-  type: 'location' | 'category'
+  type: 'location' | 'category' | 'keyword' | 'state' | 'county'
   value: string
   onChange: (v: string) => void
-  onPick?: (v: string) => void
+  onPick?: (v: string, item?: SuggestItem) => void
   placeholder?: string
   style?: React.CSSProperties
   minChars?: number
+  /** Optional state-code filter for type=county (e.g. 'TX'). */
+  stateParam?: string
 }
 
 interface SuggestItem {
@@ -35,10 +37,11 @@ interface SuggestItem {
 
 const TYPE_LABEL: Record<string, string> = {
   city: 'City', county: 'County', state: 'State', zip: 'ZIP', listing: 'Our listings',
+  keyword: 'Business type',
 }
 
 export default function AutocompleteInput({
-  type, value, onChange, onPick, placeholder, style, minChars = 1,
+  type, value, onChange, onPick, placeholder, style, minChars = 1, stateParam,
 }: AutocompleteInputProps) {
   const [suggestions, setSuggestions] = useState<SuggestItem[]>([])
   const [open, setOpen] = useState(false)
@@ -52,7 +55,8 @@ export default function AutocompleteInput({
     setLoading(true)
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(q)}&type=${type}&limit=8`)
+        const stateQS = stateParam ? `&state=${encodeURIComponent(stateParam)}` : ''
+        const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(q)}&type=${type}&limit=12${stateQS}`)
         const j = await res.json()
         if (active && j.ok) {
           // Normalize: plain strings (old shape) or {display,...} objects.
@@ -65,7 +69,7 @@ export default function AutocompleteInput({
       } catch { if (active) setSuggestions([]) } finally { if (active) setLoading(false) }
     }, 180)
     return () => { active = false; clearTimeout(t) }
-  }, [value, type, minChars])
+  }, [value, type, minChars, stateParam])
 
   // Close on outside click.
   useEffect(() => {
@@ -78,7 +82,7 @@ export default function AutocompleteInput({
 
   const pick = (s: SuggestItem) => {
     onChange(s.display)
-    onPick?.(s.display)
+    onPick?.(s.display, s)
     setOpen(false)
   }
 

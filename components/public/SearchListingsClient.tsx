@@ -46,6 +46,8 @@ export default function SearchListingsClient({ initialResults, initialIndustries
   const q = searchParams.get('q') || ''
   const industry = searchParams.get('industry') || ''
   const location = searchParams.get('location') || ''
+  const stateFilter = searchParams.get('state') || ''
+  const countyFilter = searchParams.get('county') || ''
   const maxPrice = searchParams.get('maxPrice') || ''
   const maxRevenue = searchParams.get('maxRevenue') || ''
   const maxSdeMultiple = searchParams.get('maxSdeMultiple') || ''
@@ -71,6 +73,9 @@ export default function SearchListingsClient({ initialResults, initialIndustries
   const [query, setQuery] = useState(q)
   const [selIndustry, setSelIndustry] = useState(industry)
   const [loc, setLoc] = useState(location)
+  const [stateSel, setStateSel] = useState(stateFilter)
+  const [stateCode, setStateCode] = useState('')
+  const [countySel, setCountySel] = useState(countyFilter)
   const [price, setPrice] = useState(maxPrice)
   const [rev, setRev] = useState(maxRevenue)
   const [minRev, setMinRev] = useState(minRevenueParam)
@@ -110,6 +115,8 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       query: q || undefined,
       industry: industry || undefined,
       location: location || undefined,
+      state: stateFilter || undefined,
+      county: countyFilter || undefined,
       minPrice: minPriceParam ? Number(minPriceParam) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       maxRevenue: maxRevenue ? Number(String(maxRevenue).replace(/[$,]/g, '')) : undefined,
@@ -132,7 +139,7 @@ export default function SearchListingsClient({ initialResults, initialIndustries
       minEmployees: minEmployees ? Number(minEmployees) : undefined,
       sortBy: (sortBy as any) || undefined,
     }, agencyScope || undefined).then(setResults).finally(() => setLoading(false))
-  }, [q, industry, location, minPriceParam, maxPrice, minRevenueParam, maxRevenue, minSdeParam, maxSdeParam, minEbitdaParam, maxEbitdaParam, minYearParam, maxSdeMultiple, absenteeOnly, franchiseOnly, financingAvailable, relocatableParam, revenueVerifiedParam, sellerVerifiedParam, bovOnFileParam, sbaOnly, status, minEmployees, sortBy])
+  }, [q, industry, location, stateFilter, countyFilter, minPriceParam, maxPrice, minRevenueParam, maxRevenue, minSdeParam, maxSdeParam, minEbitdaParam, maxEbitdaParam, minYearParam, maxSdeMultiple, absenteeOnly, franchiseOnly, financingAvailable, relocatableParam, revenueVerifiedParam, sellerVerifiedParam, bovOnFileParam, sbaOnly, status, minEmployees, sortBy])
 
   const applyFilters = (e: React.FormEvent) => {
     e.preventDefault()
@@ -145,6 +152,8 @@ export default function SearchListingsClient({ initialResults, initialIndustries
     if (industry) params.set('industry', industry)
     const location = loc || parsed.location || ''
     if (location) params.set('location', location)
+    if (stateSel) params.set('state', stateSel)
+    if (countySel) params.set('county', countySel)
     if (price === 'NONE') {
       params.set('minPrice', '1000000') // $1M+ chip = no upper bound, min $1M
     } else if (price || parsed.maxPrice) {
@@ -253,8 +262,24 @@ export default function SearchListingsClient({ initialResults, initialIndustries
           })}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(190px, 100%), 1fr))', gap: 12 }}>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Keyword" style={inputStyle} />
+          <AutocompleteInput
+            type="keyword"
+            value={query}
+            onChange={setQuery}
+            onPick={(v) => setQuery(v)}
+            placeholder="Keyword (e.g. Restaurant)…"
+            style={inputStyle}
+          />
           <AutocompleteInput type="category" value={selIndustry} onChange={setSelIndustry} placeholder="Category (e.g. Retail, Restaurant)…" style={{ ...inputStyle, paddingLeft: 12 }} />
+          <AutocompleteInput
+            type="state"
+            value={stateSel}
+            onChange={(v) => { setStateSel(v); setCountySel('') }}
+            onPick={(v, item) => setStateCode(item?.state_code || '')}
+            placeholder="State (e.g. Texas)…"
+            style={inputStyle}
+          />
+          <AutocompleteInput type="county" value={countySel} onChange={setCountySel} stateParam={stateCode} placeholder="County / Region…" style={inputStyle} />
           <AutocompleteInput type="location" value={loc} onChange={setLoc} placeholder="City, county, or state…" style={inputStyle} />
           <input value={price} onChange={(e) => setPrice(formatWithCommas(e.target.value))} placeholder="Max Price ($)" inputMode="decimal" style={inputStyle} />
           {advanced && (
