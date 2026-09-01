@@ -6,7 +6,15 @@
  */
 
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import AffiliateResources from '@/components/public/AffiliateResources'
+
+export const metadata: Metadata = {
+  title: 'How to Sell a Business: Step-by-Step Seller Guide | Concord Deal Platform',
+  description: 'From valuation to closing: the complete business-selling process — preparing financials, confidentiality, buyer qualification, and negotiation. Free guide for sellers.',
+  alternates: { canonical: '/marketplace/guides/sellers' },
+  openGraph: { title: 'How to Sell a Business — Seller Guide | Concord Deal Platform', description: 'The complete step-by-step process for selling a business: valuation, preparing the listing, vetting buyers, and closing.', url: '/marketplace/guides/sellers', type: 'website' },
+}
 
 
 // Seller Guides — lead magnet + SEO page: how to sell a business, checklist,

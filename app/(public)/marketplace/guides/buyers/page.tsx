@@ -6,10 +6,17 @@
  */
 
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import AffiliateResources from '@/components/public/AffiliateResources'
 
-
 // Buyer Guides — step-by-step acquisition path for buyers. Server component.
+
+export const metadata: Metadata = {
+  title: 'How to Buy a Business: Step-by-Step Buyer Guide | Concord Deal Platform',
+  description: 'From acquisition criteria to closing: the complete business-buying process — SBA financing, due diligence, deal structure, and transition. Free guide for buyers.',
+  alternates: { canonical: '/marketplace/guides/buyers' },
+  openGraph: { title: 'How to Buy a Business — Buyer Guide | Concord Deal Platform', description: 'The complete step-by-step process for buying a business: pre-qualification, due diligence, structuring the deal, and closing.', url: '/marketplace/guides/buyers', type: 'website' },
+}
 
 const steps = [
   ['01', 'Define your acquisition criteria', 'Industry, size, revenue, location, budget, and financing approach. Clear criteria mean you can act fast when the right business appears — great deals get multiple offers.'],

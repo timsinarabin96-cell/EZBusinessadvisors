@@ -17,6 +17,11 @@ export const metadata: Metadata = {
   openGraph: { title: 'Reviews & Testimonials — Concord Deal Platform', description: 'Real feedback from buyers and sellers who closed deals with us.', url: '/marketplace/reviews', type: 'website' },
 }
 
+// ⚠️ ILLUSTRATIVE CONTENT — boss directive 09-01: these are placeholder
+// testimonials (marketing copy), NOT real client quotes. No database/API
+// backs them. They must be labeled clearly until genuine testimonials are
+// collected — false-testimonial risk is unacceptable. Replace with real
+// stories (post-close review ask already exists in lib/pipeline.ts).
 const reviews = [
   {
     name: 'Mark R.',
@@ -74,11 +79,17 @@ export default function ReviewsPage() {
           <p style={{ color: '#cbdbe7', fontSize: 16.5, lineHeight: 1.65, maxWidth: 640 }}>
             Real outcomes from confidential transactions. Names abbreviated to protect the very confidentiality we promise.
           </p>
+          <div style={{ marginTop: 18, background: '#7f1d1d', border: '1px solid #fca5a5', color: '#fecaca', borderRadius: 10, padding: '14px 18px', fontSize: 14, lineHeight: 1.6, maxWidth: 680 }}>
+            <strong>⚠️ Illustrative examples — not real client testimonials.</strong> These quotes and figures are sample
+            marketing copy until genuine client stories are collected. Each is labeled below; they will be replaced with
+            real testimonials before launch. We do not publish fabricated reviews.
+          </div>
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Stats — illustrative, labeled as such */}
       <section style={{ maxWidth: 1080, margin: '0 auto', padding: '44px 24px 8px' }}>
+        <div style={{ fontSize: 12.5, color: '#7b8794', marginBottom: 10, fontWeight: 700 }}>📊 Illustrative sample figures — not actual platform totals</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(180px, 100%), 1fr))', gap: 16 }}>
           {stats.map(([value, label]) => (
             <div key={label} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '22px 18px', textAlign: 'center' }}>
@@ -100,6 +111,7 @@ export default function ReviewsPage() {
               </blockquote>
               <figcaption style={{ fontSize: 14, fontWeight: 800, color: '#102a43' }}>{r.name}</figcaption>
               <div style={{ fontSize: 12.5, color: '#7b8794', marginTop: 2 }}>{r.role}</div>
+              <div style={{ display: 'inline-block', marginTop: 10, fontSize: 11, fontWeight: 800, color: '#7f1d1d', background: '#fee2e2', border: '1px solid #fca5a5', padding: '2px 8px', borderRadius: 999 }}>Illustrative example</div>
             </figure>
           ))}
         </div>
