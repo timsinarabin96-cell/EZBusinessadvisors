@@ -191,9 +191,9 @@ export default function SearchListingsClient({ initialResults, initialIndustries
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
       <style>{`
-        .cdp-glass input, .cdp-glass select { color: #fff; }
+        .cdp-glass input, .cdp-glass select { color: #1a1a2e; }
         .cdp-glass input:focus, .cdp-glass select:focus { border-color: #c9a84c !important; box-shadow: 0 0 0 3px rgba(201,168,76,0.25) !important; outline: none; }
-        .cdp-glass input::placeholder, .cdp-glass select::placeholder { color: rgba(255,255,255,0.45); }
+        .cdp-glass input::placeholder, .cdp-glass select::placeholder { color: #8a8a8a; }
         .cdp-glass select option { color: #1a1a2e; background: #fff; }
         .cdp-chip { transition: all .15s ease; }
         .cdp-chip:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(201,168,76,0.25); }
