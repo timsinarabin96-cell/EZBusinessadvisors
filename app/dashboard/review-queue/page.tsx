@@ -20,6 +20,7 @@ import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { supabase } from '@/lib/supabase/client'
+import { PageHero, EmptyState, Chip } from '@/components/ui/premium'
 
 interface ReviewListing {
   id: string
@@ -83,19 +84,23 @@ function ReviewQueue() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 26, margin: '0 0 6px' }}>Listing Review Queue</h1>
-      <p style={{ color: 'var(--muted)', margin: '0 0 24px' }}>
-        Draft listings from seller self-service and intake wait here. Approve to publish + auto-match buyers; reject or request changes to send back.
-      </p>
+      <PageHero
+        icon="🗂️"
+        eyebrow="Review Queue"
+        title="Listing Review Queue"
+        sub="Draft listings from seller self-service and intake wait here. Approve to publish + auto-match buyers; reject or request changes to send back."
+      />
 
       {listings.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', background: '#fff', border: '1px solid var(--line)', borderRadius: 12, color: 'var(--muted)' }}>
-          🎉 Queue is clear — no listings awaiting review.
-        </div>
+        <EmptyState
+          icon="🎉"
+          title="Queue is clear"
+          sub="No listings awaiting review."
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {listings.map((l) => (
-            <article key={l.id} style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: 18 }}>
+            <article key={l.id} className="p-card" style={{ padding: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 700 }}>{l.business_name}</div>
@@ -105,8 +110,8 @@ function ReviewQueue() {
                     {l.annual_revenue ? ` · Revenue $${Number(l.annual_revenue).toLocaleString()}` : ''}
                   </div>
                   <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 11, background: '#f1f5f9', padding: '3px 10px', borderRadius: 20, color: '#475569' }}>source: {l.intake_source || 'manual'}</span>
-                    <span style={{ fontSize: 11, background: '#fef3c7', padding: '3px 10px', borderRadius: 20, color: '#92400e' }}>{l.review_stage}</span>
+                    <Chip tone="gray">source: {l.intake_source || 'manual'}</Chip>
+                    <Chip tone="gold">{l.review_stage}</Chip>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>

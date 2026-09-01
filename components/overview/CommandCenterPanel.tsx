@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Card, CardHeader, LoadingState } from '@/components/ui'
+import { StatCard } from '@/components/ui/premium'
 import { useToast } from '@/components/ui/Toast'
 import { fetchListings, fmtMoneyCompact } from '@/lib/listings'
 import { getWorkflow, setListingStatus, fetchSBA } from '@/lib/workflow'
@@ -66,24 +67,12 @@ export function CommandCenterPanel() {
 
   return (
     <div>
-      <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 18 }}>
-        <div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: 'var(--navy)', margin: 0 }}>Command Center</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>Manage all listings and their status across the sales lifecycle.</p>
-        </div>
-        <Link href="/dashboard/listings/new" style={{ textDecoration: 'none', padding: '11px 18px', background: 'var(--navy)', color: '#fff', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap' }}>
-          + New listing
-        </Link>
-      </header>
-
-      {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 18 }}>
-        {[['Total', stats.total, '#0b1f3a'], ['Active', stats.active, '#16a34a'], ['Pending / Contract', stats.pending, '#b45309'], ['Sold', stats.sold, '#0e7490']].map(([l, v, c]) => (
-          <div key={l as string} style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--muted)' }}>{l}</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: c as string, fontFamily: 'Georgia, serif' }}>{v}</div>
-          </div>
-        ))}
+      {/* Stats row — premium stat tiles */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(170px, 100%), 1fr))', gap: 14, marginBottom: 20 }}>
+        <StatCard label="Total Listings" value={stats.total} sub="all statuses" />
+        <StatCard label="Active" value={stats.active} sub="live on marketplace" accent="#16a34a" />
+        <StatCard label="Pending / Contract" value={stats.pending} sub="in negotiation" accent="#b45309" />
+        <StatCard label="Sold" value={stats.sold} sub="closed deals" accent="#0e7490" />
       </div>
 
       {/* Filter tabs */}
@@ -95,13 +84,17 @@ export function CommandCenterPanel() {
         ))}
       </div>
 
-      {/* Listings table */}
-      <Card>
+      {/* Listings table — premium shell */}
+      <div className="p-card" style={{ overflow: 'hidden' }}>
+        <div className="p-card-head">
+          <div className="p-card-title">🏢 Listings</div>
+          <Link href="/dashboard/listings/new" className="btn btn-gold" style={{ padding: '8px 16px', fontSize: 13 }}>+ New listing</Link>
+        </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Georgia, serif', fontSize: 14 }}>
+          <table className="p-table">
             <thead>
-              <tr style={{ borderBottom: '2px solid var(--line)', textAlign: 'left' }}>
-                {['Business', 'Industry', 'Asking', 'Workflow', 'SBA', 'Status', 'Actions'].map((h) => <th key={h} style={th}>{h}</th>)}
+              <tr>
+                {['Business', 'Industry', 'Asking', 'Workflow', 'SBA', 'Status', 'Actions'].map((h) => <th key={h}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -111,14 +104,14 @@ export function CommandCenterPanel() {
                 const sba = enriched[l.id]?.sba
                 const pct = w ? Math.round(((w.completed_steps || []).length / 10) * 100) : 0
                 return (
-                  <tr key={l.id} style={{ borderBottom: '1px solid var(--line)' }}>
-                    <td style={td}>
+                  <tr key={l.id}>
+                    <td>
                       <Link href={`/dashboard/listings/${l.id}/workflow`} style={{ fontWeight: 700, color: 'var(--navy)', textDecoration: 'none' }}>{l.business_name}</Link>
                       <div style={{ fontSize: 12, color: 'var(--muted)' }}>{l.location_general || ''}</div>
                     </td>
-                    <td style={td}>{l.industry || '—'}</td>
-                    <td style={td}><strong>{l.asking_price ? fmtMoneyCompact(l.asking_price) : '—'}</strong></td>
-                    <td style={td}>
+                    <td>{l.industry || '—'}</td>
+                    <td><strong>{l.asking_price ? fmtMoneyCompact(l.asking_price) : '—'}</strong></td>
+                    <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 70, height: 5, background: 'var(--paper)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: 'var(--gold)' }} />
@@ -126,9 +119,9 @@ export function CommandCenterPanel() {
                         <span style={{ fontSize: 12, color: 'var(--muted)' }}>{pct}%</span>
                       </div>
                     </td>
-                    <td style={td}><SBABadge eligible={sba?.is_sba_eligible} reviewed={!!sba?.reviewed_at} /></td>
-                    <td style={td}><StatusBadge status={l.status} /></td>
-                    <td style={td}>
+                    <td><SBABadge eligible={sba?.is_sba_eligible} reviewed={!!sba?.reviewed_at} /></td>
+                    <td><StatusBadge status={l.status} /></td>
+                    <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <Link href={`/dashboard/listings/${l.id}/workflow`} style={miniBtn}>Workflow</Link>
                         <Link href={`/dashboard/listings/${l.id}/edit`} style={miniBtn}>Edit</Link>
@@ -143,7 +136,7 @@ export function CommandCenterPanel() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }

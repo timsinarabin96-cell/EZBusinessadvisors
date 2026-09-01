@@ -39,12 +39,13 @@ import {
 } from '@/lib/financialFiles'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
+import { PageHero } from '@/components/ui/premium'
 
 export default function FinancialFilesPage() {
   return (
     <AppShell active="Financial Files">
       <ToastProvider>
-        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 18px 60px' }}>
           <FinancialFilesDashboard />
         </div>
       </ToastProvider>
@@ -162,17 +163,13 @@ function FinancialFilesDashboard() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 6 }}>
-        <div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 27, color: 'var(--navy)', margin: 0 }}>Financial Files</h1>
-          <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>
-            Upload once — Recast, BOV, CIM &amp; BLI generate automatically.
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn-ghost" onClick={load}>↻ Refresh</button>
-        </div>
-      </div>
+      <PageHero
+        icon="🗂️"
+        eyebrow="Financial Files"
+        title="Financial Files"
+        sub="Upload once — Recast, BOV, CIM & BLI generate automatically."
+        actions={<button className="btn-ghost" onClick={load}>↻ Refresh</button>}
+      />
 
       {/* Financial Intelligence add-on gate banner ($100/mo upsell) */}
       {addonEnabled === false && (

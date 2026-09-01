@@ -14,6 +14,7 @@ import { formatWithCommas } from '@/components/ui/MoneyInput'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { PageHero, EmptyState } from '@/components/ui/premium'
 
 interface Milestone {
   id: string
@@ -213,14 +214,14 @@ function ClosingTracker() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">🏁 Closing & Escrow Tracker</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Milestone checklist from LOI through close, plus escrow accounts. Pick a listing to open its tracker.
-        </p>
-      </div>
+      <PageHero
+        icon="🏁"
+        eyebrow="Closing Tracker"
+        title="Closing & Escrow Tracker"
+        sub="Milestone checklist from LOI through close, plus escrow accounts. Pick a listing to open its tracker."
+      />
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+      <div className="p-card p-card-pad mb-6">
         <h2 className="font-semibold mb-3">Select a deal</h2>
         <div className="flex flex-col md:flex-row gap-3">
           <select className="border rounded-lg px-3 py-2 text-sm flex-1" value={selected} onChange={(e) => selectListing(e.target.value)}>
@@ -244,7 +245,7 @@ function ClosingTracker() {
       {selected && progress && (
         <>
           {/* Progress bar */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <div className="p-card p-card-pad mb-6">
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold">Closing progress</h2>
               <span className="text-sm font-bold text-blue-600">{progress.percent}%</span>
@@ -260,7 +261,7 @@ function ClosingTracker() {
           </div>
 
           {/* Milestones */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+          <div className="p-card p-card-pad mb-6">
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <h2 className="font-semibold">Milestones</h2>
               {/* Per-stage checklist templates — one click loads the stage's full checklist */}
@@ -318,7 +319,7 @@ function ClosingTracker() {
           </div>
 
           {/* Escrow */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="p-card p-card-pad">
             <h2 className="font-semibold mb-3">Escrow accounts</h2>
             {escrow.length === 0 ? (
               <p className="text-gray-400 text-sm">No escrow accounts yet.</p>
@@ -366,9 +367,11 @@ function ClosingTracker() {
       )}
 
       {!selected && (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400 text-sm">
-          Select a listing above to open its closing tracker.
-        </div>
+        <EmptyState
+          icon="🗂️"
+          title="No tracker open"
+          sub="Select a listing above to open its closing tracker."
+        />
       )}
     </div>
   )

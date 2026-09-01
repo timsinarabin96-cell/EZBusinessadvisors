@@ -100,16 +100,16 @@ export default function AnalyticsDashboard() {
 
   return (
     <div>
-      <header style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 26, color: 'var(--navy)', margin: 0 }}>Analytics</h1>
-          <p style={{ color: 'var(--muted)', margin: '4px 0 0', fontSize: 14 }}>Deal pipeline value, lead conversion, broker performance &amp; revenue.</p>
+          <div className="eyebrow" style={{ marginBottom: 4 }}>Analytics</div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: 'var(--navy)', margin: 0, letterSpacing: '-0.02em' }}>Deal Pipeline Value, Leads &amp; Revenue</h2>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => switchComparison('mom')} style={segBtn(compareMode === 'mom')}>MoM</button>
           <button onClick={() => switchComparison('yoy')} style={segBtn(compareMode === 'yoy')}>YoY</button>
         </div>
-      </header>
+      </div>
 
       {/* Overview stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14, marginBottom: 20 }}>

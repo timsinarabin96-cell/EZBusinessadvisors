@@ -18,6 +18,7 @@ import ListingPhotosPicker from '@/components/studio/ListingPhotosPicker'
 import LegalDocsCard from '@/components/studio/LegalDocsCard'
 import Step9BuyerManagement from '@/components/listings/Step9BuyerManagement'
 import Step10DealClosing from '@/components/listings/Step10DealClosing'
+import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
 
 // =============================================================================
 // OneShotDealBuilder — THE HEART of the platform.
@@ -47,6 +48,7 @@ export default function OneShotDealBuilder() {
   const [notes, setNotes] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [phase, setPhase] = useState<'intake' | 'building' | 'deal'>('intake')
+  const [mode, setMode] = useState<'ai' | 'manual'>('ai')
   const [steps, setSteps] = useState<BuildStep[]>(ONE_SHOT_STAGES.map((s) => ({ key: s.key, label: s.label, status: 'pending' })))
   const [listingId, setListingId] = useState<string | null>(null)
   const [result, setResult] = useState<DealBuildResult | null>(null)
@@ -367,6 +369,56 @@ export default function OneShotDealBuilder() {
     <div>
       {phase === 'intake' && (
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
+          {/* MODE TOGGLE — AI build (default) or manual entry (skip AI) */}
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 18 }}>
+            <button
+              type="button"
+              onClick={() => setMode('ai')}
+              style={{
+                padding: '10px 22px', borderRadius: 999, cursor: 'pointer', fontWeight: 800, fontSize: 13.5,
+                border: mode === 'ai' ? '1px solid rgba(201,168,76,0.6)' : '1px solid rgba(15,23,42,0.1)',
+                background: mode === 'ai' ? 'linear-gradient(135deg,#1a1a2e,#0f3460)' : '#fff',
+                color: mode === 'ai' ? '#fff' : 'var(--navy)',
+                boxShadow: mode === 'ai' ? '0 6px 18px rgba(15,52,96,0.35)' : 'none',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              ✨ AI Build
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('manual')}
+              style={{
+                padding: '10px 22px', borderRadius: 999, cursor: 'pointer', fontWeight: 800, fontSize: 13.5,
+                border: mode === 'manual' ? '1px solid rgba(201,168,76,0.6)' : '1px solid rgba(15,23,42,0.1)',
+                background: mode === 'manual' ? 'linear-gradient(135deg,#1a1a2e,#0f3460)' : '#fff',
+                color: mode === 'manual' ? '#fff' : 'var(--navy)',
+                boxShadow: mode === 'manual' ? '0 6px 18px rgba(15,52,96,0.35)' : 'none',
+                transition: 'all 0.18s ease',
+              }}
+            >
+              ✍️ Manual Entry
+            </button>
+          </div>
+
+          {mode === 'manual' ? (
+            <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 10px 30px rgba(16,42,67,0.06)' }}>
+              <div style={{ padding: '16px 20px', background: 'linear-gradient(160deg, #101a38, #0b1020)', color: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 20 }}>✍️</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, fontFamily: 'var(--font-display)' }}>Manual Listing Entry</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>Skip the AI pipeline — fill the listing yourself, save as draft, publish anytime.</div>
+                </div>
+              </div>
+              <IntelligentListingForm
+                onDraftCreated={(id) => {
+                  setListingId(id)
+                  loadDeal(id)
+                }}
+              />
+            </div>
+          ) : (
+          <>
           {/* HERO */}
           <div style={{ textAlign: 'center', padding: '26px 10px 8px' }}>
             <div style={{ fontSize: 34 }}>🤖</div>
@@ -497,6 +549,8 @@ export default function OneShotDealBuilder() {
             </div>
             {error && <div style={{ marginTop: 10, fontSize: 13, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 12px' }}>{error}</div>}
           </div>
+          </>
+          )}
         </div>
       )}
 

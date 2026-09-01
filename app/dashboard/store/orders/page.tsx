@@ -12,6 +12,16 @@ import AppShell from '@/components/layout/AppShell'
 import { ToastProvider } from '@/components/ui/Toast'
 import { fetchMyStoreOrders, ORDER_STATUS_META, type StoreOrder } from '@/lib/store'
 import { fmt$ } from '@/lib/recast'
+import { PageHero, Chip, SkeletonRows, EmptyState, type ChipTone } from '@/components/ui/premium'
+
+const ORDER_TONES: Record<string, ChipTone> = {
+  paid: 'gold',
+  work_order_sent: 'blue',
+  processing: 'purple',
+  shipped: 'green',
+  delivered: 'green',
+  cancelled: 'red',
+}
 
 export default function StoreOrdersPage() {
   return (
@@ -38,21 +48,28 @@ function OrdersList() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1a1a2e', margin: 0, fontFamily: 'Georgia, serif' }}>📦 My Store Orders</h1>
-      <p style={{ color: '#888', margin: '6px 0 20px', fontSize: 14 }}>Track every marketing materials order you've placed.</p>
+      <PageHero
+        icon="📦"
+        eyebrow="Store Orders"
+        title="My Store Orders"
+        sub="Track every marketing materials order you've placed."
+      />
 
       {loading ? (
-        <div style={{ padding: 60, textAlign: 'center', color: '#999' }}>Loading orders…</div>
+        <SkeletonRows rows={5} h={64} />
       ) : orders.length === 0 ? (
-        <div style={{ padding: 60, textAlign: 'center', color: '#999' }}>
-          No orders yet — grab materials from the <a href="/dashboard/store" style={{ color: '#c9a84c' }}>Marketing Store</a>.
-        </div>
+        <EmptyState
+          icon="📦"
+          title="No orders yet"
+          sub="Grab materials from the Marketing Store."
+          action={<a href="/dashboard/store" style={{ color: '#c9a84c', fontWeight: 700, fontSize: 13.5 }}>Browse the Marketing Store →</a>}
+        />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {orders.map((o) => {
             const meta = ORDER_STATUS_META[o.status] || ORDER_STATUS_META.paid
             return (
-              <div key={o.id} style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 16 }}>
+              <div key={o.id} className="p-card" style={{ padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>{o.product_name}</div>
@@ -67,9 +84,7 @@ function OrdersList() {
                         📬 {o.tracking_number}
                       </span>
                     )}
-                    <span style={{ fontSize: 12, fontWeight: 800, color: meta.color, background: `${meta.color}18`, padding: '6px 12px', borderRadius: 999 }}>
-                      {meta.label}
-                    </span>
+                    <Chip tone={ORDER_TONES[o.status] || 'gray'}>{meta.label}</Chip>
                   </div>
                 </div>
                 {o.shipping_address && (

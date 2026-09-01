@@ -13,6 +13,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { PageHero } from '@/components/ui/premium'
 
 export default function ToolsPage() {
   return (
@@ -80,12 +81,14 @@ function CsvTools() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">🧰 CSV Tools</h1>
-        <p className="text-gray-500 text-sm mt-1">Export listings and leads, or bulk-import buyer/seller leads from CSV.</p>
-      </div>
+      <PageHero
+        icon="🧰"
+        eyebrow="CSV Tools"
+        title="CSV Tools"
+        sub="Export listings and leads, or bulk-import buyer/seller leads from CSV."
+      />
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+      <div className="p-card p-card-pad mb-6">
         <h2 className="font-semibold mb-3">Export</h2>
         <div className="flex flex-wrap gap-2">
           {[
@@ -104,7 +107,7 @@ function CsvTools() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="p-card p-card-pad">
         <h2 className="font-semibold mb-3">Import leads</h2>
         <div className="flex gap-2 mb-3">
           {(['buyer', 'seller'] as const).map((t) => (

@@ -184,32 +184,44 @@ export default function DealRoom({
   const roleLabel = role === 'agent' ? 'Agent view' : role === 'buyer' ? 'Buyer view' : 'Seller view'
 
   if (loading && !snap) {
-    return <div style={{ padding: 24, color: 'var(--muted)', textAlign: 'center' }}>Loading deal room…</div>
+    return (
+      <div className="p-card p-card-pad" style={{ padding: 28 }}>
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div className="sk" style={{ height: 20, width: '40%' }} />
+          <div className="sk" style={{ height: 14 }} />
+          <div className="sk" style={{ height: 14 }} />
+        </div>
+      </div>
+    )
   }
   if (error && !snap) {
-    return <div style={{ padding: 24, color: '#b91c1c', textAlign: 'center' }}>{error}</div>
+    return (
+      <div className="p-card p-card-pad" style={{ padding: 28, color: '#b91c1c', textAlign: 'center', fontSize: 14 }}>
+        {error}
+      </div>
+    )
   }
 
   return (
-    <div style={{ border: '1px solid var(--line)', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
-      {/* Header */}
-      <div style={{ padding: '14px 18px', background: 'var(--navy)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+    <div className="p-card" style={{ overflow: 'hidden' }}>
+      {/* Header — premium navy band with gold accents */}
+      <div style={{ padding: '18px 22px', background: 'linear-gradient(160deg, #101a38 0%, #0b1020 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>📁 Deal Room · {roleLabel}</div>
-          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Georgia, serif' }}>{roomName}</div>
+          <div style={{ fontSize: 11, color: 'var(--gold-light)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em' }}>📁 Deal Room · {roleLabel}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-display)', marginTop: 4 }}>{roomName}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn btn-ghost" style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }} onClick={() => setShowNewFolder((v) => !v)}>+ Folder</button>
-          <button className="btn btn-ghost" style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }} onClick={downloadZip} disabled={zipBusy}>
-            {zipBusy ? 'Zipping…' : '📦 ZIP'}
+          <button className="btn btn-soft" style={{ borderColor: 'rgba(255,255,255,0.25)', color: '#fff', background: 'rgba(255,255,255,0.08)' }} onClick={() => setShowNewFolder((v) => !v)}>📁 + Folder</button>
+          <button className="btn btn-soft" style={{ borderColor: 'rgba(255,255,255,0.25)', color: '#fff', background: 'rgba(255,255,255,0.08)' }} onClick={downloadZip} disabled={zipBusy}>
+            {zipBusy ? 'Zipping…' : '📦 ZIP All'}
           </button>
           {isAgent && (trash.length > 0) && (
-            <button className="btn btn-ghost" style={{ borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }} onClick={() => setShowTrash((v) => !v)}>
+            <button className="btn btn-soft" style={{ borderColor: 'rgba(255,255,255,0.25)', color: '#fff', background: 'rgba(255,255,255,0.08)' }} onClick={() => setShowTrash((v) => !v)}>
               🗑️ Trash ({trash.length})
             </button>
           )}
-          <button className="btn" style={{ background: 'var(--gold)', borderColor: 'var(--gold)', color: '#fff' }} onClick={() => fileRef.current?.click()} disabled={uploading}>
-            {uploading ? 'Uploading…' : '⬆ Upload'}
+          <button className="btn btn-gold" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            {uploading ? 'Uploading…' : '⬆ Upload Files'}
           </button>
           <input ref={fileRef} type="file" multiple hidden onChange={(e) => handleUpload(e.target.files)} />
         </div>
@@ -221,14 +233,14 @@ export default function DealRoom({
 
       {/* New folder inline (access picker for agents) */}
       {showNewFolder && (
-        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 8, background: '#faf9f4', flexWrap: 'wrap', alignItems: 'center' }}>
-          <input className="input" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Folder name" onKeyDown={(e) => e.key === 'Enter' && handleNewFolder()} style={{ flex: 1, minWidth: 160 }} />
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 8, background: 'rgba(201,168,76,0.06)', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input className="input" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="Folder name (e.g. Insurance, Equipment List, Contracts…)" onKeyDown={(e) => e.key === 'Enter' && handleNewFolder()} style={{ flex: 1, minWidth: 180 }} />
           {isAgent && (
-            <select className="input" value={newFolderAccess} onChange={(e) => setNewFolderAccess(e.target.value)} style={{ maxWidth: 230 }}>
+            <select className="input" value={newFolderAccess} onChange={(e) => setNewFolderAccess(e.target.value)} style={{ maxWidth: 240 }}>
               {ACCESS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.icon} {o.label}</option>)}
             </select>
           )}
-          <button className="btn btn-navy" onClick={handleNewFolder} disabled={!newFolderName.trim()}>Create</button>
+          <button className="btn btn-gold" onClick={handleNewFolder} disabled={!newFolderName.trim()}>Create Folder</button>
         </div>
       )}
 
@@ -262,8 +274,17 @@ export default function DealRoom({
       {/* File list */}
       <div style={{ minHeight: 160 }}>
         {files.length === 0 ? (
-          <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
-            {activeFolder ? 'This folder is empty.' : 'No files yet — upload financials, due-diligence docs, or contracts.'}
+          <div style={{ padding: '36px 24px', textAlign: 'center' }}>
+            <div className="empty-ill" style={{ fontSize: 30 }}>{activeFolder ? '📂' : '📤'}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginTop: 10 }}>
+              {activeFolder ? 'This folder is empty.' : 'No files yet'}
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>
+              {activeFolder ? 'Upload financials, contracts, or any due-diligence doc here.' : 'Upload financials, due-diligence docs, or contracts — or create a folder to organize.'}
+            </div>
+            <button className="btn btn-gold" style={{ marginTop: 14 }} onClick={() => fileRef.current?.click()}>
+              ⬆ Upload Files
+            </button>
           </div>
         ) : (
           files.map((f) => (
@@ -346,7 +367,7 @@ export default function DealRoom({
       {/* Activity feed */}
       {(snap?.activities?.length || 0) > 0 && (
         <div style={{ borderTop: '1px solid var(--line)', padding: '12px 18px', background: '#faf9f4' }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Recent activity</div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, padding: '10px 18px 0' }}>Recent activity</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {snap!.activities!.slice(0, 6).map((a) => (
               <div key={a.id} style={{ fontSize: 12.5, color: 'var(--muted)' }}>

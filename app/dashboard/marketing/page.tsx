@@ -15,6 +15,7 @@ import { BlogPanel } from '@/components/marketing/panels/BlogPanel'
 import { NurturePanel } from '@/components/marketing/panels/NurturePanel'
 import { SyndicationPanel } from '@/components/marketing/panels/SyndicationPanel'
 import { EmailTemplatesPanel } from '@/components/marketing/panels/EmailTemplatesPanel'
+import { PageHero, PremiumTabs } from '@/components/ui/premium'
 
 // =============================================================================
 // Marketing — growth tools hub: social, weekly newspaper, blog, nurture drips,
@@ -38,34 +39,15 @@ export default function MarketingPage() {
 
   return (
     <AppShell active="Marketing">
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 18px 60px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#1a1a2e', margin: 0, fontFamily: 'Georgia, serif' }}>Marketing & Growth</h1>
-            <p style={{ color: '#888', margin: '4px 0 0', fontSize: 13 }}>
-              Social, newspaper, blog, nurture, syndication & templates — order materials in the <a href="/dashboard/store" style={{ color: '#c9a84c', fontWeight: 700 }}>Marketing Store</a>.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-2 mb-4 bg-white rounded-xl border border-gray-200 p-2">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className="flex-1 text-left px-4 py-3 rounded-lg transition-colors"
-              style={{
-                background: tab === t.key ? '#1a1a2e' : 'transparent',
-                color: tab === t.key ? '#fff' : 'var(--navy)',
-                cursor: 'pointer',
-              }}
-            >
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{t.label}</div>
-              <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{t.hint}</div>
-            </button>
-          ))}
-        </div>
-
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 18px 60px' }}>
+        <PageHero
+          icon="📣"
+          eyebrow="Marketing & Growth"
+          title="Marketing Command"
+          sub="Social, newspaper, blog, nurture, syndication & templates — plus the automated Marketing Store for branded materials."
+          actions={<a href="/dashboard/store" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', padding: '10px 18px', borderRadius: 12, textDecoration: 'none', fontWeight: 800, fontSize: 13.5, boxShadow: '0 6px 20px rgba(201,168,76,0.4)' }}>🛍️ Marketing Store</a>}
+        />
+        <PremiumTabs tabs={TABS} active={tab} onChange={setTab} />
         {tab === 'social' && <SocialPanel />}
         {tab === 'newspaper' && <NewspaperPanel />}
         {tab === 'blog' && <BlogPanel />}

@@ -20,6 +20,7 @@ import AppShell from '@/components/layout/AppShell'
 import { ToastProvider } from '@/components/ui/Toast'
 import { LoadingState } from '@/components/ui'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
+import { PageHero, EmptyState } from '@/components/ui/premium'
 
 interface OffMarketDeal {
   listing_id: string
@@ -105,22 +106,22 @@ export default function OffMarketPage() {
   return (
     <AppShell active="Off-Market">
       <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 20px' }}>
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a2e' }}>🔐 Off-Market Deal Room</div>
-            <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
-              Private opportunities that never hit the public feed. Visible only to verified buyers and agency members — full details after NDA + broker review.
-            </div>
-          </div>
+        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 18px 60px' }}>
+          <PageHero
+            icon="🔐"
+            eyebrow="Off-Market"
+            title="Off-Market Deal Room"
+            sub="Private opportunities that never hit the public feed. Visible only to verified buyers and agency members — full details after NDA + broker review."
+          />
 
           {loading ? <LoadingState label="Opening the deal room..." /> : error ? (
             <div style={{ textAlign: 'center', color: '#b91c1c', padding: 40, background: '#fff', border: '1px solid #fecaca', borderRadius: 12 }}>{error}</div>
           ) : deals.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '60px 20px', border: '2px dashed #e2e8f0', borderRadius: 12 }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>🤫</div>
-              <div style={{ fontWeight: 700, color: '#64748b' }}>Nothing off-market right now</div>
-              <div style={{ fontSize: 13, marginTop: 6 }}>When an agency flags a listing as broker-only, it appears here for verified buyers.</div>
-            </div>
+            <EmptyState
+              icon="🤫"
+              title="Nothing off-market right now"
+              sub="When an agency flags a listing as broker-only, it appears here for verified buyers."
+            />
           ) : (
             <>
               {visible.length > 0 && (
@@ -135,7 +136,7 @@ export default function OffMarketPage() {
               )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18 }}>
                 {visible.map((d) => (
-                  <div key={d.listing_id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden' }}>
+                  <div key={d.listing_id} className="p-card" style={{ overflow: 'hidden' }}>
                     <div style={{ padding: '16px 18px', background: 'linear-gradient(135deg,#1a1a2e,#26264a)', color: '#fff' }}>
                       <div style={{ fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#c9a84c', fontWeight: 800 }}>Off-Market · {d.industry || 'Business'}</div>
                       <div style={{ fontSize: 17, fontWeight: 800, marginTop: 6, lineHeight: 1.35 }}>{d.public_title}</div>

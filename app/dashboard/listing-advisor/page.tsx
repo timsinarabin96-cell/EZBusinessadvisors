@@ -12,6 +12,7 @@ import AppShell from '@/components/layout/AppShell'
 import { ToastProvider } from '@/components/ui/Toast'
 import ListingAdvisor from '@/components/listing/ListingAdvisorPanel'
 import { SellerReadinessPanel } from '@/components/listing/SellerReadinessPanel'
+import { PageHero, PremiumTabs } from '@/components/ui/premium'
 
 // =============================================================================
 // Listing Advisor — one hub for seller-side prep: AI listability + valuation
@@ -32,25 +33,15 @@ export default function ListingAdvisorPage() {
   return (
     <AppShell active="Listing Advisor">
       <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 18px 60px' }}>
+          <PageHero
+            icon="🩺"
+            eyebrow="Listing Advisor"
+            title="Listing Advisor"
+            sub="One hub for seller-side prep — AI listability & valuation, plus the readiness-to-close funnel."
+          />
           {/* Tab bar */}
-          <div className="flex flex-col md:flex-row gap-2 mb-6 bg-white rounded-xl border border-gray-200 p-2">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className="flex-1 text-left px-4 py-3 rounded-lg transition-colors"
-                style={{
-                  background: tab === t.key ? '#1a1a2e' : 'transparent',
-                  color: tab === t.key ? '#fff' : 'var(--navy)',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{t.label}</div>
-                <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{t.hint}</div>
-              </button>
-            ))}
-          </div>
+          <PremiumTabs tabs={[...TABS]} active={tab} onChange={setTab} />
 
           {tab === 'advisor' && <ListingAdvisor />}
           {tab === 'readiness' && <SellerReadinessPanel />}

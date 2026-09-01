@@ -20,6 +20,7 @@ import {
   type StoreCategory,
 } from '@/lib/store'
 import { fmt$ } from '@/lib/recast'
+import { PageHero, SkeletonRows, EmptyState } from '@/components/ui/premium'
 
 export default function StorePage() {
   return (
@@ -100,16 +101,12 @@ function Storefront() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1a1a2e', margin: 0, fontFamily: 'Georgia, serif' }}>
-            🛍️ Marketing Materials Store
-          </h1>
-          <p style={{ color: '#888', margin: '6px 0 0', fontSize: 14 }}>
-            Order branded materials for listings, open houses, and outreach. Payment is instant; print + ship is handled for you.
-          </p>
-        </div>
-      </div>
+      <PageHero
+        icon="🛍️"
+        eyebrow="Marketing Store"
+        title="Marketing Materials Store"
+        sub="Order branded materials for listings, open houses, and outreach. Payment is instant; print + ship is handled for you."
+      />
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '18px 0' }}>
         <button
@@ -126,13 +123,13 @@ function Storefront() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 60, textAlign: 'center', color: '#999' }}>Loading catalog…</div>
+        <SkeletonRows rows={4} h={120} />
       ) : visible.length === 0 ? (
-        <div style={{ padding: 60, textAlign: 'center', color: '#999' }}>No products in this category yet.</div>
+        <EmptyState icon="🛍️" title="No products in this category yet" sub="Try another category — or check back soon." />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 16 }}>
           {visible.map((p) => (
-            <div key={p.id} style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div key={p.id} className="p-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: 30 }}>{catIcon(p.category)}</div>
                 {p.supplier && (

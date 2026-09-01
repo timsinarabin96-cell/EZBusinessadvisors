@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase/client'
 import { getStoredAccessToken } from '@/lib/authToken'
 import { CRM_MONTHLY, CRM_ENTERPRISE_MONTHLY } from '@/lib/pricing'
 import { LoadingState } from '@/components/ui'
+import { PageHero } from '@/components/ui/premium'
 
 interface OwnerListing {
   id: string
@@ -136,10 +137,12 @@ export default function OwnerPortalPage() {
         </div>
 
         <div style={{ background: '#fff', borderRadius: 16, padding: '30px 28px', boxShadow: '0 24px 80px rgba(0,0,0,0.4)' }}>
-          <h1 style={{ margin: '0 0 6px', fontFamily: 'Georgia, serif', fontSize: 24, color: '#1a1a2e' }}>My Business Listing</h1>
-          <p style={{ margin: '0 0 22px', fontSize: 13.5, color: '#888' }}>
-            Signed in as <strong>{email}</strong> · Free plan: 1 listing, no CRM. Buyers contact you confidentially through the marketplace.
-          </p>
+          <PageHero
+            icon="🏪"
+            eyebrow="Owner Portal"
+            title="My Business Listing"
+            sub={`Signed in as ${email} · Free plan: 1 listing, no CRM. Buyers contact you confidentially through the marketplace.`}
+          />
 
           {profile && (
             <ProfileVerification profile={profile} onVerified={() => load()} />

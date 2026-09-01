@@ -15,6 +15,7 @@
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Card, CardHeader, LoadingState } from '@/components/ui'
+import { StatCard, SectionTitle } from '@/components/ui/premium'
 import { fmtMoney } from '@/lib/listings'
 import { supabase } from '@/lib/supabase/client'
 
@@ -47,21 +48,11 @@ export function PerformancePanel() {
 
   return (
     <div>
-      <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 26, color: 'var(--navy)', marginBottom: 6 }}>Agent Performance</h1>
-      <p style={{ color: 'var(--muted)', marginBottom: 20 }}>Track listings, deals, commissions, and close velocity per agent.</p>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-        {[
-          ['Team listings', deals.length + agents.length, '#0b1f3a'],
-          ['Deals', deals.length, '#3b82f6'],
-          ['Commission (live)', records.reduce((s, r) => s + (Number(r.total_commission) || 0), 0), '#c9a84c'],
-          ['Profiles', agents.length, '#8b5cf6'],
-        ].map(([l, v, c]) => (
-          <div key={l as string} style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '16px 18px' }}>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--muted)' }}>{l}</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: c as string, fontFamily: 'Georgia, serif' }}>{typeof v === 'number' ? (l as string).includes('$') || (l as string).toLowerCase().includes('commission') ? '$' + (v as number).toLocaleString() : (v as number) : v}</div>
-          </div>
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(190px, 100%), 1fr))', gap: 14, marginBottom: 20 }}>
+        <StatCard label="Team Listings" value={deals.length + agents.length} sub="across all agents" />
+        <StatCard label="Deals" value={deals.length} sub="in the pipeline" accent="#3b82f6" />
+        <StatCard label="Commission (live)" value={'$' + records.reduce((s, r) => s + (Number(r.total_commission) || 0), 0).toLocaleString()} sub="from performance records" accent="#c9a84c" />
+        <StatCard label="Agent Profiles" value={agents.length} sub="on the team" accent="#8b5cf6" />
       </div>
 
       <Card style={{ marginBottom: 20 }}>

@@ -11,6 +11,7 @@ import { useState } from 'react'
 import type { AgentKind } from '@/types/ai'
 import AgentChat from '@/components/ai/AgentChat'
 import { Card, CardHeader, Badge } from '@/components/ui'
+import { PageHero } from '@/components/ui/premium'
 
 // =============================================================================
 // /dashboard/agents — functional AI Agents hub.
@@ -82,13 +83,13 @@ export default function AgentsPage() {
   const aiOn = true // backend is wired + ANTHROPIC_API_KEY is set
 
   return (
-    <div style={{ maxWidth: 980, margin: '0 auto' }}>
-      <header style={{ marginBottom: 22 }}>
-        <h1 style={{ margin: 0, fontSize: 26 }}>AI Agents</h1>
-        <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 14 }}>
-          Your AI team — assisting with leads, training, documents, and support. Pick an agent, then chat right here.
-        </p>
-      </header>
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: '0 18px 60px' }}>
+      <PageHero
+        icon="🤖"
+        eyebrow="AI Agents"
+        title="AI Agents"
+        sub="Your AI team — assisting with leads, training, documents, and support. Pick an agent, then chat right here."
+      />
 
       {/* Live status banner */}
       <Card style={{ marginBottom: 22, borderLeft: '4px solid var(--gold)' }}>

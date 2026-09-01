@@ -13,6 +13,7 @@ import { Card, CardHeader, LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fetchClientAccess, grantClientAccess, revokeClientAccess, type ClientAccess } from '@/lib/clientPortal'
 import { supabase } from '@/lib/supabase/client'
+import { PageHero } from '@/components/ui/premium'
 
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : ''
 
@@ -22,9 +23,13 @@ export default function PortalPage() {
   return (
     <AppShell active="Client Portal">
       <ToastProvider>
-        <div style={{ maxWidth: 860, margin: '0 auto' }}>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 26, color: 'var(--navy)', marginBottom: 4 }}>Client Portal</h1>
-          <p style={{ color: 'var(--muted)', marginBottom: 20 }}>Grant clients private access to their deal — they get a secure link to track progress, upload documents, and message you.</p>
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 18px 60px' }}>
+          <PageHero
+            icon="🔗"
+            eyebrow="Client Portal"
+            title="Client Portal"
+            sub="Grant clients private access to their deal — they get a secure link to track progress, upload documents, and message you."
+          />
           <PortalManager />
         </div>
       </ToastProvider>

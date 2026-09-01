@@ -13,6 +13,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { PageHero } from '@/components/ui/premium'
 
 interface ExpiryRecord {
   id: string
@@ -108,12 +109,14 @@ function ExpiryTracker() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">⏳ Listing Expiry & Renewal</h1>
-        <p className="text-gray-500 text-sm mt-1">Set expiry dates, get 7-day reminders, and renew with one click.</p>
-      </div>
+      <PageHero
+        icon="⏳"
+        eyebrow="Listing Expiry"
+        title="Listing Expiry & Renewal"
+        sub="Set expiry dates, get 7-day reminders, and renew with one click."
+      />
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+      <div className="p-card p-card-pad mb-6">
         <h2 className="font-semibold mb-3">Set expiry date</h2>
         <div className="flex flex-col md:flex-row gap-3">
           <select className="border rounded-lg px-3 py-2 text-sm flex-1" value={selected} onChange={(e) => setSelected(e.target.value)}>
@@ -140,7 +143,7 @@ function ExpiryTracker() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="p-card p-card-pad">
         <h2 className="font-semibold mb-3">Expiry records</h2>
         {records.length === 0 ? (
           <p className="text-gray-400 text-sm">No expiry records yet.</p>

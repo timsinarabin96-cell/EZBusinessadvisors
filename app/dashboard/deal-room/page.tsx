@@ -12,6 +12,7 @@ import Link from 'next/link'
 import AppShell from '@/components/layout/AppShell'
 import { LoadingState } from '@/components/ui'
 import { fetchPipelineDeals } from '@/lib/pipeline'
+import { PageHero, EmptyState } from '@/components/ui/premium'
 
 // =============================================================================
 // /dashboard/deal-room — Deal Room picker. Lists every deal with its shared
@@ -39,23 +40,25 @@ export default function DealRoomPickerPage() {
 
   return (
     <AppShell active="Deal Room">
-      <div style={{ maxWidth: 980, margin: '0 auto', padding: '24px 16px 48px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
-          <div>
-            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: 'var(--navy)', margin: 0 }}>📁 Deal Rooms</h1>
-            <p style={{ color: 'var(--muted)', fontSize: 13.5, margin: '6px 0 0' }}>
-              One shared Dropbox-style workspace per deal — agents, buyers &amp; sellers upload, organize due-diligence folders, and collaborate in real time.
-            </p>
-          </div>
-        </div>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 18px 48px' }}>
+        <PageHero
+          icon="📁"
+          eyebrow="Clients & Docs"
+          title="Deal Rooms"
+          sub="One shared Dropbox-style workspace per deal — agents, buyers & sellers upload, organize due-diligence folders, and collaborate in real time."
+        />
 
         {loading ? (
-          <LoadingState label="Loading deals..." />
+          <div style={{ display: 'grid', gap: 10 }}>
+            {[0, 1, 2].map((i) => <div key={i} className="sk" style={{ height: 64, borderRadius: 14 }} />)}
+          </div>
         ) : deals.length === 0 ? (
-          <div style={{ border: '1px dashed var(--line)', borderRadius: 12, padding: 40, textAlign: 'center', background: '#fff' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>📂</div>
-            <div style={{ fontWeight: 700, color: 'var(--navy)', fontSize: 15 }}>No deals yet</div>
-            <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>Deal Rooms appear here as soon as a deal exists. Open a deal from the pipeline to start sharing documents.</div>
+          <div className="p-card">
+            <EmptyState
+              icon="📂"
+              title="No deals yet"
+              sub="Deal Rooms appear here as soon as a deal exists. Open a deal from the pipeline to start sharing documents."
+            />
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -63,22 +66,26 @@ export default function DealRoomPickerPage() {
               <Link
                 key={d.id}
                 href={`/dashboard/deal-room/${d.id}`}
+                className="p-card p-card-hover"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none',
-                  background: '#fff', border: '1px solid var(--line)', borderRadius: 12, padding: '14px 18px',
-                  transition: 'box-shadow .15s ease, border-color .15s ease',
+                  padding: '16px 18px',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 4px 14px rgba(26,26,46,0.08)'; e.currentTarget.style.borderColor = 'var(--gold)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--line)' }}
               >
-                <span style={{ fontSize: 24 }}>📁</span>
+                <span style={{
+                  width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+                  background: 'linear-gradient(135deg, rgba(201,168,76,0.2), rgba(201,168,76,0.06))',
+                  border: '1px solid rgba(201,168,76,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+                }}>📁</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.title}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>
-                    {d.buyer ? `Buyer: ${d.buyer} · ` : ''}Status: {d.status}
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.title}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 3 }}>
+                    {d.buyer ? `Buyer: ${d.buyer} · ` : ''}
+                    <span className="chip chip-navy" style={{ marginLeft: 4 }}>{d.status}</span>
                   </div>
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold-dark)' }}>Open Room →</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold-dark)', whiteSpace: 'nowrap' }}>Open Room →</span>
               </Link>
             ))}
           </div>

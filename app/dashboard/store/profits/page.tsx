@@ -12,6 +12,7 @@ import AppShell from '@/components/layout/AppShell'
 import { ToastProvider } from '@/components/ui/Toast'
 import { fetchStoreStats, ORDER_STATUS_META, STORE_CATEGORIES, type StoreStats, type StoreOrder } from '@/lib/store'
 import { fmt$ } from '@/lib/recast'
+import { PageHero } from '@/components/ui/premium'
 
 export default function StoreProfitsPage() {
   return (
@@ -55,10 +56,12 @@ function Profits() {
 
   return (
     <div>
-      <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1a1a2e', margin: 0, fontFamily: 'Georgia, serif' }}>📈 Store Profits</h1>
-      <p style={{ color: '#888', margin: '6px 0 22px', fontSize: 14 }}>
-        Every paid order's profit lands here automatically. Revenue is what brokers paid; cost is what your supplier charges.
-      </p>
+      <PageHero
+        icon="📈"
+        eyebrow="Store Profits"
+        title="Store Profits"
+        sub="Every paid order's profit lands here automatically. Revenue is what brokers paid; cost is what your supplier charges."
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 14 }}>
         <StatCard label="Total Revenue" value={fmt$(stats.revenue)} sub={`${stats.orderCount} paid orders`} color="#1a1a2e" />

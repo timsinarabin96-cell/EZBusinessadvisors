@@ -13,6 +13,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
+import { PageHero } from '@/components/ui/premium'
 
 interface Comm {
   id: string
@@ -160,10 +161,12 @@ function Communications() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">🗒️ Communication Log</h1>
-        <p className="text-gray-500 text-sm mt-1">Every call, email, and meeting — logged and linked. Unanswered calls auto-schedule a call-back.</p>
-      </div>
+      <PageHero
+        icon="🗒️"
+        eyebrow="Communications"
+        title="Communication Log"
+        sub="Every call, email, and meeting — logged and linked. Unanswered calls auto-schedule a call-back."
+      />
 
       {/* Stale deals */}
       {stale.length > 0 && (
@@ -188,7 +191,7 @@ function Communications() {
       )}
 
       {/* Log form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+      <div className="p-card p-card-pad mb-6">
         <h2 className="font-semibold mb-3">Log a communication</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <select className="border rounded-lg px-3 py-2 text-sm" value={entityType} onChange={(e) => { setEntityType(e.target.value as any); setEntityId('') }}>
@@ -228,7 +231,7 @@ function Communications() {
       </div>
 
       {/* History */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      <div className="p-card p-card-pad">
         <h2 className="font-semibold mb-3">Recent activity</h2>
         {comms.length === 0 ? (
           <p className="text-gray-400 text-sm">No communications logged yet.</p>

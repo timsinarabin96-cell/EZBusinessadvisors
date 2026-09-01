@@ -19,6 +19,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { fetchUserAgencyContext } from '@/lib/agencies'
+import { PageHero, Chip, EmptyState } from '@/components/ui/premium'
 
 interface Delivery {
   id: string
@@ -96,24 +97,28 @@ export default function DeliveryApprovalQueue() {
   return (
     <AppShell active="Approvals">
       <ToastProvider>
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 18px 60px' }}>
-          <h1 style={{ fontSize: 24, margin: '0 0 4px' }}>🗂️ Delivery Approvals</h1>
-          <p style={{ color: 'var(--muted)', fontSize: 14, margin: '0 0 20px' }}>
-            Nothing goes out under your license until you tap Approve. One tap = the send fires (email + Deal Room + secure link).
-          </p>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 18px 60px' }}>
+          <PageHero
+            icon="🗂️"
+            eyebrow="Approvals"
+            title="Delivery Approvals"
+            sub="Nothing goes out under your license until you tap Approve. One tap = the send fires (email + Deal Room + secure link)."
+          />
 
           {/* Pending queue */}
           <h2 style={{ fontSize: 15, margin: '0 0 10px' }}>Awaiting your approval ({pending.length})</h2>
           {pending.length === 0 && (
-            <div style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: 22, textAlign: 'center', color: 'var(--muted)', fontSize: 14 }}>
-              ✅ No pending deliveries. Queue is clear.
-            </div>
+            <EmptyState
+              icon="✅"
+              title="No pending deliveries"
+              sub="Queue is clear."
+            />
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 28 }}>
             {pending.map((d) => {
               const meta = KIND_META[d.doc_kind] || KIND_META.bli
               return (
-                <div key={d.id} style={{ background: '#fff', border: '1px solid var(--line)', borderRadius: 14, padding: 16 }}>
+                <div key={d.id} className="p-card" style={{ padding: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                     <div style={{ fontSize: 26 }}>{meta.icon}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -189,9 +194,9 @@ export default function DeliveryApprovalQueue() {
                     {d.share_url ? ' · link sent' : ''}
                   </div>
                 </div>
-                <span style={{ fontSize: 11.5, fontWeight: 800, textTransform: 'uppercase', padding: '3px 9px', borderRadius: 99, background: d.status === 'sent' ? '#e6f4ea' : '#fef3e0', color: d.status === 'sent' ? '#1e7e34' : '#9a6a00' }}>
+                <Chip tone={d.status === 'sent' ? 'green' : d.status === 'failed' ? 'red' : 'gold'}>
                   {d.status === 'sent' ? 'Sent' : d.status === 'failed' ? 'Failed' : 'Rejected'}
-                </span>
+                </Chip>
               </div>
             ))}
           </div>

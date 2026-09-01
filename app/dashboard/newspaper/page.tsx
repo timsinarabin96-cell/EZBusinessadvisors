@@ -15,6 +15,7 @@ import {
   fetchArticles, fetchSubscriptions, fetchDeliveryLog,
   type NewEdition, type Article, type Subscription,
 } from '@/lib/newspaper'
+import { PageHero, EmptyState } from '@/components/ui/premium'
 
 export default function NewspaperPage() {
   return (
@@ -83,33 +84,35 @@ function Newspaper() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#1a1a2e', margin: 0, fontFamily: 'Georgia, serif' }}>📰 Weekly Newspaper</h1>
-          <p style={{ color: '#888', margin: '6px 0 0', fontSize: 14 }}>
-            Auto-sends every Monday 8 AM ET to {subs.filter((s) => s.status === 'active').length} subscribers. Create an edition anytime to preview.
-          </p>
-        </div>
-        <button
-          onClick={onCreate}
-          disabled={busy}
-          style={{ background: busy ? '#999' : '#1a1a2e', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
-        >
-          {busy ? 'Working…' : '+ New Edition (auto-generate)'}
-        </button>
-      </div>
+      <PageHero
+        icon="📰"
+        eyebrow="Newspaper"
+        title="Weekly Newspaper"
+        sub={`Auto-sends every Monday 8 AM ET to ${subs.filter((s) => s.status === 'active').length} subscribers. Create an edition anytime to preview.`}
+        actions={
+          <button
+            onClick={onCreate}
+            disabled={busy}
+            style={{ background: busy ? '#999' : 'var(--navy)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          >
+            {busy ? 'Working…' : '+ New Edition (auto-generate)'}
+          </button>
+        }
+      />
 
       <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 14 }}>
         {editions.length === 0 && (
-          <div style={{ padding: 50, textAlign: 'center', color: '#999', border: '1px dashed #ddd', borderRadius: 12 }}>
-            No editions yet. Hit "+ New Edition" — it auto-generates articles from your live listings, deals, and leads.
-          </div>
+          <EmptyState
+            icon="📰"
+            title="No editions yet"
+            sub="Hit '+ New Edition' — it auto-generates articles from your live listings, deals, and leads."
+          />
         )}
         {editions.map((e) => {
           const arts = articles[e.id] || []
           const activeSubs = subs.filter((s) => s.status === 'active').length
           return (
-            <div key={e.id} style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, padding: 16 }}>
+            <div key={e.id} className="p-card" style={{ padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a2e' }}>
