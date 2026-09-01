@@ -31,10 +31,19 @@ export default function PublicNav({ brand }: { brand?: BrandProps }) {
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           {/* Boss rule: agency logos render ONLY in the CRM's documents — the
               public website never shows logo images, just the agency name. */}
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: primary, letterSpacing: '-0.01em' }}>{name}</span>
-          {/* Boss rule: agency domains render their own brand; the default
-              platform brand reads "DEAL PLATFORM" — one name everywhere. */}
-          <span style={{ fontSize: 10, letterSpacing: '0.25em', color: accent, textTransform: 'uppercase', fontWeight: 700 }}>{brand ? 'Markets' : 'Deal Platform'}</span>
+          {brand ? (
+            <>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, color: primary, letterSpacing: '-0.01em' }}>{name}</span>
+              <span style={{ fontSize: 10, letterSpacing: '0.25em', color: accent, textTransform: 'uppercase', fontWeight: 700 }}>Markets</span>
+            </>
+          ) : (
+            // Default platform brand: the CONCORD crest lockup (gold on light).
+            <img
+              src="/brand/concord-header-lockup.png"
+              alt="Concord Deal Platform"
+              style={{ height: 52, width: 'auto', display: 'block' }}
+            />
+          )}
         </Link>
 
         {/* Desktop nav — full advanced link set in a two-tier layout. The

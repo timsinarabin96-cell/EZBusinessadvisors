@@ -31,8 +31,12 @@ export const metadata: Metadata = {
     title: 'Concord',
   },
   icons: {
-    icon: '/icons/icon-192.png',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/icons/icon-192.png',
+    shortcut: '/favicon.ico',
   },
   openGraph: {
     title: APP_NAME,
