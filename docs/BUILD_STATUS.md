@@ -198,6 +198,7 @@
 | Mobile responsive sweep — no horizontal overflow anywhere | ✅ | `29f710d`, `41a5440` |
 | City autocomplete (33k+ US cities) everywhere | ✅ | `bcaf1c5` |
 | og:image/Twitter card + JSON-LD (XSS-hardened) | ✅ | `0a8cc74`, `a5c668a` |
+| CONCORD crest lockup in public header (gold-on-light, white-label agencies keep text-only name) + favicon.ico (16–64) + crest icon-192/512 | ✅ | `d52a7fa` |
 
 ## 8. Security & Compliance
 
