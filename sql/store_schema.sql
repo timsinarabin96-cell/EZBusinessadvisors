@@ -68,7 +68,7 @@ create index if not exists idx_store_orders_created on public.store_orders (crea
 
 -- ---- RLS --------------------------------------------------------------------
 alter table public.store_products enable row level security;
-alter table public.store_orders  enable row level security;
+alter table public.store_orders enable row level security;
 alter table public.store_settings enable row level security;
 
 drop policy if exists store_products_read on public.store_products;

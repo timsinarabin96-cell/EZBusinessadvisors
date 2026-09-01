@@ -323,6 +323,18 @@ export async function POST(req: NextRequest) {
           console.error('[store] AI-Verified pipeline failed:', e?.message || e)
         })
       }
+
+      // 4) Enroll the paid seller into the automated nurture sequence
+      //    (24h interview nudge → docs reminder → escalations → 7-day stall
+      //    flag). The system follows up so the boss never chases manually.
+      if (listingId && agencyId && sellerEmail) {
+        try {
+          const { enrollPaidSeller } = await import('@/lib/sellerNurture')
+          await enrollPaidSeller({ listingId, agencyId, sellerEmail })
+        } catch (e: any) {
+          console.error('[store] seller nurture enrollment failed:', e?.message || e)
+        }
+      }
     } catch (e: any) {
       console.error('[store] seller_listing webhook error:', e?.message || e)
     }

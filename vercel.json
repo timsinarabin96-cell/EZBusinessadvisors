@@ -21,6 +21,10 @@
       "schedule": "0 10 * * *"
     },
     {
+      "path": "/api/cron/seller-nurture",
+      "schedule": "0 */6 * * *"
+    },
+    {
       "path": "/api/cron/provider-costs",
       "schedule": "0 5 * * *"
     },

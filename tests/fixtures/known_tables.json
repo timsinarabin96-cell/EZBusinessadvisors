@@ -201,7 +201,8 @@
     "valuation_reports",
     "value_growth_plans",
     "verified_financials",
-    "webhook_events"
+    "webhook_events",
+    "seller_nurture"
   ],
   "generated_at": "2026-08-28",
   "project": "ytcvlvisufxmmzeblmwx"
