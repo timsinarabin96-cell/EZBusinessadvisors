@@ -52,6 +52,13 @@ export async function POST(req: NextRequest) {
   }
   if (!canManageTeam(auth, agencyId)) return forbiddenResponse()
 
+  // Seat limit gate (server-side, authoritative) — 2026-09-01 usage overhaul.
+  const { usageBlock } = await import('@/lib/usageEnforcement')
+  const blocked = await usageBlock(agencyId, 'agents')
+  if (blocked) {
+    return NextResponse.json({ ok: false, error: blocked.error, code: 'USAGE_LIMIT', upgradeUrl: blocked.upgradeUrl }, { status: 429 })
+  }
+
   // Resolve the profile by email (service role — no client-side UUID needed).
   const { data: profile, error: profileError } = await db
     .from('profiles')

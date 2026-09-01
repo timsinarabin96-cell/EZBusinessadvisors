@@ -100,6 +100,14 @@ export async function POST(req: NextRequest) {
     })
   }
 
+  // Plan-limit gate (server-side, authoritative): block over-limit agencies
+  // with a clear message + real upgrade path (2026-09-01 usage overhaul).
+  const { usageBlock } = await import('@/lib/usageEnforcement')
+  const blocked = await usageBlock(agencyId, 'listings')
+  if (blocked) {
+    return fail(blocked.error, 429, { code: 'USAGE_LIMIT', upgradeUrl: blocked.upgradeUrl })
+  }
+
   const result = await createSellerListingOrder(agencyId, parsed.data.planId, {
     business_name: parsed.data.business_name,
     industry: parsed.data.industry ?? null,

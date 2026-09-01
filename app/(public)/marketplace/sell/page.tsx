@@ -112,6 +112,8 @@ function SellContent() {
         }
         setDone(true)
         toast('Listing order created — a broker will confirm details before it goes live.', 'success')
+      } else if ((res as any)?.code === 'USAGE_LIMIT') {
+        toast((res as any)?.error || 'Plan limit reached', 'error')
       } else {
         toast(res.error || 'Submission failed', 'error')
       }

@@ -225,6 +225,7 @@ export default function PlatformAdminPage() {
         <Link href="/admin/audit" style={{ background: '#0f766e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>📜 Audit Log</Link>
         <Link href="/admin/search" style={{ background: '#b45309', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🔍 Search</Link>
         <Link href="/admin/agencies/trials" style={{ background: '#1a1a2e', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Manage Trials</Link>
+        <Link href="/admin/usage" style={{ background: '#0e7490', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>📊 Usage & Limits</Link>
         <Link href="/admin/trial-settings" style={{ border: '2px solid #1a1a2e', color: '#1a1a2e', padding: '9px 20px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>Trial Settings</Link>
         <Link href="/admin/expenses" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>🧾 Expenses</Link>
         <Link href="/admin/commission-tracker" style={{ background: '#334155', color: '#fff', padding: '11px 22px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>💰 Commission Tracker</Link>

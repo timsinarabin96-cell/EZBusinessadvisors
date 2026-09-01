@@ -13,6 +13,7 @@ import { createListing, updateListing, fetchListing } from '@/lib/listings'
 import { startWorkflow } from '@/lib/workflow'
 import { matchBuyerLeads, UnifiedLead } from '@/lib/leads2'
 import MatchedBuyersModal from '@/components/leads/MatchedBuyersModal'
+import UsageLimitPrompt from '@/components/ui/UsageLimitPrompt'
 import { useToast } from '@/components/ui/Toast'
 import MoneyInput from '@/components/ui/MoneyInput'
 import { getStoredAccessToken, authHeaders } from '@/lib/authToken'
@@ -60,6 +61,7 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
   const [section, setSection] = useState<SectionId>('identity')
   const [form, setForm] = useState<IntelligentListingInput>(EMPTY_INTELLIGENT_LISTING)
   const [busy, setBusy] = useState(false)
+  const [usageBlocked, setUsageBlocked] = useState<{ reason: string; upgradeUrl: string } | null>(null)
   const [matched, setMatched] = useState<UnifiedLead[] | null>(null)
   const [showIntake, setShowIntake] = useState(false)
   const [dupes, setDupes] = useState<ListingMatch[] | null>(null)
@@ -456,7 +458,13 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
       }
       router.push(`/dashboard/listings/${listingId}/workflow`)
     } catch (error) {
-      toast(error instanceof Error ? error.message : 'Failed to save listing', 'error')
+      // Plan-limit block → show the upgrade prompt instead of a bare error.
+      const e = error as Error & { code?: string; upgradeUrl?: string }
+      if (e?.code === 'USAGE_LIMIT') {
+        setUsageBlocked({ reason: e.message, upgradeUrl: e.upgradeUrl || '/pricing' })
+      } else {
+        toast(e instanceof Error ? e.message : 'Failed to save listing', 'error')
+      }
       setBusy(false)
     }
   }
@@ -480,6 +488,11 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
 
   return (
     <form onSubmit={submit}>
+      {usageBlocked && (
+        <div style={{ marginBottom: 18 }}>
+          <UsageLimitPrompt reason={usageBlocked.reason} upgradeUrl={usageBlocked.upgradeUrl} kind="listings" />
+        </div>
+      )}
       {restoreCandidate && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 18, padding: '13px 18px', borderRadius: 12, border: '1px solid #e0c37a', background: '#fffbea', fontSize: 13.5, fontWeight: 700, color: '#7a5b10' }}>
           <span>💾 We found an unsaved draft from a previous session.</span>
@@ -489,8 +502,7 @@ export default function IntelligentListingForm({ listingId: editListingId, onCre
           </div>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-start', marginBottom: 24 }}>
-        <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'flex-start', marginBottom: 24 }}>        <div>
           <div className="section-title">AI Listing Studio</div>
           <h1 style={{ fontSize: 30, margin: '8px 0' }}>Build the complete deal record</h1>
           <p style={{ color: 'var(--muted)', margin: 0, maxWidth: 720, lineHeight: 1.6 }}>

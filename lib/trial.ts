@@ -129,13 +129,21 @@ export function statusFromAgency(a: Agency | null): TrialState {
 }
 
 /** Per-tier usage limits — the source of truth for paid plans. */
+// Aligned 2026-09-01 with lib/pricing.ts (the ONLY pricing truth):
+//   free          → 1 listing, 0 agent seats (owner self-serve, no CRM)
+//   professional  → 10 listings, 5 seats ($499/mo, $4,790/yr)
+//   enterprise    → 25 listings, 15 seats ($899/mo, $8,630/yr)
+//   license       → white-label: limits set per-agency (override), defaults 25/15
+//   founding      → legacy founding-agency grants: per-agency override, defaults 10/5
+// Per-agency overrides (trial_settings.max_listings / max_agents) ALWAYS win —
+// that's how the boss gives a specific founding agency 10 listings without
+// changing the tier for everyone else.
 export const TIER_LIMITS: Record<string, UsageLimits> = {
-  // Owner / free: list your business — no CRM. 1 listing, no agent seats.
   free: { maxListings: 1, maxLeads: 5, maxDeals: 0, maxAgents: 0, maxStorageBytes: 0 },
-  // $49/mo — brokerages posting on our marketplace.
   professional: { maxListings: 10, maxLeads: 500, maxDeals: 50, maxAgents: 5, maxStorageBytes: 10 * 1024 * 1024 * 1024 },
-  // $99/mo — larger teams.
-  enterprise: { maxListings: 20, maxLeads: 2000, maxDeals: 200, maxAgents: 10, maxStorageBytes: 50 * 1024 * 1024 * 1024 },
+  enterprise: { maxListings: 25, maxLeads: 2000, maxDeals: 200, maxAgents: 15, maxStorageBytes: 50 * 1024 * 1024 * 1024 },
+  license: { maxListings: 25, maxLeads: 5000, maxDeals: 1000, maxAgents: 25, maxStorageBytes: 100 * 1024 * 1024 * 1024 },
+  founding: { maxListings: 10, maxLeads: 500, maxDeals: 50, maxAgents: 5, maxStorageBytes: 10 * 1024 * 1024 * 1024 },
 }
 
 // --- Default limits (trial / no subscription) -------------------------------

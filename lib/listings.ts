@@ -125,6 +125,27 @@ export async function createListing(input: ListingInput): Promise<Listing> {
   const { data: { user } } = await supabase.auth.getUser()
   const agentId: string | null = user?.id ?? input.agent_id ?? null
 
+  // Plan-limit gate (2026-09-01 usage overhaul): server-side, authoritative.
+  // Blocks over-limit agencies with a clear message + real upgrade path.
+  try {
+    const { fetchUserAgencyContext } = await import('@/lib/agencies')
+    const ctx = await fetchUserAgencyContext()
+    if (ctx?.agency?.id) {
+      const { usageBlock } = await import('@/lib/usageEnforcement')
+      const blocked = await usageBlock(ctx.agency.id, 'listings')
+      if (blocked) {
+        const err = new Error(blocked.error) as Error & { code?: string; upgradeUrl?: string }
+        err.code = 'USAGE_LIMIT'
+        err.upgradeUrl = blocked.upgradeUrl
+        throw err
+      }
+    }
+  } catch (e: any) {
+    if (e?.code === 'USAGE_LIMIT') throw e // rethrow the real block
+    // Any context/check failure is non-fatal — never block creation on a
+    // helper error (the seller-order route still enforces server-side).
+  }
+
   const { data, error } = await supabase
     .from('listings')
     .insert({ ...input, agent_id: agentId, status: input.status || 'active' })
