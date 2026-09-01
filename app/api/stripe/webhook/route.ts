@@ -265,6 +265,70 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
+  // --- RETIRED public $99 valuation (2026-09-01): the old kind='valuation'
+  //     checkout fell through to the subscription block below, silently
+  //     activating a Professional subscription for a $99 purchase. The product
+  //     is pulled from sale; if any legacy session still completes, absorb it
+  //     here as a no-op (log + refund-free ack) so it can NEVER touch
+  //     subscription/agency state again.
+  if (kind === 'valuation') {
+    try {
+      // Best-effort: refund the retired product so nobody pays for nothing.
+      const { refundCheckoutSession } = await import('@/lib/stripeCheckout')
+      const r = await refundCheckoutSession(session?.id || '', { reason: 'product_retired' })
+      console.warn('[store] retired $99 valuation checkout completed — refunded:', r.ok, r.refundId || r.error)
+    } catch { /* refund is best-effort */ }
+    return NextResponse.json({ ok: true })
+  }
+
+  // --- AI-Verified Listing ($250): mark the seller order paid + auto-run the
+  //     full AI pipeline (record → docs → recast → BOV → CIM → BLI → SBA →
+  //     workflow). Zero broker intervention — payment IS the authorization.
+  if (kind === 'seller_listing') {
+    const listingId = String(metadata?.listingId || '')
+    const planId = String(metadata?.planId || 'professional')
+    const sellerEmail = String(metadata?.sellerEmail || email || '')
+    let agencyId = String(metadata?.agencyId || clientRef || '')
+
+    try {
+      // Resolve agency from the listing if not in metadata.
+      if (!agencyId && listingId) {
+        const { data: l } = await db.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+        agencyId = String(l?.agency_id || '')
+      }
+
+      // 1) Mark the seller order paid.
+      if (listingId) {
+        await db.from('seller_listing_orders')
+          .update({ status: 'paid', provider: 'stripe', provider_session_id: session?.id || null })
+          .eq('listing_id', listingId)
+      }
+
+      // 2) Upgrade the listing tier + unlock the AI path.
+      if (listingId) {
+        await db.from('listings').update({
+          seller_tier: 'paid',
+          tier_paid_at: now.toISOString(),
+          ai_readiness_score: 100,
+          compliance_status: 'pending',
+          updated_at: now.toISOString(),
+        }).eq('id', listingId)
+      }
+
+      // 3) Auto-run the full AI pipeline (fire-and-forget with a generous
+      //    timeout — doc reading + 4 PDF generations can take a while).
+      if (listingId) {
+        const { runPaidListingPipeline } = await import('@/lib/paidListingPipeline')
+        runPaidListingPipeline({ listingId, planId, sellerEmail, agencyId }).catch((e: any) => {
+          console.error('[store] AI-Verified pipeline failed:', e?.message || e)
+        })
+      }
+    } catch (e: any) {
+      console.error('[store] seller_listing webhook error:', e?.message || e)
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   // --- Recurring CRM subscription (Phase 3): create/refresh the licenses row --
   if (kind === 'license_subscription') {
     const agencyId = String(metadata?.agencyId || clientRef || '')

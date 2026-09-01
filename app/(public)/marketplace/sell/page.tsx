@@ -15,7 +15,7 @@ import InstantValuation from '@/components/public/InstantValuation'
 import SponsoredSlotInline from '@/components/public/SponsoredSlotInline'
 import BuyerDemandPanel from '@/components/public/BuyerDemandPanel'
 import { OWNER_LISTING_PLANS } from '@/lib/listingIntelligence'
-import { VALUATION_PRICE, LAUNCH_KIT_PRICE, LAUNCH_KIT } from '@/lib/pricing'
+import { LAUNCH_KIT_PRICE, LAUNCH_KIT } from '@/lib/pricing'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 import AutocompleteInput from '@/components/public/AutocompleteInput'
 
@@ -37,31 +37,6 @@ function SellContent() {
   const [launchBuying, setLaunchBuying] = useState(false)
   const [done, setDone] = useState(false)
   const [portalUrl, setPortalUrl] = useState('')
-
-  const buyValuation = async () => {
-    setValuationBuying(true)
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product: 'valuation',
-          email: form.email || undefined,
-          successUrl: `${window.location.origin}/marketplace/sell?valuation=success`,
-        }),
-      })
-      const j = await res.json().catch(() => ({}))
-      if (j.ok && j.url) {
-        window.location.href = j.url
-      } else {
-        toast(j.error || 'Checkout failed', 'error')
-        setValuationBuying(false)
-      }
-    } catch {
-      toast('Network error — please try again.', 'error')
-      setValuationBuying(false)
-    }
-  }
 
   const buyLaunchKit = async () => {
     setLaunchBuying(true)
@@ -111,6 +86,30 @@ function SellContent() {
       })
       setSubmitting(false)
       if (res.ok) {
+        // Paid plan → collect payment now (the $250 AI-Verified Listing). The
+        // order is created pending; the webhook marks it paid and auto-runs
+        // the full AI pipeline (interview → docs → recast → BOV → CIM → BLI)
+        // with zero broker intervention.
+        const listingId = String(res?.listing?.id || res?.order?.listing_id || '')
+        if (planId !== 'free' && listingId) {
+          const pay = await fetch('/api/stripe/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product: 'seller_listing',
+              listingId,
+              planId,
+              email: form.email,
+              successUrl: `${window.location.origin}/marketplace/sell?listing=success`,
+              cancelUrl: `${window.location.origin}/marketplace/sell`,
+            }),
+          }).then((r) => r.json().catch(() => ({})))
+          if (pay.ok && pay.url) {
+            window.location.href = pay.url
+            return
+          }
+          toast(pay.error || 'Checkout failed — your order is saved, we will contact you.', 'error')
+        }
         setDone(true)
         toast('Listing order created — a broker will confirm details before it goes live.', 'success')
       } else {
@@ -212,7 +211,7 @@ function SellContent() {
               List Your Business <span className="grad-gold">— Free</span>
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.78)', fontSize: 16, lineHeight: 1.7, maxWidth: 540 }}>
-              Post one confidential listing at no cost. A broker reviews it before anything goes live — then qualified buyers can reach you. Prefer a broker-grade valuation first? Get one for ${VALUATION_PRICE} below.
+              Post one confidential listing at no cost. A broker reviews it before anything goes live — then qualified buyers can reach you. Upgrade to the AI-Verified Listing ($250) for the full CIM/BOV/Recast package below.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 26 }}>
               {[['🤫', '100% confidential'], ['📊', 'Broker-grade valuation'], ['🤝', 'Qualified buyers only']].map(([e, t]) => (
@@ -302,18 +301,10 @@ function SellContent() {
           </div>
         </form>
 
-        {/* 💎 $99 Valuation upsell — optional add-on, never a gate */}
-        <div style={{ marginTop: 20, background: 'linear-gradient(135deg,#fff8e6,#fdf3d0)', border: '2px solid #c9a84c', borderRadius: 14, padding: 22, textAlign: 'center' }}>
-          <div style={{ fontSize: 26 }}>💎</div>
-          <div style={{ fontWeight: 800, fontFamily: 'Georgia, serif', color: '#1a1a2e', margin: '6px 0 2px' }}>Professional Valuation Report</div>
-          <div style={{ fontSize: 13, color: '#1a1a2e', marginBottom: 4 }}>Broker-grade value opinion — <strong>${VALUATION_PRICE} one-time</strong></div>
-          <div style={{ fontSize: 12.5, color: '#666', lineHeight: 1.5, marginBottom: 12 }}>
-            SDE/EBITDA multiples, market comparables, and a realistic price range — before you commit to selling.
-          </div>
-          <button type="button" className="btn btn-primary" onClick={buyValuation} disabled={valuationBuying} style={{ width: '100%', justifyContent: 'center' }}>
-            {valuationBuying ? 'Opening checkout…' : `Get My Valuation — $${VALUATION_PRICE}`}
-          </button>
-        </div>
+        {/* 💎 $99 Valuation upsell — RETIRED 2026-09-01: the public $99 valuation
+            product was broken (webhook never delivered a report and the fall-through
+            corrupted subscription state). Removed from sale until replaced by the
+            restructured Quick Estimate / AI-Verified Listing tiers. */}
       </div>
     </div>
 

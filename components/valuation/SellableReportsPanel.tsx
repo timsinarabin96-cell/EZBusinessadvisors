@@ -26,8 +26,8 @@ interface ReportOrder {
 interface ListingOpt { id: string; label: string }
 
 const TIERS = [
-  { id: 'standard', name: 'Valuation Report', price: 199, blurb: 'Full financial recast, valuation range, and broker-grade summary.' },
-  { id: 'full_bov', name: 'Full BOV + Teaser', price: 499, blurb: 'Everything in Standard, plus an expanded Broker Opinion of Value and a marketing-ready teaser.' },
+  { id: 'standard', name: 'Quick Valuation Estimate', price: 199, blurb: 'A fast multiples-based estimate (SDE/EBITDA bands + value range). NOT a CIM — the full CIM ships with the $250 AI-Verified Listing.' },
+  { id: 'full_bov', name: 'Quick Estimate + BOV Summary', price: 499, blurb: 'Everything in Quick Estimate, plus an expanded Broker Opinion of Value summary and a marketing-ready teaser. Still not a CIM — the full CIM ships with the $250 AI-Verified Listing.' },
 ] as const
 
 const money = (n: number | null | undefined) => (n != null ? '$' + Number(n).toLocaleString() : '—')

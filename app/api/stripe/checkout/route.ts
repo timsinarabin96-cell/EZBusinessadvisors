@@ -10,7 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { PLANS, subscribeToTier } from '@/lib/billing'
 import { BUYER_PASS_PLANS, subscribeToBuyerPass } from '@/lib/buyerPass'
-import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, VALUATION_PRICE_CENTS, LAUNCH_KIT_PRICE_CENTS, LAUNCH_KIT } from '@/lib/pricing'
+import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, VALUATION_PRICE_CENTS, LAUNCH_KIT_PRICE_CENTS, LAUNCH_KIT, OWNER_LISTING_PLANS } from '@/lib/pricing'
 import { FEATURED_SLOT_OPTIONS, activateFeaturedSlot } from '@/lib/featuredSlots'
 import { createCheckoutSession, stripeConfigured, demoModeAllowed, demoBlockedError } from '@/lib/stripeCheckout'
 
@@ -128,21 +128,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
   }
 
-  // --- Professional Valuation Report ($99 one-time owner upsell) ------------
+  // --- RETIRED 2026-09-01: public $99 valuation product. Removed from sale —
+  //     it never delivered a report and the webhook fall-through corrupted
+  //     subscription state. The restructured tiers are: free Quick Estimate,
+  //     $199/$499 broker sellable reports (honestly labeled), and the $250
+  //     AI-Verified Listing (the ONLY tier promising full CIM/BOV/Recast).
+  //     The branch below intentionally does not exist; any legacy client that
+  //     still POSTs product=valuation gets a clear retired error.
   if (product === 'valuation') {
+    return NextResponse.json({ ok: false, error: 'The $99 valuation product has been retired — see the AI-Verified Listing tier for a full CIM/BOV/Recast.' }, { status: 410 })
+  }
+
+  // --- AI-Verified Listing ($250 one-time) — public seller checkout ---------
+  // The ONLY tier that promises the full CIM/BOV/Recast package. Payment
+  // confirmation (webhook kind='seller_listing') marks the seller order paid
+  // and auto-triggers the full AI pipeline — no broker intervention.
+  if (product === 'seller_listing') {
     const agencyId = String(body?.agencyId || process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-8454854e731a').trim()
-    const successUrl = safeUrl(body?.successUrl, `${origin}/marketplace/sell?valuation=success`)
+    const listingId = String(body?.listingId || '').trim()
+    const planId = String(body?.planId || 'professional').trim()
+    const plan = OWNER_LISTING_PLANS.find((p) => p.id === planId)
+    if (!plan || plan.price <= 0) {
+      return NextResponse.json({ ok: false, error: 'Invalid listing plan' }, { status: 400 })
+    }
+    if (!listingId) return NextResponse.json({ ok: false, error: 'listingId is required' }, { status: 400 })
+    const successUrl = safeUrl(body?.successUrl, `${origin}/marketplace/sell?listing=success`)
     const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/marketplace/sell`)
-    const amount = VALUATION_PRICE_CENTS
 
     if (stripeConfigured()) {
       const result = await createCheckoutSession({
         agencyId,
-        items: [{ name: 'Professional Business Valuation', amountCents: amount, description: 'Broker-grade valuation report (SDE/EBITDA multiples + comparables)' }],
+        items: [{ name: `${plan.name} — ${plan.description}`, amountCents: Math.round(plan.price * 100), description: 'Full AI path: advisor interview, document reading, Recast, BOV, CIM and BLI.' }],
         successUrl,
         cancelUrl,
         customerEmail: body?.email || null,
-        metadata: { kind: 'valuation' },
+        metadata: { kind: 'seller_listing', listingId, planId, sellerEmail: String(body?.email || '') },
       })
       if (result.ok && result.url) {
         return NextResponse.json({ ok: true, url: result.url, mode: 'stripe' })

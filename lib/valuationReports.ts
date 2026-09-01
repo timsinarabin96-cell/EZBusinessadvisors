@@ -25,8 +25,8 @@ const svc =
     : null
 
 export const VALUATION_TIERS = [
-  { id: 'standard', name: 'Valuation Report', priceCents: 19900, blurb: 'Full financial recast, valuation range, and broker-grade summary.' },
-  { id: 'full_bov', name: 'Full BOV + Teaser', priceCents: 49900, blurb: 'Everything in Standard, plus an expanded Broker Opinion of Value and a marketing-ready teaser.' },
+  { id: 'standard', name: 'Quick Valuation Estimate', priceCents: 19900, blurb: 'A fast multiples-based estimate (SDE/EBITDA bands + value range). NOT a CIM — the full Confidential Information Memorandum ships with the $250 AI-Verified Listing.' },
+  { id: 'full_bov', name: 'Quick Estimate + BOV Summary', priceCents: 49900, blurb: 'Everything in Quick Estimate, plus an expanded Broker Opinion of Value summary and a marketing-ready teaser. Still not a CIM — the full CIM ships with the $250 AI-Verified Listing.' },
 ] as const
 
 export type ValuationTierId = 'standard' | 'full_bov'
@@ -69,7 +69,8 @@ export async function generateValuationPdf(input: {
   // Header band.
   page.drawRectangle({ x: 0, y: 700, width: 612, height: 92, color: NAVY })
   page.drawText(brandName, { x: 40, y: 748, size: 22, font: bold, color: GOLD })
-  page.drawText('Business Valuation Report', { x: 40, y: 722, size: 13, font: regular, color: rgb(1, 1, 1) })
+  page.drawText('Quick Valuation Estimate', { x: 40, y: 722, size: 13, font: regular, color: rgb(1, 1, 1) })
+  page.drawText('Multiples-based estimate — not a CIM', { x: 40, y: 706, size: 9, font: regular, color: rgb(0.85, 0.85, 0.9) })
 
   // Business block.
   page.drawText(input.business_name || 'Business', { x: 40, y: 668, size: 20, font: bold, color: NAVY })

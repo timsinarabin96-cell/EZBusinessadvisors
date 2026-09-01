@@ -133,7 +133,12 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
       ] },
       { heading: 'Terms', body: [
         `The current asking price is ${fmt(price)}. The structure is negotiable and may be tailored to the buyer's financing profile.`,
-        'Seller financing is available for qualified purchasers. An asset purchase structure is anticipated with no historical liabilities assumed.',
+        ...(listing.seller_financing_available
+          ? [`Seller financing is available for qualified purchasers${listing.financing_notes ? `: ${listing.financing_notes}` : '.'}`]
+          : ['Seller financing terms, if any, will be discussed directly with qualified buyers.']),
+        ...(typeof (listing as any).asset_sale === 'boolean'
+          ? [(listing as any).asset_sale ? 'An asset purchase structure is anticipated.' : 'The transaction structure will be confirmed during due diligence.']
+          : ['An asset purchase structure is anticipated with no historical liabilities assumed.']),
       ] },
     ] },
     { id: 'business-overview', title: '3. Business Overview', subsections: [
@@ -162,8 +167,8 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
       { heading: 'Pricing', body: [
         listing.description && /\$|price|fee|rate/i.test(listing.description)
           ? `Pricing structure is described in the overview: ${listing.description}`
-          : 'Pricing reflects the competitive position in the market and is reviewed periodically to maintain margin while remaining attractive to clients.',
-        'There is opportunity to introduce tiered pricing and premium service packages under new ownership.',
+          : 'Pricing reflects the seller\'s current positioning; details are available to qualified buyers.',
+        'Pricing strategy under new ownership may be reviewed by the buyer.',
       ] },
     ] },
     { id: 'customer-analysis', title: '5. Customer Analysis', subsections: [
@@ -414,9 +419,10 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     // ---- Legal / Risk ----
     { id: 'legal-regulatory', title: '19. Legal & Regulatory', subsections: [
       { heading: 'Compliance', body: [
-        `The business maintains the licenses, permits, and registrations required to operate as a ${industry} business${listing.location_general ? ` in ${listing.location_general}` : ''}.`,
+        ...(listing.compliance_status === 'verified'
+          ? [`The business has completed platform verification for its ${industry} operations${listing.location_general ? ` in ${listing.location_general}` : ''}.`]
+          : [`The business operates in the ${industry} sector${listing.location_general ? ` in ${listing.location_general}` : ''}. The seller should confirm which licenses and permits apply to its operations; license/permits status is available to qualified buyers during diligence.`]),
         ...(listing.sub_industry ? [`Regulatory context: ${listing.sub_industry} operations carry specific compliance obligations; current status is available to qualified buyers.`] : []),
-        ...(listing.compliance_status ? [`Compliance status on the platform: ${listing.compliance_status}.`] : []),
         'Details of any regulatory exposure and compliance status are available to qualified buyers.',
       ] },
       { heading: 'Contracts', body: [
@@ -426,8 +432,8 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
     { id: 'franchise-licensing', title: '20. Franchise & Licensing (if applicable)', subsections: [
       { heading: 'Status', body: [
         listing.sub_industry && /franchise|license/i.test(listing.sub_industry)
-          ? `The business operates under a franchise or license structure (${listing.sub_industry}); transfer terms are documented for buyer review.`
-          : 'The business operates under its own brand and does not rely on third-party franchises or restrictive licenses for ongoing operations.',
+          ? `The business may operate under a franchise or license structure (${listing.sub_industry}); transfer terms should be confirmed with the seller and documented for buyer review.`
+          : 'No franchise or third-party licensing structure has been indicated for this business; this should be confirmed during due diligence.',
         'Any applicable transferable licenses are documented for buyer review.',
       ] },
     ] },
@@ -471,8 +477,8 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
       { heading: 'Owner Motivation', body: [
         listing.reason_for_sale
           ? `The owners are pursuing a sale for the following reasons: ${listing.reason_for_sale}.`
-          : 'The owners are pursuing a sale to transition to retirement and focus on other ventures.',
-        'The sale is a lifestyle and succession decision, not a reflection of business performance or distress.',
+          : 'The owners are pursuing a sale at this time. Specific motivations are discussed with qualified buyers directly.',
+        'The sale decision is a personal and business decision by the owners.',
       ] },
     ] },
 
