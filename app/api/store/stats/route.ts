@@ -58,6 +58,6 @@ export async function GET(req: NextRequest) {
     profit: Math.round(profit * 100) / 100,
     orderCount: rows.filter((o) => o.status !== 'cancelled').length,
     byCategory: [...byCat.values()].sort((a, b) => b.profit - a.profit),
-    recent: rows.slice(0, 10),
+    recent: rows.slice(0, 50),
   })
 }

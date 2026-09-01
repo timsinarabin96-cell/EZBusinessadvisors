@@ -111,3 +111,73 @@ export async function createCheckoutSession(input: CheckoutSessionInput): Promis
     return { ok: false, error: err instanceof Error ? err.message : 'Stripe request failed' }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Refunds — full money loop: buyer didn't receive the product → owner refunds
+// from the admin dashboard. Uses the session's payment_intent; the Stripe
+// refund API returns the money to the buyer's original payment method.
+// ---------------------------------------------------------------------------
+
+export interface StripeRefundResult {
+  ok: boolean
+  refundId?: string
+  amountCents?: number
+  error?: string
+}
+
+/**
+ * Refund a paid Stripe Checkout session (full or partial).
+ * Resolves the session's payment_intent, then issues the refund.
+ */
+export async function refundCheckoutSession(
+  sessionId: string,
+  opts?: { amountCents?: number; reason?: string },
+): Promise<StripeRefundResult> {
+  if (!stripeConfigured()) return { ok: false, error: 'Stripe is not connected' }
+  try {
+    // Resolve payment_intent from the checkout session.
+    const sessRes = await fetch(`${STRIPE_API}/checkout/sessions/${encodeURIComponent(sessionId)}`, {
+      headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+    })
+    const sess = await sessRes.json().catch(() => ({}))
+    if (!sessRes.ok || !sess?.payment_intent) {
+      return { ok: false, error: sess?.error?.message || 'Could not resolve payment intent for this order' }
+    }
+
+    const params = new URLSearchParams()
+    params.set('payment_intent', sess.payment_intent)
+    if (opts?.amountCents) params.set('amount', String(Math.round(opts.amountCents)))
+    if (opts?.reason) params.set('reason', opts.reason)
+    params.set('metadata[platform]', 'concord_store_refund')
+
+    const refRes = await fetch(`${STRIPE_API}/refunds`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    })
+    const ref = await refRes.json().catch(() => ({}))
+    if (!refRes.ok) {
+      return { ok: false, error: ref?.error?.message || `Stripe refund error ${refRes.status}` }
+    }
+    return { ok: true, refundId: ref.id, amountCents: ref.amount }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Refund request failed' }
+  }
+}
+
+/** Fetch a checkout session's public metadata (used by the refund route). */
+export async function getCheckoutSessionMetadata(sessionId: string): Promise<Record<string, string> | null> {
+  if (!stripeConfigured()) return null
+  try {
+    const res = await fetch(`${STRIPE_API}/checkout/sessions/${encodeURIComponent(sessionId)}`, {
+      headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+    })
+    const data = await res.json().catch(() => ({}))
+    return res.ok && data?.metadata ? data.metadata : null
+  } catch {
+    return null
+  }
+}

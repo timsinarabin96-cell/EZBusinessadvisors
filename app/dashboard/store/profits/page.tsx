@@ -135,23 +135,65 @@ function Profits() {
 
       {stats.recent.length > 0 && (
         <div style={{ marginTop: 26 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1a1a2e', margin: '0 0 12px' }}>Recent Orders</h2>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1a1a2e', margin: '0 0 12px' }}>All Orders</h2>
+            <span style={{ fontSize: 12, color: '#999' }}>{stats.recent.length} most recent</span>
+          </div>
           <div style={{ background: '#fff', border: '1px solid #ece8dc', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.9fr 0.9fr 0.9fr auto', gap: 10, padding: '10px 16px', background: '#faf9f4', borderBottom: '1px solid #ece8dc', fontSize: 11, fontWeight: 800, color: '#8a8678', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <div>Buyer / Product</div><div>Qty</div><div>Amount</div><div>Profit</div><div>Status</div><div>Artwork</div><div />
+            </div>
             {stats.recent.map((o: StoreOrder, i) => {
               const meta = ORDER_STATUS_META[o.status] || ORDER_STATUS_META.paid
+              const buyerName = (o.shipping_address as any)?.name || ''
               return (
-                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderTop: i ? '1px solid #f2efe6' : 'none' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#1a1a2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.product_name} × {o.quantity}</div>
-                    <div style={{ fontSize: 11.5, color: '#aaa' }}>
+                <div key={o.id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 0.9fr 0.9fr 0.9fr auto', gap: 10, alignItems: 'center', padding: '11px 16px', borderTop: i ? '1px solid #f2efe6' : 'none', fontSize: 13 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: '#1a1a2e', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.product_name} × {o.quantity}</div>
+                    <div style={{ fontSize: 11.5, color: '#888' }}>
+                      {buyerName}{o.buyer_email ? ` · ${o.buyer_email}` : ''}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#aaa' }}>
                       {o.created_at ? new Date(o.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : ''}
                       {o.work_order_ref ? ` · ${o.work_order_ref}` : ''}
                     </div>
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: meta.color, background: `${meta.color}18`, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>{meta.label}</span>
-                  <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#16a34a' }}>+{fmt$(o.profit)}</div>
-                    <div style={{ fontSize: 11, color: '#aaa' }}>{fmt$(o.subtotal)}</div>
+                  <div style={{ color: '#555' }}>{o.quantity}</div>
+                  <div style={{ fontWeight: 800, color: '#1a1a2e' }}>{fmt$(o.subtotal)}</div>
+                  <div style={{ fontWeight: 700, color: '#16a34a' }}>+{fmt$(o.profit)}</div>
+                  <div>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: meta.color, background: `${meta.color}18`, padding: '4px 10px', borderRadius: 999, whiteSpace: 'nowrap' }}>{meta.label}</span>
+                    {o.refunded_at && (
+                      <div style={{ fontSize: 10.5, color: '#dc2626', marginTop: 4 }}>↩️ Refunded {fmt$(o.refund_amount || 0)}</div>
+                    )}
+                  </div>
+                  <div>
+                    {o.print_file_url ? (
+                      <a href={o.print_file_url} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, color: '#1d4ed8', fontWeight: 600, textDecoration: 'none' }}>🖨️ File</a>
+                    ) : (
+                      <span style={{ fontSize: 11.5, color: '#ccc' }}>—</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {!o.refunded_at && o.status !== 'cancelled' && (
+                      <button
+                        onClick={async () => {
+                          const reason = window.prompt('Refund reason (sent to buyer + vendor):', 'Customer did not receive the product')
+                          if (reason === null) return
+                          if (!window.confirm(`Refund ${fmt$(o.subtotal)} to the buyer and request vendor credit for ${o.product_name}?`)) return
+                          const res = await fetch('/api/store/refund', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ orderId: o.id, reason: reason || 'Customer did not receive the product' }),
+                          }).then((r) => r.json()).catch(() => ({ ok: false, error: 'Network error' }))
+                          if (res.ok) { alert('✅ Refund issued — buyer notified, vendor refund request sent.'); window.location.reload() }
+                          else alert('Refund failed: ' + (res.error || 'unknown'))
+                        }}
+                        style={{ background: '#fff', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: 8, padding: '6px 10px', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        ↩️ Refund
+                      </button>
+                    )}
                   </div>
                 </div>
               )

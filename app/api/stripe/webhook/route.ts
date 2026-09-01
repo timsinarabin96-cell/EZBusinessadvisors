@@ -11,6 +11,7 @@ import { verifyStripeSignature } from '@/lib/stripeVerify'
 import { LICENSE_SETUP_FEE, CRM_PLANS } from '@/lib/pricing'
 import { syncLicenseFromStripeSubscription, handleLicenseSubscriptionDeleted, fetchLicenseByStripeSub, syncAgencyAccessFromLicense } from '@/lib/licenseSubscriptions'
 import { licenseAccessGranted } from '@/lib/licenseSubscriptionsCore'
+import { sendEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
 
@@ -401,6 +402,7 @@ export async function POST(req: NextRequest) {
       stripe_session_id: session?.id || null,
       artwork_url: artworkUrl,
       design_mode: designMode,
+      buyer_email: email || null,
     }).select().maybeSingle()
     if (orderErr) {
       return NextResponse.json({ ok: false, error: `order insert failed: ${orderErr.message}` }, { status: 500 })
@@ -435,6 +437,33 @@ export async function POST(req: NextRequest) {
     }
     if (printFileUrl) {
       await db.from('store_orders').update({ print_file_url: printFileUrl }).eq('id', orderRow.id)
+    }
+
+    // Buyer receipt (fire-and-forget) — instant confirmation with order details.
+    if (email) {
+      sendEmail({
+        to: email,
+        subject: `Receipt — ${productName} × ${quantity} (${workOrderRef})`,
+        html:
+          `<div style="max-width:560px;margin:0 auto;padding:24px 16px;font-family:Arial,Helvetica,sans-serif">` +
+          `<div style="background:#1a1a2e;border-radius:10px;padding:20px 24px;color:#fff">` +
+          `<div style="font-family:Georgia,serif;font-size:20px;font-weight:700">CONCORD Deal Platform</div>` +
+          `<div style="font-size:12px;color:#c9a84c;text-transform:uppercase;letter-spacing:0.14em;margin-top:4px">Order Receipt</div></div>` +
+          `<div style="background:#fbfaf7;border:1px solid #e5e0d3;border-radius:10px;padding:20px 24px;margin-top:14px">` +
+          `<div style="font-size:13px;color:#999">${new Date().toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>` +
+          `<div style="font-size:18px;font-weight:800;color:#1a1a2e;font-family:Georgia,serif;margin:4px 0 12px">${productName} × ${quantity}</div>` +
+          `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#2a2a2a">` +
+          `<tr><td style="padding:5px 0;color:#888">Order ref</td><td style="padding:5px 0;font-weight:700">${workOrderRef}</td></tr>` +
+          `<tr><td style="padding:5px 0;color:#888">Ship to</td><td style="padding:5px 0;font-weight:700">${ship.name} — ${ship.line1}${ship.line2 ? ', ' + ship.line2 : ''}, ${ship.city}, ${ship.state} ${ship.zip}</td></tr>` +
+          `<tr><td style="padding:5px 0;color:#888">Total paid</td><td style="padding:5px 0;font-weight:800;color:#16a34a">${'$' + subtotal.toFixed(2)}</td></tr>` +
+          `</table>` +
+          `<div style="border-top:1px solid #e5e0d3;margin:12px 0"></div>` +
+          `<div style="font-size:13px;color:#555;line-height:1.6">Your order is in production. Print + shipping are handled for you — we'll update you when it ships.</div>` +
+          `</div>` +
+          `<p style="font-size:12px;color:#b0b0bd;text-align:center;margin-top:18px">Questions? Contact <a href="mailto:${process.env.STORE_OWNER_EMAIL || 'rtimsina@ezbusinessadvisors.com'}" style="color:#c9a84c">${process.env.STORE_OWNER_EMAIL || 'rtimsina@ezbusinessadvisors.com'}</a></p></div>`,
+        kind: 'generic',
+        meta: { store_receipt: true, order_id: orderRow.id, work_order_ref: workOrderRef },
+      }).catch(() => {})
     }
 
     // Auto-send the work order to the right supplier (fire-and-forget).

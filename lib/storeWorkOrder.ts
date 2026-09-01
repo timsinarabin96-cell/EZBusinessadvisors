@@ -32,7 +32,6 @@ export interface WorkOrderInput {
   shipping: { name: string; line1: string; line2?: string; city: string; state: string; zip: string }
   customerEmail?: string
 }
-
 // Supplier routing — the owner picks these once; work orders auto-route.
 // Paper products → 4over (trade wholesale). Apparel/promo → Printify (POD API).
 // GotPrint is the small-run backup. Order emails are per-supplier.
@@ -84,9 +83,56 @@ export function renderWorkOrderHtml(input: WorkOrderInput): string {
     `<div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">Ship To</div>` +
     `<div style="font-size:14px;color:#2a2a2a;line-height:1.6">${shipLine}</div>` +
     `</div>` +
-    `<p style="font-size:12px;color:#b0b0bd;text-align:center;margin-top:18px">CONCORD Deal Platform · Automated work order · Do not reply to this email</p>` +
+    `<p style="font-size:12px;color:#b0b0bd;text-align:center;margin-top:18px">CONCORD Deal Platform · Automated work order · Questions? Contact <a href="mailto:${esc(process.env.STORE_OWNER_EMAIL || 'rtimsina@ezbusinessadvisors.com')}" style="color:#c9a84c">${esc(process.env.STORE_OWNER_EMAIL || 'rtimsina@ezbusinessadvisors.com')}</a></p>` +
     `</div>`
   )
+}
+
+/** Vendor refund request — buyer didn't receive the product; owner wants the
+ *  wholesale money back from the supplier. Same routing as work orders. */
+export async function dispatchVendorRefundRequest(input: {
+  orderId: string
+  workOrderRef: string
+  productName: string
+  quantity: number
+  unitCost: number
+  supplier?: string | null
+  refundReason: string
+}): Promise<{ ok: boolean; supplier: string | null }> {
+  const supplierName = input.supplier || null
+  const to =
+    (supplierName && SUPPLIER_ORDER_EMAILS[supplierName]) ||
+    process.env.STORE_OWNER_EMAIL ||
+    'rtimsina@ezbusinessadvisors.com'
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
+  const money = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const html =
+    `<div style="max-width:620px;margin:0 auto;padding:24px 16px;font-family:Arial,Helvetica,sans-serif">` +
+    `<div style="background:#7f1d1d;border-radius:10px;padding:20px 24px;color:#fff">` +
+    `<div style="font-family:Georgia,serif;font-size:22px;font-weight:700">CONCORD Deal Platform</div>` +
+    `<div style="font-size:12px;color:#fca5a5;text-transform:uppercase;letter-spacing:0.14em;margin-top:4px">Vendor Refund Request</div></div>` +
+    `<div style="background:#fbfaf7;border:1px solid #e5e0d3;border-radius:10px;padding:20px 24px;margin-top:14px">` +
+    `<div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.1em">Work Order Reference</div>` +
+    `<div style="font-size:20px;font-weight:800;color:#1a1a2e;font-family:Georgia,serif;margin:4px 0 14px">${esc(input.workOrderRef)}</div>` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#2a2a2a">` +
+    `<tr><td style="padding:6px 0;color:#888;width:40%">Product</td><td style="padding:6px 0;font-weight:700">${esc(input.productName)} × ${input.quantity}</td></tr>` +
+    (supplierName ? `<tr><td style="padding:6px 0;color:#888">Supplier</td><td style="padding:6px 0;font-weight:700">${esc(supplierName)}</td></tr>` : '') +
+    `<tr><td style="padding:6px 0;color:#888">Wholesale total</td><td style="padding:6px 0;font-weight:700">${money(input.unitCost * input.quantity)}</td></tr>` +
+    `<tr><td style="padding:6px 0;color:#888">Refund reason</td><td style="padding:6px 0;font-weight:700">${esc(input.refundReason)}</td></tr>` +
+    `</table>` +
+    `<div style="border-top:1px solid #e5e0d3;margin:14px 0"></div>` +
+    `<div style="font-size:13px;color:#2a2a2a;line-height:1.6">Please confirm this refund and credit the platform account for the wholesale amount above. The buyer has already been refunded in full.</div>` +
+    `</div>` +
+    `<p style="font-size:12px;color:#b0b0bd;text-align:center;margin-top:18px">CONCORD Deal Platform · Automated vendor refund request</p></div>`
+
+  const res = await sendEmail({
+    to,
+    subject: `REFUND REQUEST ${input.workOrderRef} — ${input.productName} × ${input.quantity}`,
+    html,
+    kind: 'generic',
+    meta: { store_vendor_refund: true, order_id: input.orderId, work_order_ref: input.workOrderRef },
+  })
+  return { ok: res.ok, supplier: supplierName }
 }
 
 /**

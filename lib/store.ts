@@ -70,6 +70,14 @@ export interface StoreOrder {
   stripe_session_id: string | null
   created_at: string | null
   product?: StoreProduct | null
+  buyer_email?: string | null
+  artwork_url?: string | null
+  design_mode?: string | null
+  print_file_url?: string | null
+  refunded_at?: string | null
+  refund_reason?: string | null
+  refund_amount?: number | null
+  refund_stripe_ref?: string | null
 }
 
 export interface StoreStats {
