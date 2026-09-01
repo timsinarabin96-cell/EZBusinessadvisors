@@ -33,8 +33,8 @@
 | BOV liability label gate — status-driven title, agent finalize, reviewer trail | ✅ | `969f8ca` |
 | CIM/BOV/recast premium-quality sample outputs verified (PDF text-level) | ✅ | `61e253d` |
 | Rendered-output verification harness (`scripts/sample-deliverables.mts`) | ✅ | `61e253d` |
-| Recast question generator (Item 1) — FROZEN until Gates 1+2 verified across 2–3 industries | ❌ frozen | — |
-| Intake call profile (Item 2) — same freeze | ❌ frozen | — |
+| Recast question generator (Item 1) — **UNFROZEN ready: Gates 1+2 verified 09-01 across 3 industries (Home Care LLC, Restaurant S-Corp, Manufacturing C-Corp) + rendered Recast/CIM/BOV output checked (`scripts/verify-financial-engine.mts`)** | ✅ verification done — boss decision to start | `362162f` |
+| Intake call profile (Item 2) — same: verification complete, start decision is boss's | ✅ verification done — boss decision to start | `362162f` |
 
 ## 2. Listing Flow
 
