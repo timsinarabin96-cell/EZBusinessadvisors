@@ -14,6 +14,8 @@ import {
   STORE_CATEGORIES,
   fetchStoreProducts,
   checkoutStoreOrder,
+  generateStoreArtworkForProduct,
+  uploadStoreTemplate,
   type StoreProduct,
   type StoreCategory,
 } from '@/lib/store'
@@ -40,6 +42,12 @@ function Storefront() {
   const [qty, setQty] = useState(1)
   const [ship, setShip] = useState({ name: '', line1: '', line2: '', city: '', state: '', zip: '' })
   const [busy, setBusy] = useState(false)
+  // Design step: AI-generated or uploaded artwork attached to the order.
+  const [designMode, setDesignMode] = useState<'ai' | 'upload' | ''>('')
+  const [artworkUrl, setArtworkUrl] = useState('')
+  const [artworkProvider, setArtworkProvider] = useState('')
+  const [designing, setDesigning] = useState(false)
+  const [designErr, setDesignErr] = useState('')
 
   useEffect(() => {
     ;(async () => {
@@ -61,13 +69,31 @@ function Storefront() {
       return
     }
     setBusy(true)
-    const res = await checkoutStoreOrder({ productId: ordering.id, quantity: qty, shippingAddress: ship })
+    const res = await checkoutStoreOrder({ productId: ordering.id, quantity: qty, shippingAddress: ship, artworkUrl: artworkUrl || undefined, designMode: designMode || 'auto' })
     setBusy(false)
     if (res.ok && res.url) {
       window.location.href = res.url
     } else {
       toast(res.error || 'Checkout failed', 'error')
     }
+  }
+
+  const generateDesign = async (
+    product: StoreProduct,
+    setUrl: (v: string) => void,
+    setProvider: (v: string) => void,
+    setErr: (v: string) => void,
+    setDesigning: (v: boolean) => void,
+  ) => {
+    setDesigning(true); setErr('')
+    const res = await generateStoreArtworkForProduct({ productId: product.id })
+    if (res.ok && res.url) {
+      setUrl(res.url); setProvider(res.provider || '')
+    } else {
+      setErr(res.error || 'AI design failed — try again or upload a template')
+      setDesignMode('')
+    }
+    setDesigning(false)
   }
 
   const catTabs = STORE_CATEGORIES.filter((c) => c.id === cat || products.some((p) => p.category === c.id))
@@ -120,7 +146,7 @@ function Storefront() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#c9a84c', fontFamily: 'Georgia, serif' }}>{fmt$(p.sell_price || 0)}</div>
                 <button
-                  onClick={() => { setOrdering(p); setQty(1); setShip({ name: '', line1: '', line2: '', city: '', state: '', zip: '' }) }}
+                  onClick={() => { setOrdering(p); setQty(1); setShip({ name: '', line1: '', line2: '', city: '', state: '', zip: '' }); setDesignMode(''); setArtworkUrl(''); setArtworkProvider(''); setDesignErr('') }}
                   style={{ background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
                   Order
@@ -141,6 +167,96 @@ function Storefront() {
               </div>
               <button onClick={() => setOrdering(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999' }}>✕</button>
             </div>
+
+            {/* DESIGN STEP — see the result (AI) or upload a template */}
+            <div style={{ margin: '16px 0 8px', fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              1 · Design <span style={{ color: '#c9a84c' }}>✨</span>
+            </div>
+            {designMode === 'ai' ? (
+              <div style={{ border: '1px solid #e5dfcc', borderRadius: 12, padding: 12, background: '#faf9f4' }}>
+                {designing ? (
+                  <div style={{ padding: '26px 10px', textAlign: 'center', color: '#888', fontSize: 13 }}>
+                    🎨 Designing with AI… (10–30s)
+                  </div>
+                ) : artworkUrl ? (
+                  <>
+                    <img src={artworkUrl} alt="AI design preview" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 8, background: '#fff' }} />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button
+                        onClick={() => { setArtworkUrl(''); setArtworkProvider(''); setDesigning(true); generateDesign(ordering, setArtworkUrl, setArtworkProvider, setDesignErr, setDesigning) }}
+                        style={{ flex: 1, background: '#1a1a2e', color: '#fff', border: 'none', borderRadius: 8, padding: '9px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        🔄 Regenerate
+                      </button>
+                      <button
+                        onClick={() => { setDesignMode(''); setArtworkUrl(''); setArtworkProvider('') }}
+                        style={{ flex: 1, background: '#fff', border: '1px solid #ddd', borderRadius: 8, padding: '9px', fontSize: 13, cursor: 'pointer' }}
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#999', marginTop: 8 }}>
+                      {artworkProvider ? `AI design by ${artworkProvider === 'free' ? 'flux (free tier)' : artworkProvider} — attached to your order and sent to the printer.` : ''}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            ) : designMode === 'upload' ? (
+              <div style={{ border: '1px solid #e5dfcc', borderRadius: 12, padding: 12, background: '#faf9f4' }}>
+                <label style={{ display: 'block', textAlign: 'center', padding: '18px 10px', border: '2px dashed #d8d2c2', borderRadius: 10, cursor: 'pointer', fontSize: 13, color: '#777' }}>
+                  📎 {artworkUrl ? 'Template attached — pick a different file?' : 'Click to upload your template (PDF, PNG, JPG, WebP, ≤15MB)'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,application/pdf"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0]
+                      if (!f || !ordering) return
+                      setDesigning(true); setDesignErr('')
+                      const res = await uploadStoreTemplate({ productId: ordering.id, file: f })
+                      setDesigning(false)
+                      if (res.ok && res.url) setArtworkUrl(res.url)
+                      else setDesignErr(res.error || 'Upload failed')
+                    }}
+                  />
+                </label>
+                {artworkUrl && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    <a href={artworkUrl} target="_blank" rel="noreferrer" style={{ flex: 1, textAlign: 'center', background: '#1a1a2e', color: '#fff', borderRadius: 8, padding: '9px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                      👁️ View template
+                    </a>
+                    <button
+                      onClick={() => { setDesignMode(''); setArtworkUrl('') }}
+                      style={{ flex: 1, background: '#fff', border: '1px solid #ddd', borderRadius: 8, padding: '9px', fontSize: 13, cursor: 'pointer' }}
+                    >
+                      ✕ Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button
+                  onClick={async () => {
+                    if (!ordering) return
+                    setDesignMode('ai'); setDesigning(true); setDesignErr('')
+                    await generateDesign(ordering, setArtworkUrl, setArtworkProvider, setDesignErr, setDesigning)
+                  }}
+                  style={{ background: 'linear-gradient(135deg,#1a1a2e,#0f3460)', color: '#fff', border: 'none', borderRadius: 10, padding: '14px 10px', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+                >
+                  ✨ AI Design
+                  <div style={{ fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>Auto-branded, see result now</div>
+                </button>
+                <button
+                  onClick={() => { setDesignMode('upload'); setDesignErr('') }}
+                  style={{ background: '#fff', border: '1px solid #ddd', borderRadius: 10, padding: '14px 10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  📎 Upload Template
+                  <div style={{ fontSize: 11, fontWeight: 500, color: '#999', marginTop: 4 }}>Your own print-ready file</div>
+                </button>
+              </div>
+            )}
+            {designErr && <div style={{ marginTop: 8, fontSize: 12.5, color: '#dc2626' }}>{designErr}</div>}
 
             <div style={{ margin: '18px 0 8px', fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Quantity</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

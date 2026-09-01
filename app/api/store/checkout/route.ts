@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
   const productId = String(body?.productId || '')
   const quantity = Math.max(1, Math.min(1000, parseInt(String(body?.quantity || '1'), 10) || 1))
   const ship = body?.shippingAddress || {}
+  const artworkUrl = String(body?.artworkUrl || '').trim()
+  const designMode = String(body?.designMode || 'auto').trim()
   if (!productId) return NextResponse.json({ ok: false, error: 'missing productId' }, { status: 400 })
   if (!ship.name || !ship.line1 || !ship.city || !ship.state || !ship.zip) {
     return NextResponse.json({ ok: false, error: 'Complete shipping address required' }, { status: 400 })
@@ -84,6 +86,8 @@ export async function POST(req: NextRequest) {
       shipCity: ship.city,
       shipState: ship.state,
       shipZip: ship.zip,
+      artworkUrl,
+      designMode,
     },
   })
 

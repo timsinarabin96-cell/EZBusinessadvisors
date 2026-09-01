@@ -364,6 +364,8 @@ export async function POST(req: NextRequest) {
     const productId = String(metadata?.productId || '')
     const productName = String(metadata?.productName || 'Store product')
     const quantity = Math.max(1, parseInt(String(metadata?.quantity || '1'), 10) || 1)
+    const artworkUrl = String(metadata?.artworkUrl || '').trim() || null
+    const designMode = String(metadata?.designMode || 'auto').trim()
     const ship = {
       name: String(metadata?.shipName || ''),
       line1: String(metadata?.shipLine1 || ''),
@@ -397,13 +399,19 @@ export async function POST(req: NextRequest) {
       status: 'paid',
       work_order_ref: workOrderRef,
       stripe_session_id: session?.id || null,
+      artwork_url: artworkUrl,
+      design_mode: designMode,
     }).select().maybeSingle()
     if (orderErr) {
       return NextResponse.json({ ok: false, error: `order insert failed: ${orderErr.message}` }, { status: 500 })
     }
 
-    // Auto-generate the print-ready PDF (artwork the supplier can actually print)
-    // and save its URL on the order. Failure never blocks the order itself.
+    // Artwork handling for the supplier:
+    //  - upload mode: the broker's own template IS the print file — ship as-is.
+    //  - AI mode: the AI art is the background; a print-ready PDF with REAL
+    //    overlaid text is generated so nothing ships with AI-garbled type.
+    //  - no artwork: fall back to the fully auto-generated branded PDF.
+    // Failures never block the order.
     let printFileUrl: string | null = null
     try {
       const { createAndUploadPrintFile } = await import('@/lib/storePrintFiles')
@@ -418,12 +426,16 @@ export async function POST(req: NextRequest) {
         headline: 'Confidential Business Opportunity',
         contact: { name: 'EZ Business Advisors', phone: '', email: email || '', website: 'ezbusinessadvisors.com' },
         brand: { name: 'CONCORD Deal Platform' },
+        backgroundImageUrl: designMode === 'ai' ? artworkUrl : undefined,
       })
       printFileUrl = url || null
-      if (printFileUrl) {
-        await db.from('store_orders').update({ print_file_url: printFileUrl }).eq('id', orderRow.id)
-      }
     } catch { /* print file is best-effort */ }
+    if (designMode === 'upload' && artworkUrl) {
+      printFileUrl = artworkUrl
+    }
+    if (printFileUrl) {
+      await db.from('store_orders').update({ print_file_url: printFileUrl }).eq('id', orderRow.id)
+    }
 
     // Auto-send the work order to the right supplier (fire-and-forget).
     // Product-level supplier (4over / Printify / GotPrint) routes automatically.

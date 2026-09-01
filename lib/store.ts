@@ -151,6 +151,10 @@ export async function checkoutStoreOrder(input: {
   productId: string
   quantity: number
   shippingAddress: ShippingAddress
+  /** Design-step artwork: AI-generated or uploaded template public URL. */
+  artworkUrl?: string
+  /** auto | ai | upload */
+  designMode?: string
 }): Promise<{ ok: boolean; url?: string; error?: string }> {
   const res = await fetch('/api/store/checkout', {
     method: 'POST',
@@ -160,4 +164,49 @@ export async function checkoutStoreOrder(input: {
   const data = await res.json().catch(() => ({}))
   if (!res.ok || !data.ok) return { ok: false, error: data.error || 'Checkout failed' }
   return data
+}
+
+/** AI-generate branded artwork for a product (design step). */
+export async function generateStoreArtworkForProduct(input: {
+  productId: string
+  brand?: {
+    businessName?: string
+    tagline?: string
+    primaryColor?: string
+    accentColor?: string
+    logoUrl?: string | null
+    phone?: string
+    website?: string
+  }
+}): Promise<{ ok: boolean; url?: string; error?: string; provider?: string }> {
+  try {
+    const res = await fetch('/api/store/artwork', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) return { ok: false, error: data.error || 'AI design failed' }
+    return { ok: true, url: data.url, provider: data.provider }
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'AI design failed' }
+  }
+}
+
+/** Upload the broker's own print template (design step). Returns public URL. */
+export async function uploadStoreTemplate(input: {
+  productId: string
+  file: File
+}): Promise<{ ok: boolean; url?: string; error?: string }> {
+  try {
+    const fd = new FormData()
+    fd.append('file', input.file)
+    fd.append('productId', input.productId)
+    const res = await fetch('/api/store/artwork/upload', { method: 'POST', body: fd })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) return { ok: false, error: data.error || 'Upload failed' }
+    return { ok: true, url: data.url }
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Upload failed' }
+  }
 }

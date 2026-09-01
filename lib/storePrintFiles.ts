@@ -38,6 +38,8 @@ export interface PrintFileInput {
   headline?: string
   contact?: { name?: string; phone?: string; email?: string; website?: string }
   brand?: { name?: string; primaryColor?: string }
+  /** AI-generated background art (no text) — real text is overlaid on top. */
+  backgroundImageUrl?: string
 }
 
 /** Print spec per product category: page size in points + friendly label. */
@@ -85,12 +87,31 @@ export async function generateStorePrintPdf(input: PrintFileInput): Promise<Uint
   const brandName = input.brand?.name || 'CONCORD Deal Platform'
   const brandColor = input.brand?.primaryColor ? hexToRgb(input.brand.primaryColor) : NAVY
 
+  // AI background art (optional): fetch + embed as a full-page image so the
+  // printed piece carries the custom design with REAL overlaid text.
+  let background: Awaited<ReturnType<typeof PDFDocument.prototype.embedJpg>> | null = null
+  if (input.backgroundImageUrl) {
+    try {
+      const res = await fetch(input.backgroundImageUrl, { signal: AbortSignal.timeout(20000) })
+      if (res.ok) {
+        const bytes = Buffer.from(await res.arrayBuffer())
+        try { background = await doc.embedJpg(bytes) } catch { try { background = await doc.embedPng(bytes) } catch { background = null } }
+      }
+    } catch { background = null }
+  }
+
   const page = doc.addPage([spec.width, spec.height])
+  if (background) {
+    page.drawImage(background, { x: 0, y: 0, width: spec.width, height: spec.height })
+  }
   drawBrandedPiece(page, { regular, bold, spec, input, brandName, brandColor })
 
   // Business cards get a front + back; everything else is single-sided.
   if (input.category === 'business_cards') {
     const back = doc.addPage([spec.width, spec.height])
+    if (background) {
+      back.drawImage(background, { x: 0, y: 0, width: spec.width, height: spec.height })
+    }
     drawBackSide(back, { regular, bold, spec, input, brandName })
   }
 
