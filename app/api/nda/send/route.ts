@@ -10,6 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageListing, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { createSigningLinks } from '@/lib/documentSigning'
 import { sendEmail } from '@/lib/email'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -57,6 +58,8 @@ export async function POST(req: NextRequest) {
   if (!canManageListing(auth, { agency_id: listing.agency_id, agent_id: listing.agent_id })) return forbiddenResponse()
 
   const agencyId = listing.agency_id
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId, body, action: 'nda_send', targetType: 'listing', targetId: listingId })
+  if (trainingBlock) return trainingBlock
   const { data: agency } = await db.from('agencies').select('name').eq('id', agencyId).maybeSingle()
   const agencyName = agency?.name || 'the Brokerage'
   const brokerName = (auth.profile as { full_name?: string | null }).full_name || 'the Broker'

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { createEsignRequest, esignConfigured, type EsignParty } from '@/lib/eSign'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 
@@ -49,6 +50,8 @@ export async function POST(req: NextRequest) {
   }
   const agencyId = doc.listings?.agency_id
   if (!agencyId || !canManageAgency(auth, agencyId)) return forbiddenResponse()
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId, body, action: 'document_esign', targetType: 'document', targetId: documentId })
+  if (trainingBlock) return trainingBlock
 
   // Agency brand for the letterhead — each agency's own logo shows on its docs
   // (white-label ready), and the preparing agent's name is printed beneath.

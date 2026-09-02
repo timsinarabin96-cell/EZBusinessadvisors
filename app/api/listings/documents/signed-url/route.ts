@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, unauthorizedResponse, canManageAgency } from '@/lib/supabase/auth'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -53,6 +54,8 @@ export async function GET(req: NextRequest) {
     }
   }
   if (!agencyId) return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 })
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId, action: 'sensitive_document_access', targetType: 'listing', targetId: listingId || dealId })
+  if (trainingBlock) return trainingBlock
   if (!canManageAgency(auth, agencyId)) {
     return NextResponse.json({ ok: false, error: 'Insufficient permission' }, { status: 403 })
   }

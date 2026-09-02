@@ -10,6 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageListing, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { publishListing, schedulePublish } from '@/lib/publish'
 import { setExpiry } from '@/lib/listingExpiry'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 
@@ -37,6 +38,8 @@ export async function POST(req: NextRequest) {
   const { data: listing } = await db.from('listings').select('agency_id, agent_id').eq('id', listingId).maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
   if (!canManageListing(auth, listing)) return forbiddenResponse()
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId: listing.agency_id, body, action: 'listing_publish', targetType: 'listing', targetId: listingId })
+  if (trainingBlock) return trainingBlock
 
   // Scheduled publish.
   if (body.scheduleAt) {

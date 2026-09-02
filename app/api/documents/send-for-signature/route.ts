@@ -10,6 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { notify } from '@/lib/email'
 import { makeToken } from '@/lib/clientPortal'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 
@@ -50,6 +51,8 @@ export async function POST(req: NextRequest) {
   const agencyId = (doc.listings as any)?.agency_id
   const businessName = (doc.listings as any)?.business_name || doc.title || 'your deal'
   if (!agencyId || !canManageAgency(auth, agencyId)) return forbiddenResponse()
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId, body, action: 'document_send_for_signature', targetType: 'document', targetId: documentId })
+  if (trainingBlock) return trainingBlock
 
   const listingId = doc.listing_id
   if (!listingId) {

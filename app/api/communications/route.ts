@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { logCommunication, listCommunications } from '@/lib/communications'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 
@@ -45,6 +46,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const agencyId = body.agencyId || auth.memberships[0]?.agency_id
   if (!agencyId) return NextResponse.json({ ok: false, error: 'No agency membership' }, { status: 403 })
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId, body, action: 'buyer_inquiry_handling', targetType: 'listing', targetId: body.listing_id || body.buyer_lead_id || null })
+  if (trainingBlock) return trainingBlock
 
   if (!['call', 'email', 'sms', 'meeting', 'other'].includes(body.channel || '')) {
     return NextResponse.json({ ok: false, error: 'channel must be call|email|sms|meeting|other' }, { status: 400 })

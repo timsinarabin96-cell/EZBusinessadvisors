@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { createDelivery, type DocKind } from '@/lib/docDelivery'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 
@@ -28,6 +29,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const agencyId = String(body.agencyId || auth.memberships[0]?.agency_id || '')
   if (!agencyId || !canManageAgency(auth, agencyId)) return forbiddenResponse()
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId, body, action: 'buyer_document_delivery', targetType: 'listing', targetId: body.listingId || null })
+  if (trainingBlock) return trainingBlock
 
   const docKind = String(body.docKind || '')
   if (!['cim', 'bov', 'recast'].includes(docKind)) {

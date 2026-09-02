@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { reviewNdaRequest } from '@/lib/ndaAccess'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 
@@ -35,6 +36,8 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
   if (!ndaReq) return NextResponse.json({ ok: false, error: 'Request not found' }, { status: 404 })
   if (!canManageAgency(auth, ndaReq.agency_id)) return forbiddenResponse()
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId: ndaReq.agency_id, body, action: 'sensitive_access_review', targetType: 'access_request', targetId: body.requestId })
+  if (trainingBlock) return trainingBlock
 
   const result = await reviewNdaRequest(body.requestId, body.action, auth.user.id, body.reviewNote || null)
   if (!result.ok) return NextResponse.json({ ok: false, error: result.error }, { status: 500 })
