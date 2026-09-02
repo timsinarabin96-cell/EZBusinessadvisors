@@ -113,36 +113,33 @@ export async function deleteArticle(id: string): Promise<boolean> {
 /**
  * Auto-generate editorial content from real platform data:
  *   * Featured Listings — recent active listings (with price)
- *   * Deals Closed — recently closed deals + value
- *   * New Leads — recently created seller/buyer leads
+ *   * Deals Closed — recently closed deals + value (no party names)
  *   * Market News — a short weekly intro paragraph tying it together
- * Data volumes are pulled live; if tables are empty, generates a clean
- * "quiet week" note so the newspaper still looks intentional.
+ * v3: NEVER queries seller_leads / buyer_leads and NEVER discloses buyer or
+ * seller identities — the old "New Leads" section has been removed
+ * permanently. The full premium (photos + agent cards) generation lives
+ * server-side in lib/newspaperV3.ts; this client-side helper only powers the
+ * dashboard's manual "quick draft" preview.
  */
 export async function autoGenerateArticles(editionId: string): Promise<boolean> {
   try {
-    const [listingsRes, dealsRes, sellerRes, buyerRes] = await Promise.all([
+    const [listingsRes, dealsRes] = await Promise.all([
       supabase.from('listings').select('business_name, industry, asking_price, status, created_at').eq('status', 'active')?.order('created_at', { ascending: false }).limit(6),
       supabase.from('deals').select('title, status, purchase_price, created_at').or('status.eq.closed')?.order('updated_at', { ascending: false }).limit(6),
-      supabase.from('seller_leads').select('business_name, industry, status, created_at')?.order('created_at', { ascending: false }).limit(6),
-      supabase.from('buyer_leads').select('contact_name, industry_interest, status, created_at')?.order('created_at', { ascending: false }).limit(6),
     ])
     const listings = (listingsRes?.data || []) as any[]
     const deals = (dealsRes?.data || []) as any[]
-    const sellers = (sellerRes?.data || []) as any[]
-    const buyers = (buyerRes?.data || []) as any[]
 
     const articles: Array<Omit<Article, 'id' | 'edition_id'>> = []
     let order = 10
 
-    // Intro / market news
+    // Intro / market news — identity-free counts only
     articles.push({
       section: 'Market News',
       headline: nowLabel(),
       body:
-        `This week we welcomed ${listings.length} featured listing${listings.length === 1 ? '' : 's'}, ` +
-        `closed ${deals.length} deal${deals.length === 1 ? '' : 's'}, and added ${sellers.length + buyers.length} new ` +
-        `lead${sellers.length + buyers.length === 1 ? '' : 's'} to our pipeline. The business sale market remains active ` +
+        `This week we welcomed ${listings.length} featured listing${listings.length === 1 ? '' : 's'} and ` +
+        `closed ${deals.length} deal${deals.length === 1 ? '' : 's'}. The business sale market remains active ` +
         `across our coverage area — reach out to discuss your exit or acquisition goals.`,
       sort_order: order,
     })
@@ -159,27 +156,12 @@ export async function autoGenerateArticles(editionId: string): Promise<boolean> 
       order += 10
     }
 
-    // Deals closed
+    // Deals closed — amounts/timelines only, never party names
     if (deals.length) {
       articles.push({
         section: 'Deals Closed',
         headline: 'Recent closings',
-        body: deals.map((d, i) => `${i + 1}. ${d.title || 'Deal'}${d.purchase_price ? ' · $' + Math.round(d.purchase_price).toLocaleString() : ''} (${d.status})`).join('\n'),
-        sort_order: order,
-      })
-      order += 10
-    }
-
-    // New leads
-    if (sellers.length + buyers.length) {
-      const leadLines = [
-        ...sellers.map((l, i) => `Seller: ${l.business_name || 'Unnamed'}${l.industry ? ' (' + l.industry + ')' : ''}${l.status ? ' — ' + l.status : ''}`),
-        ...buyers.map((l, i) => `Buyer: ${l.contact_name || 'Unnamed'}${l.industry_interest ? ' looking for ' + l.industry_interest : ''}`),
-      ]
-      articles.push({
-        section: 'New Leads',
-        headline: 'New leads this week',
-        body: leadLines.join('\n'),
+        body: deals.map((d, i) => `${i + 1}. Business acquisition${d.purchase_price ? ' · $' + Math.round(d.purchase_price).toLocaleString() : ''} (${d.status})`).join('\n'),
         sort_order: order,
       })
       order += 10
@@ -212,12 +194,24 @@ export async function fetchSubscriptions(): Promise<Subscription[]> {
   }
 }
 
+/** Adds a BUYER-audience subscriber (the only audience the weekly digest is
+ *  ever sent to). Manual dashboard tool — not user-facing signup. */
 export async function addSubscription(email: string, name?: string): Promise<boolean> {
   try {
     const token = makeUnsubToken(email)
-    const { error } = await supabase.from('newspaper_subscriptions').upsert(
-      { email: email.toLowerCase().trim(), name: name || null, token },
-      { onConflict: 'email' },
+    const normalized = email.toLowerCase().trim()
+    const { data: existing } = await supabase
+      .from('newspaper_subscriptions')
+      .select('id')
+      .ilike('email', normalized)
+      .eq('audience', 'buyer')
+      .maybeSingle()
+    if (existing) {
+      const { error } = await supabase.from('newspaper_subscriptions').update({ status: 'active', name: name || null }).eq('id', existing.id)
+      return !error
+    }
+    const { error } = await supabase.from('newspaper_subscriptions').insert(
+      { email: normalized, name: name || null, token, audience: 'buyer', status: 'active' },
     )
     return !error
   } catch {

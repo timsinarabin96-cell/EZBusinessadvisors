@@ -45,7 +45,9 @@ export type Subscription = {
   created_at?: string
 }
 
-export const SECTIONS = ['Market News', 'Featured Listings', 'Deals Closed', 'New Leads', 'Team Updates']
+// v3: buyer-only inventory digest — 'New Leads' removed permanently. We never
+// disclose buyer/seller identities or industry interest in the weekly email.
+export const SECTIONS = ['Market News', 'Featured Listings', 'Deals Closed', 'Team Updates']
 
 export function nowLabel(): string {
   return `Week of ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
@@ -97,7 +99,6 @@ function sectionColor(section: string): string {
   switch (section) {
     case 'Featured Listings': return '#0b1f3a'
     case 'Deals Closed': return '#16a34a'
-    case 'New Leads': return '#8b5cf6'
     case 'Team Updates': return '#c9a84c'
     default: return '#3b82f6'
   }

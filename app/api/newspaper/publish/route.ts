@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { renderNewspaperHtml } from '@/lib/newspaperShared'
+import { renderNewspaperV3Html } from '@/lib/newspaperV3'
 import { authenticateProfileRequest, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 
 // ---------------------------------------------------------------------------
@@ -40,14 +40,14 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: articles } = await SVC.from('newspaper_articles').select('*').eq('edition_id', editionId).order('sort_order', { ascending: true })
-  const { data: subs } = await SVC.from('newspaper_subscriptions').select('*').eq('status', 'active')
+  // BUYERS ONLY — sellers/internal/agent audiences are never mailed the weekly.
+  const { data: subs } = await SVC.from('newspaper_subscriptions').select('*').eq('status', 'active').eq('audience', 'buyer')
 
-  const html = renderNewspaperHtml(edition, (articles || []) as any)
   const subject = `Concord Weekly — ${edition.issue_label || ''}`
 
   let sent = 0, failed = 0
   for (const sub of (subs || [])) {
-    const emailHtml = welcomeTop(sub) + html
+    const emailHtml = renderNewspaperV3Html(edition as any, (articles || []) as any, sub as any)
     const text = (articles || [])
       .map((a) => `${a.section}: ${a.headline}\n${(a.body || '').replace(/\n/g, ' ')}`)
       .join('\n\n')
@@ -57,21 +57,13 @@ export async function POST(req: NextRequest) {
       html: emailHtml,
       text,
       kind: 'newspaper_weekly',
-      meta: { edition_id: editionId },
+      meta: { edition_id: editionId, audience: 'buyer' },
       status: 'queued',
     })
     if (error) { failed++ ; continue }
-    await SVC.from('newspaper_delivery_log').insert({ edition_id: editionId, email: sub.email, status: 'sent' })
+    await SVC.from('newspaper_delivery_log').insert({ edition_id: editionId, email: sub.email, status: 'sent', audience: 'buyer' })
     sent++
   }
 
   return NextResponse.json({ ok: true, sent, failed, total: (subs || []).length })
-}
-
-function welcomeTop(sub: any): string {
-  const name = sub?.name || sub?.email?.split('@')[0] || 'there'
-  return `<p style="font-size:13px;color:#6a6a7a;margin:0 0 12px">Hi ${esc(name)}, here's your weekly briefing from the CONCORD Deal Platform.</p>`
-}
-function esc(s: string): string {
-  return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 }

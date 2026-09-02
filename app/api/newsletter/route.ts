@@ -73,10 +73,24 @@ export async function POST(req: NextRequest) {
   // ALSO add to the newspaper subscriber list — this is the list the weekly
   // auto-newspaper cron (and the manual "📮 Email subscribers" button) reads.
   // One signup box, one subscriber, two lists kept in sync.
-  await svc.from('newspaper_subscriptions').upsert(
-    { email, name: body.name || null, token: makeUnsubToken(email), status: 'active' },
-    { onConflict: 'email' },
-  ).then(({ error }) => { if (error) console.log('[newsletter] newspaper_subscriptions upsert skip:', error.message) })
+  // Manual upsert (not .upsert()) because the uniqueness constraint is on
+  // lower(email), audience — a functional index PostgREST's onConflict can't
+  // target reliably. Every new subscription defaults to audience='buyer' so
+  // the weekly buyer digest is the only list a public signup ever joins.
+  const { data: existingSub } = await svc
+    .from('newspaper_subscriptions')
+    .select('id, token')
+    .ilike('email', email)
+    .eq('audience', 'buyer')
+    .maybeSingle()
+  if (existingSub) {
+    await svc.from('newspaper_subscriptions').update({ status: 'active', name: body.name || null, token: existingSub.token || makeUnsubToken(email) }).eq('id', existingSub.id)
+      .then(({ error }) => { if (error) console.log('[newsletter] newspaper_subscriptions update skip:', error.message) })
+  } else {
+    await svc.from('newspaper_subscriptions').insert(
+      { email, name: body.name || null, token: makeUnsubToken(email), status: 'active', audience: 'buyer' },
+    ).then(({ error }) => { if (error) console.log('[newsletter] newspaper_subscriptions insert skip:', error.message) })
+  }
 
   // Queue a welcome email (best-effort; flushes when SMTP is configured).
   await svc.from('email_emails').insert({
