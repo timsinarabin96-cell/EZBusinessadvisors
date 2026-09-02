@@ -13,6 +13,7 @@ import {
   visibleAccessLevels, canAccessDealRoom, type RoomAccessLevel, type RoomRole,
 } from '@/lib/dataRoomServer'
 import { notify } from '@/lib/email'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 // =============================================================================
 // Deal Room API — Dropbox-style shared workspace per deal (agent+buyer+seller).
@@ -123,6 +124,20 @@ export async function POST(req: NextRequest) {
   const resolved = await resolveActor(req, dealId, token)
   if (!resolved.ok) return NextResponse.json({ ok: false, error: resolved.error }, { status: resolved.status })
   const { actor, role } = resolved
+
+  if (!token && role === 'agent') {
+    const auth = await authenticateProfileRequest(req)
+    const { data: deal } = await SVC.from('deals').select('agency_id, listings(agency_id)').eq('id', dealId).maybeSingle()
+    const agencyId = (deal as any)?.agency_id || (deal as any)?.listings?.agency_id
+    if (auth && agencyId) {
+      const trainingBlock = await trainingGateResponse({
+        database: SVC, auth, agencyId,
+        body: { trainingOverrideReason: req.nextUrl.searchParams.get('trainingOverrideReason') },
+        action: 'data_room_write', targetType: 'deal', targetId: dealId,
+      })
+      if (trainingBlock) return trainingBlock
+    }
+  }
 
   const room = await ensureDataRoom(SVC, dealId)
   if (!room) return NextResponse.json({ ok: false, error: 'could not create deal room' }, { status: 500 })

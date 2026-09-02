@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageListing, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { sendEmail } from '@/lib/email'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -44,6 +45,8 @@ export async function POST(req: NextRequest) {
   const { data: listing } = await db.from('listings').select('agency_id, agent_id, business_name').eq('id', listingId).maybeSingle()
   if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
   if (!canManageListing(auth, { agency_id: listing.agency_id, agent_id: listing.agent_id })) return forbiddenResponse()
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId: listing.agency_id, body, action: 'cim_buyer_delivery', targetType: 'listing', targetId: listingId })
+  if (trainingBlock) return trainingBlock
 
   // NDA-signed buyers on this listing: documents → signatures (buyer party, signed).
   const { data: docs } = await db.from('documents').select('id').eq('listing_id', listingId)

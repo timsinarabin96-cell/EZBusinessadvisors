@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { approveDelivery, rejectDelivery } from '@/lib/docDelivery'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 
@@ -34,6 +35,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: delivery } = await db.from('doc_deliveries').select('agency_id, status').eq('id', id).maybeSingle()
   if (!delivery) return NextResponse.json({ ok: false, error: 'Delivery not found' }, { status: 404 })
   if (delivery.agency_id !== agencyId) return forbiddenResponse()
+  const trainingBlock = await trainingGateResponse({ database: db, auth, agencyId, body, action: 'buyer_document_delivery_approval', targetType: 'document_delivery', targetId: id })
+  if (trainingBlock) return trainingBlock
 
   const action = String(body.action || '')
   if (action === 'approve') {
