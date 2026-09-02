@@ -30,6 +30,12 @@ export interface IntelligentListingInput {
   competitive_advantages: string
   customer_concentration: string
   facilities_summary: string
+  franchise_agreements: string
+  pending_litigation: string
+  environmental_issues: string
+  key_customer_contracts: string
+  key_supplier_contracts: string
+  years_at_location: string
   lease_monthly: string
   lease_expires_on: string
   lease_square_feet: string
@@ -68,6 +74,7 @@ export const EMPTY_INTELLIGENT_LISTING: IntelligentListingInput = {
   asking_price: '', annual_revenue: '', sde: '', ebitda: '', inventory_value: '', ffe_value: '', established_year: '',
   employees_full_time: '', employees_part_time: '', owner_hours_weekly: '', reason_for_sale: '', growth_opportunities: '',
   competitive_advantages: '', customer_concentration: '', facilities_summary: '', lease_monthly: '', lease_expires_on: '',
+  franchise_agreements: '', pending_litigation: '', environmental_issues: '', key_customer_contracts: '', key_supplier_contracts: '', years_at_location: '',
   lease_square_feet: '',
   real_estate_included: false, ffe_included: false, inventory_included: false, goodwill_included: false, asset_sale: true,
   property_address: '', property_city: '', square_footage: '', land_acres: '', year_built: '', property_value: '', property_description: '',
@@ -118,6 +125,12 @@ export function buildListingInsert(input: IntelligentListingInput) {
     competitive_advantages: input.competitive_advantages.trim() || null,
     customer_concentration: input.customer_concentration.trim() || null,
     facilities_summary: input.facilities_summary.trim() || null,
+    franchise_agreements: input.franchise_agreements.trim() || null,
+    pending_litigation: input.pending_litigation.trim() || null,
+    environmental_issues: input.environmental_issues.trim() || null,
+    key_customer_contracts: input.key_customer_contracts.trim() || null,
+    key_supplier_contracts: input.key_supplier_contracts.trim() || null,
+    years_at_location: integerOrNull(input.years_at_location),
     lease_monthly: numberOrNull(input.lease_monthly),
     lease_expires_on: input.lease_expires_on || null,
     lease_square_feet: integerOrNull(input.lease_square_feet),
@@ -176,6 +189,12 @@ export function calculateListingReadiness(input: IntelligentListingInput): Listi
     [Boolean(input.competitive_advantages.trim()), 'Competitive advantages', 7],
     [Boolean(input.growth_opportunities.trim()), 'Growth opportunities', 7],
     [Boolean(input.facilities_summary.trim()), 'Facilities or operating footprint', 5],
+    [Boolean(input.franchise_agreements.trim()), 'Franchise / licensing structure (or confirmed none)', 3],
+    [Boolean(input.pending_litigation.trim()), 'Litigation status (or confirmed none)', 3],
+    [Boolean(input.environmental_issues.trim()), 'Environmental status (or confirmed none)', 3],
+    [Boolean(input.key_customer_contracts.trim()), 'Key customer contracts', 3],
+    [Boolean(input.key_supplier_contracts.trim()), 'Key supplier contracts', 2],
+    [integerOrNull(input.years_at_location) !== null, 'Years at current location', 2],
     [Boolean(input.transition_support.trim()), 'Transition support', 5],
     [Boolean(input.public_title.trim()), 'Anonymous public title', 5],
     [input.public_summary.trim().length >= 80, 'Confidential public summary', 6],

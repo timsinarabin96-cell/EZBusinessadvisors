@@ -203,6 +203,46 @@ export const DETERMINISTIC_QUESTIONS: AdvisorQuestion[] = [
     question: 'What is your customer concentration — largest customer as a % of revenue, and top-ten %?',
     field: 'customer_concentration',
   },
+  {
+    id: 'op_years_location',
+    topic: 'operations',
+    question: 'How many years has the business been operating at its current location?',
+    hint: 'Stability at one site is a strong buyer signal — e.g. "12 years".',
+    field: 'years_at_location',
+  },
+  {
+    id: 'op_customer_contracts',
+    topic: 'operations',
+    question: 'Are there any key customer contracts (long-term agreements, take-or-pay, exclusives)? Who are the largest customers?',
+    field: 'key_customer_contracts',
+  },
+  {
+    id: 'op_supplier_contracts',
+    topic: 'operations',
+    question: 'Are there key supplier or vendor contracts that would transfer with the business?',
+    field: 'key_supplier_contracts',
+  },
+  {
+    id: 'op_franchise',
+    topic: 'operations',
+    question: 'Is the business operated under a franchise or third-party licensing agreement? If so, describe the arrangement.',
+    suggestedAnswers: ['No — fully independent', 'Yes — I will explain'],
+    field: 'franchise_agreements',
+  },
+  {
+    id: 'op_litigation',
+    topic: 'operations',
+    question: 'Are there any pending lawsuits, disputes, or legal proceedings involving the business?',
+    suggestedAnswers: ['None', 'Yes — I will explain'],
+    field: 'pending_litigation',
+  },
+  {
+    id: 'op_environmental',
+    topic: 'operations',
+    question: 'Are there any environmental issues or concerns associated with the property or operations (e.g. underground tanks, contamination)?',
+    suggestedAnswers: ['None known', 'Yes — I will explain'],
+    field: 'environmental_issues',
+  },
   // reason_for_sale
   {
     id: 'rs_reason',
@@ -367,7 +407,7 @@ export async function advisorDraftFromTranscript(qa: AdvisorAnswer[]): Promise<I
       context: {
         kind: 'listing',
         entityId: 'advisor-draft',
-        text: `Interview transcript:\n${transcript}\n\nMap the owner's answers into the listing intake draft. Return ONLY valid JSON with any of these snake_case keys that are answered: business_name, headline, industry, sub_industry, entity_type, location_general, description, asking_price, annual_revenue, sde, ebitda, established_year, employees_full_time, employees_part_time, owner_hours_weekly, owner_comp, reason_for_sale, growth_opportunities, competitive_advantages, customer_concentration, facilities_summary, lease_monthly, lease_expires_on, real_estate_included, ffe_value, seller_financing_available, financing_notes, transition_support, training_period_weeks. Numbers as integers. Booleans as true/false. Omit anything not answered — never invent.`,
+        text: `Interview transcript:\n${transcript}\n\nMap the owner's answers into the listing intake draft. Return ONLY valid JSON with any of these snake_case keys that are answered: business_name, headline, industry, sub_industry, entity_type, location_general, description, asking_price, annual_revenue, sde, ebitda, established_year, employees_full_time, employees_part_time, owner_hours_weekly, owner_comp, reason_for_sale, growth_opportunities, competitive_advantages, customer_concentration, facilities_summary, lease_monthly, lease_expires_on, real_estate_included, ffe_value, seller_financing_available, financing_notes, transition_support, training_period_weeks, years_at_location, franchise_agreements, pending_litigation, environmental_issues, key_customer_contracts, key_supplier_contracts. Numbers as integers. Booleans as true/false. Omit anything not answered — never invent.`,
       },
       system: 'You map a seller interview transcript into structured listing fields. Never invent answers — only include facts the seller stated. Return only valid JSON.',
       message: 'Build the intake draft JSON from the transcript.',

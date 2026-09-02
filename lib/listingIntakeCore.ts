@@ -18,7 +18,7 @@ export const INTAKE_NUMERIC_FIELDS = [
   'asking_price', 'annual_revenue', 'sde', 'ebitda', 'inventory_value', 'ffe_value',
   'established_year', 'employees_full_time', 'employees_part_time', 'owner_hours_weekly',
   'lease_monthly', 'lease_square_feet', 'square_footage', 'land_acres', 'year_built',
-  'property_value', 'training_period_weeks',
+  'property_value', 'training_period_weeks', 'years_at_location',
 ] as const
 
 export const INTAKE_TEXT_FIELDS = [
@@ -28,6 +28,8 @@ export const INTAKE_TEXT_FIELDS = [
   'property_address', 'property_city', 'property_description', 'financing_notes',
   'transition_support', 'public_title', 'public_summary', 'public_highlights',
   'seller_approval_reference', 'video_url',
+  'franchise_agreements', 'pending_litigation', 'environmental_issues',
+  'key_customer_contracts', 'key_supplier_contracts',
 ] as const
 
 export const INTAKE_BOOLEAN_FIELDS = [

@@ -88,6 +88,14 @@ export interface Listing {
   property_state: string | null
   property_zip: string | null
   total_value: number | null
+  // Intake-gap fields (Stage 0) — diligence facts collected at intake so the
+  // CIM doesn't have to say "confirm during diligence".
+  franchise_agreements: string | null
+  pending_litigation: string | null
+  environmental_issues: string | null
+  key_customer_contracts: string | null
+  key_supplier_contracts: string | null
+  years_at_location: number | null
 }
 
 export type ListingInput = Partial<Omit<Listing, 'id' | 'created_at' | 'updated_at'>>

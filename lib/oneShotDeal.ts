@@ -98,6 +98,27 @@ export function fallbackExtractRecord(notes: string): Record<string, unknown> {
   const year = notes.match(/est(?:ablished)?\s+(?:in\s+)?((?:19|20)\d{2})/i)
   if (year) out.established_year = Number(year[1])
 
+  // Years at current location: "at this location for 12 years" / "12 years at
+  // this location" / "operated here since 2010".
+  const yearsLoc = notes.match(/(\d{1,2})\s*(?:\+?)\s*years?\s+at\s+(?:this|the|same|current)\s+location/i)
+  if (yearsLoc) out.years_at_location = Number(yearsLoc[1])
+  else {
+    const since = notes.match(/at\s+this\s+location\s+(?:since|for)\s+(?:(\d{1,2})\s+years?|(?:19|20)\d{2})/i)
+    if (since) out.years_at_location = Number(since[1])
+  }
+
+  // Legal / risk flags — capture the presence + short note.
+  const franchise = notes.match(/franchise(?:\s+agreement)?[^.]{0,120}/i)
+  if (franchise) out.franchise_agreements = franchise[0].trim()
+  const litigation = notes.match(/(?:pending\s+)?litigation[^.]{0,120}/i)
+  if (litigation) out.pending_litigation = litigation[0].trim()
+  const env = notes.match(/environmental[^.]{0,120}/i)
+  if (env) out.environmental_issues = env[0].trim()
+  const cust = notes.match(/key\s+customer[^.]{0,120}/i)
+  if (cust) out.key_customer_contracts = cust[0].trim()
+  const supp = notes.match(/key\s+supplier[^.]{0,120}/i)
+  if (supp) out.key_supplier_contracts = supp[0].trim()
+
   // Location: "in Greater Philadelphia, PA" / "located in Austin, TX" — first
   // City, ST-style pair found.
   const loc = notes.match(/in\s+([A-Z][A-Za-z .-]+(?:,\s*[A-Z]{2})?)/i)
@@ -125,7 +146,7 @@ export function buildRecordExtractionPrompt(input: RecordExtractionInput): { sys
     input.notes.trim().slice(0, 6000) || '(no notes provided)',
     docs.length ? '\n\nDOCUMENT SUMMARIES:\n' + docs.map((d) => `- ${d}`).join('\n').slice(0, 4000) : '',
     '\n\nReturn JSON:',
-    '{ "business_name": string|null, "industry": string|null, "sub_industry": string|null, "location_general": string|null, "asking_price": int|null, "annual_revenue": int|null, "sde": int|null, "ebitda": int|null, "employees_full_time": int|null, "established_year": int|null, "description": string|null, "reason_for_sale": string|null, "transition_support": string|null, "competitive_advantages": string|null, "growth_opportunities": string|null, "public_title": string|null, "public_summary": string|null, "public_highlights": string[]|null, "contact_phone": string|null }',
+    '{ "business_name": string|null, "industry": string|null, "sub_industry": string|null, "location_general": string|null, "asking_price": int|null, "annual_revenue": int|null, "sde": int|null, "ebitda": int|null, "employees_full_time": int|null, "established_year": int|null, "years_at_location": int|null, "description": string|null, "reason_for_sale": string|null, "transition_support": string|null, "competitive_advantages": string|null, "growth_opportunities": string|null, "franchise_agreements": string|null, "pending_litigation": string|null, "environmental_issues": string|null, "key_customer_contracts": string|null, "key_supplier_contracts": string|null, "public_title": string|null, "public_summary": string|null, "public_highlights": string[]|null, "contact_phone": string|null }',
   ].join('\n')
   return { system, user }
 }

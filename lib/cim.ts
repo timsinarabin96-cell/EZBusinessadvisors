@@ -423,17 +423,31 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
           ? [`The business has completed platform verification for its ${industry} operations${listing.location_general ? ` in ${listing.location_general}` : ''}.`]
           : [`The business operates in the ${industry} sector${listing.location_general ? ` in ${listing.location_general}` : ''}. The seller should confirm which licenses and permits apply to its operations; license/permits status is available to qualified buyers during diligence.`]),
         ...(listing.sub_industry ? [`Regulatory context: ${listing.sub_industry} operations carry specific compliance obligations; current status is available to qualified buyers.`] : []),
+        ...(listing.pending_litigation
+          ? [`Litigation status: ${listing.pending_litigation}`]
+          : ['No pending litigation has been indicated by the seller; confirm during diligence.']),
+        ...(listing.environmental_issues
+          ? [`Environmental status: ${listing.environmental_issues}`]
+          : ['No environmental issues have been indicated by the seller; confirm during diligence.']),
         'Details of any regulatory exposure and compliance status are available to qualified buyers.',
       ] },
       { heading: 'Contracts', body: [
-        'Material contracts (supplier, customer, employment) are transferable and available for review during due diligence.',
+        listing.key_customer_contracts
+          ? `Key customer contracts: ${listing.key_customer_contracts}`
+          : 'Material customer contracts are transferable and available for review during due diligence.',
+        listing.key_supplier_contracts
+          ? `Key supplier contracts: ${listing.key_supplier_contracts}`
+          : 'Material supplier contracts are transferable and available for review during due diligence.',
+        'Employment contracts and other material agreements are available for review during due diligence.',
       ] },
     ] },
     { id: 'franchise-licensing', title: '20. Franchise & Licensing (if applicable)', subsections: [
       { heading: 'Status', body: [
-        listing.sub_industry && /franchise|license/i.test(listing.sub_industry)
-          ? `The business may operate under a franchise or license structure (${listing.sub_industry}); transfer terms should be confirmed with the seller and documented for buyer review.`
-          : 'No franchise or third-party licensing structure has been indicated for this business; this should be confirmed during due diligence.',
+        listing.franchise_agreements
+          ? `Franchise / licensing structure: ${listing.franchise_agreements}`
+          : listing.sub_industry && /franchise|license/i.test(listing.sub_industry)
+            ? `The business may operate under a franchise or license structure (${listing.sub_industry}); transfer terms should be confirmed with the seller and documented for buyer review.`
+            : 'No franchise or third-party licensing structure has been indicated for this business; this should be confirmed during due diligence.',
         'Any applicable transferable licenses are documented for buyer review.',
       ] },
     ] },

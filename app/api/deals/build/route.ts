@@ -220,7 +220,13 @@ export async function POST(req: NextRequest) {
           str('business_name'); str('industry'); str('sub_industry'); str('location_general')
           num('asking_price'); num('annual_revenue'); num('sde'); num('ebitda')
           num('employees_full_time'); num('established_year')
+          num('years_at_location')
           str('description'); str('reason_for_sale'); str('transition_support')
+          // Intake-gap fields (Stage 0): franchise agreements, litigation,
+          // environmental issues, key customer/supplier contracts — collected
+          // so the CIM no longer has to say "confirm during diligence".
+          str('franchise_agreements'); str('pending_litigation'); str('environmental_issues')
+          str('key_customer_contracts'); str('key_supplier_contracts')
           // Readiness step 8 requires a headline — derive it from the name.
           const name = String(patch.business_name || d.business_name || '').trim()
           if (!patch.headline && name) patch.headline = name.slice(0, 120)

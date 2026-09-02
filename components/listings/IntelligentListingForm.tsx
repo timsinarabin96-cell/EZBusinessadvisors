@@ -749,6 +749,12 @@ function OperationsSection({ form, setValue }: SectionProps) {
     <Field label="Competitive advantages" span><textarea className="textarea" rows={5} value={form.competitive_advantages} onChange={(event) => setValue('competitive_advantages', event.target.value)} /></Field>
     <Field label="Growth opportunities" span><textarea className="textarea" rows={5} value={form.growth_opportunities} onChange={(event) => setValue('growth_opportunities', event.target.value)} /></Field>
     <Field label="Facilities and operating footprint" span><textarea className="textarea" rows={4} value={form.facilities_summary} onChange={(event) => setValue('facilities_summary', event.target.value)} /></Field>
+    <Field label="Years at current location"><input className="input" inputMode="numeric" value={form.years_at_location} onChange={(event) => setValue('years_at_location', event.target.value)} placeholder="e.g. 12" /></Field>
+    <Field label="Franchise / licensing structure"><input className="input" value={form.franchise_agreements} onChange={(event) => setValue('franchise_agreements', event.target.value)} placeholder="None, or describe the arrangement" /></Field>
+    <Field label="Pending litigation" span><textarea className="textarea" rows={3} value={form.pending_litigation} onChange={(event) => setValue('pending_litigation', event.target.value)} placeholder="None, or describe any lawsuits/disputes" /></Field>
+    <Field label="Environmental issues" span><textarea className="textarea" rows={3} value={form.environmental_issues} onChange={(event) => setValue('environmental_issues', event.target.value)} placeholder="None known, or describe any concerns" /></Field>
+    <Field label="Key customer contracts" span><textarea className="textarea" rows={3} value={form.key_customer_contracts} onChange={(event) => setValue('key_customer_contracts', event.target.value)} placeholder="Long-term agreements, exclusives, largest customers" /></Field>
+    <Field label="Key supplier contracts" span><textarea className="textarea" rows={3} value={form.key_supplier_contracts} onChange={(event) => setValue('key_supplier_contracts', event.target.value)} placeholder="Vendor agreements that transfer with the business" /></Field>
   </Grid></Section>
 }
 

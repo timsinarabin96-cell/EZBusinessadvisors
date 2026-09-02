@@ -120,6 +120,8 @@ const LISTING_SELECT = [
   'growth_opportunities', 'competitive_advantages', 'customer_concentration',
   'facilities_summary', 'lease_monthly', 'lease_expires_on',
   'seller_financing_available', 'transition_support', 'training_period_weeks',
+  'franchise_agreements', 'pending_litigation', 'environmental_issues',
+  'key_customer_contracts', 'key_supplier_contracts', 'years_at_location',
 ].join(', ')
 
 function buildGaps(listing: Record<string, any>, docs: DocSummary): string[] {
@@ -142,6 +144,14 @@ function buildGaps(listing: Record<string, any>, docs: DocSummary): string[] {
   if (!has(listing.owner_hours_weekly)) gaps.push('Owner hours per week unknown (affects SDE quality)')
   if (!has(listing.customer_concentration)) gaps.push('Customer concentration unknown (top-customer risk)')
   if (!has(listing.established_year)) gaps.push('Year established unknown')
+  // Intake-gap fields (Stage 0) — the CIM needs these to replace
+  // "confirm during diligence" with real facts.
+  if (!has(listing.franchise_agreements)) gaps.push('Franchise / licensing structure unknown (or confirm none)')
+  if (!has(listing.pending_litigation)) gaps.push('Litigation status unknown (or confirm none)')
+  if (!has(listing.environmental_issues)) gaps.push('Environmental status unknown (or confirm none)')
+  if (!has(listing.key_customer_contracts)) gaps.push('Key customer contracts not documented')
+  if (!has(listing.key_supplier_contracts)) gaps.push('Key supplier contracts not documented')
+  if (!has(listing.years_at_location)) gaps.push('Years at current location unknown')
   return gaps
 }
 
