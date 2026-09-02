@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
+import { ensureAgentOnboardingForInvite } from '@/lib/agentOnboarding'
 
 export const runtime = 'nodejs'
 
@@ -103,6 +104,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       }
 
       await db.from('invite_tokens').update({ status: 'filled', target_id: userId, filled_at: new Date().toISOString() }).eq('token', token)
+      await ensureAgentOnboardingForInvite(db, invite.id)
       return NextResponse.json({ ok: true, id: userId, targetType: 'agent' })
     }
 
