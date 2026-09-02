@@ -13,13 +13,13 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
-import { PageHero } from '@/components/ui/premium'
+import { Chip, GoldButton, PremiumTabs, SoftButton, PageHero } from '@/components/ui/premium'
 
 export default function ToolsPage() {
   return (
     <AppShell active="CSV Tools">
       <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 18px 60px' }}>
           <CsvTools />
         </div>
       </ToastProvider>
@@ -96,46 +96,29 @@ function CsvTools() {
             ['buyers', 'Buyer leads'],
             ['sellers', 'Seller leads'],
           ].map(([type, label]) => (
-            <button
+            <SoftButton
               key={type}
               onClick={() => exportCsv(type)}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg"
             >
-              Export {label}
-            </button>
+              ↓ Export {label}
+            </SoftButton>
           ))}
         </div>
       </div>
 
       <div className="p-card p-card-pad">
         <h2 className="font-semibold mb-3">Import leads</h2>
-        <div className="flex gap-2 mb-3">
-          {(['buyer', 'seller'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setImportType(t)}
-              className={`text-sm px-3 py-1.5 rounded-full border capitalize ${importType === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white border-gray-200 text-gray-600'}`}
-            >
-              {t} leads
-            </button>
-          ))}
-        </div>
+        <PremiumTabs tabs={[{ key: 'buyer', label: 'Buyer leads', hint: 'Acquisition prospects' }, { key: 'seller', label: 'Seller leads', hint: 'Listing prospects' }]} active={importType} onChange={setImportType} />
         <textarea
           className="border rounded-lg p-3 text-sm w-full font-mono h-40"
           placeholder={`Paste CSV with headers. Example (${importType}):\nemail,contact_name,company,phone\nbuyer@example.com,John Doe,Acme Inc,555-0100`}
           value={csvText}
           onChange={(e) => setCsvText(e.target.value)}
         />
-        <button
-          onClick={doImport}
-          disabled={busy}
-          className="mt-3 bg-gray-800 hover:bg-gray-900 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
-        >
-          {busy ? 'Importing…' : 'Import CSV'}
-        </button>
+        <div className="mt-3"><GoldButton onClick={doImport} disabled={busy}>{busy ? 'Importing…' : 'Import CSV'}</GoldButton></div>
         {result && (
           <div className="mt-4 text-sm">
-            <p className="text-green-700 font-medium">✅ Imported {result.imported} leads</p>
+            <Chip tone="green">✓ Imported {result.imported} leads</Chip>
             {result.errors.length > 0 && (
               <ul className="mt-2 text-red-600 text-xs space-y-1">
                 {result.errors.slice(0, 10).map((e, i) => (

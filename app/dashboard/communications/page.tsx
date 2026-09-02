@@ -13,7 +13,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
-import { PageHero } from '@/components/ui/premium'
+import { Chip, EmptyState, GoldButton, PremiumSelect, SoftButton, Toggle, PageHero } from '@/components/ui/premium'
 
 interface Comm {
   id: string
@@ -57,7 +57,7 @@ export default function CommunicationsPage() {
   return (
     <AppShell active="Communications">
       <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 18px 60px' }}>
           <Communications />
         </div>
       </ToastProvider>
@@ -183,7 +183,7 @@ function Communications() {
                     {typeof s.days_since === 'number' && Number.isFinite(s.days_since) && <span className="text-amber-700 font-medium"> · {Math.round(s.days_since)}d ago</span>}
                   </p>
                 </div>
-                <button onClick={() => remindStale(s)} className="shrink-0 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg">⏰ Remind me</button>
+                <SoftButton onClick={() => remindStale(s)}>⏰ Remind me</SoftButton>
               </div>
             ))}
           </div>
@@ -192,49 +192,44 @@ function Communications() {
 
       {/* Log form */}
       <div className="p-card p-card-pad mb-6">
-        <h2 className="font-semibold mb-3">Log a communication</h2>
+        <div className="eyebrow mb-1">New touchpoint</div><h2 className="font-semibold mb-4">Log a communication</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <select className="border rounded-lg px-3 py-2 text-sm" value={entityType} onChange={(e) => { setEntityType(e.target.value as any); setEntityId('') }}>
+          <PremiumSelect label="Link to" value={entityType} onChange={(value) => { setEntityType(value as typeof entityType); setEntityId('') }}>
             <option value="none">General / no link</option>
             <option value="listing">🏢 Listing</option>
             <option value="buyer">🤝 Buyer</option>
             <option value="seller">🏷️ Seller</option>
             <option value="deal">💼 Deal</option>
-          </select>
-          <select className="border rounded-lg px-3 py-2 text-sm" value={entityId} onChange={(e) => setEntityId(e.target.value)} disabled={entityType === 'none'}>
+          </PremiumSelect>
+          <PremiumSelect label="Record" value={entityId} onChange={setEntityId} disabled={entityType === 'none'}>
             <option value="">{entityType === 'none' ? '—' : `Select ${entityType}…`}</option>
             {entityOptions.map((o) => (
               <option key={o.id} value={o.id}>{o.label}</option>
             ))}
-          </select>
-          <input className="border rounded-lg px-3 py-2 text-sm" placeholder="Summary — what happened?" value={summary} onChange={(e) => setSummary(e.target.value)} />
+          </PremiumSelect>
+          <label className="grid gap-1"><span className="text-[11px] uppercase tracking-wide font-bold text-gray-500">Summary</span><input className="border rounded-xl px-3 py-2 text-sm shadow-sm" placeholder="What happened?" value={summary} onChange={(e) => setSummary(e.target.value)} /></label>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-          <select className="border rounded-lg px-3 py-2 text-sm" value={channel} onChange={(e) => setChannel(e.target.value)}>
+          <PremiumSelect label="Channel" value={channel} onChange={setChannel}>
             {['call', 'email', 'sms', 'meeting', 'other'].map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select className="border rounded-lg px-3 py-2 text-sm" value={direction} onChange={(e) => setDirection(e.target.value)}>
+          </PremiumSelect>
+          <PremiumSelect label="Direction" value={direction} onChange={setDirection}>
             <option value="outbound">Outbound</option>
             <option value="inbound">Inbound</option>
-          </select>
-          <select className="border rounded-lg px-3 py-2 text-sm" value={outcome} onChange={(e) => setOutcome(e.target.value)}>
+          </PremiumSelect>
+          <PremiumSelect label="Outcome" value={outcome} onChange={setOutcome}>
             {['talked', 'voicemail', 'left_message', 'no_answer', 'email_sent', 'email_replied', 'meeting_held', 'other'].map((o) => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
-          </select>
-          <button onClick={log} disabled={busy} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg">
-            {busy ? '…' : '+ Log'}
-          </button>
+          </PremiumSelect>
+          <div className="flex items-end"><GoldButton onClick={log} disabled={busy} style={{ width: '100%' }}>{busy ? 'Logging…' : '+ Log touchpoint'}</GoldButton></div>
         </div>
-        <label className="flex items-center gap-2 mt-3 text-xs text-gray-600">
-          <input type="checkbox" checked={autoReschedule} onChange={(e) => setAutoReschedule(e.target.checked)} className="w-3.5 h-3.5" />
-          Auto-schedule a call-back if the call goes unanswered
-        </label>
+        <div className="mt-4"><Toggle checked={autoReschedule} onChange={setAutoReschedule} label="Auto-schedule a call-back if the call goes unanswered" /></div>
       </div>
 
       {/* History */}
       <div className="p-card p-card-pad">
         <h2 className="font-semibold mb-3">Recent activity</h2>
         {comms.length === 0 ? (
-          <p className="text-gray-400 text-sm">No communications logged yet.</p>
+          <EmptyState icon="🗒️" title="No communications logged" sub="Log the first call, email, or meeting above." />
         ) : (
           <div className="divide-y divide-gray-100">
             {comms.slice(0, 50).map((c) => (
@@ -242,7 +237,7 @@ function Communications() {
                 <span className="text-lg shrink-0">{CHANNEL_ICONS[c.channel] || '📌'}</span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">
-                    <span className={`text-xs font-bold uppercase ${c.direction === 'outbound' ? 'text-blue-600' : 'text-green-600'}`}>{c.direction}</span>
+                    <Chip tone={c.direction === 'outbound' ? 'blue' : 'green'}>{c.direction}</Chip>
                     {' '}{c.outcome.replace(/_/g, ' ')}
                     {c.contact_name && <span> — {c.contact_name}</span>}
                   </p>

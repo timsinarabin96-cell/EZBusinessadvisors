@@ -13,7 +13,7 @@ import { LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
-import { PageHero } from '@/components/ui/premium'
+import { Chip, DealCommandBar, EmptyState, GoldButton, SoftButton, PageHero } from '@/components/ui/premium'
 
 interface ExpiryRecord {
   id: string
@@ -30,7 +30,7 @@ export default function ExpiryPage() {
   return (
     <AppShell active="Listing Expiry">
       <ToastProvider>
-        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '24px 20px 60px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', padding: '0 18px 60px' }}>
           <ExpiryTracker />
         </div>
       </ToastProvider>
@@ -117,51 +117,34 @@ function ExpiryTracker() {
       />
 
       <div className="p-card p-card-pad mb-6">
-        <h2 className="font-semibold mb-3">Set expiry date</h2>
-        <div className="flex flex-col md:flex-row gap-3">
-          <select className="border rounded-lg px-3 py-2 text-sm flex-1" value={selected} onChange={(e) => setSelected(e.target.value)}>
-            <option value="">Choose a listing…</option>
-            {listings.map((l) => (
-              <option key={l.id} value={l.id}>{l.label}</option>
-            ))}
-          </select>
-          <input className="border rounded-lg px-3 py-2 text-sm" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-          <button onClick={setExpiryAction} disabled={busy} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg">
-            Set expiry
-          </button>
-          <button onClick={() => act('process')} disabled={busy} className="bg-gray-800 hover:bg-gray-900 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg">
-            Run expiry check
-          </button>
-          <button
-            onClick={proposeRenewals}
-            disabled={busy}
-            className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
-            title="Email renewal proposals (refreshed valuation + one-click renew) for listings expiring in the next 30 days"
-          >
-            📬 Send renewal proposals
-          </button>
+        <div className="eyebrow mb-1">Expiration controls</div><h2 className="font-semibold mb-3">Set expiry date</h2>
+        <DealCommandBar options={listings.map((listing) => { const [name, price] = listing.label.split(' — '); return { id: listing.id, name, askingPrice: price ? Number(price.replace(/[^0-9.]/g, '')) : null } })} value={selected} onChange={setSelected} />
+        <div className="flex flex-col md:flex-row gap-3 mt-3">
+          <input aria-label="Expiry date" className="border rounded-xl px-3 py-2 text-sm" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+          <GoldButton onClick={setExpiryAction} disabled={busy}>Set expiry</GoldButton>
+          <SoftButton onClick={() => act('process')} disabled={busy}>Run expiry check</SoftButton>
+          <SoftButton onClick={proposeRenewals} disabled={busy}>📬 Send renewal proposals</SoftButton>
         </div>
       </div>
 
       <div className="p-card p-card-pad">
         <h2 className="font-semibold mb-3">Expiry records</h2>
         {records.length === 0 ? (
-          <p className="text-gray-400 text-sm">No expiry records yet.</p>
+          <EmptyState icon="⏳" title="No expiry records" sub="Choose a listing above to begin monitoring its agreement term." />
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <div className="grid gap-3">
             {records.map((r) => {
               const isPast = r.status === 'active' && new Date(r.expires_at) < new Date()
               return (
-                <li key={r.id} className="py-3 flex items-center justify-between gap-3">
+                <div key={r.id} className="p-4 flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white shadow-sm">
                   <div>
                     <p className="text-sm font-medium">{r.listings?.business_name || 'Listing'}</p>
                     <p className="text-xs text-gray-500">
-                      Expires {fmtDate(r.expires_at)} · <span className="capitalize">{r.status}</span>
-                      {isPast && <span className="text-red-500 font-medium"> (past due)</span>}
+                      Expires {fmtDate(r.expires_at)} · <Chip tone={isPast ? 'red' : 'green'}>{isPast ? 'Past due' : r.status}</Chip>
                     </p>
                   </div>
                   {r.status === 'active' && (
-                    <button
+                    <SoftButton
                       onClick={() => {
                         const days = prompt('Renew for how many days?', '90')
                         if (days) {
@@ -170,15 +153,14 @@ function ExpiryTracker() {
                           act('renew', { listingId: r.listing_id, expiresAt: d.toISOString() })
                         }
                       }}
-                      className="text-xs bg-green-50 text-green-700 border border-green-200 rounded-full px-3 py-1"
                     >
                       Renew
-                    </button>
+                    </SoftButton>
                   )}
-                </li>
+                </div>
               )
             })}
-          </ul>
+          </div>
         )}
       </div>
     </div>

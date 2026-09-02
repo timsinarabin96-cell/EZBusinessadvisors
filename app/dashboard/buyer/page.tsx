@@ -23,6 +23,7 @@ import { fetchSavedSearches } from '@/lib/search'
 import { LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
+import { Chip, GoldButton, Toggle } from '@/components/ui/premium'
 
 interface BuyerMatch {
   id: string
@@ -329,7 +330,7 @@ export default function BuyerPortalPage() {
         <div style={{ background: '#fff', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
             <div style={{ fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8a6d1a', fontWeight: 800 }}>Your Match Profile</div>
-            {profile && <span style={{ fontSize: 11, color: '#1e7e34', background: '#e6f4ea', padding: '3px 10px', borderRadius: 99, fontWeight: 700 }}>● AI matching {profile.ai_match_enabled ? 'ON' : 'OFF'}</span>}
+            {profile && <Chip tone={profile.ai_match_enabled ? 'green' : 'gray'} dot>AI matching {profile.ai_match_enabled ? 'ON' : 'OFF'}</Chip>}
           </div>
           <p style={{ fontSize: 12.5, color: '#888', margin: '4px 0 16px' }}>
             Tell us what you're buying — we'll score every new listing against this and alert you on strong matches.
@@ -357,16 +358,10 @@ export default function BuyerPortalPage() {
             </label>
           </div>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#1a1a2e', cursor: 'pointer' }}>
-              <input type="checkbox" checked={notifyEmail} onChange={(e) => setNotifyEmail(e.target.checked)} /> Email me match alerts
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#1a1a2e', cursor: 'pointer' }}>
-              <input type="checkbox" checked={aiMatch} onChange={(e) => setAiMatch(e.target.checked)} /> AI matching on
-            </label>
+            <Toggle checked={notifyEmail} onChange={setNotifyEmail} label="Email me match alerts" />
+            <Toggle checked={aiMatch} onChange={setAiMatch} label="AI matching on" />
           </div>
-          <button onClick={saveProfile} disabled={savingProfile} style={{ padding: '11px 24px', borderRadius: 8, background: '#1a1a2e', color: '#c9a84c', border: 'none', fontWeight: 800, fontSize: 13.5, cursor: savingProfile ? 'wait' : 'pointer' }}>
-            {savingProfile ? 'Saving…' : 'Save match profile'}
-          </button>
+          <GoldButton onClick={saveProfile} disabled={savingProfile}>{savingProfile ? 'Saving…' : 'Save match profile'}</GoldButton>
         </div>
 
         {/* Matches — businesses the engine scored for this buyer */}

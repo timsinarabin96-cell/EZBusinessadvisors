@@ -212,6 +212,22 @@ export function SoftButton({
   )
 }
 
+export function PremiumSelect({ label, value, onChange, children, disabled }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode; disabled?: boolean }) {
+  return (
+    <label style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+      <span style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ position: 'relative', display: 'block' }}>
+        <select value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} style={{ width: '100%', appearance: 'none', border: '1px solid rgba(15,52,96,.14)', borderRadius: 12, padding: '10px 34px 10px 12px', background: disabled ? '#f8fafc' : '#fff', color: 'var(--navy)', fontSize: 13, fontWeight: 700, outline: 0, boxShadow: '0 4px 12px rgba(15,23,42,.04)' }}>{children}</select>
+        <span aria-hidden="true" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: '#c9a84c', pointerEvents: 'none' }}>⌄</span>
+      </span>
+    </label>
+  )
+}
+
+export function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
+  return <label style={{ display: 'inline-flex', alignItems: 'center', gap: 9, cursor: 'pointer', color: 'var(--muted)', fontSize: 12.5 }}><input className="sr-only" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /><span aria-hidden="true" style={{ width: 38, height: 22, borderRadius: 999, padding: 3, display: 'flex', justifyContent: checked ? 'flex-end' : 'flex-start', background: checked ? '#0f3460' : '#cbd5e1', transition: 'all .2s' }}><span style={{ width: 16, height: 16, borderRadius: 999, background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,.2)' }} /></span>{label}</label>
+}
+
 // ---------------------------------------------------------------------------
 // SectionTitle — gold eyebrow + heading combo for card groups.
 // ---------------------------------------------------------------------------

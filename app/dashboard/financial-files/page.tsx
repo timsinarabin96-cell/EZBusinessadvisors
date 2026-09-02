@@ -39,7 +39,7 @@ import {
 } from '@/lib/financialFiles'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
-import { PageHero } from '@/components/ui/premium'
+import { GoldButton, PremiumSelect, PageHero } from '@/components/ui/premium'
 
 export default function FinancialFilesPage() {
   return (
@@ -329,24 +329,11 @@ function FinancialFilesDashboard() {
         <CardHeader title="Upload context" subtitle="Files uploaded below are attached to the selected deal / listing" />
         <div style={{ padding: 18 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-            <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', fontFamily: 'Georgia, serif' }}>Attach to</label>
-            <select
-              value={selectedParent}
-              onChange={(e) => setSelectedParent(e.target.value)}
-              className="select"
-              style={{ flex: '1 1 300px', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', fontFamily: 'inherit', fontSize: 13.5 }}
-            >
+            <div style={{ flex: '1 1 300px' }}><PremiumSelect label="Attach to" value={selectedParent} onChange={setSelectedParent}>
               <option value="">All deals / listings</option>
               {deals.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
-            </select>
-            <button
-              className="btn-primary"
-              onClick={() => runPipeline(selectedParent)}
-              disabled={running || !selectedParent}
-              style={{ fontWeight: 700 }}
-            >
-              {running ? '⏳ Running…' : '🚀 Generate for selection'}
-            </button>
+            </PremiumSelect></div>
+            <GoldButton onClick={() => runPipeline(selectedParent)} disabled={running || !selectedParent}>{running ? '⏳ Running…' : '🚀 Generate for selection'}</GoldButton>
           </div>
         </div>
       </Card>

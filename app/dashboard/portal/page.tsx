@@ -13,7 +13,7 @@ import { Card, CardHeader, LoadingState } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fetchClientAccess, grantClientAccess, revokeClientAccess, type ClientAccess } from '@/lib/clientPortal'
 import { supabase } from '@/lib/supabase/client'
-import { PageHero } from '@/components/ui/premium'
+import { DealCommandBar, EmptyState, GoldButton, SoftButton, PageHero } from '@/components/ui/premium'
 
 const APP_URL = typeof window !== 'undefined' ? window.location.origin : ''
 
@@ -97,17 +97,12 @@ function PortalManager() {
       <Card>
         <CardHeader title="Grant client access" subtitle="Send a private portal link for a deal" />
         <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 12 }} className="portal-grid">
-            <select value={selected} onChange={(e) => switchDeal(e.target.value)} style={inputStyle}>
-              <option value="">Select a deal…</option>
-              {deals.map((d) => <option key={d.id} value={d.id}>{d.title || 'Untitled deal'} ({d.status})</option>)}
-            </select>
+          <DealCommandBar options={deals.map((deal) => ({ id: deal.id, name: deal.title || 'Untitled deal', tracked: deal.status === 'active' }))} value={selected} onChange={switchDeal} formatMoney={() => 'Client portal access'} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="portal-grid">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Client name" style={inputStyle} />
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Client email" style={inputStyle} />
           </div>
-          <button onClick={handleGrant} disabled={busy} style={{ alignSelf: 'flex-start', padding: '11px 22px', background: 'var(--navy)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, opacity: busy ? 0.6 : 1 }}>
-            {busy ? 'Granting…' : 'Generate invite link'}
-          </button>
+          <div><GoldButton onClick={handleGrant} disabled={busy}>{busy ? 'Granting…' : 'Generate invite link'}</GoldButton></div>
         </div>
       </Card>
 
@@ -116,7 +111,7 @@ function PortalManager() {
         <CardHeader title="Active client access" subtitle="Shared portal links for this deal" />
         <div style={{ padding: 12 }}>
           {access.length === 0 ? (
-            <div style={{ padding: 16, color: 'var(--muted)', fontSize: 13.5 }}>No clients granted access to this deal yet.</div>
+            <EmptyState icon="🔐" title="No active client access" sub="Generate a secure invite link for the selected deal." />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {access.filter((a) => a.status === 'active').map((a) => (
@@ -128,8 +123,8 @@ function PortalManager() {
                     <div style={{ fontSize: 11.5, color: 'var(--muted-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{APP_URL}/portal/{a.deal_id}/{a.token.slice(0, 18)}…</div>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    <button onClick={() => copyLink(a)} style={smallBtn(copied === a.id ? '#16a34a' : 'var(--navy)')}>{copied === a.id ? 'Copied ✓' : 'Copy link'}</button>
-                    <button onClick={() => handleRevoke(a.id)} style={{ ...smallBtn('#dc2626'), color: '#dc2626', borderColor: '#fecaca' }}>Revoke</button>
+                    <SoftButton onClick={() => copyLink(a)}>{copied === a.id ? 'Copied ✓' : 'Copy link'}</SoftButton>
+                    <button onClick={() => handleRevoke(a.id)} aria-label={`Revoke access for ${a.client_name}`} style={{ ...smallBtn('#dc2626'), color: '#dc2626', borderColor: '#fecaca' }}>Revoke</button>
                   </div>
                 </div>
               ))}
