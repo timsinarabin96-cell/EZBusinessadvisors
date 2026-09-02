@@ -47,7 +47,14 @@ export async function POST(req: NextRequest) {
 
   let sent = 0, failed = 0
   for (const sub of (subs || [])) {
-    const emailHtml = renderNewspaperV3Html(edition as any, (articles || []) as any, sub as any)
+    // Ensure a persisted unsubscribe token before rendering (legacy rows may
+    // have NULL tokens → empty links). Same guarantee as the weekly cron.
+    let token = sub.token
+    if (!token) {
+      token = makeUnsubToken(sub.email)
+      await SVC.from('newspaper_subscriptions').update({ token }).eq('id', sub.id).then(() => undefined)
+    }
+    const emailHtml = renderNewspaperV3Html(edition as any, (articles || []) as any, { ...sub, token } as any)
     const text = (articles || [])
       .map((a) => `${a.section}: ${a.headline}\n${(a.body || '').replace(/\n/g, ' ')}`)
       .join('\n\n')

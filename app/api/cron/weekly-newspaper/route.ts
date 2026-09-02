@@ -78,7 +78,16 @@ export async function POST(req: Request) {
 
   let sent = 0, failed = 0
   for (const sub of (subs || [])) {
-    const emailHtml = renderNewspaperV3Html(edition as any, (articles || []) as any, sub as any)
+    // Guarantee a persisted unsubscribe token BEFORE rendering: legacy rows
+    // created before the token system had NULL tokens, which produced emails
+    // with empty unsubscribe links. Backfill + persist so the link always
+    // matches what the unsubscribe route validates against.
+    let token = sub.token
+    if (!token) {
+      token = makeUnsubToken(sub.email)
+      await svc.from('newspaper_subscriptions').update({ token }).eq('id', sub.id).then(() => undefined)
+    }
+    const emailHtml = renderNewspaperV3Html(edition as any, (articles || []) as any, { ...sub, token } as any)
     const text = (articles || [])
       .map((a: any) => `${a.section}: ${a.headline}\n${(a.body || '').replace(/\n/g, ' ')}`)
       .join('\n\n')
