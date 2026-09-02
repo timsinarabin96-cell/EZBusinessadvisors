@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/layout/AppShell'
 import { HiringPanel } from '@/components/admin/HiringPanel'
 import OnboardingDashboard from '@/components/training/OnboardingDashboard'
+import { TeamTrainingPanel } from '@/components/training/TeamTrainingPanel'
 import { PageHero, PremiumTabs } from '@/components/ui/premium'
 
 // =============================================================================
@@ -21,6 +22,7 @@ import { PageHero, PremiumTabs } from '@/components/ui/premium'
 const TABS = [
   { key: 'hiring', label: '🤝 Hiring', hint: 'Offer letters & applications' },
   { key: 'onboarding', label: '🚀 Onboarding', hint: 'New-agent checklist & setup' },
+  { key: 'employees', label: '🗂️ Employee Files', hint: 'Training status & certificates' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
@@ -48,6 +50,7 @@ export default function TeamPage() {
         {tab === 'hiring' && <HiringPanel />}
         {tab === 'onboarding' &&
           (brokerId ? <OnboardingDashboard brokerId={brokerId} /> : <p style={{ color: 'var(--muted)' }}>Sign in to view your onboarding checklist.</p>)}
+        {tab === 'employees' && <TeamTrainingPanel />}
       </div>
     </AppShell>
   )

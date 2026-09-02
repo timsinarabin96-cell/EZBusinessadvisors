@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LoadingState } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
+import { supabase } from '@/lib/supabase/client'
 
 interface HiringPackage {
   id: string
@@ -45,17 +46,29 @@ export function HiringPanel() {
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ full_name: '', email: '', phone: '', experience: '', package_id: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [agencyId, setAgencyId] = useState('')
+  const [sharing, setSharing] = useState('')
+
+  const trainingRequest = useCallback(async (path: string, init?: RequestInit) => {
+    const { data } = await supabase.auth.getSession()
+    return fetch(path, {
+      ...init,
+      headers: { Authorization: `Bearer ${data.session?.access_token || ''}`, ...(init?.headers || {}) },
+    })
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [pkgRes, appRes] = await Promise.all([
+    const [pkgRes, appRes, trainingRes] = await Promise.all([
       fetch('/api/hiring/packages').then((r) => r.json().catch(() => ({}))),
       fetch('/api/hiring/applications').then((r) => r.json().catch(() => ({}))),
+      trainingRequest('/api/training/share').then((r) => r.json().catch(() => ({}))),
     ])
     if (pkgRes.ok) setPackages(pkgRes.packages || [])
     if (appRes.ok) setApps(appRes.applications || [])
+    if (trainingRes.ok) setAgencyId(trainingRes.agencyId || '')
     setLoading(false)
-  }, [])
+  }, [trainingRequest])
 
   useEffect(() => { load() }, [load])
 
@@ -116,6 +129,20 @@ export function HiringPanel() {
     if (!res.ok) return toast(data.error || 'Action failed', 'error')
     toast(`Application ${action}.`, 'success')
     load()
+  }
+
+  const shareTraining = async (application: Application) => {
+    if (!agencyId) return toast('Agency admin access is required to share training.', 'error')
+    setSharing(application.id)
+    const res = await trainingRequest('/api/training/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetType: 'email', email: application.email, agencyId }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setSharing('')
+    if (!res.ok) return toast(data.error || 'Could not share training', 'error')
+    toast(data.mode === 'profile' ? 'Training assigned and emailed.' : 'Invitation and training link emailed.', 'success')
   }
 
   if (loading) return <LoadingState label="Loading hiring..." />
@@ -194,6 +221,11 @@ export function HiringPanel() {
                     {a.status === 'approved' && (
                       <button className="btn" style={{ padding: '5px 12px', fontSize: 12, background: '#fdf6e3', borderColor: '#e8d9a8' }} onClick={() => generateOffer(a)}>
                         📄 Offer letter
+                      </button>
+                    )}
+                    {a.status === 'approved' && (
+                      <button className="btn" disabled={sharing === a.id} style={{ padding: '5px 12px', fontSize: 12, background: '#eef6ff', borderColor: '#bfd8f2' }} onClick={() => void shareTraining(a)}>
+                        {sharing === a.id ? 'Sharing…' : '🎓 Share training'}
                       </button>
                     )}
                     <button className="btn" style={{ padding: '5px 12px', fontSize: 12, color: '#b91c1c' }} onClick={() => review(a.id, 'rejected')}>Reject</button>
