@@ -84,10 +84,29 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
     }
   }
 
-  const handleCreate = async (input: { kind: LeadKind; business_name?: string; email?: string; phone?: string; status?: LeadStatus }) => {
+  // Mirrors the buyer's explicit weekly-newsletter consent checkbox into
+  // newspaper_subscriptions via the server route (never auto-subscribes; a
+  // no-op / silent failure here must never block the lead save itself).
+  const syncNewsletterConsent = async (leadId: string, optIn: boolean | undefined) => {
+    if (optIn === undefined) return
+    try {
+      const token = getStoredAccessToken()
+      await fetch('/api/newsletter/subscribe-lead', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({ leadId, optIn }),
+      })
+    } catch {
+      // best-effort — the lead itself is already saved; consent sync can be
+      // retried from the buyer detail view if it fails.
+    }
+  }
+
+  const handleCreate = async (input: { kind: LeadKind; business_name?: string; email?: string; phone?: string; status?: LeadStatus; newsletter_opt_in?: boolean; leadId?: string }) => {
     if (input.kind === 'buyer') {
       // The modal already persisted the enriched buyer lead — refresh to pick it
       // up instead of double-inserting through the generic path.
+      if (input.leadId) await syncNewsletterConsent(input.leadId, input.newsletter_opt_in)
       setShowForm(false)
       await load()
       toast('Lead created', 'success')
@@ -99,8 +118,9 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
     toast('Lead created', 'success')
   }
 
-  const handleUpdate = async (input: { kind: LeadKind; business_name?: string; email?: string; phone?: string; status?: LeadStatus }) => {
+  const handleUpdate = async (input: { kind: LeadKind; business_name?: string; email?: string; phone?: string; status?: LeadStatus; newsletter_opt_in?: boolean }) => {
     if (!editing) return
+    if (editing.kind === 'buyer') await syncNewsletterConsent(editing.id, input.newsletter_opt_in)
     const updated = await updateLead(editing.kind, editing.id, input)
     setLeads((p) => p.map((l) => (l.kind === updated.kind && l.id === updated.id ? updated : l)))
     if (selected && selected.id === updated.id && selected.kind === updated.kind) setSelected(updated)

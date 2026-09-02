@@ -63,6 +63,7 @@ export interface UnifiedLead {
   financing_method?: string | null
   preferred_location?: string | null
   notes?: string | null
+  newsletter_opt_in?: boolean | null
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,7 @@ export async function fetchAllLeads(): Promise<UnifiedLead[]> {
         kind: 'buyer', id: r.id, business_name: null, email: r.email,
         phone: r.phone, status: r.status || 'new', created_at: r.created_at,
         source: r.source || null, listing_id: r.listing_id || null,
+        newsletter_opt_in: !!r.newsletter_opt_in,
       })
     }
   }

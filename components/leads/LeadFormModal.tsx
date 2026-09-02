@@ -16,6 +16,7 @@ import SuggestionInput from '@/components/listings/SuggestionInput'
 interface BuyerInput {
   desired_business_type?: string; budget_range?: string; funds_available?: number
   financing_method?: string; preferred_location?: string; notes?: string; source?: string
+  newsletter_opt_in?: boolean
 }
 
 interface LeadFormModalProps {
@@ -45,6 +46,9 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
   const [location, setLocation] = useState(lead?.preferred_location || '')
   const [notes, setNotes] = useState(lead?.notes || '')
   const [source, setSource] = useState(lead?.source || '')
+  // Weekly newsletter consent — OPT-IN, defaults unchecked. We never
+  // auto-subscribe a manually-added buyer to the weekly digest.
+  const [newsletterOptIn, setNewsletterOptIn] = useState<boolean>((lead as any)?.newsletter_opt_in || false)
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -80,6 +84,7 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
           financing_method: financing || undefined,
           preferred_location: location || undefined,
           notes: notes || undefined,
+          newsletter_opt_in: newsletterOptIn,
         })
         return
       }
@@ -95,16 +100,18 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
           source: source || null,
         })
         // Let the parent refresh via its own create path; pass input through.
+        // Include the newly-created lead id so the parent can sync consent.
         await onSubmit({
           kind, email, phone, status,
           source: source || undefined,
-          ...(created.id ? {} : {}),
+          ...(created.id ? { leadId: created.id } as any : {}),
           desired_business_type: effectiveType.trim() || undefined,
           budget_range: budget || undefined,
           funds_available: funds === '' ? undefined : Number(String(funds).replace(/[$,]/g, '')),
           financing_method: financing || undefined,
           preferred_location: location || undefined,
           notes: notes || undefined,
+          newsletter_opt_in: newsletterOptIn,
         })
         return
       }
@@ -215,6 +222,26 @@ export default function LeadFormModal({ lead, mode: initialMode, onClose, onSubm
               <div style={{ marginBottom: 20 }}>
                 <label className="label">Notes</label>
                 <textarea className="input" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Additional requirements..." />
+              </div>
+
+              <div style={{ marginBottom: 20, background: 'var(--cream, #faf8f2)', border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13.5 }}>
+                  <input
+                    type="checkbox"
+                    checked={newsletterOptIn}
+                    onChange={(e) => setNewsletterOptIn(e.target.checked)}
+                    style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0 }}
+                  />
+                  <span>
+                    <strong>📬 Subscribe to weekly buyer newsletter (optional)</strong>
+                    <br />
+                    <span style={{ color: 'var(--muted)', fontSize: 12.5 }}>
+                      Ask the buyer first. If checked, they'll get our weekly inventory digest (new listings, prices, agent
+                      contacts) by email. Unchecked by default — they will NOT be added unless you confirm they said yes.
+                      They can unsubscribe anytime from the email footer.
+                    </span>
+                  </span>
+                </label>
               </div>
             </>
           )}

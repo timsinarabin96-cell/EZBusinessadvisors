@@ -262,6 +262,18 @@ export default function BuyerProfilePopup({ lead, onClose }: BuyerProfilePopupPr
             <span style={{ background: meta.color, color: '#fff', padding: '3px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
               {meta.label}
             </span>
+            {isBuyer && (
+              <span
+                title="Weekly buyer newsletter consent — opt-in, set on the Add/Edit Lead form"
+                style={{
+                  background: b?.newsletter_opt_in ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.12)',
+                  color: '#fff', padding: '3px 12px', borderRadius: 999, fontSize: 12, fontWeight: 700,
+                  border: `1px solid ${b?.newsletter_opt_in ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.25)'}`,
+                }}
+              >
+                {b?.newsletter_opt_in ? '📬 Subscribed to weekly' : '🔕 Not subscribed'}
+              </span>
+            )}
             {email && (
               <a href={`mailto:${email}`} style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', padding: '6px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.25)' }}>
                 ✉️ {email}
