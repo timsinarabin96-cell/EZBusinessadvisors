@@ -55,6 +55,16 @@ function testRoute(to: string): string {
   return EMAIL_TEST_MODE && EMAIL_TEST_TO ? EMAIL_TEST_TO : to
 }
 
+// Test-domain guard: E2E/CI runs create real platform emails to fake test
+// recipients (@concordplatform.dev, @example.com). If those actually deliver
+// via SMTP/Graph they bounce back as NDR junk into the business inbox.
+// Never attempt real delivery to known test domains — record for history only.
+const TEST_DOMAINS = new Set(['concordplatform.dev', 'example.com', 'test.local'])
+function isTestDomain(to: string): boolean {
+  const addr = (to || '').split('@').pop()?.toLowerCase().trim() || ''
+  return TEST_DOMAINS.has(addr)
+}
+
 // Event emails that are now consolidated into the HOURLY DIGEST
 // (/api/cron/hourly-digest). When HOURY_DIGEST_ONLY=true (default), these
 // kinds are recorded in the email queue for history but NOT delivered — the
@@ -589,6 +599,25 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
 
   // Test-email guard: reroute to the test inbox, never the real recipient.
   const to = testRoute(originalTo)
+
+  // Test-domain guard: never deliver to fake test domains (would bounce as NDR).
+  if (isTestDomain(to)) {
+    if (svc) {
+      await ensureEmailTables()
+      await svc.from('email_emails').insert({
+        email_to: to,
+        subject,
+        html,
+        text: toText(html),
+        kind,
+        meta: { ...(meta || {}), original_to: originalTo, test_domain_skipped: true },
+        status: 'skipped_test_domain',
+        created_at: new Date().toISOString(),
+      }).then(() => undefined)
+    }
+    console.log(`[email] ${kind}: "${subject}" -> ${originalTo} (SKIPPED — test domain)`)
+    return { ok: true, queued: false, reason: 'test domain — not delivered' }
+  }
 
   const canDeliver = EMAIL_ENABLED && (!!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY || !!process.env.EMAIL_GRAPH_REFRESH_TOKEN)
 
