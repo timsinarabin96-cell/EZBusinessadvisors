@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { DOCS_BUCKET } from '@/lib/storageBuckets'
 import { FRANCHISE_PLAN_ID, FRANCHISE_PLAN_NAME, FRANCHISE_PRICE, type FranchiseDetailsInput } from '@/lib/franchise'
+import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { createServerClient } from '@/lib/supabase/server'
+import { rateLimitAsync } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 
@@ -20,6 +23,17 @@ const svc = SUPABASE_URL && SERVICE_KEY
 
 const MAX_ITEM19_BYTES = 12 * 1024 * 1024 // 12 MB — matches financial-import
 
+const clientIp = (req: Request) =>
+  req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+  req.headers.get('x-real-ip') ||
+  'unknown'
+
+// Default agency for public self-serve franchise intake. NEVER trusted from
+// the client body (S1 fix — cross-tenant write vector): unauthenticated
+// callers always land here; authenticated agency admins/owners may scope to
+// their own agency only.
+const DEFAULT_AGENCY_ID = process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-8454854e731a'
+
 /**
  * POST /api/franchise (multipart/form-data)
  * Creates a franchise listing (is_franchise=true, status=draft) + its
@@ -29,13 +43,20 @@ const MAX_ITEM19_BYTES = 12 * 1024 * 1024 // 12 MB — matches financial-import
  * Fields: brand_name (required), industry_category, total_investment_min,
  * total_investment_max, franchise_fee, royalty_fee_pct, territories_available,
  * existing_units, training_support, ideal_candidate_liquid_capital,
- * ideal_candidate_net_worth, agency_id (optional), email, + optional item19 file.
+ * ideal_candidate_net_worth, agency_id (authenticated owners/admins only),
+ * email, + optional item19 file.
  *
  * Returns { ok, listingId, franchise: FranchiseDetails }. The caller then opens
  * Stripe checkout (product=franchise_listing) — payment auto-publishes.
  */
 export async function POST(req: NextRequest) {
   if (!svc) return NextResponse.json({ ok: false, error: 'Database is not configured' }, { status: 503 })
+
+  // Anti-abuse: public write endpoint — rate limited per IP (the audit test
+  // only walks app/api/public, so this was uncovered; fixed here).
+  if (!(await rateLimitAsync(clientIp(req), { limit: 10, windowMs: 60 * 1000 }))) {
+    return NextResponse.json({ ok: false, error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
 
   let form: FormData
   try {
@@ -58,7 +79,19 @@ export async function POST(req: NextRequest) {
   const brandName = str('brand_name')
   if (!brandName) return NextResponse.json({ ok: false, error: 'Brand name is required' }, { status: 400 })
 
-  const agencyId = str('agency_id') || process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-8454854e731a'
+  // S1 fix: agency scoping. The client-supplied agency_id is IGNORED for
+  // unauthenticated callers — listings land in the platform default agency.
+  // Authenticated agency members (owner/admin) may scope to their own agency.
+  let agencyId = DEFAULT_AGENCY_ID
+  const auth = await authenticateProfileRequest(req)
+  if (auth) {
+    const requestedAgency = str('agency_id')
+    if (requestedAgency && canManageAgency(auth, requestedAgency)) agencyId = requestedAgency
+    else if (auth.memberships?.length) {
+      const mine = auth.memberships.find((m) => m.is_owner || m.role === 'admin')
+      if (mine) agencyId = mine.agency_id
+    }
+  }
 
   const details: FranchiseDetailsInput = {
     brand_name: brandName.slice(0, 200),
@@ -143,15 +176,26 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/franchise?listingId=…
- * Returns franchise details + subscription status for a listing (agency-gated
- * dashboard view; public visitors use /api/public/franchise instead).
+ * Returns franchise details + subscription status for a listing. AGENCY-GATED
+ * dashboard view (S2 fix): the caller must be an owner/admin of the listing's
+ * agency. Public visitors use /api/public/franchise instead.
  */
 export async function GET(req: NextRequest) {
-  if (!svc) return NextResponse.json({ ok: false, error: 'Database is not configured' }, { status: 503 })
+  const db = createServerClient()
+  if (!db) return NextResponse.json({ ok: false, error: 'Database is not configured' }, { status: 503 })
+
   const listingId = req.nextUrl.searchParams.get('listingId') || ''
   if (!listingId) return NextResponse.json({ ok: false, error: 'listingId is required' }, { status: 400 })
 
-  const { data: details } = await svc.from('franchise_details').select('*').eq('listing_id', listingId).maybeSingle()
-  const { data: sub } = await svc.from('franchise_subscriptions').select('*').eq('listing_id', listingId).maybeSingle()
+  // Auth required — this endpoint exposes billing/subscription data.
+  const auth = await authenticateProfileRequest(req)
+  if (!auth) return unauthorizedResponse()
+
+  const { data: listing } = await db.from('listings').select('agency_id').eq('id', listingId).maybeSingle()
+  if (!listing) return NextResponse.json({ ok: false, error: 'Listing not found' }, { status: 404 })
+  if (!canManageAgency(auth, listing.agency_id)) return forbiddenResponse()
+
+  const { data: details } = await db.from('franchise_details').select('*').eq('listing_id', listingId).maybeSingle()
+  const { data: sub } = await db.from('franchise_subscriptions').select('*').eq('listing_id', listingId).maybeSingle()
   return NextResponse.json({ ok: true, franchise: details || null, subscription: sub || null })
 }

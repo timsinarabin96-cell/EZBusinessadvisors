@@ -219,13 +219,16 @@ export async function updateMilestone(
   // COMPLETED when a licensed real estate professional (agent | attorney) is
   // attached to the listing. Real property conveyance is never handled by the
   // platform or its staff — this gate enforces the referral model.
-  if (patch.completed === true && patch.category === 're_closing') {
+  // S3 fix: gate on the milestone's ACTUAL category from the DB, never the
+  // client-supplied patch.category (which was bypassable by omitting or
+  // changing the category in the PATCH body).
+  if (patch.completed === true) {
     const { data: milestone } = await svc
       .from('deal_closing_milestones')
-      .select('listing_id')
+      .select('listing_id, category')
       .eq('id', milestoneId)
       .maybeSingle()
-    if (milestone?.listing_id) {
+    if (milestone?.category === 're_closing') {
       const { data: listing } = await svc
         .from('listings')
         .select('re_professional_name, re_professional_license, re_professional_role, real_estate_included')
