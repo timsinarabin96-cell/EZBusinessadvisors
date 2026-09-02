@@ -1,3 +1,4 @@
+import { isCronAuthorized } from '@/lib/cronAuth'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { EMPTY_DIGEST_ACTIVITY, renderHourlyDigest, shouldSendHourlyDigest, type DigestActivity, type DigestRow } from '@/lib/notificationV2'
@@ -69,8 +70,7 @@ async function agencyRecipients(db: Db, agencyId: string): Promise<Array<{ id: s
 }
 
 export async function POST(req: Request) {
-  const secret = process.env.CRON_SECRET
-  if (secret && req.headers.get('x-cron-secret') !== secret) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
+  if (!isCronAuthorized(req)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   if (!SUPABASE_URL || !SERVICE_KEY) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
   const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })

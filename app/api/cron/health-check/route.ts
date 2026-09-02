@@ -23,7 +23,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.v
  */
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET
-  const auth = req.headers.get('x-cron-secret')
+  const auth = req.headers.get('x-cron-secret') || (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
   if (secret && auth !== secret) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
