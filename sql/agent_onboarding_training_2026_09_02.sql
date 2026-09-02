@@ -101,6 +101,8 @@ declare
 begin
   select * into v_invite from public.invite_tokens where id = p_invite_id;
   if not found or v_invite.target_type <> 'agent' or v_invite.agency_id is null then return null; end if;
+  -- Skip orphaned invites whose agency no longer exists (e.g. after test-data wipes).
+  if not exists (select 1 from public.agencies where id = v_invite.agency_id) then return null; end if;
 
   insert into public.agency_training_programs (agency_id, kind)
   values (v_invite.agency_id, 'onboarding')
