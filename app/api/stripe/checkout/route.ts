@@ -10,7 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { PLANS, subscribeToTier } from '@/lib/billing'
 import { BUYER_PASS_PLANS, subscribeToBuyerPass } from '@/lib/buyerPass'
-import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, VALUATION_PRICE_CENTS, LAUNCH_KIT_PRICE_CENTS, LAUNCH_KIT, OWNER_LISTING_PLANS } from '@/lib/pricing'
+import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, VALUATION_PRICE_CENTS, LAUNCH_KIT_PRICE_CENTS, LAUNCH_KIT, OWNER_LISTING_PLANS, FRANCHISE_MONTHLY_CENTS } from '@/lib/pricing'
 import { FEATURED_SLOT_OPTIONS, activateFeaturedSlot } from '@/lib/featuredSlots'
 import { createCheckoutSession, stripeConfigured, demoModeAllowed, demoBlockedError } from '@/lib/stripeCheckout'
 
@@ -125,6 +125,41 @@ export async function POST(req: NextRequest) {
     if (db) {
       await db.from('public_listings').update({ revenue_verified: true }).eq('listing_id', listingId)
     }
+    return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
+  }
+
+  // --- Franchise Opportunities (Stage 1): $299/mo recurring per brand ------  
+  // Flat monthly, no setup fee, no annual option (boss-approved). Payment
+  // confirmation (webhook kind='franchise_listing') activates the subscription
+  // AND auto-publishes the listing immediately — the AI sanity check runs
+  // AFTER publish and only flags issues (never blocks a paid listing).
+  if (product === 'franchise_listing') {
+    const agencyId = String(body?.agencyId || process.env.VOICE_AGENT_AGENCY_ID || '354facdb-cce2-4eb0-a160-8454854e731a').trim()
+    const listingId = String(body?.listingId || '').trim()
+    if (!listingId) return NextResponse.json({ ok: false, error: 'listingId is required' }, { status: 400 })
+    const successUrl = safeUrl(body?.successUrl, `${origin}/marketplace/listings/${listingId}?franchise=success`)
+    const cancelUrl = safeUrl(body?.cancelUrl, `${origin}/marketplace/sell`)
+
+    if (stripeConfigured()) {
+      const result = await createCheckoutSession({
+        agencyId,
+        mode: 'subscription',
+        items: [{
+          name: 'Franchise Listing — monthly',
+          amountCents: FRANCHISE_MONTHLY_CENTS,
+          description: 'Franchise opportunity listing — flat $299/month per brand. Advertise your franchise opportunity; the platform is the advertising surface only (you own your FDD and FTC/state franchise-disclosure compliance).',
+          recurringInterval: 'month',
+        }],
+        successUrl,
+        cancelUrl,
+        customerEmail: body?.email || null,
+        metadata: { kind: 'franchise_listing', listingId, sellerEmail: String(body?.email || '') },
+      })
+      if (result.ok && result.url) return NextResponse.json({ ok: true, url: result.url, mode: 'stripe' })
+      return NextResponse.json({ ok: false, error: result.error || 'Checkout failed' }, { status: 500 })
+    }
+
+    if (!demoModeAllowed()) return NextResponse.json(demoBlockedError(), { status: 503 })
     return NextResponse.json({ ok: true, url: successUrl, mode: 'demo' })
   }
 

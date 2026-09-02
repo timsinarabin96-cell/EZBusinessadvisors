@@ -71,7 +71,28 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section title="7. Contact">
+        <Section title="8. Franchise Listings">
+          <p>
+            Franchise Opportunity listings are an <strong>advertising surface only</strong>. The Platform does not sell franchises, does
+            not act as a franchisor or franchise broker, and does not review, verify, or warrant any Franchise Disclosure
+            Document (FDD), Item 19 financial performance representation, or other franchise materials. The franchisor is solely
+            responsible for their own FDD and for compliance with the FTC&apos;s Franchise Rule and all applicable state
+            franchise-disclosure and registration laws. Franchise listings are offered on a paid monthly basis and may be removed
+            at the end of the paid period.
+          </p>
+        </Section>
+
+        <Section title="9. Real Property Conveyance on Combined Listings">
+          <p>
+            Where a listing includes real estate, the real property portion of any transaction is handled exclusively by an
+            <strong> independently licensed real estate professional</strong> (licensed agent or real estate attorney). Neither Concord Deal
+            Platform nor Rabin Timsina personally closes real property transactions, and neither provides real estate brokerage
+            services. The business purchase agreement and the real estate purchase agreement are <strong>two separate legal documents</strong>
+            and are never blended into a single contract.
+          </p>
+        </Section>
+
+        <Section title="10. Contact">
           <p>
             Questions: <a href="mailto:info@ezbusinessadvisors.com" style={{ color: '#c9a84c' }}>info@ezbusinessadvisors.com</a>
           </p>

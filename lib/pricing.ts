@@ -139,6 +139,10 @@ export const OWNER_LISTING_PLANS = [
 // ---------------------------------------------------------------------------
 export const FINANCIAL_INTELLIGENCE_MONTHLY = 100   // the $100/mo upsell
 
+// Franchise Opportunities (Stage 1): flat $299/mo per franchise brand listed,
+// no setup fee. Monthly-only per boss approval — no annual option yet.
+export const FRANCHISE_MONTHLY = 299
+
 export const VERIFIED_REVENUE_PRICE = 199            // one-time bank-vs-books badge
 
 export const VALUATION_PRICE = 99                     // one-time professional valuation report (owner upsell)
@@ -214,6 +218,7 @@ export const CRM_ENTERPRISE_ANNUAL_CENTS = cents(CRM_ENTERPRISE_ANNUAL)
 export const LICENSE_SETUP_CENTS = cents(LICENSE_SETUP_FEE)
 export const LICENSE_MONTHLY_CENTS = cents(LICENSE_MONTHLY)
 export const FINANCIAL_INTELLIGENCE_CENTS = cents(FINANCIAL_INTELLIGENCE_MONTHLY)
+export const FRANCHISE_MONTHLY_CENTS = cents(FRANCHISE_MONTHLY)
 export const VERIFIED_REVENUE_PRICE_CENTS = cents(VERIFIED_REVENUE_PRICE)
 export const VALUATION_PRICE_CENTS = cents(VALUATION_PRICE)
 

@@ -119,6 +119,24 @@ export async function POST(req: NextRequest) {
       const { data: subRow } = await q.maybeSingle()
       agencyId = subRow?.agency_id || null
     }
+    // Stage 1: franchise subscriptions — mark canceled + UNPUBLISH the
+    // franchise listing (non-payment/cancel means the $299/mo ad is over).
+    if (stripeSub) {
+      try {
+        const { data: fsub } = await db.from('franchise_subscriptions').select('listing_id').eq('stripe_sub', stripeSub).maybeSingle()
+        if (fsub?.listing_id) {
+          await db.from('franchise_subscriptions').update({ status: 'canceled', updated_at: new Date().toISOString() }).eq('stripe_sub', stripeSub)
+          await db.from('listings').update({
+            status: 'withdrawn',
+            review_stage: 'draft',
+            published_at: null,
+            updated_at: new Date().toISOString(),
+          }).eq('id', fsub.listing_id)
+        }
+      } catch (e: any) {
+        console.error('[franchise] subscription.deleted handling failed:', e?.message || e)
+      }
+    }
     // Phase 3: license subscriptions → cancel the license row + revoke access.
     if (stripeSub) {
       const license = await fetchLicenseByStripeSub(stripeSub)
@@ -337,6 +355,76 @@ export async function POST(req: NextRequest) {
       }
     } catch (e: any) {
       console.error('[store] seller_listing webhook error:', e?.message || e)
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // --- Franchise Opportunities (Stage 1): activate subscription + auto-      
+  //     publish immediately. Boss-approved: no 24h delay — publish first, AI
+  //     sanity check runs after and only FLAGS issues (never blocks a paid
+  //     listing). Monthly-only ($299/mo flat).
+  if (kind === 'franchise_listing') {
+    const listingId = String(metadata?.listingId || '')
+    const sellerEmail = String(metadata?.sellerEmail || email || '')
+    const periodStart = session?.current_period_start ? new Date(session.current_period_start * 1000).toISOString() : now.toISOString()
+    const periodEnd = session?.current_period_end ? new Date(session.current_period_end * 1000).toISOString() : new Date(Date.now() + 30 * 86400000).toISOString()
+
+    if (listingId) {
+      // 1) Record the active subscription.
+      await db.from('franchise_subscriptions').upsert({
+        listing_id: listingId,
+        status: 'active',
+        stripe_customer: session?.customer || null,
+        stripe_sub: session?.subscription || session?.id || null,
+        current_period_end: periodEnd,
+        cancel_at_period_end: false,
+        updated_at: now.toISOString(),
+      }, { onConflict: 'listing_id' })
+
+      // 2) AUTO-PUBLISH immediately (boss-approved): mark the franchise
+      //    listing live. Franchises skip recast/BOV/CIM — this is a lighter,
+      //    franchisor-input listing type.
+      await db.from('listings').update({
+        is_franchise: true,
+        status: 'active',
+        review_stage: 'approved',
+        compliance_status: 'pending',
+        published_at: now.toISOString(),
+        seller_tier: 'paid',
+        tier_paid_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      }).eq('id', listingId)
+
+      // 3) Post-publish AI sanity check (flag-only — never blocks). Writes
+      //    advisory flags into ai_metadata.franchise_flags; the listing stays
+      //    live either way.
+      try {
+        const { franchiseSanityFlags } = await import('@/lib/franchise')
+        const { data: details } = await db.from('franchise_details').select('*').eq('listing_id', listingId).maybeSingle()
+        if (details) {
+          const flags = franchiseSanityFlags(details)
+          const { data: fresh } = await db.from('listings').select('ai_metadata').eq('id', listingId).maybeSingle()
+          const meta = ((fresh as { ai_metadata?: Record<string, unknown> } | null)?.ai_metadata) || {}
+          await db.from('listings').update({
+            ai_metadata: { ...meta, franchise_flags: flags, franchise_flags_checked_at: now.toISOString() },
+            updated_at: now.toISOString(),
+          }).eq('id', listingId)
+          if (flags.length) console.warn(`[franchise] post-publish flags for ${listingId}:`, flags)
+        }
+      } catch (e: any) {
+        console.error('[franchise] post-publish sanity check failed:', e?.message || e)
+      }
+
+      // 4) Best-effort email to the franchisor.
+      if (sellerEmail) {
+        try {
+          await sendEmail({
+            to: sellerEmail,
+            subject: 'Your franchise listing is live',
+            html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto"><div style="background:#0b1020;color:#fff;padding:28px 32px;border-radius:14px 14px 0 0"><div style="font-size:12px;color:#c9a84c;text-transform:uppercase;letter-spacing:0.14em">Concord Deal Platform</div><div style="font-size:22px;font-weight:800;margin-top:6px">Your franchise listing is live 🎉</div></div><div style="padding:28px 32px;border:1px solid #e8e4da;border-top:none;border-radius:0 0 14px 14px;color:#333;font-size:15px;line-height:1.65"><p>Your franchise opportunity is now live on the public marketplace at <b>$299/month</b>.</p><p>Reminder: the platform is the advertising surface only — you are responsible for your own Franchise Disclosure Document (FDD) and compliance with FTC and state franchise-disclosure laws.</p><p style="margin-top:20px">— Concord Deal Platform</p></div></div>`,
+          }).catch(() => {})
+        } catch { /* email is best-effort */ }
+      }
     }
     return NextResponse.json({ ok: true })
   }

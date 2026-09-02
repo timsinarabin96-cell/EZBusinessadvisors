@@ -11,6 +11,7 @@ import { notFound } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { normalizePublicListing, type PublicMarketplaceListing } from '@/lib/marketplace'
 import ListingDetailInteractive from '@/components/public/ListingDetailInteractive'
+import FranchiseDetailsPanel from '@/components/public/FranchiseDetailsPanel'
 import { ToastProvider } from '@/components/ui/Toast'
 import SimilarListings from '@/components/public/SimilarListings'
 import DealProfessionalsPanel from '@/components/public/DealProfessionalsPanel'
@@ -117,6 +118,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       <ListingMarketContextPanel ctx={marketCtx} />
       <ToastProvider>
         <ListingDetailInteractive listing={listing} agencyLegalName={agencyLegalName} />
+        {listing.is_franchise && <FranchiseDetailsPanel listingId={listing.id} />}
       </ToastProvider>
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
         <Link
