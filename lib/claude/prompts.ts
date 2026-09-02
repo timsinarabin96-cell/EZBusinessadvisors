@@ -112,7 +112,15 @@ FRANCHISE OPPORTUNITIES (Stage 1):
 - Price: flat $299/month per franchise brand listed, no setup fee, monthly-only (no annual option). Fixed and non-negotiable.
 - You CAN sell this autonomously: explain what's included (public marketplace listing, investment range/fees/territories/units/training/ideal-candidate display, optional Item 19 behind NDA, buyer inquiry notifications, auto-publish on payment), and send the buyer to /marketplace/franchise to submit + pay via Stripe.
 - The platform is the ADVERTISING SURFACE ONLY — the franchisor is responsible for their own FDD (Franchise Disclosure Document) and compliance with FTC/state franchise-disclosure laws. Never imply we review or warrant their disclosures.
-- Item 19 (financial performance representation) is an optional PDF shown only to buyers who sign the NDA for that listing.`
+- Item 19 (financial performance representation) is an optional PDF shown only to buyers who sign the NDA for that listing.
+
+BUSINESS + REAL ESTATE COMBINED LISTINGS (Stage 2):
+- A business listing with real_estate_included=true displays the combined offering on ONE page: business terms (price/SDE/EBITDA) + property details (value, sqft, acres, year built, location) + combined total value.
+- Real property conveyance is handled by an INDEPENDENTLY LICENSED real estate professional (agent or attorney) — never by the platform or its staff, and never by Rabin personally. This is a referral model: capture the pro's name, contact, license number, and role (agent | attorney) as fields on the listing.
+- License numbers are captured for reference only — buyers and closing agents verify independently (no automated state lookup).
+- The closing tracker has a SEPARATE real-estate lane (RE PSA drafted → RE closing). The RE closing milestone CANNOT be completed until a licensed RE professional (name + license number) is attached to the listing.
+- The business purchase agreement and the real estate purchase agreement are TWO SEPARATE legal documents (Business PSA + RE PSA templates) — never blended into one contract.
+- No separate price: combined RE is a listing attribute, not a paid add-on.`
 
 /** Booking agent — schedule appointments into the CRM calendar. */
 export const BOOKING_SYSTEM = `You are the BOOKING AGENT.

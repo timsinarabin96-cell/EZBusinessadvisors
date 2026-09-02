@@ -36,6 +36,10 @@ export interface IntelligentListingInput {
   key_customer_contracts: string
   key_supplier_contracts: string
   years_at_location: string
+  re_professional_name: string
+  re_professional_contact: string
+  re_professional_license: string
+  re_professional_role: string
   lease_monthly: string
   lease_expires_on: string
   lease_square_feet: string
@@ -75,6 +79,7 @@ export const EMPTY_INTELLIGENT_LISTING: IntelligentListingInput = {
   employees_full_time: '', employees_part_time: '', owner_hours_weekly: '', reason_for_sale: '', growth_opportunities: '',
   competitive_advantages: '', customer_concentration: '', facilities_summary: '', lease_monthly: '', lease_expires_on: '',
   franchise_agreements: '', pending_litigation: '', environmental_issues: '', key_customer_contracts: '', key_supplier_contracts: '', years_at_location: '',
+  re_professional_name: '', re_professional_contact: '', re_professional_license: '', re_professional_role: '',
   lease_square_feet: '',
   real_estate_included: false, ffe_included: false, inventory_included: false, goodwill_included: false, asset_sale: true,
   property_address: '', property_city: '', square_footage: '', land_acres: '', year_built: '', property_value: '', property_description: '',
@@ -131,6 +136,10 @@ export function buildListingInsert(input: IntelligentListingInput) {
     key_customer_contracts: input.key_customer_contracts.trim() || null,
     key_supplier_contracts: input.key_supplier_contracts.trim() || null,
     years_at_location: integerOrNull(input.years_at_location),
+    re_professional_name: input.re_professional_name.trim() || null,
+    re_professional_contact: input.re_professional_contact.trim() || null,
+    re_professional_license: input.re_professional_license.trim() || null,
+    re_professional_role: input.re_professional_role.trim() || null,
     lease_monthly: numberOrNull(input.lease_monthly),
     lease_expires_on: input.lease_expires_on || null,
     lease_square_feet: integerOrNull(input.lease_square_feet),

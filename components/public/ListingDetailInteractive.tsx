@@ -264,6 +264,34 @@ export default function ListingDetailInteractive({ listing, agencyLegalName }: {
           </div>
 
           {/* EVERYTHING A BUYER NEEDS — operations & deal facts (no confidential data) */}
+          {listing.real_estate_included && (
+            <div className="glass-light lift" style={{ padding: 28, marginTop: 20, border: '1px solid #dbe7f3', background: 'linear-gradient(180deg,#f8fbff 0%,#ffffff 100%)' }}>
+              <h2 className="display-title" style={{ fontSize: 22, color: '#1a1a2e', margin: '0 0 6px' }}>🏢 Business + Real Estate — Combined Offering</h2>
+              <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px', lineHeight: 1.55 }}>
+                This listing bundles the business and its real property. Business terms and property details are shown together below; the business purchase agreement and the real estate purchase agreement are two separate documents.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 12 }}>
+                <Fact icon="🏪" label="Business asking" value={listing.asking_price !== null ? fmt$(listing.asking_price) : '—'} />
+                {listing.property_value !== null && listing.property_value !== undefined && <Fact icon="🏢" label="Property value" value={fmt$(listing.property_value)} />}
+                {listing.real_estate_asking_price != null && <Fact icon="🏷️" label="RE asking price" value={fmt$(listing.real_estate_asking_price)} />}
+                {(listing.asking_price !== null || listing.property_value != null) && (
+                  <Fact icon="➕" label="Combined value" value={fmt$((listing.asking_price ?? 0) + (listing.property_value ?? 0))} />
+                )}
+                {listing.property_city && <Fact icon="📍" label="Property location" value={[listing.property_city, listing.property_state].filter(Boolean).join(', ')} />}
+                {listing.square_footage != null && <Fact icon="📐" label="Building sqft" value={`${listing.square_footage.toLocaleString()} sqft`} />}
+                {listing.land_acres != null && <Fact icon="🌾" label="Land" value={`${listing.land_acres} acres`} />}
+                {listing.year_built != null && <Fact icon="🏗️" label="Year built" value={String(listing.year_built)} />}
+              </div>
+              {listing.property_description && (
+                <p style={{ color: '#555', fontSize: 14, lineHeight: 1.65, margin: '16px 0 0', whiteSpace: 'pre-wrap' }}>{listing.property_description}</p>
+              )}
+              <div style={{ marginTop: 16, padding: 12, background: '#fff8e8', border: '1px solid #f0e0b8', borderRadius: 8, fontSize: 12.5, color: '#8a6d1a', lineHeight: 1.6 }}>
+                ⚖️ Real property conveyance is handled by an independently licensed real estate professional (agent or attorney) — never by the platform or its staff. The business purchase agreement and the real estate purchase agreement are two separate legal documents.
+              </div>
+            </div>
+          )}
+
+          {/* EVERYTHING A BUYER NEEDS — operations & deal facts (no confidential data) */}
           <div className="glass-light lift" style={{ padding: 28, marginTop: 20 }}>
             <h2 className="display-title" style={{ fontSize: 22, color: '#1a1a2e', margin: '0 0 16px' }}>Everything You Need to Know</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 100%), 1fr))', gap: 12 }}>

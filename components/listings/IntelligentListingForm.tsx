@@ -730,6 +730,22 @@ function FinancialSection({ form, setValue, listingId }: SectionProps & { listin
           <MoneyField label="Property value" value={form.property_value} onChange={(value) => setValue('property_value', value)} />
           <Field label="Property description / notes" span><textarea className="textarea" rows={3} value={form.property_description} onChange={(event) => setValue('property_description', event.target.value)} placeholder="Condition, parking, expansion potential, leaseback options…" /></Field>
         </Grid>
+        <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: '#fff8e8', border: '1px solid #f0e0b8' }}>
+          <div style={{ fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>📋 Licensed real estate professional (referral)</div>
+          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 12, lineHeight: 1.55 }}>
+            Real property conveyance is handled by an independently licensed real estate agent or attorney — never by the platform or its staff.
+            Required before the real-estate closing milestone can be completed. The business purchase agreement and the real estate purchase agreement stay two separate documents.
+          </div>
+          <Grid>
+            <Field label="Name"><input className="input" value={form.re_professional_name} onChange={(event) => setValue('re_professional_name', event.target.value)} placeholder="e.g. Jane Smith" /></Field>
+            <Field label="Role"><select className="select" value={form.re_professional_role} onChange={(event) => setValue('re_professional_role', event.target.value)}><option value="">Select role…</option><option value="agent">Licensed real estate agent</option><option value="attorney">Real estate attorney</option></select></Field>
+            <Field label="Contact"><input className="input" value={form.re_professional_contact} onChange={(event) => setValue('re_professional_contact', event.target.value)} placeholder="Phone or email" /></Field>
+            <Field label="License number"><input className="input" value={form.re_professional_license} onChange={(event) => setValue('re_professional_license', event.target.value)} placeholder="State license #" /></Field>
+          </Grid>
+          <div style={{ fontSize: 11.5, color: '#9a8a5a', marginTop: 10, lineHeight: 1.5 }}>
+            License numbers are captured for reference only — buyers and closing agents verify independently. No automated state lookup.
+          </div>
+        </div>
       </div>
     )}
   </Grid></Section>

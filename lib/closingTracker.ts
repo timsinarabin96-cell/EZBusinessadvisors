@@ -29,6 +29,12 @@ export const DEFAULT_MILESTONES: { title: string; category: string }[] = [
   { title: 'Escrow funded', category: 'escrow' },
   { title: 'Closing documents signed', category: 'closing' },
   { title: 'Transition / training completed', category: 'transition' },
+  // Business + Real Estate combined (Stage 2): separate RE lane. The RE
+  // closing milestone is BLOCKED until a licensed real estate professional
+  // (agent | attorney) is attached to the listing — real property conveyance
+  // is never handled by the platform or its staff.
+  { title: 'Real estate purchase agreement (RE PSA) drafted', category: 're_psa' },
+  { title: 'Real estate closing (with licensed RE professional)', category: 're_closing' },
 ]
 
 // Per-stage checklist templates — brokers load the stage they're entering
@@ -70,6 +76,20 @@ export const STAGE_TEMPLATES: Record<string, { title: string; category: string }
     { title: 'Funds disbursed', category: 'closing' },
     { title: 'Keys / access transferred', category: 'closing' },
     { title: 'Licenses / permits transferred', category: 'closing' },
+  ],
+  // Combined listings (Stage 2): the RE side of the transaction is a SEPARATE
+  // lane with its own documents. The RE closing milestone requires a licensed
+  // RE professional (agent or attorney) attached to the listing.
+  re_psa: [
+    { title: 'Real estate purchase agreement (RE PSA) drafted', category: 're_psa' },
+    { title: 'RE PSA reviewed by real estate attorney', category: 're_psa' },
+    { title: 'RE PSA signed by both parties', category: 're_psa' },
+    { title: 'Title search / survey ordered', category: 're_psa' },
+  ],
+  re_closing: [
+    { title: 'Licensed RE professional attached (name + license #)', category: 're_closing' },
+    { title: 'Real estate closing (with licensed RE professional)', category: 're_closing' },
+    { title: 'Deed recorded / transfer completed', category: 're_closing' },
   ],
   transition: [
     { title: 'Transition / training completed', category: 'transition' },
@@ -194,6 +214,33 @@ export async function updateMilestone(
   actorProfileId?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   if (!svc) return { ok: false, error: 'Database is not configured' }
+
+  // Stage 2 (Business + Real Estate): the RE closing milestone may only be
+  // COMPLETED when a licensed real estate professional (agent | attorney) is
+  // attached to the listing. Real property conveyance is never handled by the
+  // platform or its staff — this gate enforces the referral model.
+  if (patch.completed === true && patch.category === 're_closing') {
+    const { data: milestone } = await svc
+      .from('deal_closing_milestones')
+      .select('listing_id')
+      .eq('id', milestoneId)
+      .maybeSingle()
+    if (milestone?.listing_id) {
+      const { data: listing } = await svc
+        .from('listings')
+        .select('re_professional_name, re_professional_license, re_professional_role, real_estate_included')
+        .eq('id', milestone.listing_id)
+        .maybeSingle()
+      const proName = String(listing?.re_professional_name || '').trim()
+      const proLicense = String(listing?.re_professional_license || '').trim()
+      if (!proName || !proLicense) {
+        return {
+          ok: false,
+          error: 'Attach a licensed real estate professional (name + license number) to this listing before completing the real estate closing — real property conveyance is handled by an independently licensed agent or attorney, never by the platform.',
+        }
+      }
+    }
+  }
 
   const update: Record<string, unknown> = {}
   if (typeof patch.title === 'string') update.title = patch.title

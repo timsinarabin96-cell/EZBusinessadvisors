@@ -96,6 +96,13 @@ export interface Listing {
   key_customer_contracts: string | null
   key_supplier_contracts: string | null
   years_at_location: number | null
+  // Business + Real Estate combined (Stage 2) — referral-model fields: the
+  // licensed real estate professional (agent | attorney) attached to the
+  // real-property side. Required before the RE closing milestone can complete.
+  re_professional_name: string | null
+  re_professional_contact: string | null
+  re_professional_license: string | null
+  re_professional_role: string | null
 }
 
 export type ListingInput = Partial<Omit<Listing, 'id' | 'created_at' | 'updated_at'>>

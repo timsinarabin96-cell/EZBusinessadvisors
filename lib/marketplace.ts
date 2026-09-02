@@ -58,6 +58,16 @@ export interface PublicMarketplaceListing {
   sba_qualified?: boolean | null
   views_total?: number | null
   views_7d?: number | null
+  // Business + Real Estate combined (Stage 2)
+  real_estate_included?: boolean | null
+  property_value?: number | null
+  real_estate_asking_price?: number | null
+  property_description?: string | null
+  square_footage?: number | null
+  land_acres?: number | null
+  year_built?: number | null
+  property_city?: string | null
+  property_state?: string | null
 }
 
 interface PublicListingFeedRow {
@@ -102,6 +112,16 @@ interface PublicListingFeedRow {
   revenue_verified?: boolean | null
   seller_verified?: boolean | null
   bov_on_file?: boolean | null
+  // Business + Real Estate combined (Stage 2)
+  real_estate_included?: boolean | null
+  property_value?: number | string | null
+  real_estate_asking_price?: number | string | null
+  property_description?: string | null
+  square_footage?: number | string | null
+  land_acres?: number | string | null
+  year_built?: number | null
+  property_city?: string | null
+  property_state?: string | null
 }
 
 export interface MarketplaceStats {
@@ -228,6 +248,15 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     is_absentee_owner: row.is_absentee_owner ?? null,
     is_franchise: row.is_franchise ?? null,
     is_relocatable: row.is_relocatable ?? null,
+    real_estate_included: row.real_estate_included ?? null,
+    property_value: numberOrNull(row.property_value),
+    real_estate_asking_price: numberOrNull(row.real_estate_asking_price),
+    property_description: row.property_description || null,
+    square_footage: numberOrNull(row.square_footage),
+    land_acres: numberOrNull(row.land_acres),
+    year_built: row.year_built ?? null,
+    property_city: row.property_city || null,
+    property_state: row.property_state || null,
     seller_financing_available: row.seller_financing_available ?? null,
     established_year: row.established_year ?? null,
     employees_full_time: row.employees_full_time ?? null,

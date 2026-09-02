@@ -1763,4 +1763,94 @@ Signature: ______________________________
 Printed Name: {{broker_name}}
 Date: ___________________________________{{LEGAL_FOOTER}}`,
   },
+  {
+    name: 'Business Purchase Agreement (PSA)',
+    description: 'The business-side purchase agreement — separate from any real estate purchase agreement. Asset/stock structure, purchase price, closing, and representations for the BUSINESS only (Stage 2: combined listings keep business and real property documents as two separate legal instruments).',
+    category: 'Closing Pack',
+    fields: [
+      { key: 'buyer_name', label: 'Buyer Name', type: 'text', required: true },
+      { key: 'buyer_entity', label: 'Buyer Entity (if any)', type: 'text', required: false },
+      { key: 'seller_name', label: 'Seller Name', type: 'text', required: true },
+      { key: 'seller_entity', label: 'Seller Entity (if any)', type: 'text', required: false },
+      { key: 'business_name', label: 'Business Name', type: 'text', required: true },
+      { key: 'purchase_price', label: 'Purchase Price — Business ($)', type: 'number', required: true },
+      { key: 'structure', label: 'Transaction Structure', type: 'select', required: true, options: ['Asset Purchase', 'Stock / Membership Purchase'] },
+      { key: 'closing_date', label: 'Business Closing Date', type: 'date', required: true },
+      { key: 'included_assets', label: 'Included Assets (FF&E, inventory, goodwill, name)', type: 'textarea', required: false },
+      { key: 'excluded_assets', label: 'Excluded Assets', type: 'textarea', required: false },
+      { key: 'agency_name', label: 'Brokerage Name', type: 'text', required: true },
+      { key: 'broker_name', label: 'Broker Name', type: 'text', required: true },
+    ],
+    parties: [
+      { key: 'agent', label: 'Broker', role: 'agent' },
+      { key: 'buyer', label: 'Buyer', role: 'buyer' },
+      { key: 'seller', label: 'Seller', role: 'seller' },
+    ],
+    body_template: `{{title}}
+
+BUSINESS PURCHASE AGREEMENT
+
+This Business Purchase Agreement (this \"Agreement\") is made as of {{closing_date}} by and between {{seller_name}} (\"Seller\") and {{buyer_name}} (\"Buyer\"), with {{broker_name}} of {{agency_name}} (\"Brokerage\").
+
+1. SALE OF BUSINESS. Seller agrees to sell and Buyer agrees to purchase the business known as {{business_name}} (the \"Business\") for a purchase price of \${{purchase_price}}, structured as an {{structure}}.
+
+2. INCLUDED ASSETS. The purchase includes {{included_assets}}. Excluded assets: {{excluded_assets}}.
+
+3. SEPARATE REAL ESTATE. This Agreement covers ONLY the business assets described above. If real property is being conveyed in connection with this sale, it is governed by a SEPARATE Real Estate Purchase Agreement executed in accordance with applicable law and handled by an independently licensed real estate professional — never by the Brokerage or its staff.
+
+4. CLOSING. The business closing shall occur on {{closing_date}} or as otherwise agreed in writing.
+
+5. REPRESENTATIONS. Seller represents that the Business is sold free and clear of undisclosed liens, and that the information provided to Buyer is true and accurate to Seller\'s knowledge.
+
+6. GOVERNING LAW. This Agreement is governed by the laws of the state where the Business is located.
+
+IN WITNESS WHEREOF, the Parties have executed this Agreement as of the date set forth above.
+
+SELLER: ______________________________   BUYER: ______________________________
+BROKER ({{agency_name}}): ______________________________{{LEGAL_FOOTER}}`,
+  },
+  {
+    name: 'Real Estate Purchase Agreement (RE PSA)',
+    description: 'The real-property purchase agreement for combined listings — a SEPARATE legal document from the business PSA. Requires an independently licensed real estate agent or real estate attorney; the platform never closes real property transactions (Stage 2 referral model).',
+    category: 'Closing Pack',
+    fields: [
+      { key: 'buyer_name', label: 'Buyer Name', type: 'text', required: true },
+      { key: 'seller_name', label: 'Seller Name', type: 'text', required: true },
+      { key: 'property_address', label: 'Property Address', type: 'text', required: true },
+      { key: 'property_city_state', label: 'Property City / State', type: 'text', required: true },
+      { key: 'property_price', label: 'Purchase Price — Real Estate ($)', type: 'number', required: true },
+      { key: 'closing_date', label: 'Real Estate Closing Date', type: 'date', required: true },
+      { key: 're_professional_name', label: 'Licensed RE Professional Name', type: 'text', required: true },
+      { key: 're_professional_role', label: 'Role', type: 'select', required: true, options: ['Licensed Real Estate Agent', 'Real Estate Attorney'] },
+      { key: 're_professional_license', label: 'License Number', type: 'text', required: true },
+      { key: 're_professional_contact', label: 'Contact (phone / email)', type: 'text', required: false },
+      { key: 'agency_name', label: 'Brokerage Name', type: 'text', required: true },
+      { key: 'broker_name', label: 'Broker Name', type: 'text', required: true },
+    ],
+    parties: [
+      { key: 'agent', label: 'Broker', role: 'agent' },
+      { key: 'buyer', label: 'Buyer', role: 'buyer' },
+      { key: 'seller', label: 'Seller', role: 'seller' },
+    ],
+    body_template: `{{title}}
+
+REAL ESTATE PURCHASE AGREEMENT
+
+This Real Estate Purchase Agreement (this \"RE Agreement\") is made as of {{closing_date}} by and between {{seller_name}} (\"Seller\") and {{buyer_name}} (\"Buyer\"), for the real property located at {{property_address}}, {{property_city_state}} (the \"Property\").
+
+1. SALE OF PROPERTY. Seller agrees to sell and Buyer agrees to purchase the Property for a purchase price of \${{property_price}}.
+
+2. LICENSED RE PROFESSIONAL. The real property conveyance contemplated by this RE Agreement is handled by {{re_professional_name}}, acting as {{re_professional_role}} (license number {{re_professional_license}}). Neither the Brokerage ({{agency_name}}) nor its staff closes real property transactions. Buyers and closing agents are encouraged to verify the professional\'s license independently.
+
+3. SEPARATE BUSINESS AGREEMENT. This RE Agreement covers ONLY the real property. Any business assets conveyed in connection with this sale are governed by a SEPARATE Business Purchase Agreement.
+
+4. CLOSING. Closing of the Property transfer shall occur on {{closing_date}} in accordance with applicable state law and local custom.
+
+5. GOVERNING LAW. This RE Agreement is governed by the laws of the state where the Property is located.
+
+IN WITNESS WHEREOF, the Parties have executed this RE Agreement as of the date set forth above.
+
+SELLER: ______________________________   BUYER: ______________________________
+LICENSED RE PROFESSIONAL ({{re_professional_name}}): ______________________________{{LEGAL_FOOTER}}`,
+  },
 ]
