@@ -10,6 +10,7 @@ type Module = {
   lesson_content: string
   quiz_question: string
   quiz_options: string[]
+  materials?: { id: string; title: string; kind: string; url?: string | null }[]
   order: number
   task: { completed: boolean; quiz_score: number | null } | null
 }
@@ -57,7 +58,7 @@ export function AgentOnboardingDashboard() {
     <div style={{ background: 'linear-gradient(135deg,#111a2e,#253653)', color: 'white', padding: 28, borderRadius: 18, marginBottom: 22 }}>
       <div style={{ color: '#d6b75e', textTransform: 'uppercase', letterSpacing: '.16em', fontSize: 12, fontWeight: 800 }}>Required Agent Training</div>
       <h1 style={{ margin: '8px 0 6px', fontFamily: 'Georgia,serif' }}>Platform Onboarding</h1>
-      <p style={{ margin: 0, color: '#d8deea' }}>Browse the CRM while you learn. Deal actions unlock after all five quizzes are complete.</p>
+      <p style={{ margin: 0, color: '#d8deea' }}>Browse the CRM while you learn. Deal actions unlock after every assigned module is complete.</p>
       <div style={{ marginTop: 18, height: 9, background: '#ffffff22', borderRadius: 99, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${modules.length ? completed / modules.length * 100 : 0}%`, background: '#d6b75e' }} />
       </div>
@@ -82,6 +83,11 @@ export function AgentOnboardingDashboard() {
             <h2 style={{ margin: 0, fontSize: 20 }}>{module.title}</h2>
             <p style={{ color: '#667085', margin: '5px 0 16px' }}>{module.description}</p>
             <p style={{ whiteSpace: 'pre-line', lineHeight: 1.65, color: '#26303f' }}>{module.lesson_content}</p>
+            {!!module.materials?.length && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+              {module.materials.map((material) => material.url
+                ? <a key={material.id} href={material.url} target="_blank" rel="noreferrer" style={{ color: '#8a6415', fontWeight: 700 }}>📎 {material.title}</a>
+                : <span key={material.id} style={{ color: '#667085' }}>📎 {material.title}</span>)}
+            </div>}
             {!module.task?.completed && <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid #edf0f4' }}>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>{module.quiz_question}</div>
               <div style={{ display: 'grid', gap: 8 }}>

@@ -21,20 +21,31 @@ async function overview(database: any, agencyId: string) {
 
   const [{ data: profiles }, { data: enrollments }, { data: documents }] = await Promise.all([
     database.from('profiles').select('id, full_name, email, status').in('id', profileIds),
-    database.from('agency_training_enrollments').select('id, profile_id, status, completed_at').eq('agency_id', agencyId).in('profile_id', profileIds),
+    database.from('agency_training_enrollments').select('id, profile_id, program_id, status, completed_at').eq('agency_id', agencyId).in('profile_id', profileIds),
     database.from('documents').select('id, title, created_at, filled_data').in('created_by', profileIds),
   ])
   const enrollmentIds = (enrollments || []).map((enrollment: any) => enrollment.id)
+  const programIds = [...new Set((enrollments || []).map((enrollment: any) => enrollment.program_id).filter(Boolean))]
+  const [{ data: programs }, { data: modules }] = programIds.length ? await Promise.all([
+    database.from('agency_training_programs').select('id, use_default_templates').in('id', programIds),
+    database.from('agency_training_modules').select('id, program_id, template_id').in('program_id', programIds).eq('is_required', true).is('archived_at', null),
+  ]) : [{ data: [] }, { data: [] }]
   const { data: tasks } = enrollmentIds.length
-    ? await database.from('agency_training_tasks').select('enrollment_id, completed').in('enrollment_id', enrollmentIds)
+    ? await database.from('agency_training_tasks').select('enrollment_id, module_id, completed').in('enrollment_id', enrollmentIds)
     : { data: [] }
+  const programById = new Map((programs || []).map((program: any) => [program.id, program]))
+  const activeModuleIdsByProgram = new Map(programIds.map((programId) => {
+    const useDefaults = (programById.get(programId) as any)?.use_default_templates !== false
+    return [programId, new Set((modules || []).filter((module: any) => module.program_id === programId && (useDefaults || !module.template_id)).map((module: any) => module.id))]
+  }))
   const enrollmentByProfile = new Map((enrollments || []).map((enrollment: any) => [enrollment.profile_id, enrollment]))
   const profileById = new Map((profiles || []).map((profile: any) => [profile.id, profile]))
 
   return Promise.all((memberships || []).map(async (membership: any) => {
     const profile: any = profileById.get(membership.profile_id) || {}
     const enrollment: any = enrollmentByProfile.get(membership.profile_id) || null
-    const enrollmentTasks = (tasks || []).filter((task: any) => task.enrollment_id === enrollment?.id)
+    const activeModuleIds = activeModuleIdsByProgram.get(enrollment?.program_id) || new Set()
+    const enrollmentTasks = (tasks || []).filter((task: any) => task.enrollment_id === enrollment?.id && activeModuleIds.has(task.module_id))
     const folderDocuments = (documents || []).filter((document: any) =>
       document.filled_data?.employee_profile_id === membership.profile_id
       && document.filled_data?.agency_id === agencyId,
@@ -116,14 +127,14 @@ export async function POST(req: NextRequest) {
         agency_id: agencyId,
         profile_id: profileId,
         title: 'Onboarding training assigned',
-        body: `${agencyName} assigned your required five-module onboarding program.`,
+        body: `${agencyName} assigned your required onboarding program.`,
         kind: 'training',
         link: ONBOARDING_DASHBOARD_PATH,
       })
       if (email) await sendEmail({
         to: email,
         subject: `You've been enrolled in ${agencyName} onboarding training — start here`,
-        html: `<h2>Your onboarding training is ready</h2><p>${agencyName} shared its required agent onboarding program with you.</p><p><a href="${dashboardUrl}">Start onboarding training</a></p><p>Complete all five modules to unlock your certificate and save it to your employee file.</p>`,
+        html: `<h2>Your onboarding training is ready</h2><p>${agencyName} shared its required agent onboarding program with you.</p><p><a href="${dashboardUrl}">Start onboarding training</a></p><p>Complete every assigned module to unlock your certificate and save it to your employee file.</p>`,
         kind: 'generic',
         meta: { agency_id: agencyId, profile_id: profileId, kind: 'agent_onboarding_shared' },
       })
@@ -137,7 +148,7 @@ export async function POST(req: NextRequest) {
     await sendEmail({
       to: email,
       subject: `You've been enrolled in ${agencyName} onboarding training — start here`,
-      html: `<h2>Join ${agencyName} and start onboarding</h2><p>Create your Concord account from this private invitation. Your required five-module onboarding program will be waiting for you.</p><p><a href="${inviteUrl}">Accept invitation and start training</a></p>`,
+      html: `<h2>Join ${agencyName} and start onboarding</h2><p>Create your Concord account from this private invitation. Your agency onboarding program will be waiting for you.</p><p><a href="${inviteUrl}">Accept invitation and start training</a></p>`,
       kind: 'generic',
       meta: { agency_id: agencyId, invite_id: invite.id, kind: 'agent_onboarding_invite' },
     })

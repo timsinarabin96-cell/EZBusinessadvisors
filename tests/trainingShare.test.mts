@@ -12,6 +12,7 @@ class Query {
   constructor(table: string, handler: (query: Query) => any) { this.table = table; this.handler = handler }
   select() { return this }
   eq() { return this }
+  is() { return this }
   gt() { return this }
   order() { return this }
   limit() { return this }

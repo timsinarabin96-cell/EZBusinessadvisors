@@ -1,3 +1,5 @@
+import { ensureAgencyTrainingProgram, listActiveProgramModules, syncDefaultTrainingModules } from '@/lib/agencyTraining'
+
 export const ONBOARDING_DASHBOARD_PATH = '/dashboard/onboarding'
 
 function generateInviteToken() {
@@ -7,36 +9,9 @@ function generateInviteToken() {
 }
 
 export async function ensureProfileTrainingEnrollment(database: any, agencyId: string, profileId: string) {
-  const { data: programs, error: programError } = await database.from('agency_training_programs').upsert({
-    agency_id: agencyId,
-    kind: 'onboarding',
-    title: 'Agent Platform Onboarding',
-    is_active: true,
-  }, { onConflict: 'agency_id,kind' }).select('id').limit(1)
-  if (programError) throw new Error(programError.message)
-  const programId = programs?.[0]?.id
-  if (!programId) throw new Error('Could not create onboarding program')
-
-  const { data: templates, error: templateError } = await database.from('onboarding_module_templates')
-    .select('id, title, description, lesson_content, quiz_question, quiz_options, quiz_correct_answer, order')
-    .eq('is_active', true).order('order')
-  if (templateError) throw new Error(templateError.message)
-
-  if (templates?.length) {
-    const { error } = await database.from('agency_training_modules').upsert(templates.map((template: any) => ({
-      program_id: programId,
-      template_id: template.id,
-      title: template.title,
-      description: template.description,
-      lesson_content: template.lesson_content,
-      quiz_question: template.quiz_question,
-      quiz_options: template.quiz_options,
-      quiz_correct_answer: template.quiz_correct_answer,
-      order: template.order,
-      is_required: true,
-    })), { onConflict: 'program_id,order', ignoreDuplicates: true })
-    if (error) throw new Error(error.message)
-  }
+  const program = await ensureAgencyTrainingProgram(database, agencyId)
+  const programId = program.id
+  if (program.use_default_templates) await syncDefaultTrainingModules(database, programId)
 
   let { data: enrollment, error: enrollmentError } = await database.from('agency_training_enrollments')
     .select('id, status, training_hold, completed_at').eq('program_id', programId).eq('profile_id', profileId).maybeSingle()
@@ -54,9 +29,8 @@ export async function ensureProfileTrainingEnrollment(database: any, agencyId: s
     enrollment = result.data
   }
 
-  const { data: modules, error: moduleError } = await database.from('agency_training_modules')
-    .select('id').eq('program_id', programId).eq('is_required', true)
-  if (moduleError) throw new Error(moduleError.message)
+  const modules = (await listActiveProgramModules(database, programId, program.use_default_templates, 'id, is_required'))
+    .filter((module: any) => module.is_required)
   if (modules?.length) {
     const { error } = await database.from('agency_training_tasks').upsert(modules.map((module: any) => ({
       enrollment_id: enrollment.id,
