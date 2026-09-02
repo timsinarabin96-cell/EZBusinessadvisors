@@ -31,6 +31,13 @@ interface OwnerListing {
   financials_status?: string | null
   legitimacy_verdict?: string | null
   legitimacy_score?: number | null
+  industry?: string | null
+  sub_industry?: string | null
+  location_general?: string | null
+  description?: string | null
+  public_highlights?: string | null
+  asking_price?: number | null
+  ai_metadata?: { pending_price_change?: { asking_price: number; reason?: string | null } } | null
 }
 
 const VERDICT_STYLE: Record<string, { bg: string; color: string; label: string }> = {
@@ -46,6 +53,8 @@ export default function OwnerPortalPage() {
   const [inquiries, setInquiries] = useState(0)
   const [loading, setLoading] = useState(true)
   const [openForm, setOpenForm] = useState<string | null>(null)
+  const [openEdit, setOpenEdit] = useState<string | null>(null)
+  const [openPrice, setOpenPrice] = useState<string | null>(null)
   const [acting, setActing] = useState<string | null>(null)
   const [profile, setProfile] = useState<{ phone?: string | null; phone_verified_at?: string | null; avatar_url?: string | null } | null>(null)
 
@@ -78,7 +87,7 @@ export default function OwnerPortalPage() {
       // Listings owned by this email directly (newer self-service rows).
       const ownedRes = await supabase
         .from('listings')
-        .select('id, business_name, status, created_at, established_year, financials_status, legitimacy_verdict, legitimacy_score')
+        .select('id, business_name, status, created_at, established_year, financials_status, legitimacy_verdict, legitimacy_score, industry, sub_industry, location_general, description, public_highlights, asking_price, ai_metadata')
         .or(`owner_email.eq.${user.email}` + (ids.length ? `,id.in.(${ids.join(',')})` : ''))
         .order('created_at', { ascending: false })
       const planByListing = new Map(orders.map((o) => [o.listing_id, o.plan_code]))
@@ -190,8 +199,29 @@ export default function OwnerPortalPage() {
                           <span style={{ background: vs.bg, color: vs.color, padding: '5px 14px', borderRadius: 99, fontSize: 11.5, fontWeight: 800 }}>
                             {vs.label}{l.legitimacy_score != null ? ` (${l.legitimacy_score})` : ''}
                           </span>
+                          {l.ai_metadata?.pending_price_change && (
+                            <span style={{ background: '#fef3c7', color: '#92400e', padding: '5px 14px', borderRadius: 99, fontSize: 11.5, fontWeight: 800 }}>
+                              ⏳ Price change pending review
+                            </span>
+                          )}
                         </div>
                       </div>
+
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                        <button onClick={() => { setOpenEdit(openEdit === l.id ? null : l.id); setOpenPrice(null) }} style={{ background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '7px 14px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 12.5 }}>
+                          ✏️ Edit listing
+                        </button>
+                        <button onClick={() => { setOpenPrice(openPrice === l.id ? null : l.id); setOpenEdit(null) }} disabled={Boolean(l.ai_metadata?.pending_price_change)} style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', padding: '7px 14px', borderRadius: 8, fontWeight: 700, cursor: l.ai_metadata?.pending_price_change ? 'not-allowed' : 'pointer', fontSize: 12.5, opacity: l.ai_metadata?.pending_price_change ? 0.6 : 1 }}>
+                          💲 Change price{l.asking_price ? ` (current: $${Number(l.asking_price).toLocaleString()})` : ''}
+                        </button>
+                      </div>
+
+                      {openEdit === l.id && (
+                        <EditListingForm listing={l} onDone={() => { setOpenEdit(null); load() }} onCancel={() => setOpenEdit(null)} />
+                      )}
+                      {openPrice === l.id && (
+                        <ChangePriceForm listingId={l.id} onDone={() => { setOpenPrice(null); load() }} onCancel={() => setOpenPrice(null)} />
+                      )}
 
                       {needsFinancials && (
                         <div style={{ marginTop: 14, background: '#fff8e6', border: '1px solid #e5d9a8', borderRadius: 10, padding: '14px 16px' }}>
@@ -263,6 +293,139 @@ export default function OwnerPortalPage() {
         <div style={{ textAlign: 'center', marginTop: 18, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
           Questions? <a href="mailto:info@ezbusinessadvisors.com" style={{ color: '#c9a84c' }}>info@ezbusinessadvisors.com</a>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function EditListingForm({ listing, onDone, onCancel }: { listing: OwnerListing; onDone: () => void; onCancel: () => void }) {
+  const [businessName, setBusinessName] = useState(listing.business_name || '')
+  const [industry, setIndustry] = useState(listing.industry || '')
+  const [subIndustry, setSubIndustry] = useState(listing.sub_industry || '')
+  const [location, setLocation] = useState(listing.location_general || '')
+  const [description, setDescription] = useState(listing.description || '')
+  const [highlights, setHighlights] = useState(listing.public_highlights || '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const save = async () => {
+    setSaving(true); setError(''); setMsg('')
+    try {
+      const res = await fetch(`/api/owner/listings/${listing.id}`, {
+        method: 'PATCH',
+        headers: { authorization: `Bearer ${getStoredAccessToken()}`, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          business_name: businessName,
+          industry,
+          sub_industry: subIndustry,
+          location_general: location,
+          description,
+          public_highlights: highlights,
+        }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (j.ok) {
+        setMsg(j.message || 'Saved.')
+        setTimeout(onDone, 1400)
+      } else {
+        setError(j.error || 'Could not save changes')
+      }
+    } catch {
+      setError('Network error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 14, background: '#fff', border: '1px solid #ece8dc', borderRadius: 10, padding: '16px 18px', display: 'grid', gap: 10 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1a1a2e' }}>✏️ Edit listing details</div>
+      <div style={{ fontSize: 12, color: '#888' }}>Public details only — price and financials aren't editable here.</div>
+      <label style={{ fontSize: 12, color: '#555' }}>Business name
+        <input className="input" value={businessName} onChange={(e) => setBusinessName(e.target.value)} style={{ marginTop: 4, width: '100%' }} />
+      </label>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
+        <label style={{ fontSize: 12, color: '#555' }}>Industry
+          <input className="input" value={industry} onChange={(e) => setIndustry(e.target.value)} style={{ marginTop: 4, width: '100%' }} />
+        </label>
+        <label style={{ fontSize: 12, color: '#555' }}>Sub-industry
+          <input className="input" value={subIndustry} onChange={(e) => setSubIndustry(e.target.value)} style={{ marginTop: 4, width: '100%' }} />
+        </label>
+        <label style={{ fontSize: 12, color: '#555' }}>Location (general)
+          <input className="input" value={location} onChange={(e) => setLocation(e.target.value)} style={{ marginTop: 4, width: '100%' }} />
+        </label>
+      </div>
+      <label style={{ fontSize: 12, color: '#555' }}>Description
+        <textarea className="input" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} style={{ marginTop: 4, width: '100%' }} />
+      </label>
+      <label style={{ fontSize: 12, color: '#555' }}>Highlights (one per line)
+        <textarea className="input" value={highlights} onChange={(e) => setHighlights(e.target.value)} rows={3} style={{ marginTop: 4, width: '100%' }} />
+      </label>
+      {error && <div style={{ fontSize: 12.5, color: '#b91c1c', fontWeight: 700 }}>{error}</div>}
+      {msg && <div style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>{msg}</div>}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={save} disabled={saving} style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', padding: '9px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+        <button onClick={onCancel} disabled={saving} style={{ background: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', padding: '9px 18px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ChangePriceForm({ listingId, onDone, onCancel }: { listingId: string; onDone: () => void; onCancel: () => void }) {
+  const [askingPrice, setAskingPrice] = useState('')
+  const [reason, setReason] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const submit = async () => {
+    const price = Number(askingPrice.replace(/[^0-9.]/g, ''))
+    if (!Number.isFinite(price) || price <= 0) { setError('Enter a valid asking price'); return }
+    setSaving(true); setError(''); setMsg('')
+    try {
+      const res = await fetch(`/api/owner/listings/${listingId}/price`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${getStoredAccessToken()}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ asking_price: price, reason: reason || undefined }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (j.ok) {
+        setMsg(j.message || 'Submitted for broker review.')
+        setTimeout(onDone, 1600)
+      } else {
+        setError(j.error || 'Could not submit price change')
+      }
+    } catch {
+      setError('Network error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 14, background: '#fff', border: '1px solid #ece8dc', borderRadius: 10, padding: '16px 18px', display: 'grid', gap: 10 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1a1a2e' }}>💲 Request a price change</div>
+      <div style={{ fontSize: 12, color: '#888' }}>Your broker reviews and approves before the new price goes live.</div>
+      <label style={{ fontSize: 12, color: '#555' }}>New asking price
+        <input className="input" placeholder="e.g. 450000" value={askingPrice} onChange={(e) => setAskingPrice(e.target.value)} style={{ marginTop: 4, width: '100%' }} />
+      </label>
+      <label style={{ fontSize: 12, color: '#555' }}>Reason (optional)
+        <textarea className="input" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} style={{ marginTop: 4, width: '100%' }} />
+      </label>
+      {error && <div style={{ fontSize: 12.5, color: '#b91c1c', fontWeight: 700 }}>{error}</div>}
+      {msg && <div style={{ fontSize: 12.5, color: '#15803d', fontWeight: 700 }}>{msg}</div>}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={submit} disabled={saving} style={{ background: '#1a1a2e', color: '#c9a84c', border: 'none', padding: '9px 18px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', fontSize: 13 }}>
+          {saving ? 'Submitting…' : 'Submit for review'}
+        </button>
+        <button onClick={onCancel} disabled={saving} style={{ background: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', padding: '9px 18px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+          Cancel
+        </button>
       </div>
     </div>
   )
