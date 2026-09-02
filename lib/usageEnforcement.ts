@@ -19,6 +19,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
+import { TIER_LIMITS } from '@/lib/trial'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -62,7 +63,11 @@ async function resolveLimits(agencyId: string): Promise<{
   // Founding-agency grants + license + paid tiers.
   const planType = String(agency.plan_type || 'free')
   const tierKey = planType === 'enterprise' ? 'enterprise' : planType === 'license' ? 'license' : planType === 'founding' ? 'founding' : planType === 'professional' ? 'professional' : 'free'
-  const { TIER_LIMITS } = await import('@/lib/trial')
+  // STATIC import (top of file) — a dynamic import inside a serverless route
+  // can resolve to an unbound namespace in the production bundle and crash
+  // the gate with 'Cannot read properties of undefined'. Fail-safe below too:
+  // if the tier table is ever missing a key we fall back to FREE limits so
+  // the gate NEVER 500s — it blocks with a clear message instead.
   const tier = TIER_LIMITS[tierKey] || TIER_LIMITS.free
 
   // Per-agency override (trial_settings row for this agency) always wins.
@@ -75,10 +80,10 @@ async function resolveLimits(agencyId: string): Promise<{
   const hasOverride = !!(override && (override.max_listings != null || override.max_agents != null || override.max_leads != null || override.max_deals != null))
   return {
     planType: tierKey,
-    maxListings: override?.max_listings ?? tier.maxListings,
-    maxAgents: override?.max_agents ?? tier.maxAgents,
-    maxLeads: override?.max_leads ?? tier.maxLeads,
-    maxDeals: override?.max_deals ?? tier.maxDeals,
+    maxListings: override?.max_listings ?? tier?.maxListings ?? 1,
+    maxAgents: override?.max_agents ?? tier?.maxAgents ?? 0,
+    maxLeads: override?.max_leads ?? tier?.maxLeads ?? 5,
+    maxDeals: override?.max_deals ?? tier?.maxDeals ?? 0,
     overridden: hasOverride,
   }
 }
