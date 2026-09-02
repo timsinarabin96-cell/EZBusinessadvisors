@@ -170,10 +170,19 @@ export async function runMatchingForListing(listingId: string): Promise<MatchRes
   if (results.length > 0) {
     const { error } = await svc.from('buyer_match_events').upsert(results, {
       onConflict: 'buyer_profile_id,listing_id',
+      ignoreDuplicates: true,
     })
     if (error) throw new Error(error.message)
   }
-  return results
+  if (!results.length) return []
+  const { data: pending, error: pendingError } = await svc
+    .from('buyer_match_events')
+    .select('buyer_profile_id, listing_id, agency_id, match_score, matched_on')
+    .eq('listing_id', listingId)
+    .eq('status', 'pending')
+    .in('buyer_profile_id', results.map((result) => result.buyer_profile_id))
+  if (pendingError) throw new Error(pendingError.message)
+  return (pending || []) as MatchResult[]
 }
 
 /** Count pending (not yet notified) matches for a buyer profile. */

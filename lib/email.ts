@@ -110,6 +110,11 @@ export type EmailKind =
   | 'password_changed'
   | 'email_changed'
   | 'new_sign_in'
+  | 'hourly_digest'
+  | 'buyer_interest_immediate'
+  | 'nda_immediate'
+  | 'offer_immediate'
+  | 'high_alert'
   | 'generic'
 
 export interface EmailOptions {
@@ -119,6 +124,8 @@ export interface EmailOptions {
   html: string
   kind?: EmailKind
   meta?: Record<string, unknown>
+  /** Display name override. Graph still uses the configured mailbox identity. */
+  fromName?: string
   /** Optional file attachments (base64 content) — used for deliverable sends. */
   attachments?: { filename: string; content: string; contentType: string }[]
 }
@@ -440,7 +447,7 @@ export const emailTemplates = {
 }
 
 // --- SMTP transport (nodemailer, lazily loaded) -----------------------------
-async function deliverViaSmtp(to: string, subject: string, html: string, attachments?: EmailOptions['attachments']): Promise<boolean> {
+async function deliverViaSmtp(to: string, subject: string, html: string, attachments?: EmailOptions['attachments'], fromName?: string): Promise<boolean> {
   let nodemailer: any
   try {
     nodemailer = await import('nodemailer')
@@ -457,7 +464,7 @@ async function deliverViaSmtp(to: string, subject: string, html: string, attachm
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
     })
     await transporter.sendMail({
-      from: FROM, to, subject, html,
+      from: fromName ? `${fromName.replace(/[\r\n<>"]/g, '')} <${process.env.SMTP_FROM_ADDRESS || process.env.SMTP_USER || 'no-reply@ezbusinessadvisors.com'}>` : FROM, to, subject, html,
       attachments: (attachments || []).map((a) => ({ filename: a.filename, content: Buffer.from(a.content, 'base64'), contentType: a.contentType })),
     })
     return true
@@ -467,7 +474,7 @@ async function deliverViaSmtp(to: string, subject: string, html: string, attachm
 }
 
 // --- Resend transport (single API key — easiest provider to set up) ---------
-async function deliverViaResend(to: string, subject: string, html: string, attachments?: EmailOptions['attachments']): Promise<boolean> {
+async function deliverViaResend(to: string, subject: string, html: string, attachments?: EmailOptions['attachments'], fromName?: string): Promise<boolean> {
   const key = process.env.RESEND_API_KEY
   if (!key) return false
   try {
@@ -475,7 +482,7 @@ async function deliverViaResend(to: string, subject: string, html: string, attac
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM || FROM,
+        from: fromName ? `${fromName.replace(/[\r\n<>"]/g, '')} <${process.env.RESEND_FROM_ADDRESS || 'no-reply@ezbusinessadvisors.com'}>` : process.env.RESEND_FROM || FROM,
         to: [to],
         subject,
         html,
@@ -588,9 +595,9 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
   // Attempt real delivery when configured (Resend first — easiest, then SMTP,
   // then Microsoft Graph as the business-mailbox sender).
   if (canDeliver) {
-    const viaResend = await deliverViaResend(to, subject, html, opts.attachments)
+    const viaResend = await deliverViaResend(to, subject, html, opts.attachments, opts.fromName)
     if (viaResend) return { ok: true, queued: false }
-    const delivered = await deliverViaSmtp(to, subject, html, opts.attachments)
+    const delivered = await deliverViaSmtp(to, subject, html, opts.attachments, opts.fromName)
     if (delivered) return { ok: true, queued: false }
     const viaGraph = await deliverViaGraph(to, subject, html, opts.attachments)
     if (viaGraph) return { ok: true, queued: false }
@@ -605,7 +612,7 @@ export async function sendEmail(opts: EmailOptions): Promise<EmailResult> {
       html,
       text: toText(html),
       kind,
-      meta: EMAIL_TEST_MODE ? { ...(meta || {}), original_to: originalTo, test_rerouted: true } : meta,
+      meta: EMAIL_TEST_MODE ? { ...(meta || {}), original_to: originalTo, test_rerouted: true, from_name: opts.fromName } : { ...(meta || {}), from_name: opts.fromName },
       status: canDeliver ? 'pending' : 'queued',
       created_at: new Date().toISOString(),
     })

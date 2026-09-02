@@ -7,14 +7,13 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendEmail } from '@/lib/email'
+import { sendHighAlert } from '@/lib/highAlerts'
 
 export const runtime = 'nodejs'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.vercel.app'
-const BOSS_EMAIL = process.env.VOICE_AGENT_BROKER_EMAIL || 'info@ezbusinessadvisors.com'
 
 /**
  * POST /api/cron/health-check — every 15 min. Pings the public site + the
@@ -78,13 +77,10 @@ export async function POST(req: Request) {
   const failed = checks.filter((c) => !c.ok)
   if (failed.length) {
     const lines = [
-      `🚨 HEALTH ALERT — ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })}`,
-      '',
       ...checks.map((c) => `• ${c.name}: ${c.ok ? '✅ ok' : `❌ ${c.detail || 'down'}`}`),
-      '',
       'The next cron run will re-check automatically. If this persists, the platform needs attention.',
     ].join('\n')
-    await sendEmail({ to: BOSS_EMAIL, subject: `🚨 Platform health alert: ${failed.map((f) => f.name).join(', ')}`, html: lines.replace(/\n/g, '<br/>') }).catch(() => {})
+    await sendHighAlert({ summary: `Platform health check failed: ${failed.map((failure) => failure.name).join(', ')}`, details: lines, meta: { source: 'cron-health-check', failed: failed.map((failure) => failure.name) } }).catch(() => {})
   }
 
   return NextResponse.json({ ok: failed.length === 0, checks, failed: failed.map((f) => f.name) })

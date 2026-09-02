@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { notify } from '@/lib/email'
+import { sendHighAlert } from '@/lib/highAlerts'
 import { rateLimitAsync, clientIp } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
@@ -54,7 +55,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (type === 'new_sign_in') {
-    await notify('new_sign_in', auth.user.email, meta).catch(() => {})
+    const result = await notify('new_sign_in', auth.user.email, meta).catch(() => ({ ok: false, queued: false }))
+    if (body?.anomaly === true || !result.ok) {
+      await sendHighAlert({
+        summary: body?.anomaly === true ? 'Suspicious sign-in detected' : 'Security notification delivery failed',
+        details: `Account: ${auth.user.email}; IP: ${meta.ip || 'unknown'}; time: ${at}`,
+        meta: { source: 'security-alert', account: auth.user.email, ip: meta.ip, anomaly: body?.anomaly === true },
+      }).catch(() => {})
+    }
     return NextResponse.json({ ok: true, type })
   }
 

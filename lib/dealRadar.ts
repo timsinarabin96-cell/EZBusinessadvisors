@@ -18,7 +18,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { notify } from './email'
+import { notify, sendEmail } from './email'
 import { runMatchingForListing, type MatchResult } from './buyerMatching'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -72,17 +72,41 @@ export async function fireDealRadar(
     // 3) Load listing teaser + buyer contact info.
     const { data: listing } = await svc
       .from('listings')
-      .select('id, business_name, industry, location_general, asking_price, headline, public_summary')
+      .select('id, agent_id, business_name, industry, location_general, asking_price, headline, public_summary')
       .eq('id', listingId)
       .maybeSingle()
-    const ids = top.map((m) => m.buyer_profile_id)
+    const ids = matches.map((m) => m.buyer_profile_id)
     const { data: buyers } = await svc
       .from('buyer_search_profiles')
-      .select('id, email, name, notification_email')
+      .select('id, email, name, phone, notification_email')
       .in('id', ids)
 
     const buyerById = new Map((buyers || []).map((b) => [b.id, b]))
     const listingUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'}/marketplace/listings/${listingId}`
+
+    // Every new match is an immediate assignee event, independent of whether
+    // the buyer opted into buyer-facing match marketing.
+    const assigneeId = (listing as { agent_id?: string | null } | null)?.agent_id || null
+    const assignee = assigneeId
+      ? await svc.from('profiles').select('email').eq('id', assigneeId).maybeSingle()
+      : { data: null }
+    if (assignee.data?.email) {
+      for (const match of matches) {
+        const buyer = buyerById.get(match.buyer_profile_id)
+        await sendEmail({
+          to: assignee.data.email,
+          subject: `⚡ New buyer match: ${(listing as { business_name?: string | null } | null)?.business_name || 'your listing'}`,
+          html: `<h2>New buyer match</h2><p><strong>${buyer?.name || 'A buyer'}</strong> matched ${(listing as { business_name?: string | null } | null)?.business_name || 'your listing'} at ${match.match_score}/100.</p><p>${buyer?.email ? `Email: ${buyer.email}<br>` : ''}${buyer?.phone ? `Phone: <a href="tel:${buyer.phone}">${buyer.phone}</a>` : ''}</p>${buyer?.phone ? `<p><a href="tel:${buyer.phone}">Call buyer</a></p>` : `<p><a href="${listingUrl}">Open listing</a></p>`}`,
+          kind: 'buyer_interest_immediate',
+          meta: { event_key: `buyer-match:${listingId}:${match.buyer_profile_id}`, listing_id: listingId, buyer_profile_id: match.buyer_profile_id },
+        }).catch(() => {})
+      }
+    }
+
+    const topIds = new Set(top.map((match) => match.buyer_profile_id))
+    for (const match of matches.filter((candidate) => !topIds.has(candidate.buyer_profile_id))) {
+      await markNotified(match, assignee.data?.email ? 'agent_email' : 'below_threshold')
+    }
 
     // 4) Alert each opted-in buyer + mark notified.
     for (const m of top) {

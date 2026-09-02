@@ -98,12 +98,15 @@ export async function POST(req: NextRequest) {
         }
       }
       if (listing.agent_id) {
+        const { data: directProfile } = await db.from('profiles').select('email').eq('id', listing.agent_id).maybeSingle()
+        if (directProfile?.email) targets.push(directProfile.email)
         const { data: broker } = await db.from('broker_profiles').select('profile_id').eq('id', listing.agent_id).maybeSingle()
         if (broker?.profile_id) {
           const { data: bp } = await db.from('profiles').select('email').eq('id', broker.profile_id).maybeSingle()
           if (bp?.email && !targets.includes(bp.email)) targets.push(bp.email)
         }
       }
+      targets.splice(0, targets.length, ...new Set(targets))
       const subject = `💵 New offer on ${listing.business_name || 'your listing'}`
       const html = `
         <h2 style="margin:0 0 12px;font-family:Georgia,serif;">A buyer made an offer 🎉</h2>
@@ -119,7 +122,7 @@ export async function POST(req: NextRequest) {
         <p style="margin-top:18px;font-size:13px;color:#888;">Respond fast — this buyer is ready to transact. Lead saved in your CRM.</p>
       `
       for (const to of targets) {
-        await sendEmail({ to, subject, html, kind: 'lead_assignment' }).catch(() => {})
+        await sendEmail({ to, subject, html, kind: 'offer_immediate', meta: { event_key: `offer:${listingId}:${email}:${offerAmount}`, listing_id: listingId } }).catch(() => {})
       }
     }
   } catch (e: any) {

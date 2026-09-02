@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { verifyStripeSignature } from '@/lib/stripeVerify'
+import { sendHighAlert } from '@/lib/highAlerts'
 import { LICENSE_SETUP_FEE, CRM_PLANS } from '@/lib/pricing'
 import { syncLicenseFromStripeSubscription, handleLicenseSubscriptionDeleted, fetchLicenseByStripeSub, syncAgencyAccessFromLicense } from '@/lib/licenseSubscriptions'
 import { licenseAccessGranted } from '@/lib/licenseSubscriptionsCore'
@@ -104,6 +105,21 @@ export async function POST(req: NextRequest) {
         await db.from('subscriptions').update({ status: 'past_due' }).eq('stripe_sub', stripeSub)
       }
     }
+    const recipients: string[] = []
+    let agencyName: string | null = null
+    if (agencyId) {
+      const [{ data: agency }, { data: members }] = await Promise.all([
+        db.from('agencies').select('name').eq('id', agencyId).maybeSingle(),
+        db.from('agency_members').select('profile_id, role, is_owner').eq('agency_id', agencyId),
+      ])
+      agencyName = agency?.name || null
+      const ownerIds = (members || []).filter((member) => member.is_owner || member.role === 'admin' || member.role === 'owner').map((member) => member.profile_id)
+      if (ownerIds.length) {
+        const { data: profiles } = await db.from('profiles').select('email').in('id', ownerIds)
+        recipients.push(...(profiles || []).map((profile) => profile.email).filter(Boolean))
+      }
+    }
+    await sendHighAlert({ summary: 'Stripe payment failed', details: `Subscription ${stripeSub || 'unknown'} entered payment-failed handling. Customer: ${customer || 'unknown'}.`, agencyName, recipients, meta: { source: 'stripe-webhook', event_type: type, agency_id: agencyId } }).catch(() => {})
     return NextResponse.json({ ok: true })
   }
 

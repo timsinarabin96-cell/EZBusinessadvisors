@@ -15,7 +15,7 @@
 // =============================================================================
 
 import { createClient } from '@supabase/supabase-js'
-import { notify } from './email'
+import { notify, sendEmail } from './email'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -107,18 +107,21 @@ export async function notifyAgencyBrokers(
   const isOwnerOfListing = (m: { profile_id: string }) => m.profile_id === ownerId
 
   // Owners/admins (broker oversight) + the listing's owning agent.
-  const ids = members
-    .filter((m) => m.is_owner || m.role === 'admin' || isOwnerOfListing(m))
-    .map((m) => m.profile_id)
+  const ids = [...new Set(members
+    .filter((m) => m.is_owner || m.role === 'admin' || m.role === 'owner' || isOwnerOfListing(m))
+    .map((m) => m.profile_id))]
   if (!ids.length) return
 
   const { data: profiles } = await svc.from('profiles').select('id, email').in('id', ids)
   for (const p of profiles || []) {
     if (p.email) {
-      await notify('nda_request_received', p.email, {
-        requesterName: info.requesterName,
-        requesterEmail: info.requesterEmail,
-        businessName: info.businessName,
+      // Immediate delivery replaces the old notify('nda_request_received', ...) digest gate.
+      await sendEmail({
+        to: p.email,
+        subject: `🛡️ NDA signed / access requested: ${info.businessName}`,
+        html: `<h2>New NDA activity</h2><p><strong>${info.requesterName}</strong> (${info.requesterEmail}) signed the NDA and requested access to <strong>${info.businessName}</strong>.</p><p>Review the request in the deal room.</p>`,
+        kind: 'nda_immediate',
+        meta: { event_key: `nda-request:${listingId}:${info.requesterEmail}`, listing_id: listingId, agency_id: agencyId },
       })
     }
   }

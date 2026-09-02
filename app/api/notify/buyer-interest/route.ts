@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
       if (ord?.seller_email) notifyTargets.push(ord.seller_email)
     }
 
-    // 2) Agency admins/owners.
-    if (listing.agency_id) {
+    // 2) Agency owners share immediate money moments (a lead with a phone).
+    if (listing.agency_id && buyerPhone) {
       const { data: admins } = await db
         .from('agency_members')
         .select('profile_id')
@@ -76,8 +76,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3) The listing's broker.
+    // 3) listings.agent_id is the owning profile id in the current schema.
     if (listing.agent_id) {
+      const { data: directProfile } = await db.from('profiles').select('email').eq('id', listing.agent_id).maybeSingle()
+      if (directProfile?.email) notifyTargets.push(directProfile.email)
+
+      // Legacy fallback for listings that stored broker_profiles.id.
       const { data: broker } = await db
         .from('broker_profiles')
         .select('profile_id')
@@ -88,9 +92,10 @@ export async function POST(req: NextRequest) {
         if (bp?.email && !notifyTargets.includes(bp.email)) notifyTargets.push(bp.email)
       }
 
-      // Dedupe (owner email may coincide with an agency member email).
-      notifyTargets.splice(0, notifyTargets.length, ...new Set(notifyTargets))
     }
+
+    // Dedupe (seller, owner, and assignee may share an inbox).
+    notifyTargets.splice(0, notifyTargets.length, ...new Set(notifyTargets))
 
     if (!notifyTargets.length) return NextResponse.json({ ok: true })
 
@@ -108,7 +113,7 @@ export async function POST(req: NextRequest) {
       <p style="margin-top:18px;font-size:13px;color:#888;">Reply to the buyer directly, or follow up inside the CRM. A new lead has been added to your pipeline.</p>
     `
     for (const to of notifyTargets) {
-      await sendEmail({ to, subject, html, kind: 'lead_assignment' }).catch(() => {})
+      await sendEmail({ to, subject, html, kind: 'buyer_interest_immediate', meta: { event_key: `buyer-interest:${listingId}:${buyerEmail}:${buyerPhone}`, listing_id: listingId } }).catch(() => {})
     }
 
     // 4b) SMS the SELLER directly when the listing carries a contact phone —

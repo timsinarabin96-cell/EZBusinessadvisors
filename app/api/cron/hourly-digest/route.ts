@@ -1,145 +1,113 @@
-/**
- * Concord Deal Platform
- * Copyright (c) 2026 Rabin Timsina (EZ Business Advisors LLC). All rights reserved.
- * Proprietary & confidential. No copying, distribution, or modification without
- * prior written permission. See LICENSE for full terms.
- */
-
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { EMPTY_DIGEST_ACTIVITY, renderHourlyDigest, shouldSendHourlyDigest, type DigestActivity, type DigestRow } from '@/lib/notificationV2'
+import { sendEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
+export const maxDuration = 300
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const BOSS_EMAIL = process.env.VOICE_AGENT_BROKER_EMAIL || process.env.ADMIN_EMAIL || 'rtimsina@ezbusinessadvisors.com'
+const PLATFORM_NAME = process.env.PLATFORM_DIGEST_NAME || 'EZ Business Advisors'
+const SEND_QUIET_HOURS = process.env.HOURLY_DIGEST_QUIET_HOURS !== 'false'
+const pause = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 
-// =============================================================================
-// POST /api/cron/hourly-digest — ONE email per hour with FULL details.
-// -----------------------------------------------------------------------------
-// Every hour (on the hour) this builds a complete picture of the last 60
-// minutes across the whole platform and emails the broker:
-//   • New listings (created, published, edited)
-//   • Buyer activity (new leads, NDA signings, inquiries, matches)
-//   • Seller activity (new seller intakes / orders)
-//   • Deal movement (new deals, offers, LOIs, stage changes)
-//   • Bookings & calls (new appointments, call sessions)
-//   • Money (new commissions, paid orders, revenue)
-//   • Email queue status (sent / failed / queued counts)
-// This REPLACES the noisy per-event emails — one digest, full detail.
-// =============================================================================
+type Db = any
 
-const fmt$ = (n: number | null | undefined) => (n ? '$' + Math.round(n).toLocaleString() : '$0')
-const fmtTime = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'
+async function rows(query: PromiseLike<{ data: unknown[] | null; error: { message?: string } | null }>, label: string): Promise<DigestRow[]> {
+  const result = await query
+  if (result.error) console.warn(`[hourly-digest] ${label}: ${result.error.message || 'query failed'}`)
+  return (result.data || []) as DigestRow[]
+}
+
+async function collectActivity(db: Db, since: string, agencyId?: string): Promise<DigestActivity> {
+  const listingIds = agencyId
+    ? (await rows(db.from('listings').select('id, agency_id').eq('agency_id', agencyId).limit(1000) as never, 'listing ids')).map((row) => String(row.id))
+    : []
+  const direct = (table: string, select: string, timeColumn: string, label: string) => {
+    let query = db.from(table).select(select).gte(timeColumn, since).limit(100)
+    if (agencyId) query = query.eq('agency_id', agencyId)
+    return rows(query as never, label)
+  }
+  const byListing = (table: string, select: string, timeColumn: string, label: string) => {
+    let query = db.from(table).select(select).gte(timeColumn, since).limit(100)
+    if (agencyId) {
+      if (!listingIds.length) return Promise.resolve([])
+      query = query.in('listing_id', listingIds)
+    }
+    return rows(query as never, label)
+  }
+
+  const [newListings, publishedListings, editedListings, buyerLeads, ndaSignings, ndaRequests, sellerIntakes, deals, offers, lois, milestones, appointments, calls, commissions, agentActivity] = await Promise.all([
+    direct('listings', 'id, agency_id, business_name, status, asking_price, created_at, updated_at', 'created_at', 'new listings'),
+    direct('listings', 'id, agency_id, business_name, status, asking_price, created_at, updated_at', 'updated_at', 'published listings').then((items) => items.filter((row) => row.status === 'active')),
+    direct('listings', 'id, agency_id, business_name, status, asking_price, created_at, updated_at', 'updated_at', 'edited listings'),
+    direct('buyer_leads', 'id, agency_id, full_name, email, phone, company, target_industry, budget_range, message, created_at', 'created_at', 'buyer leads'),
+    byListing('listing_nda_signatures', 'id, listing_id, buyer_name, buyer_email, signed_at, listings(business_name, agency_id)', 'signed_at', 'nda signings'),
+    direct('data_room_access_requests', 'id, agency_id, listing_id, requester_name, requester_email, status, nda_signed_at, created_at, listings(business_name, agency_id)', 'created_at', 'nda requests'),
+    direct('seller_listing_orders', 'id, agency_id, business_name, status, amount_cents, created_at', 'created_at', 'seller intakes'),
+    direct('deals', 'id, agency_id, title, status, created_at, updated_at', 'updated_at', 'deals'),
+    byListing('deal_offers', 'id, listing_id, purchase_price, status, created_at, listings(business_name, agency_id)', 'created_at', 'offers'),
+    direct('letters_of_intent', 'id, agency_id, listing_id, status, created_at, listings(business_name, agency_id)', 'created_at', 'lois'),
+    direct('deal_milestones', 'id, agency_id, title, name, status, completed_at, updated_at, created_at', 'updated_at', 'milestones'),
+    direct('appointments', 'id, agency_id, title, appointment_type, status, starts_at, created_at', 'created_at', 'appointments'),
+    direct('call_sessions', 'id, agency_id, purpose, status, started_at, created_at', 'started_at', 'calls'),
+    direct('commission_records', 'id, agency_id, amount, status, created_at', 'created_at', 'commissions'),
+    direct('activity_log', 'id, agency_id, action, event_type, kind, summary, description, created_at', 'created_at', 'agent activity'),
+  ])
+  return { ...EMPTY_DIGEST_ACTIVITY, newListings, publishedListings, editedListings, buyerLeads, ndaSignings, ndaRequests, sellerIntakes, deals, offers, lois, milestones, appointments, calls, commissions, agentActivity }
+}
+
+async function agencyRecipients(db: Db, agencyId: string): Promise<Array<{ id: string; email: string; enabled: boolean }>> {
+  const { data: members } = await db.from('agency_members').select('profile_id, role, is_owner').eq('agency_id', agencyId)
+  const ids = (members || []).filter((member) => member.is_owner || member.role === 'admin' || member.role === 'owner').map((member) => member.profile_id)
+  if (!ids.length) return []
+  let { data: profiles, error } = await db.from('profiles').select('id, email, email_digest_hourly').in('id', ids)
+  if (error) ({ data: profiles } = await db.from('profiles').select('id, email').in('id', ids))
+  return (profiles || []).filter((profile) => profile.email).map((profile) => ({ id: profile.id, email: profile.email, enabled: (profile as { email_digest_hourly?: boolean }).email_digest_hourly !== false }))
+}
 
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET
-  const auth = req.headers.get('x-cron-secret')
-  if (secret && auth !== secret) {
-    return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
-  }
-  if (!SUPABASE_URL || !SERVICE_KEY) {
-    return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
-  }
-  const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
-  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  if (secret && req.headers.get('x-cron-secret') !== secret) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
+  if (!SUPABASE_URL || !SERVICE_KEY) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
-  // ── Collect everything from the last hour ────────────────────────────────
-  const [newListings, publishedListings, editedListings, buyerLeads, ndaSignings, ndaRequests, sellerOrders, newDeals, newOffers, newLois, appointments, callSessions, commissions, revenue] = await Promise.all([
-    svc.from('listings').select('id, business_name, status, asking_price, created_at').gte('created_at', since).order('created_at', { ascending: false }).limit(50),
-    svc.from('listings').select('id, business_name, status, updated_at').gte('updated_at', since).eq('status', 'active').limit(50),
-    svc.from('listings').select('id, business_name, status, updated_at').gte('updated_at', since).order('updated_at', { ascending: false }).limit(50),
-    svc.from('buyer_leads').select('id, full_name, company, target_industry, budget_range, created_at').gte('created_at', since).order('created_at', { ascending: false }).limit(50),
-    svc.from('listing_nda_signatures').select('id, buyer_name, buyer_email, listing_id, signed_at, listings(business_name)').gte('signed_at', since).limit(50),
-    svc.from('data_room_access_requests').select('id, requester_email, status, listing_id, nda_signed_at, listings(business_name)').gte('nda_signed_at', since).limit(50),
-    svc.from('seller_listing_orders').select('id, created_at, business_name, status, amount_cents').gte('created_at', since).limit(50),
-    svc.from('deals').select('id, title, status, created_at, updated_at').gte('created_at', since).limit(50),
-    svc.from('deal_offers').select('id, listing_id, purchase_price, status, created_at, listings(business_name)').gte('created_at', since).limit(50),
-    svc.from('letters_of_intent').select('id, status, created_at, listings(business_name)').gte('created_at', since).limit(50),
-    svc.from('appointments').select('id, title, appointment_type, starts_at, created_at').gte('created_at', since).limit(50),
-    svc.from('call_sessions').select('id, purpose, status, started_at').gte('started_at', since).limit(50),
-    svc.from('commission_records').select('amount, status, created_at').gte('created_at', since).limit(50),
-    svc.from('seller_listing_orders').select('amount_cents, status').gte('created_at', since),
-  ])
+  const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
+  const windowEnd = new Date()
+  const windowStart = new Date(windowEnd.getTime() - 60 * 60 * 1000)
+  const preferredAgencies = await db.from('agencies').select('id, name, notifications_hourly_digest').eq('is_active', true).order('name')
+  const fallbackAgencies = preferredAgencies.error
+    ? await db.from('agencies').select('id, name').eq('is_active', true).order('name')
+    : null
+  const agencies = (preferredAgencies.error ? fallbackAgencies?.data : preferredAgencies.data) as Array<{ id: string; name: string; notifications_hourly_digest?: boolean }> | null
 
-  const rows = (d: any) => (d?.data || [])
-  const totalRevenue = (revenue?.data || []).filter((r: any) => r.status === 'paid' || r.status === 'active').reduce((a: number, r: any) => a + (Number(r.amount_cents) || 0), 0)
+  const report = { agencies: agencies?.length || 0, recipients: 0, sent: 0, skipped: 0, failed: 0 }
+  for (const agency of agencies || []) {
+    const agencyEnabled = (agency as { notifications_hourly_digest?: boolean }).notifications_hourly_digest !== false
+    const recipients = await agencyRecipients(db, agency.id)
+    const optedIn = recipients.filter((recipient) => shouldSendHourlyDigest(agencyEnabled, recipient.enabled))
+    report.recipients += recipients.length
+    report.skipped += recipients.length - optedIn.length
+    if (!optedIn.length) continue
 
-  // ── Build the digest body ────────────────────────────────────────────────
-  const parts: string[] = []
-
-  if (rows(newListings).length) {
-    parts.push(`<h3>🆕 New Listings (${rows(newListings).length})</h3><ul>` +
-      rows(newListings).map((l: any) => `<li><b>${l.business_name}</b> — ${l.status} · ${l.asking_price ? fmt$(l.asking_price) : 'Ask'} · ${fmtTime(l.created_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(publishedListings).length) {
-    parts.push(`<h3>🚀 Published (${rows(publishedListings).length})</h3><ul>` +
-      rows(publishedListings).map((l: any) => `<li><b>${l.business_name}</b> — ${fmtTime(l.updated_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(editedListings).length) {
-    parts.push(`<h3>✏️ Edited (${rows(editedListings).length})</h3><ul>` +
-      rows(editedListings).map((l: any) => `<li><b>${l.business_name}</b> — ${l.status} · ${fmtTime(l.updated_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(buyerLeads).length) {
-    parts.push(`<h3>🎯 New Buyer Leads (${rows(buyerLeads).length})</h3><ul>` +
-      rows(buyerLeads).map((l: any) => `<li><b>${l.full_name || 'Anonymous'}</b>${l.company ? ` · ${l.company}` : ''}${l.target_industry ? ` · ${l.target_industry}` : ''}${l.budget_range ? ` · ${l.budget_range}` : ''} — ${fmtTime(l.created_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(ndaSignings).length) {
-    parts.push(`<h3>✍️ NDA Signed (${rows(ndaSignings).length})</h3><ul>` +
-      rows(ndaSignings).map((n: any) => `<li><b>${n.buyer_name || 'Buyer'}</b> on ${n.listings?.business_name || 'a listing'} — ${fmtTime(n.signed_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(ndaRequests).length) {
-    parts.push(`<h3>🛡️ NDA Requests (${rows(ndaRequests).length})</h3><ul>` +
-      rows(ndaRequests).map((n: any) => `<li><b>${n.requester_email || 'Buyer'}</b> → ${n.listings?.business_name || 'listing'} (${n.status}) — ${fmtTime(n.nda_signed_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(sellerOrders).length) {
-    parts.push(`<h3>🏷️ New Seller Intakes (${rows(sellerOrders).length})</h3><ul>` +
-      rows(sellerOrders).map((s: any) => `<li><b>${s.business_name}</b> — ${s.status} · ${s.amount_cents ? fmt$(s.amount_cents / 100) : '—'} · ${fmtTime(s.created_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(newDeals).length) {
-    parts.push(`<h3>🤝 New Deals (${rows(newDeals).length})</h3><ul>` +
-      rows(newDeals).map((d: any) => `<li><b>${d.title}</b> — ${d.status} · ${fmtTime(d.created_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(newOffers).length) {
-    parts.push(`<h3>🧪 Offers (${rows(newOffers).length})</h3><ul>` +
-      rows(newOffers).map((o: any) => `<li>${o.listings?.business_name || 'Listing'} — ${o.purchase_price ? fmt$(o.purchase_price) : '—'} · ${o.status} · ${fmtTime(o.created_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(newLois).length) {
-    parts.push(`<h3>📝 LOIs (${rows(newLois).length})</h3><ul>` +
-      rows(newLois).map((l: any) => `<li>${l.listings?.business_name || 'Listing'} — ${l.status} · ${fmtTime(l.created_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(appointments).length) {
-    parts.push(`<h3>📅 Appointments (${rows(appointments).length})</h3><ul>` +
-      rows(appointments).map((a: any) => `<li><b>${a.title}</b> (${a.appointment_type}) — ${fmtTime(a.starts_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(callSessions).length) {
-    parts.push(`<h3>📞 Call Sessions (${rows(callSessions).length})</h3><ul>` +
-      rows(callSessions).map((c: any) => `<li>${c.purpose} — ${c.status} · ${fmtTime(c.started_at)}</li>`).join('') + '</ul>')
-  }
-  if (rows(commissions).length) {
-    parts.push(`<h3>💰 Commissions (${rows(commissions).length})</h3><ul>` +
-      rows(commissions).map((c: any) => `<li>${fmt$(c.amount)} — ${c.status} · ${fmtTime(c.created_at)}</li>`).join('') + '</ul>')
+    const activity = await collectActivity(db, windowStart.toISOString(), agency.id)
+    const rendered = renderHourlyDigest({ agencyName: agency.name || 'Your Brokerage', activity, windowStart: windowStart.toISOString(), windowEnd: windowEnd.toISOString() })
+    if (!SEND_QUIET_HOURS && Object.values(activity).every((items) => items.length === 0)) continue
+    for (const recipient of optedIn) {
+      const result = await sendEmail({ to: recipient.email, subject: rendered.subject, html: rendered.html, kind: 'hourly_digest', fromName: agency.name || 'Your Brokerage', meta: { agency_id: agency.id, digest_window_start: windowStart.toISOString(), digest_window_end: windowEnd.toISOString() } })
+      result.ok ? report.sent++ : report.failed++
+      await db.from('app_notifications').insert({ agency_id: agency.id, profile_id: recipient.id, title: 'Hourly activity digest ready', body: rendered.subject, kind: 'info', link: '/dashboard' }).then(() => undefined)
+      await pause(125)
+    }
   }
 
-  const summary = `New listings: ${rows(newListings).length} · Published: ${rows(publishedListings).length} · Buyer leads: ${rows(buyerLeads).length} · NDA signings: ${rows(ndaSignings).length} · Seller intakes: ${rows(sellerOrders).length} · Deals: ${rows(newDeals).length} · Revenue (paid): ${fmt$(totalRevenue / 100)}`
+  const platformActivity = await collectActivity(db, windowStart.toISOString())
+  const platformDigest = renderHourlyDigest({ agencyName: PLATFORM_NAME, activity: platformActivity, windowStart: windowStart.toISOString(), windowEnd: windowEnd.toISOString(), platformRollup: true })
+  const platformResult = await sendEmail({ to: BOSS_EMAIL, subject: platformDigest.subject, html: platformDigest.html, kind: 'hourly_digest', fromName: PLATFORM_NAME, meta: { platform_rollup: true, digest_window_start: windowStart.toISOString(), digest_window_end: windowEnd.toISOString() } })
+  platformResult.ok ? report.sent++ : report.failed++
 
-  const body = parts.length
-    ? parts.join('')
-    : '<p style="color:#888">No activity in the last hour. All quiet. ✅</p>'
-
-  const html = `<!doctype html><html><body style="font-family:Georgia,serif;color:#1a1a2e;max-width:720px;margin:0 auto;padding:24px">
-    <div style="border-bottom:3px solid #c9a84c;padding-bottom:12px;margin-bottom:18px">
-      <div style="font-size:22px;font-weight:800">📊 Hourly Digest</div>
-      <div style="color:#888;font-size:13px;margin-top:4px">${new Date().toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })} — everything that happened in the last 60 minutes</div>
-    </div>
-    <div style="background:#faf9f4;border:1px solid #ece8dc;border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:13.5px;line-height:1.7">${summary}</div>
-    ${body}
-    <div style="margin-top:24px;padding-top:12px;border-top:1px solid #ece8dc;color:#aaa;font-size:11.5px">Generated by Concord Deal Platform · Hourly digest · You receive this once per hour by design.</div>
-  </body></html>`
-
-  const { sendEmail } = await import('@/lib/email')
-  const result = await sendEmail({ to: BOSS_EMAIL, subject: `📊 Hourly Digest — ${rows(newListings).length} new, ${rows(buyerLeads).length} leads, ${rows(ndaSignings).length} NDAs`, html, kind: 'daily_brief' as any, meta: { hourly: true, generatedAt: new Date().toISOString() } })
-
-  return NextResponse.json({ ok: true, to: BOSS_EMAIL, delivered: result.ok, queued: result.queued, summary })
+  return NextResponse.json({ ok: report.failed === 0, ...report, windowStart: windowStart.toISOString(), windowEnd: windowEnd.toISOString() })
 }
+
+export async function GET(req: Request) { return POST(req) }
