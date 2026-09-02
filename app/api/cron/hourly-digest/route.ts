@@ -1,7 +1,7 @@
 import { isCronAuthorized } from '@/lib/cronAuth'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { EMPTY_DIGEST_ACTIVITY, renderHourlyDigest, shouldSendHourlyDigest, type DigestActivity, type DigestRow } from '@/lib/notificationV2'
+import { EMPTY_DIGEST_ACTIVITY, renderHourlyDigest, shouldSendHourlyDigest, type AgencySummaryRow, type DigestActivity, type DigestRow } from '@/lib/notificationV2'
 import { sendEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
@@ -10,7 +10,7 @@ export const maxDuration = 300
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const BOSS_EMAIL = process.env.VOICE_AGENT_BROKER_EMAIL || process.env.ADMIN_EMAIL || 'rtimsina@ezbusinessadvisors.com'
-const PLATFORM_NAME = process.env.PLATFORM_DIGEST_NAME || 'EZ Business Advisors'
+const PLATFORM_NAME = process.env.PLATFORM_DIGEST_NAME || 'Concord Deal Platform'
 const SEND_QUIET_HOURS = process.env.HOURLY_DIGEST_QUIET_HOURS !== 'false'
 const pause = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds))
 
@@ -76,13 +76,14 @@ export async function POST(req: Request) {
   const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
   const windowEnd = new Date()
   const windowStart = new Date(windowEnd.getTime() - 60 * 60 * 1000)
-  const preferredAgencies = await db.from('agencies').select('id, name, notifications_hourly_digest').eq('is_active', true).order('name')
+  const preferredAgencies = await db.from('agencies').select('id, name, brand_color, accent_color, logo_url, notifications_hourly_digest').eq('is_active', true).order('name')
   const fallbackAgencies = preferredAgencies.error
-    ? await db.from('agencies').select('id, name').eq('is_active', true).order('name')
+    ? await db.from('agencies').select('id, name, notifications_hourly_digest').eq('is_active', true).order('name')
     : null
-  const agencies = (preferredAgencies.error ? fallbackAgencies?.data : preferredAgencies.data) as Array<{ id: string; name: string; notifications_hourly_digest?: boolean }> | null
+  const agencies = (preferredAgencies.error ? fallbackAgencies?.data : preferredAgencies.data) as Array<{ id: string; name: string; brand_color?: string | null; accent_color?: string | null; logo_url?: string | null; notifications_hourly_digest?: boolean }> | null
 
   const report = { agencies: agencies?.length || 0, recipients: 0, sent: 0, skipped: 0, failed: 0 }
+  const agencySummaries: AgencySummaryRow[] = []
   for (const agency of agencies || []) {
     const agencyEnabled = (agency as { notifications_hourly_digest?: boolean }).notifications_hourly_digest !== false
     const recipients = await agencyRecipients(db, agency.id)
@@ -92,8 +93,23 @@ export async function POST(req: Request) {
     if (!optedIn.length) continue
 
     const activity = await collectActivity(db, windowStart.toISOString(), agency.id)
-    const rendered = renderHourlyDigest({ agencyName: agency.name || 'Your Brokerage', activity, windowStart: windowStart.toISOString(), windowEnd: windowEnd.toISOString() })
+    const rendered = renderHourlyDigest({
+      agencyName: agency.name || 'Your Brokerage',
+      activity,
+      windowStart: windowStart.toISOString(),
+      windowEnd: windowEnd.toISOString(),
+      brand: { name: agency.name || 'Your Brokerage', logoUrl: agency.logo_url, brandColor: agency.brand_color, accentColor: agency.accent_color },
+    })
     if (!SEND_QUIET_HOURS && Object.values(activity).every((items) => items.length === 0)) continue
+    agencySummaries.push({
+      name: agency.name || 'Your Brokerage',
+      listings: activity.newListings.length + activity.publishedListings.length + activity.editedListings.length,
+      leads: activity.buyerLeads.length,
+      ndas: activity.ndaSignings.length + activity.ndaRequests.length,
+      intakes: activity.sellerIntakes.length,
+      revenue: activity.sellerIntakes.filter((row) => row.status === 'paid' || row.status === 'active').reduce((sum, row) => sum + (Number(row.amount_cents) || 0), 0) / 100,
+      commissions: activity.commissions.reduce((sum, row) => sum + (Number(row.amount) || 0), 0),
+    })
     for (const recipient of optedIn) {
       const result = await sendEmail({ to: recipient.email, subject: rendered.subject, html: rendered.html, kind: 'hourly_digest', fromName: agency.name || 'Your Brokerage', meta: { agency_id: agency.id, digest_window_start: windowStart.toISOString(), digest_window_end: windowEnd.toISOString() } })
       result.ok ? report.sent++ : report.failed++
@@ -103,7 +119,15 @@ export async function POST(req: Request) {
   }
 
   const platformActivity = await collectActivity(db, windowStart.toISOString())
-  const platformDigest = renderHourlyDigest({ agencyName: PLATFORM_NAME, activity: platformActivity, windowStart: windowStart.toISOString(), windowEnd: windowEnd.toISOString(), platformRollup: true })
+  const platformDigest = renderHourlyDigest({
+    agencyName: PLATFORM_NAME,
+    activity: platformActivity,
+    windowStart: windowStart.toISOString(),
+    windowEnd: windowEnd.toISOString(),
+    platformRollup: true,
+    brand: { name: PLATFORM_NAME },
+    agencySummaries,
+  })
   const platformResult = await sendEmail({ to: BOSS_EMAIL, subject: platformDigest.subject, html: platformDigest.html, kind: 'hourly_digest', fromName: PLATFORM_NAME, meta: { platform_rollup: true, digest_window_start: windowStart.toISOString(), digest_window_end: windowEnd.toISOString() } })
   platformResult.ok ? report.sent++ : report.failed++
 

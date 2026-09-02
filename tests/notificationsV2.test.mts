@@ -65,3 +65,57 @@ test('notifications v2: migration is additive and defaults both preferences on',
   assert.match(migration, /add column if not exists notifications_hourly_digest boolean not null default true/)
   assert.match(migration, /add column if not exists email_digest_hourly boolean not null default true/)
 })
+
+test('notifications v2 premium: platform vs agency identity split (subjects + branding)', () => {
+  const activity = { ...EMPTY_DIGEST_ACTIVITY, buyerLeads: [{ id: 'l1', agency_id: 'a', full_name: 'Ada Buyer', phone: '(717) 555-0100' }] }
+  const agency = renderHourlyDigest({ agencyName: 'EZ Business Advisors', activity, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z', brand: { name: 'EZ Business Advisors', accentColor: '#c9a84c' } })
+  const platform = renderHourlyDigest({ agencyName: 'Concord Deal Platform', activity, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z', platformRollup: true, brand: { name: 'Concord Deal Platform' }, agencySummaries: [{ name: 'EZ Business Advisors', listings: 2, leads: 1, ndas: 0, intakes: 0, revenue: 0, commissions: 0 }] })
+  assert.match(agency.subject, /EZ Business Advisors — Hourly Deal Desk Digest/)
+  assert.match(platform.subject, /Platform Admin Update/)
+  assert.doesNotMatch(agency.subject, /Platform Admin Update/)
+  // Branding headers + charts present
+  assert.match(agency.html, /Hourly Deal Desk Digest/)
+  assert.match(agency.html, /Deal-desk mix/)
+  assert.match(agency.html, /Buyer leads/)
+  assert.match(platform.html, /Activity by agency/)
+  assert.match(platform.html, /EZ Business Advisors/)
+  // Monogram tile (no broken images): brand without logo must NOT emit <img>
+  assert.doesNotMatch(agency.html, /<img/)
+  // tel link rendered for buyer phone
+  assert.match(agency.html, /tel:/)
+})
+
+test('notifications v2 premium: quiet hour still renders premium state, never throws', () => {
+  const rendered = renderHourlyDigest({ agencyName: 'EZ Business Advisors', activity: EMPTY_DIGEST_ACTIVITY, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z' })
+  assert.match(rendered.html, /quiet hour/i)
+  assert.match(rendered.html, /Executive Brief/)
+  assert.ok(rendered.html.length > 800)
+})
+
+test('notifications v2 premium: logo URL renders as image only when absolute https', () => {
+  const activity = { ...EMPTY_DIGEST_ACTIVITY, calls: [{ id: 'c1', agency_id: 'a', title: 'Buyer call' }] }
+  const withLogo = renderHourlyDigest({ agencyName: 'EZ Business Advisors', activity, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z', brand: { name: 'EZ Business Advisors', logoUrl: 'https://cdn.ezbusinessadvisors.com/logo.png' } })
+  const withRelative = renderHourlyDigest({ agencyName: 'EZ Business Advisors', activity, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z', brand: { name: 'EZ Business Advisors', logoUrl: '/api/agency/logo.png' } })
+  assert.match(withLogo.html, /<img/)
+  assert.doesNotMatch(withRelative.html, /<img/)
+})
+
+test('notifications v2 premium: agent activity block renders agent name + action', () => {
+  const activity = { ...EMPTY_DIGEST_ACTIVITY, agentActivity: [{ id: 'aa1', agency_id: 'a', action: 'called buyer', agent_name: 'Daniel Harbor', summary: 'Follow-up call on Harbor listing' }] }
+  const rendered = renderHourlyDigest({ agencyName: 'Harbor Acquisitions', activity, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z' })
+  assert.match(rendered.html, /Daniel Harbor/)
+  assert.match(rendered.html, /called buyer/)
+  assert.match(rendered.html, /Follow-up call on Harbor listing/)
+})
+
+test('notifications v2 premium: per-agency summary rows all render in platform chart', () => {
+  const activity = { ...EMPTY_DIGEST_ACTIVITY }
+  const summaries = [
+    { name: 'EZ Business Advisors', listings: 3, leads: 4, ndas: 1, intakes: 1, revenue: 500, commissions: 100 },
+    { name: 'Harbor Acquisitions', listings: 1, leads: 2, ndas: 0, intakes: 0, revenue: 0, commissions: 0 },
+  ]
+  const rendered = renderHourlyDigest({ agencyName: 'Concord Deal Platform', activity, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z', platformRollup: true, brand: { name: 'Concord Deal Platform' }, agencySummaries: summaries })
+  assert.match(rendered.html, /EZ Business Advisors/)
+  assert.match(rendered.html, /Harbor Acquisitions/)
+  assert.match(rendered.html, /Activity by agency/)
+})

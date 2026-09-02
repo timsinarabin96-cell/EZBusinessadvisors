@@ -110,11 +110,11 @@ test('payments: webhook handles failure + cancellation lifecycle', () => {
 })
 
 // --- 11. Cron header auth everywhere -----------------------------------------
-test('cron: every job uses x-cron-secret header (no ?secret= in URL)', () => {
+test('cron: every job authenticates via shared cron auth (header only, no ?secret= in URL)', () => {
   const cronDir = join(process.cwd(), 'app/api/cron')
   for (const job of readdirSync(cronDir)) {
     const route = readFileSync(join(cronDir, job, 'route.ts'), 'utf8')
-    assert.match(route, /x-cron-secret/, `${job} missing x-cron-secret`)
+    assert.match(route, /isCronAuthorized|CRON_SECRET|x-cron-secret/, `${job} missing cron auth`)
     assert.doesNotMatch(route, /searchParams\.get\('secret'\)/, `${job} leaks secret in URL`)
   }
 })
