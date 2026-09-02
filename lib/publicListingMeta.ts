@@ -42,6 +42,75 @@ const clean = (s: unknown): string | null => {
   return v || null
 }
 
+/**
+ * Resolve "who to hand this agency's lead off to" — the agency's first public
+ * broker_profiles row, falling back to agency contact info alone (same
+ * precedence as fetchPublicListingsMeta, minus the per-listing agent_id hop).
+ * Used by the chat-widget lead handoff to tell a new seller/buyer who their
+ * broker is without needing a specific listing_id.
+ */
+export async function resolveAgencyBroker(agencyId: string): Promise<PublicAgentInfo | null> {
+  const db = createServerClient()
+  if (!db || !agencyId) return null
+  try {
+    const { data: broker } = await db
+      .from('broker_profiles')
+      .select('profile_id, agency_id, public_name, avatar_url, phone, email_public, bio')
+      .eq('agency_id', agencyId)
+      .eq('is_public', true)
+      .limit(1)
+      .maybeSingle()
+
+    const { data: agency } = await db
+      .from('agencies')
+      .select('id, name, phone, email, domain, custom_domain, slug')
+      .eq('id', agencyId)
+      .maybeSingle()
+
+    const website = agency
+      ? agency.custom_domain
+        ? `https://${agency.custom_domain}`
+        : agency.domain
+          ? `https://${agency.domain}`
+          : agency.slug
+            ? `https://${agency.slug}.ezbusinessadvisors.vercel.app`
+            : null
+      : null
+
+    if (broker) {
+      return {
+        profileId: broker.profile_id,
+        name: clean(broker.public_name) || clean(broker.email_public)?.split('@')[0] || 'Your Broker',
+        photo: clean(broker.avatar_url),
+        phone: clean(broker.phone) || clean(agency?.phone),
+        email: clean(broker.email_public) || clean(agency?.email),
+        bio: clean(broker.bio),
+        agencyName: clean(agency?.name),
+        agencyPhone: clean(agency?.phone),
+        agencyEmail: clean(agency?.email),
+        agencyWebsite: website,
+      }
+    }
+    if (agency && (clean(agency.phone) || clean(agency.email) || clean(agency.name))) {
+      return {
+        profileId: `agency:${agency.id}`,
+        name: clean(agency.name) || 'Your Broker',
+        photo: null,
+        phone: clean(agency.phone),
+        email: clean(agency.email),
+        bio: null,
+        agencyName: clean(agency.name),
+        agencyPhone: clean(agency.phone),
+        agencyEmail: clean(agency.email),
+        agencyWebsite: website,
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 /** Fetch listing_ref + assigned agent for ONE listing (by id or slug). */
 export async function fetchPublicListingMeta(identifier: string): Promise<PublicListingMeta | null> {
   const metas = await fetchPublicListingsMeta([identifier])
@@ -133,23 +202,45 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
               ? `https://${agency.slug}.ezbusinessadvisors.vercel.app`
               : null
         : null
+      // Agent card resolution, in order: assigned/agency broker profile →
+      // agency-only contact (name/phone/email/website, no individual person)
+      // → null only when there is truly nothing to show (no agency either).
+      // Previously this returned null whenever broker_profiles had no row for
+      // the agency, which silently hid the float on every listing whose
+      // agency hadn't filled in a broker_profiles row yet.
+      let agentCard: PublicAgentInfo | null = null
+      if (broker) {
+        agentCard = {
+          profileId: broker.profile_id,
+          name: clean(broker.public_name) || clean(broker.email_public)?.split('@')[0] || 'Your Broker',
+          photo: clean(broker.avatar_url),
+          phone: clean(broker.phone) || clean(agency?.phone),
+          email: clean(broker.email_public) || clean(agency?.email),
+          bio: clean(broker.bio),
+          agencyName: clean(agency?.name),
+          agencyPhone: clean(agency?.phone),
+          agencyEmail: clean(agency?.email),
+          agencyWebsite: website,
+        }
+      } else if (agency && (clean(agency.phone) || clean(agency.email) || clean(agency.name))) {
+        agentCard = {
+          profileId: `agency:${agency.id}`,
+          name: clean(agency.name) || 'Your Broker',
+          photo: null,
+          phone: clean(agency.phone),
+          email: clean(agency.email),
+          bio: null,
+          agencyName: clean(agency.name),
+          agencyPhone: clean(agency.phone),
+          agencyEmail: clean(agency.email),
+          agencyWebsite: website,
+        }
+      }
+
       return {
         listingId: l.id,
         listingRef: clean(l.listing_ref),
-        agent: broker
-          ? {
-              profileId: broker.profile_id,
-              name: clean(broker.public_name) || clean(broker.email_public)?.split('@')[0] || 'Your Broker',
-              photo: clean(broker.avatar_url),
-              phone: clean(broker.phone) || clean(agency?.phone),
-              email: clean(broker.email_public) || clean(agency?.email),
-              bio: clean(broker.bio),
-              agencyName: clean(agency?.name),
-              agencyPhone: clean(agency?.phone),
-              agencyEmail: clean(agency?.email),
-              agencyWebsite: website,
-            }
-          : null,
+        agent: agentCard,
       }
     })
   } catch {

@@ -97,12 +97,15 @@ export async function chatWithDeepSeek({
   userMessage,
   jsonMode = false,
   maxTokens = 1200,
+  history = [],
   tenant,
 }: {
   system: string
   userMessage: string
   jsonMode?: boolean
   maxTokens?: number
+  /** Prior turns (oldest→newest) so follow-ups like "Yes" carry context. */
+  history?: InternalMessage[]
   /** Per-tenant overrides — used when a sold CRM plugs in its OWN API key. */
   tenant?: { apiKey?: string; baseUrl?: string; model?: string }
 }): Promise<{ text: string; data?: Record<string, unknown> }> {
@@ -118,6 +121,7 @@ export async function chatWithDeepSeek({
           model: tenant?.model || process.env.DEEPSEEK_DEFAULT_MODEL || 'deepseek-v4-flash',
           messages: [
             { role: 'system', content: `${system}\n\n${jsonMode ? 'Return only a valid JSON object.' : 'Respond concisely and directly.'}` },
+            ...history.slice(-12),
             { role: 'user', content: userMessage },
           ],
           thinking: { type: 'disabled' },

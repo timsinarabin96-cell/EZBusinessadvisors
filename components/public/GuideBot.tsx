@@ -42,6 +42,7 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
   ])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const [leadSaved, setLeadSaved] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -83,6 +84,7 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
       const j = await res.json()
       if (!j.ok) throw new Error(j.error || 'send failed')
       try { localStorage.setItem('concord-chat-session', j.sessionId) } catch {}
+      if (j.leadCreated) setLeadSaved(true)
 
       // Poll for the agent's reply (same brain as SMS/voice — books
       // appointments into the CRM, alerts the broker, remembers context).
@@ -171,6 +173,11 @@ export default function GuideBot({ mode = 'public' }: { mode?: 'public' | 'crm' 
             {busy && (
               <div style={{ alignSelf: 'flex-start', padding: '10px 13px', borderRadius: 14, background: '#fff', border: '1px solid #e2e8f0', fontSize: 13.5, color: '#64748b' }}>
                 Thinking…
+              </div>
+            )}
+            {leadSaved && !isCrm && (
+              <div style={{ alignSelf: 'center', padding: '6px 12px', borderRadius: 999, background: '#ecfdf5', border: '1px solid #86efac', fontSize: 12, color: '#166534', fontWeight: 700 }}>
+                ✓ Info saved — a broker has been notified
               </div>
             )}
             <div ref={endRef} />

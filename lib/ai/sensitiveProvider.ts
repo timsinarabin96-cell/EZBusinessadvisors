@@ -38,6 +38,8 @@ export interface SensitiveChatInput {
   userMessage: string
   jsonMode?: boolean
   maxTokens?: number
+  /** Prior turns (oldest→newest) so follow-ups like "Yes" carry context. */
+  history?: InternalMessage[]
   /** Per-tenant overrides — only honored when Claude is NOT configured. */
   tenant?: { apiKey?: string; baseUrl?: string; model?: string }
 }
@@ -62,11 +64,13 @@ export async function chatSensitive({
   userMessage,
   jsonMode = false,
   maxTokens = 1200,
+  history,
   tenant,
 }: SensitiveChatInput): Promise<{ text: string; data?: Record<string, unknown> }> {
   if (isClaudeConfigured()) {
     const res = await complete({
       context: { kind: 'support', entityId: undefined, text: '' },
+      history,
       message: userMessage,
       system,
       jsonMode,
@@ -74,7 +78,7 @@ export async function chatSensitive({
     })
     return { text: res.text, data: res.data }
   }
-  return chatWithDeepSeek({ system, userMessage, jsonMode, maxTokens, tenant })
+  return chatWithDeepSeek({ system, userMessage, jsonMode, maxTokens, history, tenant })
 }
 
 /**
