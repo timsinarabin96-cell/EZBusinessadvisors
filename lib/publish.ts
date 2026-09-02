@@ -478,7 +478,7 @@ export async function publishListing(listingId: string, actorProfileId?: string,
 }
 
 /** Ensure the public feed row exists for a published listing. */
-async function syncPublicListingRow(listing: any, approval?: { approved: boolean; reference: string | null }): Promise<void> {
+export async function syncPublicListingRow(listing: any, approval?: { approved: boolean; reference: string | null }): Promise<void> {
   if (!svc) return
   const now = new Date().toISOString()
   const slugBase = String(listing.business_name || listing.headline || 'business')

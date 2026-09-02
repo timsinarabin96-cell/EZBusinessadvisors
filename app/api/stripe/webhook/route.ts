@@ -395,6 +395,19 @@ export async function POST(req: NextRequest) {
         updated_at: now.toISOString(),
       }).eq('id', listingId)
 
+      // 2b) CRITICAL: create/update the public_listings row the public feed
+      //     reads from — without this a published franchise listing never
+      //     appears on the marketplace (the feed joins public_listings).
+      try {
+        const { syncPublicListingRow } = await import('@/lib/publish')
+        const { data: listing } = await db.from('listings').select('*').eq('id', listingId).maybeSingle()
+        if (listing) {
+          await syncPublicListingRow(listing, { approved: true, reference: 'franchise-payment' })
+        }
+      } catch (e: any) {
+        console.error('[franchise] public feed row sync failed:', e?.message || e)
+      }
+
       // 3) Post-publish AI sanity check (flag-only — never blocks). Writes
       //    advisory flags into ai_metadata.franchise_flags; the listing stays
       //    live either way.
