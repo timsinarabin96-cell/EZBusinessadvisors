@@ -24,7 +24,10 @@ jobs:
     name: Playwright E2E (live site)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ secrets.BASE_URL != '' }}
+    # NOTE: job-level `if` cannot read the secrets context (that was breaking
+    # this workflow with 0 jobs — "Unrecognized named-value: 'secrets'"). The
+    # guard is therefore applied at step level below: if BASE_URL isn't
+    # configured, the E2E steps are skipped instead of failing the run.
     steps:
       - uses: actions/checkout@v4
 
@@ -34,12 +37,15 @@ jobs:
           cache: npm
 
       - name: Install dependencies
+        if: ${{ secrets.BASE_URL != '' }}
         run: npm ci
 
       - name: Install Playwright chromium
+        if: ${{ secrets.BASE_URL != '' }}
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E suite
+        if: ${{ secrets.BASE_URL != '' }}
         run: npx playwright test
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
@@ -49,9 +55,11 @@ jobs:
       # Deep-pass fix: cross-browser smoke (Firefox + WebKit) on key public
       # pages — the local VPS can't install WebKit system deps, so CI covers it.
       - name: Install Firefox + WebKit
+        if: ${{ secrets.BASE_URL != '' }}
         run: npx playwright install --with-deps firefox webkit
 
       - name: Cross-browser smoke (Firefox + WebKit + Chromium)
+        if: ${{ secrets.BASE_URL != '' }}
         run: node --import ./scripts/paths-loader.mjs --experimental-strip-types scripts/cross-browser-smoke.mts
         env:
           BASE_URL: ${{ secrets.BASE_URL }}

@@ -145,14 +145,23 @@ test('security: no table is left without row level security', async () => {
 
   // 1) Try the live production DB first (Management API + saved token). This
   //    is the real source of truth — it fails if anyone ships a table without RLS.
+  //    CI-safe: if the local token file is absent (e.g. GitHub runner, HOME has
+  //    no .supabase/access-token), fall through to the manifest check instead of
+  //    throwing ENOENT — the file read must stay inside the guard.
   const tokenFile = join(process.env.HOME || '/home/rabin', '.supabase/access-token')
-  if (readFileSync(tokenFile, 'utf8').trim()) {
+  let token = ''
+  try {
+    token = readFileSync(tokenFile, 'utf8').trim()
+  } catch {
+    // no local token — manifest fallback below
+  }
+  if (token) {
     try {
       const query = "select c.relname from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relrowsecurity=false and c.relname not in ('_prisma_migrations') order by c.relname;"
       const res = await fetch('https://api.supabase.com/v1/projects/ytcvlvisufxmmzeblmwx/database/query', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${readFileSync(tokenFile, 'utf8').trim()}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ query }),
