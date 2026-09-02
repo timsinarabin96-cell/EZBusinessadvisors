@@ -59,10 +59,11 @@ function testRoute(to: string): string {
 // recipients (@concordplatform.dev, @example.com). If those actually deliver
 // via SMTP/Graph they bounce back as NDR junk into the business inbox.
 // Never attempt real delivery to known test domains — record for history only.
-const TEST_DOMAINS = new Set(['concordplatform.dev', 'example.com', 'test.local'])
+const TEST_DOMAINS = new Set(['concordplatform.dev', 'example.com', 'test.local', 'tenant.test'])
 function isTestDomain(to: string): boolean {
-  const addr = (to || '').split('@').pop()?.toLowerCase().trim() || ''
-  return TEST_DOMAINS.has(addr)
+  const domain = (to || '').split('@').pop()?.toLowerCase().trim() || ''
+  // Exact match OR any reserved .test/.invalid TLD — these can never receive mail.
+  return TEST_DOMAINS.has(domain) || domain.endsWith('.test') || domain.endsWith('.invalid')
 }
 
 // Event emails that are now consolidated into the HOURLY DIGEST
