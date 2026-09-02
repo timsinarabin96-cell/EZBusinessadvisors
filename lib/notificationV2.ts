@@ -1,3 +1,5 @@
+import type { FinanceStatement } from '@/lib/digestFinance'
+
 export type DigestRow = Record<string, unknown> & { agency_id?: string | null; listings?: { agency_id?: string | null } | Array<{ agency_id?: string | null }> | null }
 
 export type DigestActivity = {
@@ -128,6 +130,39 @@ function agentTile(name: string, accent: string): string {
   return `<span style="display:inline-block;width:26px;height:26px;line-height:26px;text-align:center;background:${accent};color:#0d1321;border-radius:50%;font:700 12px/26px ${FONT_HEAD};margin-right:8px">${esc(initial)}</span>`
 }
 
+/** P&L statement block — premium revenue/expense/net lines (email-safe tables). */
+const fmtUsd = (value: number) =>
+  '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+function plRows(lines: Array<{ label: string; amount: number }>, accent: string, emptyText: string): string {
+  if (!lines.length) {
+    return `<tr><td style="padding:9px 2px;border-bottom:1px solid #f2eee5;font:12.5px/1.4 ${FONT_BODY};color:#9aa1ad;font-style:italic">${escHead(emptyText)}</td></tr>`
+  }
+  return lines.map((line) => `<tr><td style="padding:8px 2px;border-bottom:1px solid #f2eee5;font:13px/1.4 ${FONT_BODY};color:#3c4350">${escHead(line.label)}</td><td style="padding:8px 2px;border-bottom:1px solid #f2eee5;text-align:right;font:600 13px/1.4 ${FONT_BODY};color:#0d1321">${fmtUsd(line.amount)}</td></tr>`).join('')
+}
+
+function financeStatementSection(stmt: FinanceStatement, accent: string, windowLabel: string): string {
+  const quiet = stmt.activityCount === 0 && stmt.revenueTotal === 0 && stmt.expenseTotal === 0
+  const netColor = stmt.net >= 0 ? '#1e7e34' : '#b42318'
+  const rows = quiet
+    ? `<tr><td style="padding:18px 4px;font:13px/1.5 ${FONT_BODY};color:#8a8f98">No revenue or expenses recorded in the ${escHead(windowLabel)} window — net $0.00. Every paid order, subscription, commission, expense, and contractor payout will appear here.</td></tr>`
+    : `${plRows(stmt.revenueLines, accent, 'No revenue recorded in this window')}
+      <tr><td style="padding:8px 2px;font:11px/1 ${FONT_BODY};letter-spacing:.12em;text-transform:uppercase;color:#8b7d5c">Total revenue</td><td style="padding:8px 2px;text-align:right;font:700 14px/1 ${FONT_HEAD};color:#0d1321">${fmtUsd(stmt.revenueTotal)}</td></tr>
+      ${plRows(stmt.expenseLines, accent, 'No expenses recorded in this window')}
+      <tr><td style="padding:8px 2px;font:11px/1 ${FONT_BODY};letter-spacing:.12em;text-transform:uppercase;color:#8b7d5c">Total expenses</td><td style="padding:8px 2px;text-align:right;font:700 14px/1 ${FONT_HEAD};color:#0d1321">${fmtUsd(stmt.expenseTotal)}</td></tr>`
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 30px">
+  <tr><td style="background:#0d1321;border-radius:14px 14px 0 0;padding:18px 20px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td style="font:700 16px/1.3 ${FONT_HEAD};color:#ffffff">Profit &amp; Loss</td>
+    <td style="text-align:right"><span style="font:10px/1 ${FONT_BODY};letter-spacing:.14em;text-transform:uppercase;color:${accent};border:1px solid ${accent};padding:4px 10px;border-radius:999px">${escHead(windowLabel)}</span></td>
+  </tr></table></td></tr>
+  <tr><td style="border:1px solid #e7e0d2;border-top:none;border-radius:0 0 14px 14px;padding:14px 20px 18px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}
+    <tr><td style="padding:14px 2px 2px;border-top:2px solid #0d1321"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td style="font:700 13px/1 ${FONT_BODY};letter-spacing:.1em;text-transform:uppercase;color:#0d1321">Net income</td>
+      <td style="text-align:right;font:700 20px/1 ${FONT_HEAD};color:${netColor}">${fmtUsd(stmt.net)}</td>
+    </tr></table></td></tr>
+  </table></td></tr></table>`
+}
+
 export function renderHourlyDigest(input: {
   agencyName: string
   activity: DigestActivity
@@ -136,6 +171,7 @@ export function renderHourlyDigest(input: {
   platformRollup?: boolean
   brand?: DigestBrand
   agencySummaries?: AgencySummaryRow[]
+  finance?: { statement: FinanceStatement; windowLabel: string } | null
 }): { subject: string; html: string } {
   const { agencyName, activity } = input
   const platform = !!input.platformRollup
@@ -194,6 +230,10 @@ export function renderHourlyDigest(input: {
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:34px 24px;text-align:center;background:#fbf9f3;border:1px solid #e7e0d2;border-radius:14px"><div style="font:700 40px/1 ${FONT_HEAD};color:#c9a84c">✓</div><div style="font:700 17px/1.4 ${FONT_HEAD};color:#0d1321;margin-top:10px">A quiet hour on the desk</div><div style="font:13px/1.5 ${FONT_BODY};color:#8a8f98;margin-top:6px">No new listings, leads, NDAs, offers, or calls this window.<br/>Everything is operating normally.</div></td></tr></table>`
     : ''
 
+  const financeHtml = input.finance
+    ? financeStatementSection(input.finance.statement, accent, input.finance.windowLabel)
+    : ''
+
   const subject = platform
     ? `🛰️ Platform Admin Update — hourly · all agencies (${count})`
     : `📊 ${agencyName} — Hourly Deal Desk Digest (${count})`
@@ -222,6 +262,7 @@ export function renderHourlyDigest(input: {
   <!-- Body -->
   <tr><td style="padding:30px 34px">
     ${quiet}
+    ${financeHtml}
     ${mixChart}
     ${agencyChart}
     ${bodySections}

@@ -2,6 +2,7 @@ import { isCronAuthorized } from '@/lib/cronAuth'
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { EMPTY_DIGEST_ACTIVITY, renderHourlyDigest, shouldSendHourlyDigest, type AgencySummaryRow, type DigestActivity, type DigestRow } from '@/lib/notificationV2'
+import { buildFinanceStatement, emptyFinanceRaw, type FinanceRaw } from '@/lib/digestFinance'
 import { sendEmail } from '@/lib/email'
 
 export const runtime = 'nodejs'
@@ -60,6 +61,65 @@ async function collectActivity(db: Db, since: string, agencyId?: string): Promis
   return { ...EMPTY_DIGEST_ACTIVITY, newListings, publishedListings, editedListings, buyerLeads, ndaSignings, ndaRequests, sellerIntakes, deals, offers, lois, milestones, appointments, calls, commissions, agentActivity }
 }
 
+// ── Finance (P&L) collection ────────────────────────────────────────────────
+// Recognized money-in statuses vs obvious non-revenue states. Sums are reduced
+// in JS (best-effort, never throws) mirroring the money-digest approach.
+const MONEY_IN = new Set(['paid', 'active', 'completed', 'fulfilled', 'succeeded', 'released', 'processing'])
+const MONEY_SKIP = new Set(['pending', 'failed', 'cancelled', 'refunded', 'draft', 'expired', 'void'])
+const isRecognized = (status: unknown) => status == null || (!MONEY_SKIP.has(String(status)) && (MONEY_IN.has(String(status)) || true))
+
+async function collectFinance(db: Db, since: string, agencyId?: string): Promise<FinanceRaw> {
+  const out = emptyFinanceRaw()
+  const applyAgency = (query: any, tableHasAgency: boolean) => (agencyId && tableHasAgency ? query.eq('agency_id', agencyId) : query)
+  const sumRows = (rowsData: unknown[], cents: boolean, col: string, centsCol?: string) =>
+    (rowsData as Array<Record<string, unknown>>).reduce((sum, row) => {
+      const amount = cents ? Number(row[centsCol || col] || 0) : Number(row[col] || 0)
+      return sum + (cents ? amount / 100 : amount)
+    }, 0)
+
+  const fetchAll = async (table: string, select: string, timeCol: string, tableHasAgency: boolean) => {
+    let query = db.from(table).select(select).gte(timeCol, since).limit(500)
+    query = applyAgency(query, tableHasAgency)
+    const r = await query
+    return (r.data || []) as Array<Record<string, unknown>>
+  }
+
+  try {
+    const orders = await fetchAll('seller_listing_orders', 'amount_cents,status,created_at', 'created_at', true)
+    out.ordersPaidCents += sumRows(orders.filter((r) => isRecognized(r.status)), true, '', 'amount_cents')
+    const valuations = await fetchAll('valuation_reports', 'amount_cents,status,created_at', 'created_at', true)
+    out.valuationsPaidCents += sumRows(valuations.filter((r) => isRecognized(r.status)), true, '', 'amount_cents')
+    const featured = await fetchAll('featured_slots', 'amount_cents,status,created_at', 'created_at', true)
+    out.featuredPaidCents += sumRows(featured.filter((r) => isRecognized(r.status)), true, '', 'amount_cents')
+    const store = await fetchAll('store_orders', 'profit,status,created_at', 'created_at', true)
+    out.storeProfit += sumRows(store.filter((r) => isRecognized(r.status)), false, 'profit')
+    const commissions = await fetchAll('commission_records', 'amount,status,created_at', 'created_at', true)
+    out.commissionsPaid += sumRows(commissions.filter((r) => isRecognized(r.status)), false, 'amount')
+    const expenses = await fetchAll('expenses', 'amount_cents,paid,created_at', 'created_at', true)
+    out.expensesCents += sumRows(expenses.filter((r) => r.paid !== false), true, '', 'amount_cents')
+    const contractor = await fetchAll('contractor_payments', 'amount,created_at', 'created_at', true)
+    out.contractorPaid += sumRows(contractor, false, 'amount')
+    // Invoices carry no agency_id — platform roll-up only (agency digests omit them).
+    if (!agencyId) {
+      const invoices = await fetchAll('invoices', 'amount,status,paid_at,created_at', 'created_at', false)
+      out.invoicesPaid += sumRows(invoices.filter((r) => isRecognized(r.status)), false, 'amount')
+    }
+    out.paidCount += orders.length + valuations.length + featured.length + commissions.length
+  } catch (error) {
+    console.warn('[hourly-digest] finance collection failed:', error instanceof Error ? error.message : String(error))
+  }
+  return out
+}
+
+/** ET midnight (start of "today") as a UTC ISO string — P&L window label. */
+function etStartOfTodayUtc(): string {
+  const nowUtc = new Date()
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(nowUtc)
+  const get = (t: string) => parts.find((p) => p.type === t)?.value || '1'
+  const offsetMin = (nowUtc.getTime() - new Date(nowUtc.toLocaleString('en-US', { timeZone: 'America/New_York' })).getTime()) / 60000
+  return new Date(Date.UTC(Number(get('year')), Number(get('month')) - 1, Number(get('day'))) + offsetMin * 60000).toISOString()
+}
+
 async function agencyRecipients(db: Db, agencyId: string): Promise<Array<{ id: string; email: string; enabled: boolean }>> {
   const { data: members } = await db.from('agency_members').select('profile_id, role, is_owner').eq('agency_id', agencyId)
   const ids = (members || []).filter((member) => member.is_owner || member.role === 'admin' || member.role === 'owner').map((member) => member.profile_id)
@@ -84,6 +144,7 @@ export async function POST(req: Request) {
 
   const report = { agencies: agencies?.length || 0, recipients: 0, sent: 0, skipped: 0, failed: 0 }
   const agencySummaries: AgencySummaryRow[] = []
+  const financeSince = etStartOfTodayUtc()
   for (const agency of agencies || []) {
     const agencyEnabled = (agency as { notifications_hourly_digest?: boolean }).notifications_hourly_digest !== false
     const recipients = await agencyRecipients(db, agency.id)
@@ -93,12 +154,14 @@ export async function POST(req: Request) {
     if (!optedIn.length) continue
 
     const activity = await collectActivity(db, windowStart.toISOString(), agency.id)
+    const finance = buildFinanceStatement(await collectFinance(db, financeSince, agency.id))
     const rendered = renderHourlyDigest({
       agencyName: agency.name || 'Your Brokerage',
       activity,
       windowStart: windowStart.toISOString(),
       windowEnd: windowEnd.toISOString(),
       brand: { name: agency.name || 'Your Brokerage', logoUrl: agency.logo_url, brandColor: agency.brand_color, accentColor: agency.accent_color },
+      finance: { statement: finance, windowLabel: 'today (ET)' },
     })
     if (!SEND_QUIET_HOURS && Object.values(activity).every((items) => items.length === 0)) continue
     agencySummaries.push({
@@ -119,6 +182,7 @@ export async function POST(req: Request) {
   }
 
   const platformActivity = await collectActivity(db, windowStart.toISOString())
+  const platformFinance = buildFinanceStatement(await collectFinance(db, financeSince))
   const platformDigest = renderHourlyDigest({
     agencyName: PLATFORM_NAME,
     activity: platformActivity,
@@ -127,6 +191,7 @@ export async function POST(req: Request) {
     platformRollup: true,
     brand: { name: PLATFORM_NAME },
     agencySummaries,
+    finance: { statement: platformFinance, windowLabel: 'today (ET)' },
   })
   const platformResult = await sendEmail({ to: BOSS_EMAIL, subject: platformDigest.subject, html: platformDigest.html, kind: 'hourly_digest', fromName: PLATFORM_NAME, meta: { platform_rollup: true, digest_window_start: windowStart.toISOString(), digest_window_end: windowEnd.toISOString() } })
   platformResult.ok ? report.sent++ : report.failed++
