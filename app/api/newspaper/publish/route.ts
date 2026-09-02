@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { makeUnsubToken } from '@/lib/newspaperShared'
 import { renderNewspaperV3Html } from '@/lib/newspaperV3'
 import { authenticateProfileRequest, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 

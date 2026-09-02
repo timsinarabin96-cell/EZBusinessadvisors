@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { nowLabel } from '@/lib/newspaperShared'
+import { makeUnsubToken, nowLabel } from '@/lib/newspaperShared'
 import { buildV3Articles, renderNewspaperV3Html } from '@/lib/newspaperV3'
 
 export const runtime = 'nodejs'
