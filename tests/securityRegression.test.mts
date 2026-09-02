@@ -130,6 +130,11 @@ test('public: all write endpoints are rate-limited', () => {
     const src = readFileSync(f, 'utf8')
     assert.match(src, /rateLimit/, `${f} missing rate limit`)
   }
+  // Deep-pass fix: public write routes OUTSIDE app/api/public must be
+  // rate-limited too (the franchise intake POST was never covered by the
+  // walk above — found unrate-limited in the deep pass).
+  const franchise = readFileSync(join(process.cwd(), 'app/api/franchise/route.ts'), 'utf8')
+  assert.match(franchise, /rateLimitAsync/, 'app/api/franchise/route.ts POST missing rate limit')
 })
 
 // --- 13. RLS: zero unprotected tables (live production check w/ manifest fallback) ----

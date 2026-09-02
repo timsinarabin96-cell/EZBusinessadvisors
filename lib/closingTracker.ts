@@ -262,6 +262,43 @@ export async function updateMilestone(
 
   const { error } = await svc.from('deal_closing_milestones').update(update).eq('id', milestoneId)
   if (error) return { ok: false, error: error.message }
+
+  // Audit trail for RE closings (deep-pass recommendation): record WHO marked
+  // the real-estate closing complete and WHICH license was attached — good
+  // liability posture for the brokerage. Best-effort, never blocks.
+  if (patch.completed === true) {
+    try {
+      const { data: audited } = await svc
+        .from('deal_closing_milestones')
+        .select('listing_id, category, title')
+        .eq('id', milestoneId)
+        .maybeSingle()
+      if (audited?.category === 're_closing') {
+        const { data: listing } = await svc
+          .from('listings')
+          .select('re_professional_name, re_professional_license, re_professional_role')
+          .eq('id', audited.listing_id)
+          .maybeSingle()
+        await svc.from('admin_audit_log').insert({
+          actor_id: actorProfileId || null,
+          action: 're_closing_completed',
+          target_type: 'listing',
+          target_id: audited.listing_id,
+          target_label: String(listing?.re_professional_name || audited.title || '').slice(0, 200),
+          details: {
+            milestone_id: milestoneId,
+            re_professional_name: listing?.re_professional_name || null,
+            re_professional_license: listing?.re_professional_license || null,
+            re_professional_role: listing?.re_professional_role || null,
+            completed_at: update.completed_at || null,
+          },
+        })
+      }
+    } catch (e: any) {
+      console.error('[closing] RE-closing audit log failed:', e?.message || e)
+    }
+  }
+
   return { ok: true }
 }
 

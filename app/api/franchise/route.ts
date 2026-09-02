@@ -21,7 +21,7 @@ const svc = SUPABASE_URL && SERVICE_KEY
   ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
   : null
 
-const MAX_ITEM19_BYTES = 12 * 1024 * 1024 // 12 MB — matches financial-import
+const MAX_ITEM19_BYTES = 4 * 1024 * 1024 // 4 MB — under Vercel's ~4.5MB serverless body cap so the app returns a clean 413 JSON instead of the platform's raw FUNCTION_PAYLOAD_TOO_LARGE (deep-pass finding)
 
 const clientIp = (req: Request) =>
   req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -69,11 +69,16 @@ export async function POST(req: NextRequest) {
     const v = form.get(k)
     return typeof v === 'string' ? v.trim() : ''
   }
+  // Strict numeric parse (deep-pass finding): non-numeric input must be
+  // rejected with a 400, not silently nulled. Throws on malformed input.
   const num = (k: string): number | null => {
     const v = str(k)
     if (!v) return null
-    const n = Number(v.replace(/[$,%]/g, ''))
-    return Number.isFinite(n) ? n : null
+    const cleaned = v.replace(/[$,%\s]/g, '')
+    if (!/^\d*\.?\d*$/.test(cleaned)) throw new Error(`${k} must be a number`)
+    const n = Number(cleaned)
+    if (!Number.isFinite(n)) throw new Error(`${k} must be a number`)
+    return n
   }
 
   const brandName = str('brand_name')
@@ -93,18 +98,74 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Parse + validate every numeric field. Malformed input → 400 (was:
+  // silently nulled). Negatives / inverted ranges → 400 (was: accepted).
+  let totalMin: number | null = null
+  let totalMax: number | null = null
+  let franchiseFee: number | null = null
+  let royaltyPct: number | null = null
+  let units: number | null = null
+  let liquidCap: number | null = null
+  let netWorth: number | null = null
+  try {
+    totalMin = num('total_investment_min')
+    totalMax = num('total_investment_max')
+    franchiseFee = num('franchise_fee')
+    royaltyPct = num('royalty_fee_pct')
+    units = num('existing_units')
+    liquidCap = num('ideal_candidate_liquid_capital')
+    netWorth = num('ideal_candidate_net_worth')
+  } catch (e: any) {
+    return NextResponse.json({ ok: false, error: e?.message || 'Invalid numeric input' }, { status: 400 })
+  }
+  if (totalMin != null && totalMin <= 0) return NextResponse.json({ ok: false, error: 'Total investment minimum must be greater than 0' }, { status: 400 })
+  if (totalMax != null && totalMax <= 0) return NextResponse.json({ ok: false, error: 'Total investment maximum must be greater than 0' }, { status: 400 })
+  if (totalMin != null && totalMax != null && totalMax < totalMin) return NextResponse.json({ ok: false, error: 'Total investment maximum cannot be below the minimum' }, { status: 400 })
+  if (franchiseFee != null && franchiseFee <= 0) return NextResponse.json({ ok: false, error: 'Franchise fee must be greater than 0' }, { status: 400 })
+  if (royaltyPct != null && (royaltyPct < 0 || royaltyPct > 100)) return NextResponse.json({ ok: false, error: 'Royalty fee must be between 0 and 100' }, { status: 400 })
+  if (units != null && (!Number.isInteger(units) || units < 0)) return NextResponse.json({ ok: false, error: 'Existing units must be a whole number' }, { status: 400 })
+  if (liquidCap != null && liquidCap <= 0) return NextResponse.json({ ok: false, error: 'Ideal candidate liquid capital must be greater than 0' }, { status: 400 })
+  if (netWorth != null && netWorth <= 0) return NextResponse.json({ ok: false, error: 'Ideal candidate net worth must be greater than 0' }, { status: 400 })
+
+  // Idempotency (deep-pass finding): return the existing DRAFT for the same
+  // brand created within the last 30 minutes instead of creating a duplicate
+  // (concurrent double-submit protection).
+  const { data: existing } = await svc
+    .from('listings')
+    .select('id')
+    .eq('business_name', brandName.slice(0, 200))
+    .eq('intake_source', 'franchise_self_service')
+    .eq('status', 'draft')
+    .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+    .limit(1)
+    .maybeSingle()
+  if (existing?.id) {
+    const { data: existingDetails } = await svc.from('franchise_details').select('*').eq('listing_id', existing.id).maybeSingle()
+    return NextResponse.json({ ok: true, listingId: existing.id, franchise: existingDetails || null, plan: { id: FRANCHISE_PLAN_ID, name: FRANCHISE_PLAN_NAME, price: FRANCHISE_PRICE }, reused: true })
+  }
+
+  // Usage-limit enforcement (deep-pass finding): franchise listings count
+  // against the agency's listing cap — same policy as every other listing.
+  try {
+    const { usageBlock } = await import('@/lib/usageEnforcement')
+    const blocked = await usageBlock(agencyId, 'listings')
+    if (blocked) {
+      return NextResponse.json({ ok: false, error: blocked.error, code: 'USAGE_LIMIT', upgradeUrl: blocked.upgradeUrl }, { status: 429 })
+    }
+  } catch { /* usage check is non-fatal — never block creation on a helper error */ }
+
   const details: FranchiseDetailsInput = {
     brand_name: brandName.slice(0, 200),
     industry_category: str('industry_category').slice(0, 120) || null,
-    total_investment_min: num('total_investment_min'),
-    total_investment_max: num('total_investment_max'),
-    franchise_fee: num('franchise_fee'),
-    royalty_fee_pct: num('royalty_fee_pct'),
+    total_investment_min: totalMin,
+    total_investment_max: totalMax,
+    franchise_fee: franchiseFee,
+    royalty_fee_pct: royaltyPct,
     territories_available: str('territories_available').slice(0, 1000) || null,
-    existing_units: num('existing_units'),
+    existing_units: units,
     training_support: str('training_support').slice(0, 2000) || null,
-    ideal_candidate_liquid_capital: num('ideal_candidate_liquid_capital'),
-    ideal_candidate_net_worth: num('ideal_candidate_net_worth'),
+    ideal_candidate_liquid_capital: liquidCap,
+    ideal_candidate_net_worth: netWorth,
   }
 
   // 1) Create the franchise listing (draft; webhook publishes on payment).
@@ -131,7 +192,7 @@ export async function POST(req: NextRequest) {
   if (item19 instanceof File && item19.size > 0) {
     if (item19.size > MAX_ITEM19_BYTES) {
       await svc.from('listings').delete().eq('id', listing.id)
-      return NextResponse.json({ ok: false, error: 'Item 19 file is over 12 MB.' }, { status: 413 })
+      return NextResponse.json({ ok: false, error: 'Item 19 file is over 4 MB.' }, { status: 413 })
     }
     const fileName = item19.name || 'item19.pdf'
     const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_')

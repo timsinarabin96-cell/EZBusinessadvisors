@@ -46,6 +46,16 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
+      # Deep-pass fix: cross-browser smoke (Firefox + WebKit) on key public
+      # pages — the local VPS can't install WebKit system deps, so CI covers it.
+      - name: Install Firefox + WebKit
+        run: npx playwright install --with-deps firefox webkit
+
+      - name: Cross-browser smoke (Firefox + WebKit + Chromium)
+        run: node --import ./scripts/paths-loader.mjs --experimental-strip-types scripts/cross-browser-smoke.mts
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+
       - name: Upload trace artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4

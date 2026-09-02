@@ -170,8 +170,8 @@ export default function FranchiseDetailsPanel({ listingId }: { listingId: string
               <p style={{ fontSize: 13, color: '#4b5563', margin: '0 0 12px', lineHeight: 1.55 }}>
                 Complete the NDA to unlock this listing&apos;s Item 19 disclosure. Your details stay confidential and are shared only with the listing&apos;s broker.
               </p>
-              <input className="input" placeholder="Full legal name" value={ndaForm.name} onChange={(e) => setNdaForm({ ...ndaForm, name: e.target.value })} style={{ marginBottom: 8 }} />
-              <input className="input" placeholder="Email address" type="email" value={ndaForm.email} onChange={(e) => setNdaForm({ ...ndaForm, email: e.target.value })} style={{ marginBottom: 10 }} />
+              <input className="input" placeholder="Full legal name" aria-label="Full legal name" value={ndaForm.name} onChange={(e) => setNdaForm({ ...ndaForm, name: e.target.value })} style={{ marginBottom: 8 }} />
+              <input className="input" placeholder="Email address" aria-label="Email address" type="email" value={ndaForm.email} onChange={(e) => setNdaForm({ ...ndaForm, email: e.target.value })} style={{ marginBottom: 10 }} />
               <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12.5, color: '#4b5563', lineHeight: 1.5, marginBottom: 12 }}>
                 <input type="checkbox" checked={ndaForm.guideAcknowledged} onChange={(e) => setNdaForm({ ...ndaForm, guideAcknowledged: e.target.checked })} style={{ marginTop: 2 }} />
                 <span>I have read the Buyer Forms Overview &amp; Confidentiality Guide and agree to the NDA terms.</span>

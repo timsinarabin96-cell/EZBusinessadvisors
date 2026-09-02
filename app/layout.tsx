@@ -6,11 +6,18 @@
  */
 
 import type { Metadata, Viewport } from 'next'
+import { Inter, Space_Grotesk } from 'next/font/google'
 import './globals.css'
 import LegalFooter from '@/components/public/LegalFooter'
 import ServiceWorkerRegister from '@/components/pwa/ServiceWorkerRegister'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+
+// Self-hosted fonts (deep-pass fix): next/font downloads + serves the woff2
+// at build time — kills the Firefox 'downloadable font' errors, removes the
+// third-party Google Fonts request (privacy), and works offline after build.
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
+const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk', display: 'swap' })
 
 const APP_NAME = 'Concord Deal Platform'
 const APP_DESCRIPTION =
@@ -61,14 +68,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap"
-          rel="stylesheet"
-        />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="Concord" />
@@ -85,7 +86,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           backgroundColor: 'var(--paper)',
         }}
       >
-        <main style={{ flex: '1 1 auto' }}>{children}</main>
+        <a href="#main-content" className="skip-link">Skip to content</a>
+        <main id="main-content" style={{ flex: '1 1 auto' }}>{children}</main>
         <LegalFooter />
         <ServiceWorkerRegister />
         {/* Vercel Analytics + Speed Insights — traffic, Web Vitals, and UX metrics. */}

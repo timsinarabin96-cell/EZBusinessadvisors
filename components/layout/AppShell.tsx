@@ -188,6 +188,7 @@ export default function AppShell({
       <ToastProvider>
         <CommandPalette items={visibleNav} role={role} onNavigate={recordRecent} />
         <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--paper)' }}>
+          <a href="#app-shell-main" className="skip-link">Skip to content</a>
         {/* Mobile toggle */}
         <button
           onClick={() => setOpen(!open)}
@@ -341,7 +342,7 @@ export default function AppShell({
         </aside>
 
         {/* Main */}
-        <main className="app-shell-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <main className="app-shell-main" id="app-shell-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
           {/* Top header — frosted glass with global search + back arrow */}
           <div className="crm-topbar" style={{ position: 'sticky', top: 0, zIndex: 40, padding: '12px 40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
             <button
