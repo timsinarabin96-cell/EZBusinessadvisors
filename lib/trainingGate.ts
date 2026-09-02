@@ -1,23 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { canManageAgency, type AuthenticatedProfileRequest } from '@/lib/supabase/auth'
+import { evaluateTrainingState, type TrainingGateResult } from '@/lib/trainingGateCore'
+
+export { evaluateTrainingState } from '@/lib/trainingGateCore'
 
 export type TrainingProgramKind = 'onboarding'
-export type TrainingGateResult = { ok: boolean; reason?: string; link?: string }
-
-export function evaluateTrainingState(
-  profile: { onboarding_required?: boolean | null } | null,
-  enrollment: { status?: string | null; training_hold?: boolean | null } | null,
-): TrainingGateResult {
-  if (!profile?.onboarding_required) return { ok: true }
-  if (enrollment?.status === 'completed' && enrollment.training_hold === false) return { ok: true }
-  return {
-    ok: false,
-    reason: 'Complete your required agency onboarding before taking this action.',
-    link: '/dashboard/onboarding',
-  }
-}
-
 export async function requireTraining(
   profileId: string,
   agencyId: string,
@@ -77,4 +65,3 @@ export async function trainingGateResponse(input: {
       : undefined,
   }, { status: 403 })
 }
-

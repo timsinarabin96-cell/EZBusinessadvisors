@@ -97,6 +97,19 @@ export async function GET(req: NextRequest) {
   const resolved = await resolveActor(req, dealId, token)
   if (!resolved.ok) return NextResponse.json({ ok: false, error: resolved.error }, { status: resolved.status })
 
+  if (!token && resolved.role === 'agent') {
+    const { data: existingRoom } = await SVC.from('data_rooms').select('id').eq('deal_id', dealId).maybeSingle()
+    if (!existingRoom) {
+      const auth = await authenticateProfileRequest(req)
+      const { data: deal } = await SVC.from('deals').select('agency_id, listings(agency_id)').eq('id', dealId).maybeSingle()
+      const agencyId = (deal as any)?.agency_id || (deal as any)?.listings?.agency_id
+      if (auth && agencyId) {
+        const trainingBlock = await trainingGateResponse({ database: SVC, auth, agencyId, action: 'data_room_create', targetType: 'deal', targetId: dealId })
+        if (trainingBlock) return trainingBlock
+      }
+    }
+  }
+
   const room = await ensureDataRoom(SVC, dealId)
   if (!room) return NextResponse.json({ ok: false, error: 'could not create deal room' }, { status: 500 })
   const snapshot = await snapshotRoom(SVC, room.id, resolved.role)

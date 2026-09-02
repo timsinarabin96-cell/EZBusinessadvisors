@@ -152,14 +152,19 @@ alter table public.agency_training_modules enable row level security;
 alter table public.agency_training_enrollments enable row level security;
 alter table public.agency_training_tasks enable row level security;
 
+drop policy if exists onboarding_templates_read on public.onboarding_module_templates;
 create policy onboarding_templates_read on public.onboarding_module_templates for select to authenticated using (true);
+drop policy if exists agency_training_program_read on public.agency_training_programs;
 create policy agency_training_program_read on public.agency_training_programs for select to authenticated using (public.is_agency_member(agency_id));
+drop policy if exists agency_training_module_read on public.agency_training_modules;
 create policy agency_training_module_read on public.agency_training_modules for select to authenticated using (
   exists (select 1 from public.agency_training_programs p where p.id = program_id and public.is_agency_member(p.agency_id))
 );
+drop policy if exists agency_training_enrollment_read on public.agency_training_enrollments;
 create policy agency_training_enrollment_read on public.agency_training_enrollments for select to authenticated using (
   profile_id = auth.uid() or public.is_agency_admin(agency_id)
 );
+drop policy if exists agency_training_task_read on public.agency_training_tasks;
 create policy agency_training_task_read on public.agency_training_tasks for select to authenticated using (
   exists (select 1 from public.agency_training_enrollments e where e.id = enrollment_id and (e.profile_id = auth.uid() or public.is_agency_admin(e.agency_id)))
 );

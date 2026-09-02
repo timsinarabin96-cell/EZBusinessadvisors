@@ -10,6 +10,8 @@ import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import { finalizeVersion } from '@/lib/workflow'
 import { validationErrorJson } from '@/lib/friendlyValidation'
+import { authenticateProfileRequest } from '@/lib/supabase/auth'
+import { trainingGateResponse } from '@/lib/trainingGate'
 
 // =============================================================================
 // POST /api/financial/bov/finalize — AGENT REVIEW + APPROVE (liability gate).
@@ -66,6 +68,10 @@ export async function POST(req: NextRequest) {
     if (!mine.has(agencyId)) {
       return NextResponse.json({ ok: false, error: 'Not a member of this listing\'s agency — only a licensed agent may sign off a BOV.' }, { status: 403 })
     }
+    const profileAuth = await authenticateProfileRequest(req)
+    if (!profileAuth) return NextResponse.json({ ok: false, error: 'Profile authentication required.' }, { status: 401 })
+    const trainingBlock = await trainingGateResponse({ database: supabase, auth: profileAuth, agencyId, body: body as Record<string, any>, action: 'bov_review_approval', targetType: 'listing', targetId: listingId })
+    if (trainingBlock) return trainingBlock
   } catch {
     return NextResponse.json({ ok: false, error: 'Agency check failed' }, { status: 500 })
   }
