@@ -6,7 +6,7 @@ name: E2E (manual / on-demand)
 #   NEXT_PUBLIC_SUPABASE_URL    https://<ref>.supabase.co
 #   SUPABASE_SERVICE_ROLE_KEY   service_role key for that project
 # Trigger: Actions tab → "E2E (manual / on-demand)" → Run workflow.
-# (Also runs automatically after a production deploy if secrets exist.)
+# (Also runs automatically after CI completes on main if secrets exist.)
 
 on:
   workflow_dispatch:
@@ -24,10 +24,11 @@ jobs:
     name: Playwright E2E (live site)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # NOTE: job-level `if` cannot read the secrets context (that was breaking
-    # this workflow with 0 jobs — "Unrecognized named-value: 'secrets'"). The
-    # guard is therefore applied at step level below: if BASE_URL isn't
-    # configured, the E2E steps are skipped instead of failing the run.
+    # NOTE: the secrets context is NOT valid inside `if` expressions at ANY
+    # level (job or step) — GitHub rejects the workflow file ("Unrecognized
+    # named-value: 'secrets'"). The guard therefore reads the secret inside a
+    # run step (always legal) and gates later steps on its output. If BASE_URL
+    # isn't configured, the E2E steps are skipped instead of failing.
     steps:
       - uses: actions/checkout@v4
 
@@ -36,16 +37,27 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Check E2E secrets configured
+        id: e2e-secrets
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+        run: |
+          if [ -n "$BASE_URL" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
-        if: ${{ secrets.BASE_URL != '' }}
+        if: steps.e2e-secrets.outputs.enabled == 'true'
         run: npm ci
 
       - name: Install Playwright chromium
-        if: ${{ secrets.BASE_URL != '' }}
+        if: steps.e2e-secrets.outputs.enabled == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Run E2E suite
-        if: ${{ secrets.BASE_URL != '' }}
+        if: steps.e2e-secrets.outputs.enabled == 'true'
         run: npx playwright test
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
@@ -55,11 +67,11 @@ jobs:
       # Deep-pass fix: cross-browser smoke (Firefox + WebKit) on key public
       # pages — the local VPS can't install WebKit system deps, so CI covers it.
       - name: Install Firefox + WebKit
-        if: ${{ secrets.BASE_URL != '' }}
+        if: steps.e2e-secrets.outputs.enabled == 'true'
         run: npx playwright install --with-deps firefox webkit
 
       - name: Cross-browser smoke (Firefox + WebKit + Chromium)
-        if: ${{ secrets.BASE_URL != '' }}
+        if: steps.e2e-secrets.outputs.enabled == 'true'
         run: node --import ./scripts/paths-loader.mjs --experimental-strip-types scripts/cross-browser-smoke.mts
         env:
           BASE_URL: ${{ secrets.BASE_URL }}
