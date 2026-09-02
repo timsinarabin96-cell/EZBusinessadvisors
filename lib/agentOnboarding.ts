@@ -3,6 +3,29 @@ import { createNotification } from '@/lib/notifications'
 
 const DOCUMENTS_BUCKET = 'documents'
 
+export function onboardingCertificateDocument(input: {
+  agentName: string
+  agencyId: string
+  profileId: string
+  storagePath: string
+  completedAt: string
+}) {
+  return {
+    title: `Agent Onboarding Certificate — ${input.agentName}`,
+    status: 'archived',
+    folder: 'Employee Files',
+    created_by: input.profileId,
+    filled_data: {
+      kind: 'agent_onboarding_certificate',
+      agency_id: input.agencyId,
+      employee_profile_id: input.profileId,
+      storage_path: input.storagePath,
+      completed_at: input.completedAt,
+    },
+    parties: [{ role: 'agent', profile_id: input.profileId, name: input.agentName }],
+  }
+}
+
 export async function ensureAgentOnboardingForInvite(database: any, inviteId: string): Promise<void> {
   const { error } = await database.rpc('ensure_agent_onboarding_for_invite', { p_invite_id: inviteId })
   if (error) console.warn('[agent-onboarding] enrollment bootstrap skipped:', error.message)
@@ -37,19 +60,19 @@ export async function generateOnboardingCertificate(database: any, enrollmentId:
   page.drawText(completionDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }), { x: 305, y: 225, size: 14, font: serif })
   page.drawText('Concord Deal Platform', { x: 315, y: 90, size: 13, font: serifBold })
   const bytes = await pdf.save()
-  const storagePath = `agency/${enrollment.agency_id}/onboarding-certificates/${enrollment.profile_id}-${completionDate.toISOString().slice(0, 10)}.pdf`
+  const storagePath = `agency/${enrollment.agency_id}/employee-files/${enrollment.profile_id}/certificates/onboarding-${completionDate.toISOString().slice(0, 10)}.pdf`
   const { error: uploadError } = await database.storage.from(DOCUMENTS_BUCKET).upload(storagePath, Buffer.from(bytes), {
     contentType: 'application/pdf', upsert: true,
   })
   if (uploadError) return { ok: false, error: uploadError.message }
 
-  const { data: document, error: documentError } = await database.from('documents').insert({
-    title: `Agent Onboarding Certificate — ${agentName}`,
-    status: 'archived',
-    created_by: enrollment.profile_id,
-    filled_data: { kind: 'agent_onboarding_certificate', agency_id: enrollment.agency_id, storage_path: storagePath, completed_at: completionDate.toISOString() },
-    parties: [{ role: 'agent', profile_id: enrollment.profile_id, name: agentName }],
-  }).select('id').single()
+  const { data: document, error: documentError } = await database.from('documents').insert(onboardingCertificateDocument({
+    agentName,
+    agencyId: enrollment.agency_id,
+    profileId: enrollment.profile_id,
+    storagePath,
+    completedAt: completionDate.toISOString(),
+  })).select('id').single()
   if (documentError) return { ok: false, error: documentError.message }
 
   await Promise.all([
@@ -85,4 +108,3 @@ export async function generateOnboardingCertificate(database: any, enrollmentId:
   })
   return { ok: true, documentId: document.id, storagePath }
 }
-

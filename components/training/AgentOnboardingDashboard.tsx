@@ -65,7 +65,14 @@ export function AgentOnboardingDashboard() {
     </div>
 
     {message && <div style={{ padding: 14, borderRadius: 10, background: '#fff7d6', marginBottom: 16 }}>{message}</div>}
-    {enrollment.certificateUrl && <a href={enrollment.certificateUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginBottom: 18, color: '#8a6415', fontWeight: 800 }}>Download Certificate of Completion →</a>}
+    {enrollment.certificateUrl && <section id="employee-file" style={{ border: '1px solid #ead9a6', background: '#fffaf0', borderRadius: 14, padding: 18, marginBottom: 18 }}>
+      <div style={{ fontWeight: 850, color: '#15223b', marginBottom: 10 }}>Certificate of Completion</div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <a href={enrollment.certificateUrl} download style={{ borderRadius: 9, padding: '10px 16px', background: '#15223b', color: 'white', fontWeight: 800, textDecoration: 'none' }}>Download certificate</a>
+        <a href={enrollment.certificateUrl} target="_blank" rel="noreferrer" style={{ borderRadius: 9, padding: '10px 16px', border: '1px solid #c9a84c', color: '#6f5215', fontWeight: 800, textDecoration: 'none' }}>Print certificate</a>
+      </div>
+      <div style={{ color: '#667085', fontSize: 13, marginTop: 10 }}>Saved to your <a href="#employee-file" style={{ color: '#8a6415', fontWeight: 750 }}>employee file</a>.</div>
+    </section>}
 
     <div style={{ display: 'grid', gap: 16 }}>
       {modules.map((module) => <section key={module.id} style={{ border: '1px solid #dfe3ea', borderRadius: 14, padding: 22, background: 'white' }}>
@@ -90,4 +97,3 @@ export function AgentOnboardingDashboard() {
     </div>
   </div>
 }
-
