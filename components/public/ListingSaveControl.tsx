@@ -8,7 +8,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { isFavorite, toggleFavorite, getSavedEmail, setSavedIdentity, syncSavedListing } from '@/lib/publicFavorites'
+import { isFavorite, toggleFavorite, isComparing, toggleCompare, getSavedEmail, setSavedIdentity, syncSavedListing } from '@/lib/publicFavorites'
 
 /**
  * Save-to-favorites control for surfaces that do NOT render PublicListingCard
@@ -18,6 +18,8 @@ import { isFavorite, toggleFavorite, getSavedEmail, setSavedIdentity, syncSavedL
  */
 export default function ListingSaveControl({ listingId, listingTitle, variant = 'hero' }: { listingId: string; listingTitle: string; variant?: 'hero' | 'aside' }) {
   const [fav, setFav] = useState(false)
+  const [compare, setCompare] = useState(false)
+  const [compareFull, setCompareFull] = useState(false)
   const [showEmailPrompt, setShowEmailPrompt] = useState(false)
   const [emailPromptValue, setEmailPromptValue] = useState('')
   const [emailPromptBusy, setEmailPromptBusy] = useState(false)
@@ -25,6 +27,7 @@ export default function ListingSaveControl({ listingId, listingTitle, variant = 
 
   useEffect(() => {
     setFav(isFavorite(listingId))
+    setCompare(isComparing(listingId))
   }, [listingId])
 
   const onSave = () => {
@@ -82,6 +85,12 @@ export default function ListingSaveControl({ listingId, listingTitle, variant = 
     setEmailPromptValue('')
   }
 
+  const onCompare = () => {
+    const result = toggleCompare(listingId)
+    setCompare(isComparing(listingId))
+    if (result.full) setCompareFull(true)
+  }
+
   const heroStyle = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -118,10 +127,32 @@ export default function ListingSaveControl({ listingId, listingTitle, variant = 
 
   return (
     <>
-      <button type="button" onClick={onSave} title={fav ? 'Remove from favorites' : 'Save to favorites'} style={variant === 'hero' ? heroStyle : asideStyle}>
-        <span style={{ fontSize: variant === 'hero' ? 16 : 15, lineHeight: 1 }}>{fav ? '♥' : '♡'}</span>
-        {fav ? 'Saved' : 'Save'}
-      </button>
+      <div style={variant === 'hero' ? { display: 'inline-flex', gap: 8, alignItems: 'center' } : { display: 'grid', gap: 8 }}>
+        <button type="button" onClick={onSave} title={fav ? 'Remove from favorites' : 'Save to favorites'} style={variant === 'hero' ? heroStyle : asideStyle}>
+          <span style={{ fontSize: variant === 'hero' ? 16 : 15, lineHeight: 1 }}>{fav ? '♥' : '♡'}</span>
+          {fav ? 'Saved' : 'Save'}
+        </button>
+        <button
+          type="button"
+          onClick={onCompare}
+          title={compare ? 'Remove from compare' : 'Add to compare'}
+          style={{
+            ...(variant === 'hero' ? heroStyle : asideStyle),
+            ...(variant === 'hero'
+              ? { border: compare ? '1px solid rgba(201,168,76,0.7)' : '1px solid rgba(255,255,255,0.35)', background: compare ? 'rgba(201,168,76,0.18)' : 'rgba(255,255,255,0.08)', color: compare ? '#f0d98c' : '#fff' }
+              : { border: compare ? '1px solid #c9a84c' : '1px solid #d8d2c2', background: compare ? '#fdf9ef' : '#fff', color: compare ? '#8a6d1a' : '#1a1a2e' }),
+          }}
+        >
+          <span style={{ fontSize: variant === 'hero' ? 14 : 13, lineHeight: 1 }}>⚖</span>
+          {compare ? 'Comparing' : 'Compare'}
+        </button>
+      </div>
+
+      {compareFull && (
+        <div style={{ position: 'fixed', zIndex: 60, bottom: 24, left: '50%', transform: 'translateX(-50%)', background: '#1a1a2e', color: '#fff', padding: '12px 20px', borderRadius: 10, fontSize: 13.5, fontWeight: 700, boxShadow: '0 10px 40px rgba(0,0,0,0.35)' }}>
+          Compare up to 3 — open <a href="/marketplace/compare" style={{ color: '#c9a84c' }}>compare tray</a>
+        </div>
+      )}
 
       {showEmailPrompt && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,14,28,0.55)', padding: 20 }}>
