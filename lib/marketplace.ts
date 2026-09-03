@@ -74,6 +74,17 @@ export interface PublicMarketplaceListing {
   goodwill_included?: boolean | null
   asset_sale?: boolean | null
   inventory_value?: number | null
+  // Franchise economics (buyer-facing): brand / fee / royalty / territory / investment
+  brand_name?: string | null
+  franchise_fee?: number | null
+  royalty_fee_pct?: number | null
+  territories_available?: string | null
+  existing_units?: number | null
+  total_investment_min?: number | null
+  total_investment_max?: number | null
+  industry_category?: string | null
+  ideal_candidate_liquid_capital?: number | null
+  ideal_candidate_net_worth?: number | null
 }
 
 interface PublicListingFeedRow {
@@ -133,6 +144,16 @@ interface PublicListingFeedRow {
   goodwill_included?: boolean | null
   asset_sale?: boolean | null
   inventory_value?: number | string | null
+  brand_name?: string | null
+  franchise_fee?: number | string | null
+  royalty_fee_pct?: number | string | null
+  territories_available?: string | null
+  existing_units?: number | null
+  total_investment_min?: number | string | null
+  total_investment_max?: number | string | null
+  industry_category?: string | null
+  ideal_candidate_liquid_capital?: number | string | null
+  ideal_candidate_net_worth?: number | string | null
 }
 
 export interface MarketplaceStats {
@@ -273,6 +294,16 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     goodwill_included: row.goodwill_included ?? null,
     asset_sale: row.asset_sale ?? null,
     inventory_value: numberOrNull(row.inventory_value),
+    brand_name: row.brand_name || null,
+    franchise_fee: numberOrNull(row.franchise_fee),
+    royalty_fee_pct: numberOrNull(row.royalty_fee_pct),
+    territories_available: row.territories_available || null,
+    existing_units: row.existing_units != null ? Number(row.existing_units) : null,
+    total_investment_min: numberOrNull(row.total_investment_min),
+    total_investment_max: numberOrNull(row.total_investment_max),
+    industry_category: row.industry_category || null,
+    ideal_candidate_liquid_capital: numberOrNull(row.ideal_candidate_liquid_capital),
+    ideal_candidate_net_worth: numberOrNull(row.ideal_candidate_net_worth),
     seller_financing_available: row.seller_financing_available ?? null,
     established_year: row.established_year ?? null,
     employees_full_time: row.employees_full_time ?? null,

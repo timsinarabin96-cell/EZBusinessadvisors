@@ -222,12 +222,22 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
           )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
             <div>
-              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Asking Price</div>
+              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>{listing.is_franchise ? 'Total Investment' : 'Asking Price'}</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>
-                {listing.asking_price != null ? fmt$(listing.asking_price) : PRICING_CTA}
+                {listing.asking_price != null ? fmt$(listing.asking_price) : listing.is_franchise && (listing.total_investment_min != null || listing.total_investment_max != null)
+                  ? investmentRangeLabel(listing)
+                  : PRICING_CTA}
               </div>
-              {priceTeaser(listing) && listing.asking_price == null && (
+              {priceTeaser(listing) && listing.asking_price == null && !listing.is_franchise && (
                 <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{priceTeaser(listing)}</div>
+              )}
+              {listing.is_franchise === true && (listing.brand_name || listing.franchise_fee != null || listing.royalty_fee_pct != null || listing.territories_available) && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                  {listing.brand_name && <InclusionChip tone="#7c3aed">🏷️ {listing.brand_name}</InclusionChip>}
+                  {listing.franchise_fee != null && <InclusionChip tone="#b45309">Fee {fmt$(listing.franchise_fee)}</InclusionChip>}
+                  {listing.royalty_fee_pct != null && <InclusionChip tone="#1e7e34">Royalty {listing.royalty_fee_pct}%</InclusionChip>}
+                  {listing.territories_available && <InclusionChip tone="#1d4ed8">📍 {listing.territories_available}</InclusionChip>}
+                </div>
               )}
               {(listing.is_franchise !== true && (listing.inventory_included != null || listing.real_estate_included != null || listing.asset_sale != null)) && (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
@@ -356,4 +366,13 @@ function InclusionChip({ tone, children }: { tone: string; children: React.React
       {children}
     </span>
   )
+}
+
+/** Franchise opportunities list a total-investment range instead of an asking price. */
+function investmentRangeLabel(listing: { total_investment_min?: number | null; total_investment_max?: number | null }): string {
+  const { total_investment_min: min, total_investment_max: max } = listing
+  if (min != null && max != null && min !== max) return `${fmt$(min)} – ${fmt$(max)}`
+  if (min != null) return `From ${fmt$(min)}`
+  if (max != null) return `Up to ${fmt$(max)}`
+  return 'Investment on application'
 }
