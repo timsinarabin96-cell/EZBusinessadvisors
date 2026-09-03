@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
   // should never block the buyer's unlock.
   //
   // AGENCY TEMPLATE GATE (boss 08-31): when the listing's agency maintains its
-  // own NDA template (document_templates, agency-scoped — see TemplateManager),
+  // own NDA template (document_templates, agency-scoped),
   // the buyer signs THAT fillable template (their name/info auto-populated,
   // rendered through the same shared PDF engine as the broker pack) instead of
   // the platform-default global PDF. Every agency owns its NDA language.

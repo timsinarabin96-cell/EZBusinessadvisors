@@ -10,8 +10,7 @@
 // =============================================================================
 // AgencyBrandAdmin — agency-wide business card + marketing brand settings.
 // Only agency admins/owners see this. Sets the default brand (primary/secondary/
-// accent color, font, logo) that every broker inherits by default. Brokers can
-// still override per-broker via BusinessCardBrandSettings.
+// accent color, font, logo) that every broker inherits by default.
 // =============================================================================
 
 import { useEffect, useState } from 'react'
