@@ -70,11 +70,11 @@ test('notifications v2 premium: platform vs agency identity split (subjects + br
   const activity = { ...EMPTY_DIGEST_ACTIVITY, buyerLeads: [{ id: 'l1', agency_id: 'a', full_name: 'Ada Buyer', phone: '(717) 555-0100' }] }
   const agency = renderHourlyDigest({ agencyName: 'EZ Business Advisors', activity, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z', brand: { name: 'EZ Business Advisors', accentColor: '#c9a84c' } })
   const platform = renderHourlyDigest({ agencyName: 'Concord Deal Platform', activity, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z', platformRollup: true, brand: { name: 'Concord Deal Platform' }, agencySummaries: [{ name: 'EZ Business Advisors', listings: 2, leads: 1, ndas: 0, intakes: 0, revenue: 0, commissions: 0 }] })
-  assert.match(agency.subject, /EZ Business Advisors — Hourly Deal Desk Digest/)
+  assert.match(agency.subject, /EZ Business Advisors — Deal Desk Digest/)
   assert.match(platform.subject, /Platform Admin Update/)
   assert.doesNotMatch(agency.subject, /Platform Admin Update/)
   // Branding headers + charts present
-  assert.match(agency.html, /Hourly Deal Desk Digest/)
+  assert.match(agency.html, /Deal Desk Digest/)
   assert.match(agency.html, /Deal-desk mix/)
   assert.match(agency.html, /Buyer leads/)
   assert.match(platform.html, /Activity by agency/)
@@ -85,9 +85,9 @@ test('notifications v2 premium: platform vs agency identity split (subjects + br
   assert.match(agency.html, /tel:/)
 })
 
-test('notifications v2 premium: quiet hour still renders premium state, never throws', () => {
+test('notifications v2 premium: quiet window still renders premium state, never throws', () => {
   const rendered = renderHourlyDigest({ agencyName: 'EZ Business Advisors', activity: EMPTY_DIGEST_ACTIVITY, windowStart: '2026-09-02T17:00:00Z', windowEnd: '2026-09-02T18:00:00Z' })
-  assert.match(rendered.html, /quiet hour/i)
+  assert.match(rendered.html, /quiet window/i)
   assert.match(rendered.html, /Executive Brief/)
   assert.ok(rendered.html.length > 800)
 })

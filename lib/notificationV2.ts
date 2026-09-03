@@ -212,12 +212,12 @@ export function renderHourlyDigest(input: {
     const summaries = input.agencySummaries
     const maxListings = Math.max(1, ...summaries.map((s) => s.listings))
     const rowsHtml = summaries.map((s) => barRow(s.name, s.listings, maxListings, accent)).join('')
-    agencyChart = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 30px"><tr><td style="padding:0 0 10px;border-bottom:1px solid #e7e0d2"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="font:700 15px/1.3 ${FONT_HEAD};color:#0d1321">Activity by agency</td><td style="text-align:right;font:11px/1 ${FONT_BODY};letter-spacing:.1em;text-transform:uppercase;color:#8b7d5c">listings this hour</td></tr></table></td></tr><tr><td style="padding:12px 0 0">${rowsHtml}</td></tr></table>`
+    agencyChart = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 30px"><tr><td style="padding:0 0 10px;border-bottom:1px solid #e7e0d2"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="font:700 15px/1.3 ${FONT_HEAD};color:#0d1321">Activity by agency</td><td style="text-align:right;font:11px/1 ${FONT_BODY};letter-spacing:.1em;text-transform:uppercase;color:#8b7d5c">listings this window</td></tr></table></td></tr><tr><td style="padding:12px 0 0">${rowsHtml}</td></tr></table>`
   }
 
   // Activity mix bars (leads / listings / NDAs / offers / intakes).
   const mixMax = Math.max(1, newLeads, liveListings, ndaCount, offerCount, activity.sellerIntakes.length)
-  const mixChart = count === 0 ? '' : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 30px"><tr><td style="padding:0 0 10px;border-bottom:1px solid #e7e0d2"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="font:700 15px/1.3 ${FONT_HEAD};color:#0d1321">Deal-desk mix</td><td style="text-align:right;font:11px/1 ${FONT_BODY};letter-spacing:.1em;text-transform:uppercase;color:#8b7d5c">this hour</td></tr></table></td></tr><tr><td style="padding:12px 0 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${barRow('Buyer leads', newLeads, mixMax, accent)}${barRow('Listing activity', liveListings, mixMax, accent)}${barRow('NDA & data-room', ndaCount, mixMax, accent)}${barRow('Offers / LOIs', offerCount, mixMax, accent)}${barRow('Seller intakes', activity.sellerIntakes.length, mixMax, accent)}</table></td></tr></table>`
+  const mixChart = count === 0 ? '' : `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 30px"><tr><td style="padding:0 0 10px;border-bottom:1px solid #e7e0d2"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="font:700 15px/1.3 ${FONT_HEAD};color:#0d1321">Deal-desk mix</td><td style="text-align:right;font:11px/1 ${FONT_BODY};letter-spacing:.1em;text-transform:uppercase;color:#8b7d5c">this window</td></tr></table></td></tr><tr><td style="padding:12px 0 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${barRow('Buyer leads', newLeads, mixMax, accent)}${barRow('Listing activity', liveListings, mixMax, accent)}${barRow('NDA & data-room', ndaCount, mixMax, accent)}${barRow('Offers / LOIs', offerCount, mixMax, accent)}${barRow('Seller intakes', activity.sellerIntakes.length, mixMax, accent)}</table></td></tr></table>`
 
   const kpiCells = [
     kpi('Activity updates', String(count)),
@@ -227,7 +227,7 @@ export function renderHourlyDigest(input: {
   ].join('')
 
   const quiet = count === 0
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:34px 24px;text-align:center;background:#fbf9f3;border:1px solid #e7e0d2;border-radius:14px"><div style="font:700 40px/1 ${FONT_HEAD};color:#c9a84c">✓</div><div style="font:700 17px/1.4 ${FONT_HEAD};color:#0d1321;margin-top:10px">A quiet hour on the desk</div><div style="font:13px/1.5 ${FONT_BODY};color:#8a8f98;margin-top:6px">No new listings, leads, NDAs, offers, or calls this window.<br/>Everything is operating normally.</div></td></tr></table>`
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:34px 24px;text-align:center;background:#fbf9f3;border:1px solid #e7e0d2;border-radius:14px"><div style="font:700 40px/1 ${FONT_HEAD};color:#c9a84c">✓</div><div style="font:700 17px/1.4 ${FONT_HEAD};color:#0d1321;margin-top:10px">A quiet window on the desk</div><div style="font:13px/1.5 ${FONT_BODY};color:#8a8f98;margin-top:6px">No new listings, leads, NDAs, offers, or calls this window.<br/>Everything is operating normally.</div></td></tr></table>`
     : ''
 
   const financeHtml = input.finance
@@ -235,8 +235,8 @@ export function renderHourlyDigest(input: {
     : ''
 
   const subject = platform
-    ? `🛰️ Platform Admin Update — hourly · all agencies (${count})`
-    : `📊 ${agencyName} — Hourly Deal Desk Digest (${count})`
+    ? `🛰️ Platform Admin Update — all agencies (${count})`
+    : `📊 ${agencyName} — Deal Desk Digest (${count})`
 
   const headerBrand = logoUrl
     ? `<img src="${esc(logoUrl)}" alt="" width="46" height="46" style="display:block;border-radius:10px" />`
@@ -251,7 +251,7 @@ export function renderHourlyDigest(input: {
       <td style="vertical-align:middle">${headerBrand}</td>
       <td style="vertical-align:middle;padding-left:16px">
         <div style="font:11px/1 ${FONT_BODY};letter-spacing:.22em;text-transform:uppercase;color:${accent};margin-bottom:6px">${platform ? 'Concord Deal Platform' : escHead(brand.name)}</div>
-        <div style="font:700 24px/1.15 ${FONT_HEAD};color:#ffffff">${platform ? 'Platform Admin Update' : 'Hourly Deal Desk Digest'}</div>
+        <div style="font:700 24px/1.15 ${FONT_HEAD};color:#ffffff">${platform ? 'Platform Admin Update' : 'Deal Desk Digest'}</div>
         <div style="font:12px/1.5 ${FONT_BODY};color:#9aa3b5;margin-top:6px">${time(input.windowStart)} – ${time(input.windowEnd)} ET${platform ? ' · all agencies' : ''}</div>
       </td>
       <td style="text-align:right;vertical-align:middle"><div style="display:inline-block;border:1px solid ${accent};color:${accent};font:700 10px/1 ${FONT_BODY};letter-spacing:.16em;text-transform:uppercase;padding:7px 12px;border-radius:999px">Executive Brief</div></td>
@@ -270,7 +270,7 @@ export function renderHourlyDigest(input: {
   <!-- Footer -->
   <tr><td style="background:#f7f4ee;padding:20px 34px;border-top:1px solid #e7e0d2">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td style="font:11.5px/1.6 ${FONT_BODY};color:#8a8f98">Generated ${time(new Date().toISOString())} ET · One complete ${platform ? 'platform' : 'agency'} summary per hour.<br/>Immediate buyer, NDA, offer, and 🚨 critical alerts are delivered separately.</td>
+      <td style="font:11.5px/1.6 ${FONT_BODY};color:#8a8f98">Generated ${time(new Date().toISOString())} ET · Two complete ${platform ? 'platform' : 'agency'} summaries per day (9 AM & 9 PM ET).<br/>Immediate buyer, NDA, offer, and 🚨 critical alerts are delivered separately.</td>
       <td style="text-align:right;font:11px/1.6 ${FONT_BODY};color:#8a8f98;white-space:nowrap">${platform ? 'Concord Deal Platform' : escHead(brand.name)}<br/>Adjust preferences in Settings → Notifications</td>
     </tr></table>
   </td></tr>

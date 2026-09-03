@@ -133,9 +133,18 @@ export async function POST(req: Request) {
   if (!isCronAuthorized(req)) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   if (!SUPABASE_URL || !SERVICE_KEY) return NextResponse.json({ ok: false, error: 'not configured' }, { status: 503 })
 
+  // ── Twice-daily schedule (9 AM / 9 PM ET) ────────────────────────────────
+  // Vercel cron fires at 01:00/02:00/13:00/14:00 UTC to cover both DST states;
+  // this gate ensures we only run on the true 9:00 and 21:00 ET windows.
+  const etHour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hourCycle: 'h23' }).format(new Date()))
+  if (etHour !== 9 && etHour !== 21) {
+    return NextResponse.json({ ok: true, skipped: 'outside 9AM/9PM ET digest window', etHour })
+  }
+
   const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
   const windowEnd = new Date()
-  const windowStart = new Date(windowEnd.getTime() - 60 * 60 * 1000)
+  // Covers the full span since the previous digest (12h apart at 9AM/9PM ET).
+  const windowStart = new Date(windowEnd.getTime() - 12 * 60 * 60 * 1000)
   const preferredAgencies = await db.from('agencies').select('id, name, brand_color, accent_color, logo_url, notifications_hourly_digest').eq('is_active', true).order('name')
   const fallbackAgencies = preferredAgencies.error
     ? await db.from('agencies').select('id, name, notifications_hourly_digest').eq('is_active', true).order('name')
@@ -176,7 +185,7 @@ export async function POST(req: Request) {
     for (const recipient of optedIn) {
       const result = await sendEmail({ to: recipient.email, subject: rendered.subject, html: rendered.html, kind: 'hourly_digest', fromName: agency.name || 'Your Brokerage', meta: { agency_id: agency.id, digest_window_start: windowStart.toISOString(), digest_window_end: windowEnd.toISOString() } })
       result.ok ? report.sent++ : report.failed++
-      await db.from('app_notifications').insert({ agency_id: agency.id, profile_id: recipient.id, title: 'Hourly activity digest ready', body: rendered.subject, kind: 'info', link: '/dashboard' }).then(() => undefined)
+      await db.from('app_notifications').insert({ agency_id: agency.id, profile_id: recipient.id, title: 'Activity digest ready', body: rendered.subject, kind: 'info', link: '/dashboard' }).then(() => undefined)
       await pause(125)
     }
   }

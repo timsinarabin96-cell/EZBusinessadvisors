@@ -672,8 +672,8 @@ export async function notify(
         await svc.from('email_emails').insert({
           email_to: to,
           subject: `[digested] ${emailTemplates.generic({ title: kind, message: '' }).subject || kind}`,
-          html: `<p>Suppressed per-event email (${kind}) — reported in the hourly digest instead.</p>`,
-          text: `Suppressed per-event email (${kind}) — reported in the hourly digest instead.`,
+          html: `<p>Suppressed per-event email (${kind}) — reported in the deal desk digest instead.</p>`,
+          text: `Suppressed per-event email (${kind}) — reported in the deal desk digest instead.`,
           kind,
           meta: { ...payload, digested: true },
           status: 'digested',
