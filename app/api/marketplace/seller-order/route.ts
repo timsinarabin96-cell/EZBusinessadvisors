@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
       await db.from('listings').update({ portal_token: portalToken }).eq('id', listingId).maybeSingle()
     }
   }
-  const portalUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'}/seller/${portalToken}`
+  const portalUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'}/seller/${portalToken}`
   await notify('generic', parsed.data.seller_email, {
     title: `Your listing request — track it anytime: ${parsed.data.business_name}`,
     message: [

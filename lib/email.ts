@@ -42,7 +42,7 @@ const svc =
 // --- Configuration ----------------------------------------------------------
 const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
 const FROM = process.env.SMTP_FROM || 'CONCORD Deal Platform <no-reply@ezbusinessadvisors.com>'
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 
 // ── Test-email guard (boss 09-01) ────────────────────────────────────────────
 // When EMAIL_TEST_MODE=true and EMAIL_TEST_TO is set, EVERY outgoing platform

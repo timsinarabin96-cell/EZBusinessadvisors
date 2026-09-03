@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
   })
   if (!invite) return NextResponse.json({ ok: false, error: 'Failed to create invite' }, { status: 500 })
 
-  const origin = req.headers.get('origin') || 'https://concord-deal-platform.vercel.app'
+  const origin = req.headers.get('origin') || 'https://concorddeal.com'
   const url = `${origin}/invite/${invite.token}`
 
   // Optional: email the invite directly.

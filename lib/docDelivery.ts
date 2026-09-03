@@ -249,7 +249,7 @@ export async function approveDelivery(deliveryId: string, approverId: string): P
     if (upErr) return { ok: false, error: `Storage upload failed: ${upErr.message}` }
 
     // 3) Secure share link (token already on the row)
-    const base = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.vercel.app'
+    const base = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
     const shareUrl = `${base}/share/doc/${delivery.share_token}`
     const { data: signed } = await db.storage.from(DOCS_BUCKET).createSignedUrl(storagePath, 60 * 60 * 24 * 30)
     const directUrl = signed?.signedUrl || null

@@ -86,7 +86,7 @@ export function placeholderImageFor(opts: {
   if (opts.industry) p.set('industry', String(opts.industry).slice(0, 40))
   if (opts.price) p.set('price', String(opts.price))
   if (opts.agency) p.set('agency', String(opts.agency).slice(0, 40))
-  const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+  const base = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
   return `${base}/api/listing-images/placeholder?${p.toString()}`
 }
 

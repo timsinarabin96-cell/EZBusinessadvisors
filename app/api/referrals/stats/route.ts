@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   const sent = (invites || []).length
   const filled = (invites || []).filter((i) => i.status === 'filled').length
-  const origin = req.headers.get('origin') || 'https://concord-deal-platform.vercel.app'
+  const origin = req.headers.get('origin') || 'https://concorddeal.com'
 
   return NextResponse.json({
     ok: true,

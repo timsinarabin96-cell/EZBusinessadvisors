@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       expires_at: null,
     })
 
-    const origin = req.headers.get('origin') || 'https://concord-deal-platform.vercel.app'
+    const origin = req.headers.get('origin') || 'https://concorddeal.com'
     return NextResponse.json({
       ok: true,
       id: rowId,

@@ -78,7 +78,7 @@ const session = signIn.session
 console.log('✅ signed in')
 
 // 4) Call the REAL create-agency route with the user's session token.
-const E2E_SITE = process.env.E2E_SITE_URL || 'https://concord-deal-platform.vercel.app'
+const E2E_SITE = process.env.E2E_SITE_URL || 'https://concorddeal.com'
 const res = await fetch(`${URL}/functions/v1/placeholder`, { method: 'GET' }).catch(() => null)
 const res2 = await fetch(`${E2E_SITE}/api/billing/create-agency`, {
   method: 'POST',

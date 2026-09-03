@@ -23,7 +23,7 @@ import { createReminder } from './reminders'
 // is never imported by client components.
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 // EZ Business Advisors — default tenant for the public marketplace (matches
 // the agency seed in sql/core_agency_isolation.sql).
 const DEFAULT_AGENCY_ID = '354facdb-cce2-4eb0-a160-8454854e731a'

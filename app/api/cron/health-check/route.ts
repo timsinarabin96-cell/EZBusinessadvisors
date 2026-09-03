@@ -13,7 +13,7 @@ export const runtime = 'nodejs'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 
 /**
  * POST /api/cron/health-check — every 15 min. Pings the public site + the

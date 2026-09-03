@@ -58,7 +58,7 @@ export default function TrainingCertificate({
   const [template, setTemplate] = useState<CertTemplate>(defaultTemplate)
   const t = TEMPLATES[template]
   const date = issuedAt ? new Date(issuedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''
-  const vUrl = verifyUrl || (verificationCode ? `https://concord-deal-platform.vercel.app/verify?code=${verificationCode}` : '')
+  const vUrl = verifyUrl || (verificationCode ? `https://concorddeal.com/verify?code=${verificationCode}` : '')
   const title = moduleTitle || courseTitle
   const brand = (agencyName && agencyName.trim()) || 'CONCORD'
   const brandLine = agencyName && agencyName.trim() ? 'B U S I N E S S   I N T E R M E D I A R Y' : 'D E A L   P L A T F O R M'

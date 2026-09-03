@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
               updated_at: new Date().toISOString(),
             }).eq('id', listingId)
             const name = String((fresh as { business_name?: string | null } | null)?.business_name || 'Deal')
-            const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+            const origin = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
             if (auth.user.email) {
               await sendEmail({
                 to: auth.user.email,

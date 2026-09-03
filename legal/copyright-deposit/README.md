@@ -26,7 +26,7 @@ Register at **copyright.gov** (not PA — copyright is federal). Two application
 - **Deposit:** screenshots/printouts of the home page + representative pages.
   Save each page as PDF via the browser's **Print → Save as PDF**.
   Recommended pages (once the site is deployed/reachable):
-  1. `https://concord.ezbusinessadvisors.com/` (home)
+  1. `https://concorddeal.com/` (home)
   2. `/marketplace/listings` (marketplace)
   3. `/marketplace/brokers` (broker network)
   4. `/pricing`

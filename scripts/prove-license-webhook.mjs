@@ -19,7 +19,7 @@ import { readFileSync } from 'node:fs'
 const unquote = (s) => (s ?? '').trim().replace(/^"|"$/g, '')
 const STRIPE_KEY = unquote(readFileSync('.env.local', 'utf8').match(/^STRIPE_SECRET_KEY=(.+)$/m)?.[1])
 const WEBHOOK_SECRET = unquote(readFileSync('.env.local', 'utf8').match(/^STRIPE_WEBHOOK_SECRET=(.+)$/m)?.[1])
-const SITE = 'https://concord-deal-platform.vercel.app'
+const SITE = 'https://concorddeal.com'
 const AGENCY_ID = '39a9b7da-a944-4dd1-8d4a-c03dd556eac8'
 const PROFILE_ID = '7aa89a5f-5896-4035-92bd-683af3e9135e'
 

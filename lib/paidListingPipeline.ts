@@ -76,7 +76,7 @@ export async function runPaidListingPipeline(input: PaidPipelineInput): Promise<
     } catch { /* best-effort */ }
 
     // 3) Notify the seller with their private portal link (if we have one).
-    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+    const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
     if (input.sellerEmail) {
       try {
         const { data: l } = await svc.from('listings').select('portal_token, business_name').eq('id', listingId).maybeSingle()

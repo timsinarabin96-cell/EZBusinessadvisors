@@ -73,7 +73,7 @@ export async function resolveAgencyBroker(agencyId: string): Promise<PublicAgent
         : agency.domain
           ? `https://${agency.domain}`
           : agency.slug
-            ? `https://${agency.slug}.ezbusinessadvisors.vercel.app`
+            ? `https://${agency.slug}.concorddeal.com`
             : null
       : null
 
@@ -199,7 +199,7 @@ export async function fetchPublicListingsMeta(identifiers: string[]): Promise<Pu
           : agency.domain
             ? `https://${agency.domain}`
             : agency.slug
-              ? `https://${agency.slug}.ezbusinessadvisors.vercel.app`
+              ? `https://${agency.slug}.concorddeal.com`
               : null
         : null
       // Agent card resolution, in order: assigned/agency broker profile →

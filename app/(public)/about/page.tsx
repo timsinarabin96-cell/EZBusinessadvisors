@@ -8,7 +8,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
 
 export const metadata: Metadata = {
   title: 'About Us',

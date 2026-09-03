@@ -21,7 +21,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 
 function svc() {
   return SUPABASE_URL && SERVICE_KEY ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } }) : null

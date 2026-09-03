@@ -23,7 +23,7 @@
 
 import { esc, nowLabel, type NewEdition, type Article } from '@/lib/newspaperShared'
 
-const SITE_BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+const SITE_BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
 const MAX_LISTINGS = 24
 
 export type InventoryListing = {

@@ -131,7 +131,7 @@ export default async function FlyerPage({ params }: { params: Promise<{ id: stri
                 {meta.agent.agencyWebsite.replace(/^https?:\/\//, '')}
               </a>
             ) : (
-              <span>ezbusinessadvisors.vercel.app</span>
+              <span>concorddeal.com</span>
             )}
           </div>
           <div style={{ display: 'flex', gap: 10 }}>

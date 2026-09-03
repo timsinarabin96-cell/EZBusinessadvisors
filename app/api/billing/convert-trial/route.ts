@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
       try {
         const { data: invite, error: inviteErr } = await db.auth.admin.inviteUserByEmail(ownerEmail, {
           data: { full_name: 'Agency Owner' },
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'}/onboarding`,
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'}/onboarding`,
         })
         if (!inviteErr && invite?.user?.id) {
           userId = invite.user.id

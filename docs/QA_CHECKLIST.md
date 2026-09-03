@@ -1,6 +1,6 @@
 # 🧪 Concord Deal Platform — EXHAUSTIVE QA Checklist (Human Tester)
 
-**Test environment (LIVE):** https://ezbusinessadvisors.vercel.app
+**Test environment (LIVE):** https://concorddeal.com
 **Browsers:** Chrome desktop + phone (Safari/Chrome mobile) + incognito
 **Record:** every bug with URL, step, expected vs actual, screenshot
 
@@ -254,8 +254,8 @@
 
 # 🔁 ROUND 2 — 2026-08-28 evening (post-deploy regression pass)
 
-**⚠️ IMPORTANT — USE THIS URL:** https://ezbusinessadvisors.vercel.app
-**(`ezbusinessadvisors.com` still points at an old placeholder host — do NOT test there; domain cutover pending.)**
+**⚠️ IMPORTANT — USE THIS URL:** https://concorddeal.com
+**(`concorddeal.com` still points at an old placeholder host — do NOT test there; domain cutover pending.)**
 
 ## What changed since Round 1 (focus these)
 1. **Homepage rebuilt sections** — `/` now has: FAQ accordion (6 Qs), FAQPage schema, og:image + Twitter card meta.

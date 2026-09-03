@@ -132,7 +132,7 @@ export async function generateCaptainsBrief(agencyId: string): Promise<BriefSumm
       expiring,
       matches,
       commissions: pipeline,
-      briefUrl: 'https://concord-deal-platform.vercel.app/dashboard',
+      briefUrl: 'https://concorddeal.com/dashboard',
     })
   }
 

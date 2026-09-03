@@ -14,7 +14,7 @@ import { trainingGateResponse } from '@/lib/trainingGate'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 
 const esc = (s: string): string =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))

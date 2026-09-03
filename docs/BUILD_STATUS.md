@@ -7,7 +7,7 @@
 >
 > **Maintenance rule:** update this file in the same commit as any completed feature work.
 > Latest full-suite baseline: **967/967 unit tests green, typecheck clean** (2026-09-01, after public-sell-page tier rewire + contact-form CRM lead + digest cron).
-> Live DB: Supabase project `ytcvlvisufxmmzeblmwx` · Deployed: Vercel `ezbusinessadvisors.vercel.app`
+> Live DB: Supabase project `ytcvlvisufxmmzeblmwx` · Deployed: Vercel `concorddeal.com`
 
 ---
 

@@ -24,13 +24,13 @@ function authHeader(): string {
 export async function initiateDavidCall(to: string, context?: string): Promise<{ ok: boolean; sid?: string; error?: string }> {
   if (!ACCOUNT_SID || !API_KEY_SID || !API_KEY_SECRET) return { ok: false, error: 'Twilio not configured' }
   const base = `https://api.twilio.com/2010-04-01/Accounts/${ACCOUNT_SID}/Calls.json`
-  const twimlUrl = `https://concord-deal-platform.vercel.app/api/voice/twilio${context ? `?context=${encodeURIComponent(context)}` : ''}`
+  const twimlUrl = `https://concorddeal.com/api/voice/twilio${context ? `?context=${encodeURIComponent(context)}` : ''}`
   const body = new URLSearchParams({
     To: to,
     From: FROM_NUMBER,
     Url: twimlUrl,
     Method: 'POST',
-    StatusCallback: 'https://concord-deal-platform.vercel.app/api/voice/events',
+    StatusCallback: 'https://concorddeal.com/api/voice/events',
     StatusCallbackEvent: 'initiated ringing answered completed',
     StatusCallbackMethod: 'POST',
   })

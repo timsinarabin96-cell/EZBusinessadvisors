@@ -17,7 +17,7 @@ import DealAlertsSignup from '@/components/public/DealAlertsSignup'
 // an instant "manage my alerts" flow for the same email.
 // ===========================================================================
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
 
 export const metadata: Metadata = {
   title: 'Deal Alerts — Get Notified When a Business Goes Live | Concord',

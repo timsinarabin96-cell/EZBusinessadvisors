@@ -82,7 +82,7 @@ export async function fireDealRadar(
       .in('id', ids)
 
     const buyerById = new Map((buyers || []).map((b) => [b.id, b]))
-    const listingUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'}/marketplace/listings/${listingId}`
+    const listingUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'}/marketplace/listings/${listingId}`
 
     // Every new match is an immediate assignee event, independent of whether
     // the buyer opted into buyer-facing match marketing.

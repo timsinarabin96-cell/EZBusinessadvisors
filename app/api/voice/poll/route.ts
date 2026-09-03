@@ -20,7 +20,7 @@ export const runtime = 'nodejs'
 // =============================================================================
 
 const VOICE = 'Polly.Matthew-Neural'
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 const MAX_ATTEMPTS = 14 // ~2s pauses → ~30s worst-case hold before fallback
 
 function xml(body: string): NextResponse {

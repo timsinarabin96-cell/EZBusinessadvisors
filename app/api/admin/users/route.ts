@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await db.auth.admin.generateLink({ type: 'recovery', email })
     const token = data?.properties?.hashed_token
     if (error || !token) return NextResponse.json({ ok: false, error: error?.message || 'Failed to generate link' }, { status: 400 })
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ezbusinessadvisors.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ytcvlvisufxmmzeblmwx.supabase.co'
     const url = `${supabaseUrl}/auth/v1/verify?token=${encodeURIComponent(token)}&type=recovery&redirect_to=${encodeURIComponent(appUrl + '/auth/reset-password')}`
     await recordAdminAudit({

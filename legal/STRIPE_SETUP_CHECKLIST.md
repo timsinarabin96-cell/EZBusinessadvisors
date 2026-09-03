@@ -11,7 +11,7 @@ Everything in the platform that charges money (subscriptions, license, featured 
 1. Go to **Stripe Dashboard → Developers → Webhooks → Add endpoint**
 2. Endpoint URL:
    ```
-   https://concord.ezbusinessadvisors.com/api/stripe/webhook
+   https://concorddeal.com/api/stripe/webhook
    ```
 3. **Events to subscribe** (all four):
    - `checkout.session.completed`

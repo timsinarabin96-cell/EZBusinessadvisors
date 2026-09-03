@@ -147,7 +147,7 @@ export async function createEsignRequest(input: EsignRequestInput): Promise<Esig
         authenticationMethod: 'none',
         clientUserId: signers[0]?.recipientId || '1',
         recipientId: signers[0]?.recipientId || '1',
-        returnUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app',
+        returnUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com',
       }),
     })
     const view = viewRes.ok ? await viewRes.json() : null

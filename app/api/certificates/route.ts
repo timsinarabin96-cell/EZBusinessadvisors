@@ -30,7 +30,7 @@ const SVC = process.env.NEXT_PUBLIC_SUPABASE_URL
     })
   : null
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 
 function makeCode(): string {
   // SECURITY (2026-08-26 audit): was Math.random() — now CSPRNG.

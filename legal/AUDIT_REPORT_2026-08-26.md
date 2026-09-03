@@ -66,7 +66,7 @@ Total now: **18 security fixes, 50 commits, 618/618 tests green throughout**
 
 ### 🔴 HIGH
 1. **~~`convert-trial` trusts client `paymentConfirmed: true`~~ — FIXED 2026-08-26** (`5d49d51`): paid-plan conversion is now **platform-admin-only**; tenant admins must pay via Stripe Checkout, verified server-side by the webhook. No one can self-activate for free.
-2. **~~No Stripe webhook lifecycle~~ — FIXED 2026-08-26** (`5d49d51`): added `invoice.payment_failed` (7-day grace → existing cron locks), `customer.subscription.deleted` (deactivate + grace), `invoice.paid` (renewal: extend period, clear grace, unlock). **Still to do on your side:** register the webhook URL in the Stripe dashboard (`https://concord-deal-platform.vercel.app/api/stripe/webhook`) + confirm `STRIPE_WEBHOOK_SECRET` is set in Vercel env.
+2. **~~No Stripe webhook lifecycle~~ — FIXED 2026-08-26** (`5d49d51`): added `invoice.payment_failed` (7-day grace → existing cron locks), `customer.subscription.deleted` (deactivate + grace), `invoice.paid` (renewal: extend period, clear grace, unlock). **Still to do on your side:** register the webhook URL in the Stripe dashboard (`https://concorddeal.com/api/stripe/webhook`) + confirm `STRIPE_WEBHOOK_SECRET` is set in Vercel env.
 
 ### 🟡 MEDIUM
 3. **HIBP leaked-password check OFF** — needs Pro plan (~$25/mo). Enable in Supabase dashboard → Auth → Security when you upgrade.

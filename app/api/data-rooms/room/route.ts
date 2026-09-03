@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
           const emails = new Set<string>()
           for (const b of buyersRes.data || []) if (b.buyer_email) emails.add(b.buyer_email)
           for (const s of sharesRes.data || []) if (s.shared_with) emails.add(s.shared_with)
-          const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'}/portal/${dealId}/${token || ''}`
+          const portalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'}/portal/${dealId}/${token || ''}`
           for (const email of emails) {
             await notify('data_room_change', email, {
               fileName: file.name,

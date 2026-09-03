@@ -33,7 +33,7 @@ import { SponsoredSlot } from '@/components/public/SponsoredSlot'
 // All data is server-rendered from public_listing_feed (safe projection).
 // ===========================================================================
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
 const APP_NAME = 'Concord'
 
 export const metadata: Metadata = {

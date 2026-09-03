@@ -21,7 +21,7 @@ export const runtime = 'nodejs'
 // =============================================================================
 
 const VOICE = 'Polly.Matthew-Neural'
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 
 // Turn-taking: Twilio's ML end-of-speech detection (auto) + phone-call model
 // means the agent jumps in the moment the caller stops talking — no 6s dead

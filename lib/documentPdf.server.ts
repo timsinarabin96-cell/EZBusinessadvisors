@@ -84,7 +84,7 @@ export async function buildDocumentPdfBase64(doc: DocPdfInput, opts: DocPdfOpts)
     const logoPath = opts.agencyLogoUrl && opts.agencyLogoUrl.startsWith('/')
       ? opts.agencyLogoUrl
       : '/brand/ez-business-advisors.jpg'
-    const base = opts.appUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+    const base = opts.appUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
     const res = await fetch(`${base}${logoPath}`, { cache: 'no-store' })
     if (res.ok) {
       const buf = Buffer.from(await res.arrayBuffer())

@@ -4,8 +4,8 @@
 **From:** EZ Business Advisors
 **Date:** 2026-08-28
 **Scope:** Full platform regression + new homepage features
-**Test environment (LIVE):** https://ezbusinessadvisors.vercel.app
-**⚠️ Do NOT use ezbusinessadvisors.com — it still points at an old placeholder host. Use the vercel.app URL above.**
+**Test environment (LIVE):** https://concorddeal.com
+**⚠️ Do NOT use concorddeal.com — it still points at an old placeholder host. Use the vercel.app URL above.**
 
 ---
 

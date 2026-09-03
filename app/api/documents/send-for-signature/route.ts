@@ -14,7 +14,7 @@ import { trainingGateResponse } from '@/lib/trainingGate'
 
 export const runtime = 'nodejs'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
 
 /**
  * POST /api/documents/send-for-signature — send a real signing request.

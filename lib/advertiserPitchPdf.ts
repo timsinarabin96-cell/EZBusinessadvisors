@@ -150,7 +150,7 @@ export function buildAdvertiserPitchPdf(input: { stats: { totalListings: number;
   doc.setFont('times', 'normal')
   doc.setFontSize(11)
   doc.setTextColor(...INK)
-  doc.text(`Email: ${input.contactEmail || 'advertising@ezbusinessadvisors.vercel.app'}`, M, y)
+  doc.text(`Email: ${input.contactEmail || 'advertising@concorddeal.com'}`, M, y)
   y += 18
   if (input.contactPhone) {
     doc.text(`Phone: ${input.contactPhone}`, M, y)

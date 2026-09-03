@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       await sendEmail({
         to: w.email,
         subject: `💰 Price drop: ${listing?.business_name || 'a listing you watch'} is now $${Number(current).toLocaleString()}`,
-        html: `<h2>Price drop alert 🎉</h2><p><strong>${listing?.business_name || 'A listing you watch'}</strong> just dropped from <s>$${Number(last).toLocaleString()}</s> to <strong style="color:#1e7e34;">$${Number(current).toLocaleString()}</strong>.</p><p><a href="https://concord-deal-platform.vercel.app/marketplace/listings" style="display:inline-block;padding:12px 22px;background:#0e7490;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">View it now →</a></p>`,
+        html: `<h2>Price drop alert 🎉</h2><p><strong>${listing?.business_name || 'A listing you watch'}</strong> just dropped from <s>$${Number(last).toLocaleString()}</s> to <strong style="color:#1e7e34;">$${Number(current).toLocaleString()}</strong>.</p><p><a href="https://concorddeal.com/marketplace/listings" style="display:inline-block;padding:12px 22px;background:#0e7490;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">View it now →</a></p>`,
         kind: 'generic',
       }).catch(() => {})
       await db.from('price_watchers').update({ last_price: current }).eq('id', w.id)

@@ -14,7 +14,7 @@ import { getBrokerVideo } from '@/lib/brokerVideos'
 import ListingVideo from '@/components/listings/ListingVideo'
 import { safeJsonLd } from '@/lib/safeJsonLd'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
 
 async function getProfessional(id: string) {
   const client = createServerClient()

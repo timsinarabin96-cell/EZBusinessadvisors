@@ -619,7 +619,7 @@ export async function POST(req: NextRequest) {
         shipTo: ship,
         businessName: productName,
         headline: 'Confidential Business Opportunity',
-        contact: { name: 'EZ Business Advisors', phone: '', email: email || '', website: 'ezbusinessadvisors.com' },
+        contact: { name: 'EZ Business Advisors', phone: '', email: email || '', website: 'concorddeal.com' },
         brand: { name: 'CONCORD Deal Platform' },
         backgroundImageUrl: designMode === 'ai' ? artworkUrl : undefined,
       })

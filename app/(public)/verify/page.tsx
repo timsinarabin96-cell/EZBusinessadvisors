@@ -108,7 +108,7 @@ export default function VerifyPage() {
                   </div>
                   <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.08)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <a
-                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://concord-deal-platform.vercel.app/verify?code=${cert.code}`)}`}
+                      href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(`https://concorddeal.com/verify?code=${cert.code}`)}`}
                       target="_blank"
                       rel="noreferrer"
                       style={{ padding: '9px 18px', borderRadius: 8, background: '#0a66c2', color: '#fff', textDecoration: 'none', fontWeight: 800, fontSize: 13 }}

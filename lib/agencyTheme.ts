@@ -114,7 +114,7 @@ export async function resolveAgencyThemeByHost(host: string | null | undefined):
   if (!clean) return null
 
   // Match by custom_domain or platform domain (agencies.domain column), or by
-  // subdomain: {slug}.concordplatform.com / {slug}.concord-deal-platform.vercel.app
+  // subdomain: {slug}.concordplatform.com / {slug}.concorddeal.com
   const labels = clean.split('.')
   const slugCandidate = labels.length > 2 ? labels[0] : null
   const { data: agency } = await svc

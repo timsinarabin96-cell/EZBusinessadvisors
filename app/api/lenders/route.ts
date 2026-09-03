@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
     void (async () => {
       try {
         const { notify } = await import('@/lib/email')
-        const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://concord-deal-platform.vercel.app'
+        const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://concorddeal.com'
         await notify('generic', lender.email, {
           subject: 'You have a new deal to qualify',
           html: `

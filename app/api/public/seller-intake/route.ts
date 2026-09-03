@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   // 1) Record the seller lead (with agency — fixes the invisible-lead bug).
   //    Generate a portal token so the seller gets their self-service link.
   const portalToken = generatePortalToken()
-  const portalUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'}/seller/${portalToken}`
+  const portalUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'}/seller/${portalToken}`
   const { error: leadErr } = await svc.from('seller_leads').insert({
     agency_id: agencyId,
     full_name: name,

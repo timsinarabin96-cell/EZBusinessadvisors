@@ -14,7 +14,7 @@ import { safeJsonLd } from '@/lib/safeJsonLd'
 
 export const dynamic = 'force-dynamic'
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://ezbusinessadvisors.vercel.app'
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://concorddeal.com'
 
 const fmt$ = (n: number | null | undefined) => (n != null ? '$' + Math.round(n).toLocaleString() : '—')
 

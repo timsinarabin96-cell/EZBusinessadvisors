@@ -30,7 +30,7 @@ try {
   }
 } catch { /* non-fatal */ }
 
-const BASE_URL = process.env.BASE_URL || 'https://ezbusinessadvisors.vercel.app'
+const BASE_URL = process.env.BASE_URL || 'https://concorddeal.com'
 
 export default defineConfig({
   testDir: './e2e',
