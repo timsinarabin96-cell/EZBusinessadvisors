@@ -148,8 +148,4 @@ export function latestYoYRevenue(e: NormalizedEarnings): number | null {
   return (last.revenue - prev.revenue) / prev.revenue
 }
 
-/** SDE margin for the latest period (decimal, null if n/a). */
-export function latestSdeMargin(e: NormalizedEarnings): number | null {
-  if (e.revenue <= 0) return null
-  return e.sde / e.revenue
-}
+

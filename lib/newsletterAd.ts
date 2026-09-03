@@ -61,11 +61,6 @@ export async function fetchNewsletterSponsor(): Promise<NewsletterSponsor | null
   return cachedSponsor
 }
 
-/** Clear the cache (useful after an admin edits a slot in dev/tests). */
-export function resetNewsletterSponsorCache(): void {
-  cachedSponsor = undefined
-  cachedAt = 0
-}
 
 /** Small FTC-labeled sponsored block, styled to match the navy/gold shell. */
 export function newsletterSponsorHtml(sponsor: NewsletterSponsor): string {

@@ -217,10 +217,7 @@ export async function fetchDealOptions(): Promise<{ id: string; title: string }[
 // Resolve whether an option is a deal or a listing (heuristic: has a deal prefix
 // or not). We store whichever id the user picked; parent linkage handled by RLS
 // rules + the deal_id/listing_id columns we set explicitly.
-export function currentUser(): string | null {
-  // Best-effort: gets resolved asynchronously via getUserId() in callers.
-  return null
-}
+
 
 export async function getUserId(): Promise<string | null> {
   try {
@@ -341,10 +338,7 @@ export async function deleteFinancialFile(doc: FinancialDoc): Promise<{ success:
 // ---------------------------------------------------------------------------
 // Update status (Recast done / BOV done / CIM done / Processed)
 // ---------------------------------------------------------------------------
-export async function updateFinancialStatus(docId: string, status: FinancialStatus): Promise<boolean> {
-  const { error } = await supabase.from('financial_documents').update({ status }).eq('id', docId)
-  return !error
-}
+
 
 // ---------------------------------------------------------------------------
 // Preview — files are public in the 'documents' bucket, so the URL works for

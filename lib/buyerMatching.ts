@@ -185,14 +185,4 @@ export async function runMatchingForListing(listingId: string): Promise<MatchRes
   return (pending || []) as MatchResult[]
 }
 
-/** Count pending (not yet notified) matches for a buyer profile. */
-export async function countPendingMatches(buyerProfileId: string): Promise<number> {
-  if (!svc) return 0
-  const { count, error } = await svc
-    .from('buyer_match_events')
-    .select('id', { count: 'exact', head: true })
-    .eq('buyer_profile_id', buyerProfileId)
-    .eq('status', 'pending')
-  if (error) return 0
-  return count || 0
-}
+

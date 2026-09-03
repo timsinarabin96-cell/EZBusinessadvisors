@@ -69,12 +69,6 @@ export interface Invoice {
   created_at?: string | null
 }
 
-export const canAccessFeature = (sub: Subscription | null, tierMinimum: 'free' | 'professional' | 'enterprise'): boolean => {
-  if (!sub) return false
-  if (sub.status !== 'active' && sub.status !== 'trialing') return false
-  const order = { free: 0, professional: 1, enterprise: 2 }
-  return order[sub.tier as keyof typeof order] >= order[tierMinimum]
-}
 
 // When the `subscriptions` table is absent (pre-schema-stabilization), queries
 // fail with a relation-missing PostgREST error. Degrade gracefully instead of
@@ -82,7 +76,6 @@ export const canAccessFeature = (sub: Subscription | null, tierMinimum: 'free' |
 const isRelationMissing = (err: unknown): boolean =>
   typeof err === 'object' && err !== null && !!((err as { message?: string }).message ?? '').match(/relation .* does not exist|Could not find the table/i)
 
-export const SUBSCRIPTIONS_MISSING = Symbol('SUBSCRIPTIONS_MISSING')
 
 // --- Fetch current subscription ---
 export async function fetchMySubscription(): Promise<Subscription | null> {

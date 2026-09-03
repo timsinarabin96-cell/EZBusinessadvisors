@@ -100,14 +100,4 @@ export async function confirmFeaturedSlot(stripeSession: string): Promise<{ ok: 
   return { ok: true }
 }
 
-/** List featured slots for an agency (admin view). */
-export async function fetchFeaturedSlots(agencyId: string): Promise<FeaturedSlot[]> {
-  if (!svc) return []
-  const { data } = await svc
-    .from('featured_slots')
-    .select('*, listings(business_name)')
-    .eq('agency_id', agencyId)
-    .order('created_at', { ascending: false })
-    .limit(50)
-  return (data as FeaturedSlot[]) || []
-}
+

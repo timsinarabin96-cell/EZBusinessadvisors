@@ -258,15 +258,6 @@ export async function logActivity(
   }).maybeSingle()
 }
 
-export function folderIcon(name: string): string {
-  const map: Record<string, string> = {
-    financials: '💰', legal: '⚖️', contract: '📄', diligence: '🔍', marketing: '📣', other: '📁',
-    operations: '🏭', hr: '👥', 'real estate': '🏢', insurance: '🛡️', tax: '🧾', intellectual: '💡', internal: '🔒',
-  }
-  const key = name.toLowerCase()
-  for (const [k, icon] of Object.entries(map)) if (key.includes(k)) return icon
-  return '📁'
-}
 
 export function kindFromMime(mime: string, name: string): string {
   const n = name.toLowerCase()

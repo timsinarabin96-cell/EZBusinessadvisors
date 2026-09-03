@@ -29,7 +29,7 @@ import { FRANCHISE_MONTHLY, FRANCHISE_MONTHLY_CENTS } from '@/lib/pricing'
 export const FRANCHISE_PLAN_ID = 'franchise_monthly'
 export const FRANCHISE_PLAN_NAME = 'Franchise Listing'
 export const FRANCHISE_PRICE = FRANCHISE_MONTHLY
-export const FRANCHISE_PRICE_CENTS = FRANCHISE_MONTHLY_CENTS
+
 
 export interface FranchiseDetailsInput {
   brand_name: string

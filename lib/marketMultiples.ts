@@ -33,32 +33,4 @@ export interface MarketMultiplesRow {
   updated_at?: string | null
 }
 
-/**
- * Fetch live bands from the market_multiples table (so admin edits apply),
- * falling back to the bundled static data when the table is unreachable.
- */
-export async function fetchMarketBands(): Promise<MarketMultiplesRow[]> {
-  try {
-    const { data, error } = await supabase.from('market_multiples').select('*')
-    if (!error && data && data.length > 0) return data as MarketMultiplesRow[]
-  } catch {
-    // fall through to static
-  }
-  return MARKET_MULTIPLES.map((b) => ({
-    id: '',
-    industry: b.industry,
-    aliases: [],
-    basis: b.basis,
-    min_multiple: b.min,
-    max_multiple: b.max,
-    source_note: b.sourceNote || null,
-  }))
-}
 
-/** Human label: "Home care — 4.0–5.0× EBITDA". */
-export function formatBand(
-  b: { industry: string; basis: string; min: number; max: number } | null | undefined
-): string {
-  if (!b) return '—'
-  return `${b.industry} — ${b.min.toFixed(1)}–${b.max.toFixed(1)}× ${b.basis}`
-}

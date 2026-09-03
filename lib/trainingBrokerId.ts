@@ -31,7 +31,4 @@ export async function getBrokerId(): Promise<string> {
   return id
 }
 
-/** True when the resolved id is a real UUID (signed-in user), false for the demo stub. */
-export function isRealBrokerId(id: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
-}
+

@@ -31,8 +31,7 @@ import { supabase } from '@/lib/supabase/client'
 // ---------------------------------------------------------------------------
 // Status constants
 // ---------------------------------------------------------------------------
-export const LISTING_STATUS_LIFECYCLE = ['draft', 'active', 'pending_sale', 'under_contract', 'sold']
-export const WITHDRAWN = 'withdrawn'
+
 
 export const STATUS_STYLE: Record<string, { label: string; color: string; bg: string }> = {
   draft: { label: 'Draft', color: '#7a7a8a', bg: '#f3f3f6' },
@@ -46,18 +45,7 @@ export const STATUS_STYLE: Record<string, { label: string; color: string; bg: st
 // ---------------------------------------------------------------------------
 // Workflow step definitions
 // ---------------------------------------------------------------------------
-export const WORKFLOW_STEPS = [
-  { step: 1, key: 'legal_docs', label: 'Legal Docs', icon: '📄', desc: 'Listing agreement & disclosures' },
-  { step: 2, key: 'financials', label: 'Financial Details', icon: '💰', desc: 'Revenue, SDE, EBITDA, balance' },
-  { step: 3, key: 'recast', label: 'Recast Financials', icon: '🔄', desc: 'Normalize owner financials' },
-  { step: 4, key: 'bov', label: 'Generate BOV', icon: '⚖️', desc: 'Broker opinion of value' },
-  { step: 5, key: 'cim', label: 'Generate CIM', icon: '📑', desc: 'Confidential info memorandum' },
-  { step: 6, key: 'bli', label: 'Generate BLI', icon: '📋', desc: 'Business listing info' },
-  { step: 7, key: 'sba', label: 'SBA Qualification', icon: '🏦', desc: 'Optional SBA eligibility' },
-  { step: 8, key: 'list', label: 'List Business', icon: '🌐', desc: 'Publish + push to marketplaces' },
-  { step: 9, key: 'buyers', label: 'Buyer Management', icon: '👥', desc: 'NDA, qualifications, primary buyer' },
-  { step: 10, key: 'closing', label: 'Deal Closing', icon: '🤝', desc: 'LOI, under contract, closing' },
-] as const
+
 
 // ---------------------------------------------------------------------------
 // Workflow row CRUD
@@ -212,45 +200,10 @@ export async function fetchListingDocuments(listingId: string): Promise<any[]> {
 }
 
 // --- Step 2: financials ---
-export async function saveFinancials(listingId: string, fin: Partial<any>): Promise<boolean> {
-  try {
-    const exists = await supabase.from('listing_financials').select('id').eq('listing_id', listingId).maybeSingle()
-    if (exists.data) {
-      const { error } = await supabase.from('listing_financials').update({ ...fin, updated_at: new Date().toISOString() }).eq('listing_id', listingId)
-      return !error
-    }
-    const { error } = await supabase.from('listing_financials').insert({ listing_id: listingId, ...fin })
-    return !error
-  } catch { return false }
-}
-export async function fetchFinancials(listingId: string): Promise<any | null> {
-  try {
-    const { data } = await supabase.from('listing_financials').select('*').eq('listing_id', listingId).maybeSingle()
-    return data || null
-  } catch { return null }
-}
+
 
 // --- Step 3: recast ---
-export async function saveRecast(listingId: string, recast: Partial<any>): Promise<boolean> {
-  try {
-    // Upsert: keep ONE recast row per listing (auto-save would otherwise
-    // accumulate duplicate rows on every keystroke debounce).
-    const { data: existing } = await supabase
-      .from('listing_recasts')
-      .select('id')
-      .eq('listing_id', listingId)
-      .order('recasted_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    const payload = { ...recast, recasted_at: new Date().toISOString() }
-    if (existing?.id) {
-      const { error } = await supabase.from('listing_recasts').update(payload).eq('id', existing.id)
-      return !error
-    }
-    const { error } = await supabase.from('listing_recasts').insert({ listing_id: listingId, ...payload })
-    return !error
-  } catch { return false }
-}
+
 export async function fetchRecast(listingId: string): Promise<any | null> {
   try {
     const { data } = await supabase.from('listing_recasts').select('*').eq('listing_id', listingId).order('recasted_at', { ascending: false }).maybeSingle()
@@ -259,34 +212,8 @@ export async function fetchRecast(listingId: string): Promise<any | null> {
 }
 
 // --- Steps 4-6: BOV / CIM / BLI auto-generation ---
-export async function generateBOV(listingId: string): Promise<any | null> {
-  try {
-    const listing = await fetchListingRaw(listingId)
-    const multiple = 3.0
-    const sde = listing?.sde || 0
-    const valuation = Math.round((sde as number) * multiple)
-    const { data, error } = await supabase.from('bov_versions').insert({
-      listing_id: listingId, version_number: 1, valuation_multiple: multiple, valuation_amount: valuation,
-      content: { valuation_multiple: multiple, valuation_amount: valuation, sde, business_name: listing?.business_name },
-      status: 'draft', generated_at: new Date().toISOString(),
-    }).select().single()
-    if (error) return null
-    return data
-  } catch { return null }
-}
-export async function generateCIM(listingId: string): Promise<any | null> {
-  try {
-    const listing = await fetchListingRaw(listingId)
-    const recast = await fetchRecast(listingId)
-    const { data, error } = await supabase.from('cim_versions').insert({
-      listing_id: listingId, version_number: 1,
-      content: { business_name: listing?.business_name, recasted_sde: recast?.recasted_sde ?? listing?.sde, generated_from: 'recast' },
-      status: 'draft', generated_at: new Date().toISOString(),
-    }).select().single()
-    if (error) return null
-    return data
-  } catch { return null }
-}
+
+
 export async function generateBLI(listingId: string): Promise<any | null> {
   try {
     const listing = await fetchListingRaw(listingId)
@@ -334,17 +261,7 @@ export async function finalizeVersion(
 }
 
 // --- Step 7: SBA (optional) ---
-export async function saveSBA(listingId: string, sba: Partial<any>): Promise<boolean> {
-  try {
-    const exists = await supabase.from('sba_qualifications').select('id').eq('listing_id', listingId).maybeSingle()
-    if (exists.data) {
-      const { error } = await supabase.from('sba_qualifications').update(sba).eq('listing_id', listingId)
-      return !error
-    }
-    const { error } = await supabase.from('sba_qualifications').insert({ listing_id: listingId, ...sba, is_optional: true })
-    return !error
-  } catch { return false }
-}
+
 export async function fetchSBA(listingId: string): Promise<any | null> {
   try {
     const { data } = await supabase.from('sba_qualifications').select('*').eq('listing_id', listingId).maybeSingle()
@@ -359,14 +276,7 @@ export async function publishListing(listingId: string): Promise<boolean> {
     return !error
   } catch { return false }
 }
-/**
- * Syndication is manual — the agent picks their own sources (BizBuySell,
- * LoopNet, DealStream, local classifieds, etc.) and enters them directly.
- * No auto-push to any external marketplace.
- */
-export async function pushToMarketplaces(_listingId: string): Promise<boolean> {
-  return true
-}
+
 
 // --- Step 9: buyers ---
 export async function addBuyer(listingId: string, buyer: Partial<any>): Promise<boolean> {

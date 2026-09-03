@@ -79,26 +79,6 @@ export function generateVCardString(c: VCardContact, photoBase64?: string | null
   return lines.join('\r\n') + '\r\n'
 }
 
-/**
- * JSONB-friendly vCard payload — exactly what's stored on broker_profiles
- * .vcard_data. Keeps a compact vcf string + structured fields for rebuilding.
- */
-export function buildVCardJson(c: VCardContact): Record<string, unknown> {
-  const { full } = nameParts(c)
-  return {
-    version: '3.0',
-    fn: full,
-    tel: c.phone || '',
-    email: c.email || '',
-    org: c.company || '',
-    title: c.title || '',
-    url: c.website || '',
-    adr: c.addressLine1 || c.city ? adr(c) : '',
-    note: c.note || '',
-    qrUrl: c.qrUrl || '',
-    updatedAt: new Date().toISOString(),
-  }
-}
 
 /**
  * Convert a public image URL to a base64 data string for embedding in the vCard

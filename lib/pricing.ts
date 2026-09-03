@@ -211,16 +211,14 @@ export const LAUNCH_KIT = {
 // ---------------------------------------------------------------------------
 export const cents = (dollars: number): number => Math.round(dollars * 100)
 export const LAUNCH_KIT_PRICE_CENTS = cents(LAUNCH_KIT_PRICE)
-export const CRM_MONTHLY_CENTS = cents(CRM_MONTHLY)
-export const CRM_ANNUAL_CENTS = cents(CRM_ANNUAL)
-export const CRM_ENTERPRISE_MONTHLY_CENTS = cents(CRM_ENTERPRISE_MONTHLY)
-export const CRM_ENTERPRISE_ANNUAL_CENTS = cents(CRM_ENTERPRISE_ANNUAL)
+
+
 export const LICENSE_SETUP_CENTS = cents(LICENSE_SETUP_FEE)
 export const LICENSE_MONTHLY_CENTS = cents(LICENSE_MONTHLY)
 export const FINANCIAL_INTELLIGENCE_CENTS = cents(FINANCIAL_INTELLIGENCE_MONTHLY)
 export const FRANCHISE_MONTHLY_CENTS = cents(FRANCHISE_MONTHLY)
 export const VERIFIED_REVENUE_PRICE_CENTS = cents(VERIFIED_REVENUE_PRICE)
-export const VALUATION_PRICE_CENTS = cents(VALUATION_PRICE)
+
 
 // ---------------------------------------------------------------------------
 // CRM license SUBSCRIPTION seats (Phase 3, locked 08-31): 3 seats included in
@@ -230,5 +228,5 @@ export const VALUATION_PRICE_CENTS = cents(VALUATION_PRICE)
 export const LICENSE_SEATS_INCLUDED = 3
 export const SEAT_ADDON_MONTHLY = 25
 export const SEAT_ADDON_ANNUAL = 250 // 25 * 10 months (2 months free parity)
-export const SEAT_ADDON_MONTHLY_CENTS = cents(SEAT_ADDON_MONTHLY)
-export const SEAT_ADDON_ANNUAL_CENTS = cents(SEAT_ADDON_ANNUAL)
+
+

@@ -210,26 +210,4 @@ export function mergeAnalyses({
   }
 }
 
-/**
- * Derive a financial history (YearFinancials-shaped) suitable for feeding the
- * Recast generator from AI-extracted revenue years.
- */
-export function aiYearsToRecastInput(ext: AiExtractionOutput) {
-  return ext.revenueByYear.map((r, i) => {
-    const isLatest = i === 0
-    const sde = isLatest ? ext.sde : Math.round(ext.sde * (r.revenue / (ext.revenueTotal || 1)))
-    const opex = Math.max(0, r.revenue - Math.round(r.revenue * 0.55))
-    return {
-      year: r.year,
-      label: r.label,
-      grossRevenue: r.revenue,
-      cogs: Math.round(r.revenue * 0.55),
-      operatingExpenses: opex - (ext.ownerComp) - (Math.max(0, sde - ext.ebitda)),
-      ownerComp: ext.ownerComp,
-      depreciation: Math.max(0, sde - ext.ebitda),
-      interest: 0,
-      otherExpenses: 0,
-      netIncome: isLatest ? ext.ebitda : Math.max(0, sde - ext.ebitda),
-    }
-  })
-}
+

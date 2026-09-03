@@ -146,9 +146,4 @@ export async function setRevenueVerifiedFlag(listingId: string, verified: boolea
   return { ok: true }
 }
 
-/** Get a listing's verified financial record (server-side). */
-export async function getVerifiedFinancial(listingId: string): Promise<VerifiedFinancialRecord | null> {
-  if (!svc) return null
-  const { data } = await svc.from('verified_financials').select('*').eq('listing_id', listingId).maybeSingle()
-  return (data as VerifiedFinancialRecord | null) || null
-}
+

@@ -45,9 +45,6 @@ export const ONE_SHOT_STAGES: OneShotStageDef[] = [
   { key: 'ready', label: 'Readiness score', hint: 'What is complete, what still needs a human' },
 ]
 
-export function initialSteps(): BuildStep[] {
-  return ONE_SHOT_STAGES.map((s) => ({ key: s.key, label: s.label, status: 'pending' as StageStatus }))
-}
 
 // ---------------------------------------------------------------------------
 // Prompt builders
@@ -163,29 +160,6 @@ export function buildTeaserPrompt(input: { businessName?: string | null; industr
   return { system, user }
 }
 
-/** Deterministic teaser fallback — used when the LLM flakes (rate limit /
- *  timeout). Builds an anonymous title + summary from the record fields only;
- *  never invents numbers. Pure + testable, same spirit as fallbackExtractRecord. */
-export function fallbackTeaser(input: { businessName?: string | null; industry?: string | null; location?: string | null; revenue?: number | null; sde?: number | null }): { public_title: string; public_summary: string; public_highlights: string[] } {
-  const industry = (input.industry || 'business').toLowerCase()
-  const location = (input.location || '').trim()
-  const noun = /^[aeiou]/i.test(industry) ? 'an' : 'a'
-  const title = [
-    industry ? `${noun} ${industry} for sale` : 'Business for sale',
-    location ? `in ${location}` : '',
-  ].filter(Boolean).join(' ')
-  const parts: string[] = ['Established business with a trained team and steady operations.']
-  if (input.revenue != null) parts.push(`Revenue of $${input.revenue.toLocaleString()}.`)
-  if (input.sde != null) parts.push(`Owner earnings of $${input.sde.toLocaleString()}.`)
-  if (location) parts.push(`Located in ${location}.`)
-  parts.push('Confidential process — financials available after qualification and NDA.')
-  const highlights: string[] = []
-  if (input.revenue != null) highlights.push(`💰 $${input.revenue.toLocaleString()} annual revenue`)
-  if (input.sde != null) highlights.push(`📈 $${input.sde.toLocaleString()} owner earnings`)
-  if (location) highlights.push(`📍 ${location}`)
-  if (highlights.length === 0) highlights.push('🤝 Confidential sale process')
-  return { public_title: title, public_summary: parts.join(' '), public_highlights: highlights.slice(0, 6) }
-}
 
 // ---------------------------------------------------------------------------
 // The AUDITOR — verified vs estimated + red flags (pure, testable)

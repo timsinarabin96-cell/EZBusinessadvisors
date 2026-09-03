@@ -51,9 +51,6 @@ const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL || ''
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || ''
 const UPSTASH_ENABLED = Boolean(UPSTASH_URL && UPSTASH_TOKEN)
 
-export function upstashRateLimitConfigured(): boolean {
-  return UPSTASH_ENABLED
-}
 
 async function upstashCommand(command: string): Promise<number> {
   const res = await fetch(`${UPSTASH_URL}/${command}`, {

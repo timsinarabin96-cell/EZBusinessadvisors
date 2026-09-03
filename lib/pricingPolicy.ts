@@ -34,15 +34,6 @@ export function priceTeaser(listing: Pricable): string | null {
   return 'Priced over $10M'
 }
 
-/** Exact price — ONLY for business materials (post-NDA). */
-export function exactPrice(listing: Pricable): string | null {
-  if (listing.asking_price == null) return null
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: listing.currency_code || 'USD',
-    maximumFractionDigits: 0,
-  }).format(listing.asking_price)
-}
 
 export const PRICING_CTA = 'Price available on application'
 export const PRICING_HINT = 'Fill out an application or talk with an agent for pricing.'

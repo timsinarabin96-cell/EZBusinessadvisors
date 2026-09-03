@@ -168,16 +168,4 @@ export async function refundCheckoutSession(
   }
 }
 
-/** Fetch a checkout session's public metadata (used by the refund route). */
-export async function getCheckoutSessionMetadata(sessionId: string): Promise<Record<string, string> | null> {
-  if (!stripeConfigured()) return null
-  try {
-    const res = await fetch(`${STRIPE_API}/checkout/sessions/${encodeURIComponent(sessionId)}`, {
-      headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
-    })
-    const data = await res.json().catch(() => ({}))
-    return res.ok && data?.metadata ? data.metadata : null
-  } catch {
-    return null
-  }
-}
+

@@ -104,11 +104,6 @@ export async function fetchTemplates(activeOnly = true, agencyId?: string | null
   return (data as DocumentTemplate[]) || []
 }
 
-export async function fetchTemplate(id: string): Promise<DocumentTemplate | null> {
-  const { data, error } = await supabase.from('document_templates').select('*').eq('id', id).maybeSingle()
-  if (error || !data) return null
-  return data as DocumentTemplate
-}
 
 // --- Documents (fillable instances) -----------------------------------------
 
@@ -214,15 +209,6 @@ interface AuditEntry {
   created_at?: string | null
 }
 
-export async function fetchAuditLog(documentId: string): Promise<AuditEntry[]> {
-  const { data, error } = await supabase
-    .from('document_audit_logs')
-    .select('*')
-    .eq('document_id', documentId)
-    .order('created_at', { ascending: false })
-  if (error) throw new Error(error.message || 'Failed to load audit log')
-  return (data as AuditEntry[]) || []
-}
 
 async function logAction(
   documentId: string,

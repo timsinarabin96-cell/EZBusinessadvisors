@@ -87,12 +87,6 @@ export async function fetchProfessionalsWithFeeFields(
   return first.data
 }
 
-/** Await a PostgREST builder into a { data, error } shape (typed). */
-export async function resolveBuilder<T>(
-  builder: Promise<{ data: T[] | null; error: any }>,
-): Promise<{ data: T[] | null; error: any }> {
-  return builder
-}
 
 function matchesQuery(p: DealProfessional, q: string): boolean {
   const needle = q.toLowerCase()

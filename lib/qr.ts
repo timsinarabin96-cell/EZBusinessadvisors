@@ -63,27 +63,4 @@ export async function qrCodeToDataURL(
   }
 }
 
-/** Render a vCard to an SVG data URL (for print / crisp scaling). */
-export async function qrCodeToSvgDataUrl(
-  value: string,
-  opts: { size?: number; style?: QrStyle } = {},
-): Promise<string | null> {
-  try {
-    const { dark, light } = qrPalette(opts.style || 'classic')
-    const svg = await QRCode.toString(value, {
-      type: 'svg',
-      width: opts.size || 240,
-      margin: 2,
-      errorCorrectionLevel: qrErrorCorrection(opts.style || 'classic'),
-      color: { dark, light },
-    })
-    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`
-  } catch {
-    return null
-  }
-}
 
-/** Build the QR payload for a contact: vCard text if available, else the URL. */
-export function qrPayload(contact: VCardContact): string {
-  return generateVCardString(contact).trim() || contact.qrUrl || contact.website || ''
-}

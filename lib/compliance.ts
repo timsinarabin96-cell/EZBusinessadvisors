@@ -236,31 +236,9 @@ export async function checkAgentLicense(userId?: string): Promise<LicenseCheck> 
   }
 }
 
-/** May this agent list a deal that includes real property in targetState? */
-export async function canListWithRealEstate(userId?: string, targetState?: string | null): Promise<RealEstateListingCheck> {
-  const license = await checkAgentLicense(userId)
-  if (!license.ok) {
-    return { canList: false, reason: license.reason || 'Agent is not verified to broker real-estate-inclusive deals.' }
-  }
-  if (targetState) {
-    const norm = targetState.trim().toUpperCase()
-    if (license.licenseState && license.licenseState.toUpperCase() !== norm) {
-      return {
-        canList: false,
-        reason: `License is held in ${license.licenseState.toUpperCase()}, not ${norm}. Confirm reciprocity or licensure in ${norm} before listing real estate here.`,
-      }
-    }
-  }
-  return { canList: true, reason: 'Agent is licensed and verified for this real-estate listing.' }
-}
 
 // States where brokering a business that transfers real property commonly
 // requires an active real-estate license. Conservative advisory default.
 // NOTE: business-asset-only sales (no real property) are unlicensed in most
 // states; only CA treats business opportunities as always-licensed.
-export const LICENSED_STATES = new Set([
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA',
-  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT',
-  'VA','WA','WV','WI','WY','DC',
-])
+

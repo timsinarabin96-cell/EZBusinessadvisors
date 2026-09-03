@@ -72,28 +72,6 @@ export const DEFAULT_PACKAGES = [
   },
 ] as const
 
-export const PACKAGE_DEFS = DEFAULT_PACKAGES.map((p) => p)
-
-/** Fetch active hiring packages. */
-export async function fetchHiringPackages(): Promise<HiringPackage[]> {
-  if (!svc) return []
-  const { data, error } = await svc
-    .from('hiring_packages')
-    .select('*')
-    .eq('is_active', true)
-    .order('commission_split', { ascending: false })
-  if (error) return []
-  return (data || []) as HiringPackage[]
-}
-
-/** Seed default packages if none exist. */
-export async function ensureDefaultPackages(): Promise<void> {
-  if (!svc) return
-  const { count } = await svc.from('hiring_packages').select('id', { count: 'exact', head: true })
-  if (count && count > 0) return
-  const { error } = await svc.from('hiring_packages').insert(DEFAULT_PACKAGES as unknown as Record<string, unknown>[])
-  if (error) console.error('[hiring] seed failed:', error.message)
-}
 
 /** Submit an advisor application. */
 export async function submitAgentApplication(input: {

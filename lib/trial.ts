@@ -149,35 +149,6 @@ export const TIER_LIMITS: Record<string, UsageLimits> = {
 // --- Default limits (trial / no subscription) -------------------------------
 export const DEFAULT_LIMITS: UsageLimits = TIER_LIMITS.free
 
-/** Fetch trial settings (global default + any per-agency override). */
-export async function fetchTrialSettings(agencyId?: string | null): Promise<UsageLimits & { trialDays: number; graceDays: number; archiveDays: number; sendReminders: boolean }> {
-  const global = { trialDays: 14, graceDays: 7, archiveDays: 30, sendReminders: true, ...DEFAULT_LIMITS }
-  try {
-    const { data } = await supabase.from('trial_settings').select('*').order('created_at', { ascending: true })
-    const rows: any[] = data || []
-    const perAgency = agencyId ? rows.find((r) => r.agency_id === agencyId) : null
-    const g = rows.find((r) => r.agency_id === null) || {}
-    return {
-      trialDays: perAgency?.trial_days ?? g.trial_days ?? global.trialDays,
-      graceDays: perAgency?.grace_days ?? g.grace_days ?? global.graceDays,
-      archiveDays: perAgency?.archive_days ?? g.archive_days ?? global.archiveDays,
-      sendReminders: perAgency?.send_reminders ?? g.send_reminders ?? global.sendReminders,
-      maxListings: perAgency?.max_listings ?? g.max_listings ?? global.maxListings,
-      maxLeads: perAgency?.max_leads ?? g.max_leads ?? global.maxLeads,
-      maxDeals: perAgency?.max_deals ?? g.max_deals ?? global.maxDeals,
-      maxAgents: perAgency?.max_agents ?? g.max_agents ?? global.maxAgents,
-      maxStorageBytes: ((perAgency?.max_storage_mb ?? g.max_storage_mb ?? 100) * 1024 * 1024),
-    }
-  } catch {
-    return global as any
-  }
-}
-
-/** Load the current user's agency and its trial state. */
-export async function getMyTrialState(): Promise<{ state: TrialState; agency: Agency | null }> {
-  const ctx = await fetchUserAgencyContext()
-  return { state: statusFromAgency(ctx.agency), agency: ctx.agency }
-}
 
 /** Load current usage counters for the agency. */
 export async function getAgencyUsage(agencyId: string): Promise<AgencyUsage> {
@@ -215,11 +186,6 @@ export function checkUsageLimits(usage: AgencyUsage, limits: UsageLimits, state:
   }
 }
 
-/** Boolean-gated features (social, email campaigns). Returns blocked redirect hint. */
-export function isFeatureEnabled(state: TrialState, key: FeatureKey): boolean {
-  if (key === 'social_media' || key === 'email_campaigns') return state.isPaid
-  return true
-}
 
 /**
  * Gate a page/action in a read-only block. Used for the grace/locked read-only

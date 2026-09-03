@@ -178,56 +178,10 @@ export async function fetchBrokerBrandContext(): Promise<BrokerBrandContext> {
 }
 
 // --- Resolve the effective brand (broker override → agency default → fallback) -
-export function resolveBrand(ctx: BrokerBrandContext): CardBrand {
-  const a = ctx.agency
-  return {
-    primaryColor: pick(ctx.overrides.primaryColor, a?.primaryColor, DEFAULT_BRAND.primaryColor),
-    secondaryColor: pick(ctx.overrides.secondaryColor, a?.secondaryColor, DEFAULT_BRAND.secondaryColor),
-    accentColor: pick(ctx.overrides.accentColor, a?.accentColor, DEFAULT_BRAND.accentColor),
-    font: pickFont(ctx.overrides.font, a?.font),
-    logoUrl: ctx.overrides.logoUrl || a?.logoUrl || null,
-    layout: ctx.overrides.layout ?? 'classic',
-  }
-}
+
 
 // --- Persistence --------------------------------------------------------------
-export async function saveBrokerCardOverrides(
-  profileId: string,
-  patch: Partial<BrokerCardOverrides>,
-): Promise<boolean> {
-  const row: Record<string, string | null> = {}
-  if ('primaryColor' in patch) row.card_primary_color = patch.primaryColor
-  if ('secondaryColor' in patch) row.card_secondary_color = patch.secondaryColor
-  if ('accentColor' in patch) row.card_accent_color = patch.accentColor
-  if ('font' in patch) row.card_font = patch.font
-  if ('logoUrl' in patch) row.card_logo_url = patch.logoUrl
-  if ('layout' in patch) row.card_layout = patch.layout
-  if (Object.keys(row).length === 0) return true
-  const { error } = await supabase
-    .from('broker_profiles')
-    .update(row)
-    .eq('id', profileId)
-  return !error
-}
 
-/** Clear a single override back to "inherit agency default" (set NULL). */
-export async function clearBrokerCardOverride(
-  profileId: string,
-  key: keyof BrokerCardOverrides,
-): Promise<boolean> {
-  const colMap: Record<keyof BrokerCardOverrides, string> = {
-    primaryColor: 'card_primary_color',
-    secondaryColor: 'card_secondary_color',
-    accentColor: 'card_accent_color',
-    font: 'card_font',
-    logoUrl: 'card_logo_url',
-    layout: 'card_layout',
-  }
-  const col: string | null = colMap[key]
-  if (!col) return false
-  const { error } = await supabase.from('broker_profiles').update({ [col]: null }).eq('id', profileId)
-  return !error
-}
 
 // --- Agency brand (admin only) ------------------------------------------------
 export async function fetchAgencyBrand(agencyId: string): Promise<AgencyBrand | null> {
@@ -290,20 +244,4 @@ export interface DesignVariant {
   blurb: string
 }
 
-/**
- * Builds a concise brand brief for the AI generator based on the broker's
- * effective brand. Pure function — no side effects — so it's easy to test and
- * reuse on both client (preview cache) and server (API route).
- */
-export function brandBrief(brand: CardBrand, brokerName?: string): string {
-  const parts = [
-    `Primary: ${brand.primaryColor}`,
-    `Secondary: ${brand.secondaryColor}`,
-    `Accent: ${brand.accentColor}`,
-    `Font: ${fontCss(brand.font)}`,
-    `Layout: ${brand.layout}`,
-  ]
-  if (brand.logoUrl) parts.push(`Logo: ${brand.logoUrl}`)
-  if (brokerName) parts.push(`Broker: ${brokerName}`)
-  return parts.join(' · ')
-}
+

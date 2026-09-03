@@ -102,7 +102,4 @@ export async function resolveAgencyBranding(agencyId: string | null | undefined)
   }
 }
 
-/** Resolve from a listing row that carries agency_id. */
-export async function resolveAgencyBrandingForListing(listing: { agency_id?: string | null } | null | undefined): Promise<AgencyBrand> {
-  return resolveAgencyBranding(listing?.agency_id)
-}
+

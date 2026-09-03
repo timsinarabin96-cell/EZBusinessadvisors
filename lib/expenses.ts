@@ -77,47 +77,7 @@ const money = (cents: number) => '$' + (cents / 100).toLocaleString(undefined, {
 // ---------------------------------------------------------------------------
 // Fetch expenses (admin: all; member: own agency only).
 // ---------------------------------------------------------------------------
-export async function fetchExpenses(month?: string): Promise<Expense[]> {
-  let q = supabase.from('expenses').select('*').order('expense_date', { ascending: false }).limit(1000)
-  if (month) q = q.gte('expense_date', `${month}-01`)
-  const { data, error } = await q
-  if (error) throw new Error(error.message || 'Failed to load expenses')
-  return (data as Expense[]) || []
-}
 
-export async function createExpense(input: ExpenseInput): Promise<Expense> {
-  const { data: { user } } = await supabase.auth.getUser()
-  const { data, error } = await supabase
-    .from('expenses')
-    .insert({
-      category: input.category,
-      vendor: input.vendor,
-      description: input.description || null,
-      amount_cents: input.amount_cents,
-      expense_date: input.expense_date || new Date().toISOString().slice(0, 10),
-      recurring: input.recurring ?? false,
-      paid: input.paid ?? true,
-      payment_method: input.payment_method || null,
-      payment_reference: input.payment_reference || null,
-      receipt_url: input.receipt_url || null,
-      notes: input.notes || null,
-      created_by: user?.id ?? null,
-    })
-    .select()
-    .single()
-  if (error) throw new Error(error.message || 'Failed to create expense')
-  return data as Expense
-}
-
-export async function updateExpense(id: string, patch: Partial<ExpenseInput>): Promise<void> {
-  const { error } = await supabase.from('expenses').update(patch).eq('id', id)
-  if (error) throw new Error(error.message || 'Failed to update expense')
-}
-
-export async function deleteExpense(id: string): Promise<void> {
-  const { error } = await supabase.from('expenses').delete().eq('id', id)
-  if (error) throw new Error(error.message || 'Failed to delete expense')
-}
 
 // ---------------------------------------------------------------------------
 // Costing analytics.

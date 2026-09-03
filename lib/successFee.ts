@@ -134,25 +134,4 @@ export async function recordSuccessFee(input: SuccessFeeInput): Promise<{ ok: bo
   return { ok: true, fee: data as SuccessFeeRecord }
 }
 
-/** Fetch success fees for an agency (admin + platform view). */
-export async function fetchSuccessFees(agencyId: string): Promise<SuccessFeeRecord[]> {
-  if (!svc) return []
-  const { data } = await svc
-    .from('deal_success_fees')
-    .select('*, listings(business_name)')
-    .eq('agency_id', agencyId)
-    .order('created_at', { ascending: false })
-    .limit(100)
-  return (data as SuccessFeeRecord[]) || []
-}
 
-/** Platform-wide totals (super admin). */
-export async function fetchPlatformSuccessFeeStats(): Promise<{ deals: number; totalFeeCents: number; paidFeeCents: number }> {
-  if (!svc) return { deals: 0, totalFeeCents: 0, paidFeeCents: 0 }
-  const { data } = await svc.from('platform_success_fee_stats').select('*').maybeSingle()
-  return {
-    deals: Number(data?.deals || 0),
-    totalFeeCents: Number(data?.total_fee_cents || 0),
-    paidFeeCents: Number(data?.paid_fee_cents || 0),
-  }
-}

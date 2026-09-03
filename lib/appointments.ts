@@ -108,7 +108,4 @@ export async function updateAppointment(id: string, input: AppointmentInput): Pr
   return data as Appointment
 }
 
-export async function deleteAppointment(id: string): Promise<void> {
-  const { error } = await supabase.from('appointments').delete().eq('id', id)
-  if (error) throw new Error(error.message || 'Failed to delete appointment')
-}
+

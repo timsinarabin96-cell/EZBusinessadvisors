@@ -129,32 +129,4 @@ export async function inferTemplateFromText(input: {
   return sanitizeInferred(res.data, input.fileName)
 }
 
-/** Map a template's field keys onto listing/deal data for auto-fill. */
-export function autoFillFromListing(
-  template: AiInferredTemplate | { fields: { key: string }[] },
-  listing: Record<string, unknown>,
-): Record<string, unknown> {
-  const map: Record<string, (l: Record<string, unknown>) => unknown> = {
-    business_name: (l) => l.business_name,
-    asking_price: (l) => l.asking_price,
-    annual_revenue: (l) => l.annual_revenue,
-    sde: (l) => l.sde,
-    ebitda: (l) => l.ebitda,
-    seller_name: (l) => l.seller_name ?? l.owner_name,
-    seller_email: (l) => l.seller_email ?? l.owner_email,
-    industry: (l) => l.industry,
-    location_general: (l) => l.location_general,
-    description: (l) => l.description,
-    commission_pct: () => 10,
-    agency_name: () => null, // filled at render time
-  }
-  const filled: Record<string, unknown> = {}
-  for (const f of template.fields) {
-    const fn = map[f.key]
-    if (fn) {
-      const v = fn(listing)
-      if (v != null) filled[f.key] = v
-    }
-  }
-  return filled
-}
+

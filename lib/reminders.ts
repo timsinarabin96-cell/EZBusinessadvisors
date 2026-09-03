@@ -216,11 +216,4 @@ export async function quickReminder(
   })
 }
 
-/** Quick-create a "call back seller" reminder for a listing (back-compat alias). */
-export async function quickCallBack(
-  agencyId: string,
-  listingId: string,
-  opts: { profileId?: string | null; title?: string; notes?: string | null; dueAt?: string } = {},
-): Promise<{ ok: boolean; error?: string; reminder?: Record<string, unknown> }> {
-  return quickReminder(agencyId, { ...opts, listingId })
-}
+

@@ -102,26 +102,6 @@ export async function fetchConnections(agentId?: string): Promise<SocialConnecti
   return (data as SocialConnection[]) || []
 }
 
-export async function saveConnection(
-  agentId: string,
-  platform: SocialPlatform,
-  fields: Partial<Pick<SocialConnection, 'access_token' | 'refresh_token' | 'platform_user_id' | 'platform_username' | 'platform_name' | 'expires_at' | 'is_active'>>
-): Promise<void> {
-  const { error } = await supabase.from('social_connections').upsert(
-    { agent_id: agentId, platform, ...fields, updated_at: new Date().toISOString() },
-    { onConflict: 'agent_id,platform' }
-  )
-  if (error) throw new Error(error.message)
-}
-
-export async function disconnectPlatform(agentId: string, platform: SocialPlatform): Promise<void> {
-  const { error } = await supabase
-    .from('social_connections')
-    .update({ is_active: false, updated_at: new Date().toISOString() })
-    .eq('agent_id', agentId)
-    .eq('platform', platform)
-  if (error) throw new Error(error.message)
-}
 
 // ---------------------------------------------------------------------------
 // Settings
@@ -134,17 +114,6 @@ export async function fetchSettings(agentId?: string): Promise<SocialSettings[]>
   return (data as SocialSettings[]) || []
 }
 
-export async function saveSettings(
-  agentId: string,
-  platform: SocialPlatform,
-  fields: Partial<SocialSettings>
-): Promise<void> {
-  const { error } = await supabase.from('social_settings').upsert(
-    { agent_id: agentId, platform, ...fields, updated_at: new Date().toISOString() },
-    { onConflict: 'agent_id,platform' }
-  )
-  if (error) throw new Error(error.message)
-}
 
 // ---------------------------------------------------------------------------
 // Posts
@@ -216,68 +185,11 @@ export function buildPostContent(listing: ListingForPost, settings?: Partial<Soc
   return `For sale${industry}: ${name}${location} — asking ${price}. Serious inquiries welcome. Contact us to learn more.`
 }
 
-export function buildHashtags(settings?: Partial<SocialSettings>, extra?: string[]): string {
-  const fromSettings = (settings?.hashtags || '').split(/[\s,]+/).filter(Boolean)
-  const base = ['#businessforsale', '#businessbroker']
-  const tags = [...new Set([...base, ...fromSettings, ...(extra || [])])]
-  return tags.join(' ')
-}
 
 // ---------------------------------------------------------------------------
 // Auto-post on listing upload — queues social_posts for enabled platforms
 // ---------------------------------------------------------------------------
-export async function queueAutoPosts(
-  agentId: string,
-  listing: ListingForPost,
-  opts?: { force?: boolean }
-): Promise<SocialPost[]> {
-  const [settingsRows, connRows] = await Promise.all([
-    fetchSettings(agentId),
-    fetchConnections(agentId),
-  ])
 
-  const enabled = settingsRows.filter(s => s.auto_post_enabled !== false)
-  const active = connRows.filter(c => c.is_active)
-  const created: SocialPost[] = []
-
-  const targets = opts?.force
-    ? [...new Set([...enabled.map(e => e.platform), ...active.map(a => a.platform)])]
-    : enabled.map(e => e.platform).filter(p => active.some(a => a.platform === p))
-
-  for (const platform of targets) {
-    const settings = settingsRows.find(s => s.platform === platform)
-    const content = buildPostContent(listing, settings)
-    const platforms: SocialPlatform[] = ['instagram','facebook','tiktok','x']
-    if (!platforms.includes(platform as SocialPlatform)) continue
-
-    const imageUrls = [
-      ...(listing.primary_image_url ? [listing.primary_image_url] : []),
-      ...(listing.image_urls || []),
-    ]
-
-    const p = await createSocialPost({
-      agent_id: agentId,
-      platform: platform as SocialPlatform,
-      listing_id: listing.id,
-      content,
-      image_urls: settings?.include_images === false ? [] : imageUrls.slice(0, 10),
-      scheduled_for: settings?.schedule_time
-        ? new Date(`${new Date().toISOString().slice(0, 10)}T${settings.schedule_time}`).toISOString()
-        : null,
-      status: settings?.schedule_time ? 'scheduled' : 'pending',
-    })
-    created.push(p)
-  }
-
-  // Fire-and-forget immediate posting for non-scheduled posts.
-  if (!opts?.force) {
-    for (const post of created.filter(p => p.status === 'pending')) {
-      void postToPlatform(post).catch(() => {})
-    }
-  }
-
-  return created
-}
 
 // ---------------------------------------------------------------------------
 // Post to a single platform (used by the dashboard "manual post" + auto-post)

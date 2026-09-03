@@ -78,25 +78,4 @@ export async function fetchInviteByToken(token: string): Promise<InviteToken | n
   return data as InviteToken
 }
 
-/** Mark an invite as filled + link it to the created directory row. */
-export async function markInviteFilled(token: string, targetId: string): Promise<boolean> {
-  const { error } = await supabase
-    .from('invite_tokens')
-    .update({ status: 'filled', target_id: targetId, filled_at: new Date().toISOString() })
-    .eq('token', token)
-  return !error
-}
 
-/** Self-service subscribe/unsubscribe for a directory row. */
-export async function setDirectoryActive(
-  targetType: InviteTargetType,
-  targetId: string,
-  active: boolean,
-): Promise<boolean> {
-  if (targetType === 'professional') {
-    const { error } = await supabase.from('deal_professionals').update({ is_active: active }).eq('id', targetId)
-    return !error
-  }
-  const { error } = await supabase.from('broker_profiles').update({ is_public: active }).eq('id', targetId)
-  return !error
-}

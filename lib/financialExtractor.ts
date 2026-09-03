@@ -65,9 +65,6 @@ export function detectUniversalDocTypeClient(fileName: string): UniversalDocType
   return 'pnl'
 }
 
-export function universalInfoClient(t: UniversalDocType): UniversalDocTypeInfo {
-  return UNIVERSAL_DOC_TYPE_INFO[t]
-}
 
 // ---------------------------------------------------------------------------
 // 2) Universal doc label group for the dropzone / KPI display.
@@ -101,10 +98,6 @@ const TYPE_LABEL: Record<FinancialCategory, string> = {
   other: 'Other',
 }
 
-export function detectFinancialFileType(fileName: string): DetectedFileType {
-  const category = autoTagCategory(fileName)
-  return { category, label: TYPE_LABEL[category], kind: TYPE_KIND[category] }
-}
 
 // ---------------------------------------------------------------------------
 // 4) CSV extraction — lightweight header-based parser (shared with recast)

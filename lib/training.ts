@@ -102,20 +102,6 @@ export interface CertExpiry {
   daysLeft: number | null
 }
 
-/**
- * Certificates are valid for CERT_VALIDITY_YEARS from issue.
- * expiring_soon = within 60 days of expiry. DDL-free — derived at read time.
- */
-export function certExpiry(issuedAt: string | null | undefined, nowIso = new Date().toISOString()): CertExpiry {
-  if (!issuedAt) return { expiresAt: null, status: 'unknown', daysLeft: null }
-  const issued = Date.parse(issuedAt)
-  if (!Number.isFinite(issued)) return { expiresAt: null, status: 'unknown', daysLeft: null }
-  const expiresAt = new Date(issued + CERT_VALIDITY_YEARS * 365 * 86400000).toISOString()
-  const daysLeft = Math.floor((Date.parse(expiresAt) - Date.parse(nowIso)) / 86400000)
-  if (daysLeft < 0) return { expiresAt, status: 'expired', daysLeft }
-  if (daysLeft <= 60) return { expiresAt, status: 'expiring_soon', daysLeft }
-  return { expiresAt, status: 'valid', daysLeft }
-}
 
 export interface TrainingUpload {
   id: string
@@ -288,28 +274,7 @@ export interface CertificateVerification {
 }
 
 // Look up a certificate by its human-readable verification code.
-export async function verifyCertificateByCode(code: string): Promise<CertificateVerification> {
-  const { data, error } = await supabase
-    .from('training_certificates')
-    .select('*, profiles(full_name, email), training_modules(title)')
-    .eq('verification_code', code)
-    .maybeSingle()
-  if (error) throw new Error(error.message || 'Failed to verify certificate')
-  if (!data || !data.id) return { valid: false, reason: 'No certificate matches this code.' }
-  const cert = data as TrainingCertificate & {
-    profiles?: { full_name: string | null; email: string | null } | null
-    training_modules?: { title: string | null } | null
-  }
-  return {
-    valid: true,
-    certificate: {
-      ...cert,
-      broker_name: cert.profiles?.full_name ?? null,
-      broker_email: cert.profiles?.email ?? null,
-      module_title: cert.training_modules?.title ?? null,
-    },
-  }
-}
+
 
 // --- Certified brokers roster (via the certified_brokers view) ---
 export interface CertifiedBroker {

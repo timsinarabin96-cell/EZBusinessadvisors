@@ -158,5 +158,4 @@ export function stockImagesFor(industry: string | null | undefined): string[] {
   return FREE_IMAGE_LIBRARY[key] || GENERIC
 }
 
-/** Attribution note — Unsplash License permits free commercial use. */
-export const STOCK_IMAGE_NOTE = 'Free professional photos via Unsplash License — no attribution required.'
+

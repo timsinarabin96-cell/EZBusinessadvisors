@@ -536,13 +536,7 @@ export function generateCimContent(listing: Listing, opts?: { recast?: RecastRes
 // Shareable link — creates a public share key stored on the version row.
 // Real deployment: host the CIM at /share/cim/[id] behind a public read.
 // ---------------------------------------------------------------------------
-export async function createCimShareLink(versionId: string): Promise<string> {
-  // A share is represented by making the version public + generating a link.
-  // For real deployments, add a `share_token` + `is_public` column and a public
-  // read policy. Here we return the in-app share path.
-  const { data } = await supabase.auth.getUser()
-  return `/share/cim/${versionId}?token=${''}&sharer=${data?.user?.id || ''}`
-}
+
 
 // ---------------------------------------------------------------------------
 // Version control

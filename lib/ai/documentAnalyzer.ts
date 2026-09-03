@@ -71,9 +71,6 @@ export function detectUniversalDocType(fileName: string): UniversalDocType {
   return 'pnl'
 }
 
-export function universalDocLabel(type: UniversalDocType): string {
-  return UNIVERSAL_DOC_TYPE_INFO[type].label
-}
 
 // ---------------------------------------------------------------------------
 // 2) Raw text extraction from common container formats (server-side)

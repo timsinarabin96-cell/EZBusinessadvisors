@@ -240,17 +240,6 @@ export async function searchAll(
   return { results: deduped, counts, total: deduped.length }
 }
 
-/** Distinct industries for the filter dropdown. */
-export async function fetchIndustries(): Promise<string[]> {
-  try {
-    const { data } = await supabase.from('listings').select('industry').not('industry', 'is', null)
-    const set = new Set<string>()
-    ;(data || []).forEach((r: any) => r.industry && set.add(r.industry))
-    return Array.from(set).sort()
-  } catch {
-    return []
-  }
-}
 
 /** Possible filter statuses per scope. */
 export const SCOPE_STATUSES: Record<Exclude<SearchScope, 'all'>, string[]> = {

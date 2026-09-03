@@ -217,21 +217,4 @@ export async function extractDocumentText({
   }
 }
 
-/**
- * Best-effort structured CSV parse into a lightweight normalized row set so a
- * text/CSV financial file can feed the extractor even before Claude.
- */
-export function csvToRows(text: string): Record<string, string>[] {
-  const lines = text.trim().split(/\r?\n/).filter((l) => l.trim())
-  if (lines.length < 2) return []
-  const header = lines[0].split(/[,;\t]/).map((h) => h.trim().toLowerCase())
-  const rows: Record<string, string>[] = []
-  for (const line of lines.slice(1)) {
-    if (!line.trim()) continue
-    const cells = line.split(/[,;\t]/)
-    const rec: Record<string, string> = {}
-    header.forEach((h, i) => { rec[h] = (cells[i] || '').trim() })
-    rows.push(rec)
-  }
-  return rows
-}
+

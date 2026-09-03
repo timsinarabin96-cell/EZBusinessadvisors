@@ -141,22 +141,6 @@ export function onLiveNotification(cb: (n: Notif) => void): () => void {
   return () => notifListeners.delete(cb)
 }
 
-/** Subscribe to common business tables. Hook used in the dashboard shell. */
-export function useLiveNotifications(onNotif?: (n: Notif) => void) {
-  useEffect(() => {
-    const tables = ['deals', 'seller_leads', 'buyer_leads', 'listings', 'social_posts']
-    let unsubs: (() => void)[] = []
-    const handler = (payload: { evt: RealtimeEvent; table: string; newRow?: any }) => {
-      if (payload.evt === '*' || payload.evt === 'INSERT') {
-        const n: Notif = { id: ++notifId, title: labelFor(payload.table), detail: detailFor(payload), table: payload.table, evt: payload.evt }
-        notifListeners.forEach((fn) => fn(n))
-        onNotif?.(n)
-      }
-    }
-    tables.forEach((t) => unsubs.push(subscribeToTable(t, undefined, handler)))
-    return () => unsubs.forEach((u) => u())
-  }, [])
-}
 
 function labelFor(table: string): string {
   const map: Record<string, string> = {

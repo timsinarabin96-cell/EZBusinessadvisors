@@ -121,10 +121,6 @@ export async function fetchStoreProducts(category?: StoreCategory): Promise<Stor
   return (data || []) as unknown as StoreProduct[]
 }
 
-export async function fetchStoreProduct(id: string): Promise<StoreProduct | null> {
-  const { data } = await supabase.from('store_products').select('*').eq('id', id).maybeSingle()
-  return (data as unknown as StoreProduct) || null
-}
 
 // --- Orders ------------------------------------------------------------------
 export async function fetchMyStoreOrders(): Promise<StoreOrder[]> {

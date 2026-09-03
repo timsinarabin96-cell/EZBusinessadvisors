@@ -49,10 +49,6 @@ export function licenseBaseCents(planType: LicensePlanType, cycle: LicenseBillin
   return cents(cycle === 'annual' ? licenseBaseAnnual(planType) : licenseBaseMonthly(planType))
 }
 
-/** Monthly-equivalent base for proration displays (annual / 12). */
-export function licenseBaseMonthlyEquivalent(planType: LicensePlanType, cycle: LicenseBillingCycle): number {
-  return cycle === 'annual' ? Math.round(licenseBaseAnnual(planType) / 12) : licenseBaseMonthly(planType)
-}
 
 /** Seat add-on total in dollars for a seat count (already includes the 3-free rule). */
 export function licenseSeatAddonDollars(seats: number, cycle: LicenseBillingCycle): number {

@@ -67,11 +67,6 @@ export async function fetchAgencies(): Promise<Agency[]> {
   return (data as Agency[]) || []
 }
 
-export async function fetchAgency(id: string): Promise<Agency | null> {
-  const { data, error } = await supabase.from('agencies').select('*').eq('id', id).single()
-  if (error) return null
-  return (data as Agency) || null
-}
 
 export async function createAgency(input: Partial<Agency>): Promise<Agency> {
   const { data, error } = await supabase.from('agencies').insert({
@@ -177,4 +172,4 @@ export async function fetchUserAgencyContext(): Promise<UserAgencyContext> {
 }
 
 export const canManageAgency = (ctx: UserAgencyContext) => ctx.isOwner || ctx.hasRole('admin')
-export const canManageListings = (ctx: UserAgencyContext) => !!ctx.agency && (ctx.isOwner || ctx.hasRole('admin', 'broker'))
+
