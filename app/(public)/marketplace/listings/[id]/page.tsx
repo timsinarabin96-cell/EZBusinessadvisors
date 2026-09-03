@@ -11,6 +11,7 @@ import { notFound } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase/server'
 import { normalizePublicListing, type PublicMarketplaceListing } from '@/lib/marketplace'
 import ListingDetailInteractive from '@/components/public/ListingDetailInteractive'
+import ListingSaveControl from '@/components/public/ListingSaveControl'
 import FranchiseDetailsPanel from '@/components/public/FranchiseDetailsPanel'
 import { ToastProvider } from '@/components/ui/Toast'
 import SimilarListings from '@/components/public/SimilarListings'
@@ -109,6 +110,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 </span>
               )}
               {listing.is_confidential && <span style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 700 }}>Confidential</span>}
+              <span style={{ marginLeft: 'auto', display: 'inline-flex' }}>
+                <ListingSaveControl listingId={listing.id} listingTitle={listing.public_title} variant="hero" />
+              </span>
             </div>
             {listing.location_general && <p style={{ color: 'rgba(255,255,255,0.72)', fontSize: 14.5, margin: '10px 0 0' }}>📍 {listing.location_general}</p>}
           </div>
