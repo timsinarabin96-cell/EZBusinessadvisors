@@ -108,3 +108,63 @@ export function saveBuyerProfile(profile: BuyerProfile) {
 export function clearBuyerProfile() {
   if (typeof window !== 'undefined') window.localStorage.removeItem(PROFILE_KEY)
 }
+
+// --- Email-keyed saved listings (follow the buyer across devices) ----------
+const SAVED_EMAIL_KEY = 'concord_saved_email'
+const SAVED_TOKEN_KEY = 'concord_saved_token'
+
+export function getSavedEmail(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(SAVED_EMAIL_KEY)
+}
+
+export function getSavedToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(SAVED_TOKEN_KEY)
+}
+
+export function setSavedIdentity(email: string, token: string) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(SAVED_EMAIL_KEY, email)
+  window.localStorage.setItem(SAVED_TOKEN_KEY, token)
+}
+
+export function clearSavedIdentity() {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(SAVED_EMAIL_KEY)
+  window.localStorage.removeItem(SAVED_TOKEN_KEY)
+}
+
+/** Sync a ♥ toggle to the server (best-effort; local state stays source of truth offline). */
+export async function syncSavedListing(listingId: string, add: boolean): Promise<boolean> {
+  const email = getSavedEmail()
+  if (!email) return false
+  try {
+    const res = await fetch('/api/public/saved-listings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, listingId, action: add ? 'add' : 'remove' }),
+    })
+    if (!res.ok) return false
+    const data = await res.json().catch(() => ({ ok: false }))
+    if (data.ok && data.token) setSavedIdentity(data.email, data.token)
+    return Boolean(data.ok)
+  } catch {
+    return false
+  }
+}
+
+/** Fetch server-side saved ids for the stored email identity. */
+export async function fetchSavedIds(): Promise<string[] | null> {
+  const email = getSavedEmail()
+  const token = getSavedToken()
+  if (!email || !token) return null
+  try {
+    const res = await fetch(`/api/public/saved-listings?email=${encodeURIComponent(email)}&token=${encodeURIComponent(token)}`)
+    if (!res.ok) return null
+    const data = await res.json().catch(() => ({ ok: false }))
+    return data.ok ? (data.ids || []) : null
+  } catch {
+    return null
+  }
+}

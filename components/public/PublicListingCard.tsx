@@ -13,7 +13,7 @@ import type { PublicMarketplaceListing } from '@/lib/marketplace'
 import { fmt$ } from '@/lib/recast'
 import { priceTeaser, PRICING_CTA } from '@/lib/pricingPolicy'
 import { listingImageFor } from '@/lib/stockImages'
-import { isFavorite, toggleFavorite, isComparing, toggleCompare, getBuyerProfile } from '@/lib/publicFavorites'
+import { isFavorite, toggleFavorite, isComparing, toggleCompare, getBuyerProfile, getSavedEmail, setSavedIdentity, syncSavedListing } from '@/lib/publicFavorites'
 import { scoreListingMatch, matchBand, type MatchScoreResult } from '@/lib/matchScore'
 import RequestPricingForm from '@/components/public/RequestPricingForm'
 
@@ -25,6 +25,10 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
   const [fav, setFav] = useState(false)
   const [compare, setCompare] = useState(false)
   const [compareFull, setCompareFull] = useState(false)
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false)
+  const [emailPromptValue, setEmailPromptValue] = useState('')
+  const [emailPromptBusy, setEmailPromptBusy] = useState(false)
+  const [emailPromptError, setEmailPromptError] = useState('')
   const [match, setMatch] = useState<MatchScoreResult | null>(null)
   const [imgError, setImgError] = useState(false)
 
@@ -47,7 +51,60 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
   const onFav = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setFav(toggleFavorite(listing.id))
+    if (fav) {
+      // Unsave: drop locally + server (when email identity known).
+      toggleFavorite(listing.id)
+      setFav(false)
+      if (getSavedEmail()) void syncSavedListing(listing.id, false)
+      return
+    }
+    if (!getSavedEmail()) {
+      // First save → capture email so the list follows the buyer.
+      setShowEmailPrompt(true)
+      return
+    }
+    toggleFavorite(listing.id)
+    setFav(true)
+    void syncSavedListing(listing.id, true)
+  }
+
+  const submitEmailSave = async (ev: React.FormEvent) => {
+    ev.preventDefault()
+    const email = emailPromptValue.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailPromptError('Enter a valid email so your saved list follows you.')
+      return
+    }
+    setEmailPromptBusy(true)
+    setEmailPromptError('')
+    try {
+      const res = await fetch('/api/public/saved-listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, listingId: listing.id, action: 'add' }),
+      })
+      const data = await res.json().catch(() => ({ ok: false }))
+      if (!res.ok || !data.ok) {
+        setEmailPromptError(data.error || 'Could not save — try again.')
+        return
+      }
+      setSavedIdentity(data.email, data.token)
+      toggleFavorite(listing.id)
+      setFav(true)
+      setShowEmailPrompt(false)
+      setEmailPromptValue('')
+    } catch {
+      setEmailPromptError('Could not save — try again.')
+    } finally {
+      setEmailPromptBusy(false)
+    }
+  }
+
+  const saveLocallyOnly = () => {
+    toggleFavorite(listing.id)
+    setFav(true)
+    setShowEmailPrompt(false)
+    setEmailPromptValue('')
   }
 
   const onCompare = (e: React.MouseEvent) => {
@@ -218,6 +275,46 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
           <div style={{ background: '#1a1a2e', color: '#fff', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
             Compare up to 3 — open <Link href="/marketplace/compare" style={{ color: '#c9a84c' }}>compare tray</Link>
           </div>
+        </div>
+      )}
+
+      {showEmailPrompt && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(26,26,46,0.35)', borderRadius: 18 }}>
+          <form
+            onSubmit={submitEmailSave}
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 14, padding: 18, margin: 14, width: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.25)', border: '1px solid #ece8dc' }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>♥ Save this listing</div>
+            <div style={{ fontSize: 12, color: '#888', margin: '6px 0 10px', lineHeight: 1.5 }}>
+              Enter your email and it stays saved on any device until the deal is gone.
+            </div>
+            <input
+              type="email"
+              autoFocus
+              value={emailPromptValue}
+              onChange={(e) => setEmailPromptValue(e.target.value)}
+              placeholder="you@email.com"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #d8d2c2', fontSize: 14 }}
+            />
+            {emailPromptError && <div style={{ fontSize: 12, color: '#e11d48', marginTop: 6 }}>{emailPromptError}</div>}
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                type="submit"
+                disabled={emailPromptBusy}
+                style={{ flex: 1, background: 'linear-gradient(135deg,#c9a84c,#a8872f)', color: '#1a1a2e', border: 'none', borderRadius: 8, padding: '10px 0', fontWeight: 800, cursor: emailPromptBusy ? 'wait' : 'pointer', fontSize: 13 }}
+              >
+                {emailPromptBusy ? 'Saving…' : 'Save with email'}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={saveLocallyOnly}
+              style={{ marginTop: 8, width: '100%', background: 'transparent', border: 'none', color: '#999', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Save on this device only
+            </button>
+          </form>
         </div>
       )}
     </div>
