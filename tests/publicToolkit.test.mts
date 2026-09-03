@@ -170,7 +170,8 @@ test('favorites page: renders saved listings with remove', () => {
   assert.match(favoritesPage, /Favorites/)
   assert.match(favoritesPage, /getFavorites/)
   assert.match(favoritesPage, /toggleFavorite/)
-  assert.match(favoritesPage, /No favorites yet/)
+  assert.match(favoritesPage, /fetchSavedIds/)
+  assert.match(favoritesPage, /No saved listings right now/)
   assert.match(favoritesPage, /Remove/)
 })
 
