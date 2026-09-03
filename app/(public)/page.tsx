@@ -115,8 +115,9 @@ export default async function HomePage() {
               style={{
                 background: 'rgba(255,255,255,0.08)', borderRadius: 18, padding: 10,
                 border: '1px solid rgba(255,255,255,0.16)',
-                display: 'grid', gridTemplateColumns: '1.5fr 1.1fr 1fr auto', gap: 8,
-                maxWidth: 640, boxShadow: '0 30px 80px rgba(2,6,23,0.5)',
+                display: 'grid', gridTemplateColumns: 'minmax(0,1.5fr) minmax(0,1.1fr) minmax(0,1fr) auto', gap: 8,
+                maxWidth: 640, width: '100%', minWidth: 0, boxSizing: 'border-box',
+                boxShadow: '0 30px 80px rgba(2,6,23,0.5)',
                 backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
               } as React.CSSProperties}
             >
@@ -567,7 +568,8 @@ function CtaCard({ eyebrow, title, body, href, label }: { eyebrow: string; title
 }
 
 const searchInput: React.CSSProperties = {
-  padding: '13px 15px', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 12, fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', color: '#fff', background: 'rgba(255,255,255,0.09)', minWidth: 0,
+  width: '100%', minWidth: 0, boxSizing: 'border-box',
+  padding: '13px 15px', border: '1px solid rgba(255,255,255,0.22)', borderRadius: 12, fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', color: '#fff', background: 'rgba(255,255,255,0.09)',
 }
 const ctaGold: React.CSSProperties = {
   background: 'linear-gradient(135deg,#f0d98c,#c9a84c 55%,#b08d35)', color: '#141a2e', padding: '14px 28px', borderRadius: 14, textDecoration: 'none', fontWeight: 800, fontFamily: 'var(--font-sans)', fontSize: 14.5, boxShadow: '0 6px 24px rgba(201,168,76,0.45)', display: 'inline-flex', alignItems: 'center', gap: 8,
