@@ -68,6 +68,12 @@ export interface PublicMarketplaceListing {
   year_built?: number | null
   property_city?: string | null
   property_state?: string | null
+  // Sale-inclusion facts (buyer-facing): inventory / FFE / goodwill / asset sale
+  inventory_included?: boolean | null
+  ffe_included?: boolean | null
+  goodwill_included?: boolean | null
+  asset_sale?: boolean | null
+  inventory_value?: number | null
 }
 
 interface PublicListingFeedRow {
@@ -122,6 +128,11 @@ interface PublicListingFeedRow {
   year_built?: number | null
   property_city?: string | null
   property_state?: string | null
+  inventory_included?: boolean | null
+  ffe_included?: boolean | null
+  goodwill_included?: boolean | null
+  asset_sale?: boolean | null
+  inventory_value?: number | string | null
 }
 
 export interface MarketplaceStats {
@@ -257,6 +268,11 @@ export function normalizePublicListing(row: PublicListingFeedRow): PublicMarketp
     year_built: row.year_built ?? null,
     property_city: row.property_city || null,
     property_state: row.property_state || null,
+    inventory_included: row.inventory_included ?? null,
+    ffe_included: row.ffe_included ?? null,
+    goodwill_included: row.goodwill_included ?? null,
+    asset_sale: row.asset_sale ?? null,
+    inventory_value: numberOrNull(row.inventory_value),
     seller_financing_available: row.seller_financing_available ?? null,
     established_year: row.established_year ?? null,
     employees_full_time: row.employees_full_time ?? null,

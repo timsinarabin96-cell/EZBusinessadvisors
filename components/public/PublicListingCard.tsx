@@ -165,12 +165,21 @@ export default function PublicListingCard({ listing }: { listing: PublicMarketpl
           )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
             <div>
-              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Pricing</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#c9a84c', fontFamily: 'Georgia, serif' }}>
-                {PRICING_CTA}
+              <div style={{ fontSize: 11, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5 }}>Asking Price</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e', fontFamily: 'Georgia, serif' }}>
+                {listing.asking_price != null ? fmt$(listing.asking_price) : PRICING_CTA}
               </div>
-              {priceTeaser(listing) && (
+              {priceTeaser(listing) && listing.asking_price == null && (
                 <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{priceTeaser(listing)}</div>
+              )}
+              {(listing.is_franchise !== true && (listing.inventory_included != null || listing.real_estate_included != null || listing.asset_sale != null)) && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                  {listing.asset_sale === false && <InclusionChip tone="#b45309">Asset sale only</InclusionChip>}
+                  {listing.inventory_included === true && <InclusionChip tone="#1e7e34">📦 Inventory incl.</InclusionChip>}
+                  {listing.inventory_included === false && <InclusionChip tone="#64748b">No inventory</InclusionChip>}
+                  {listing.real_estate_included === true && <InclusionChip tone="#1d4ed8">🏢 Property incl.</InclusionChip>}
+                  {listing.real_estate_included === false && <InclusionChip tone="#64748b">No property</InclusionChip>}
+                </div>
               )}
             </div>
             {listing.annual_revenue !== null && (
@@ -239,6 +248,14 @@ function industryEmojiFor(industry: string | null | undefined): string {
 function BadgeTone({ color, children }: { color: string; children: React.ReactNode }) {
   return (
     <span style={{ background: `${color}14`, color, border: `1px solid ${color}33`, padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>
+      {children}
+    </span>
+  )
+}
+
+function InclusionChip({ tone, children }: { tone: string; children: React.ReactNode }) {
+  return (
+    <span style={{ background: `${tone}12`, color: tone, border: `1px solid ${tone}30`, padding: '3px 9px', borderRadius: 7, fontSize: 11, fontWeight: 700 }}>
       {children}
     </span>
   )

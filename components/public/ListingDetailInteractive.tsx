@@ -315,21 +315,33 @@ export default function ListingDetailInteractive({ listing, agencyLegalName }: {
         <aside style={{ position: 'sticky', top: 24 }}>
           <div className="glass-light lift" style={{ padding: 22 }}>
             <h2 className="display-title" style={{ fontSize: 20, color: '#1a1a2e', margin: '0 0 16px' }}>Financial Snapshot</h2>
-            {listing.show_financials ? (
+            {listing.asking_price !== null || listing.annual_revenue !== null || listing.sde !== null || listing.ebitda !== null ? (
               <>
-                {/* BUSINESS MATERIALS — exact price only after qualification */}
+                {/* Headline figures — shown to buyers by platform policy (2026-09-03). */}
                 <Metric label="Asking Price" value={listing.asking_price !== null ? fmt$(listing.asking_price) : '—'} />
                 {listing.annual_revenue !== null && <Metric label="Annual Revenue" value={fmt$(listing.annual_revenue)} />}
                 {listing.sde !== null && <Metric label="Seller's Discretionary Earnings" value={fmt$(listing.sde)} />}
                 {listing.ebitda !== null && <Metric label="EBITDA" value={fmt$(listing.ebitda)} />}
                 {sdeMultiple !== null && <Metric label="Asking / SDE" value={`${sdeMultiple.toFixed(2)}×`} />}
+                {(listing.is_franchise !== true && (listing.inventory_included != null || listing.ffe_included != null || listing.goodwill_included != null || listing.asset_sale != null || listing.real_estate_included != null)) && (
+                  <div style={{ display: 'grid', gap: 6, marginTop: 12 }}>
+                    {listing.asset_sale === true && <div style={{ fontSize: 12.5, color: '#1a1a2e', fontWeight: 700 }}>📄 Asset sale</div>}
+                    {listing.asset_sale === false && <div style={{ fontSize: 12.5, color: '#1a1a2e', fontWeight: 700 }}>📄 Stock sale</div>}
+                    {listing.inventory_included === true && <div style={{ fontSize: 12.5, color: '#1e7e34', fontWeight: 700 }}>📦 Inventory included{listing.inventory_value != null ? ` (${fmt$(listing.inventory_value)} at cost)` : ''}</div>}
+                    {listing.inventory_included === false && <div style={{ fontSize: 12.5, color: '#64748b', fontWeight: 700 }}>📦 Inventory not included</div>}
+                    {listing.ffe_included === true && <div style={{ fontSize: 12.5, color: '#1e7e34', fontWeight: 700 }}>🪑 Furniture & equipment included</div>}
+                    {listing.ffe_included === false && <div style={{ fontSize: 12.5, color: '#64748b', fontWeight: 700 }}>🪑 Furniture & equipment not included</div>}
+                    {listing.goodwill_included === true && <div style={{ fontSize: 12.5, color: '#1e7e34', fontWeight: 700 }}>🤝 Goodwill included</div>}
+                    {listing.real_estate_included === true && <div style={{ fontSize: 12.5, color: '#1d4ed8', fontWeight: 700 }}>🏢 Real estate included in sale</div>}
+                    {listing.real_estate_included === false && <div style={{ fontSize: 12.5, color: '#64748b', fontWeight: 700 }}>🏢 Real estate not included — leasehold</div>}
+                  </div>
+                )}
                 <div style={{ marginTop: 14 }}>
                   <SbaCalculator askingPrice={listing.asking_price} />
                 </div>
               </>
             ) : (
               <>
-                {/* PUBLIC — price hidden per brokerage policy; gate it instead */}
                 <div style={{ textAlign: 'center', padding: '18px 8px' }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: '#c9a84c', fontFamily: 'Georgia, serif', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                     {PRICING_CTA}
