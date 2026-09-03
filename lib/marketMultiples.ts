@@ -11,7 +11,6 @@
 // hit marketMultiplesCore.ts directly.
 // =============================================================================
 
-import { supabase } from '@/lib/supabase/client'
 import {
   MARKET_MULTIPLES,
   matchIndustry,

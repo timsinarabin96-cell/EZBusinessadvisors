@@ -12,7 +12,6 @@
 // totals, category breakdown, vendor breakdown, and per-month trend.
 // =============================================================================
 
-import { supabase } from '@/lib/supabase/client'
 
 export type ExpenseCategory = 'ai_api' | 'hosting' | 'domain' | 'sms_phone' | 'email' | 'tools' | 'marketing' | 'subscriptions' | 'other'
 

@@ -15,7 +15,7 @@
 // =============================================================================
 
 import { supabase } from '@/lib/supabase/client'
-import { fetchUserAgencyContext, type Agency } from '@/lib/agencies'
+import type { Agency } from '@/lib/agencies'
 
 export type TrialStatus = 'active' | 'ending_soon' | 'expired' | 'grace' | 'locked' | 'paid' | 'none'
 

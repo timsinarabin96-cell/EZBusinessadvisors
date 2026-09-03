@@ -24,7 +24,7 @@
 // (stripe checkout/webhook + /api/franchise).
 // =============================================================================
 
-import { FRANCHISE_MONTHLY, FRANCHISE_MONTHLY_CENTS } from '@/lib/pricing'
+import { FRANCHISE_MONTHLY } from '@/lib/pricing'
 
 export const FRANCHISE_PLAN_ID = 'franchise_monthly'
 export const FRANCHISE_PLAN_NAME = 'Franchise Listing'

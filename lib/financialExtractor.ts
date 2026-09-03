@@ -26,10 +26,9 @@ import type { Listing } from '@/lib/listings'
 import type { YearFinancials } from '@/lib/recast'
 import type {
   UniversalDocType,
-  UniversalDocTypeInfo,
 } from '@/lib/ai/types'
 import { UNIVERSAL_DOC_TYPE_INFO } from '@/lib/ai/types'
-import { autoTagCategory, type FinancialCategory } from '@/lib/storageBuckets'
+import type { FinancialCategory } from '@/lib/storageBuckets'
 import type { FinancialDoc } from '@/lib/financialFiles'
 
 // ---------------------------------------------------------------------------
