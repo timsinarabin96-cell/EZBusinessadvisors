@@ -43,7 +43,11 @@ type QualifyOutcome = { decision: 'qualified' | 'maybe' | 'not_now'; score: numb
 
 export default function NdaFinancialsGate({ listing, askingPrice, agencyLegalName }: { listing: PublicMarketplaceListing; askingPrice: number | null; agencyLegalName?: string }) {
   const toast = useToast()
-  const isPublic = listing.annual_revenue != null || listing.sde != null || listing.ebitda != null
+  // Gate state: headline figures are public by platform policy (2026-09-03),
+  // but the FULL confidential package (statements, tax returns, identity) is
+  // still released only through qualification/NDA — unless the broker opted
+  // into fully-public financials via show_financials.
+  const isPublic = listing.show_financials === true
   const [unlocked, setUnlocked] = useState<Financials | null>(
     isPublic ? { annual_revenue: listing.annual_revenue, sde: listing.sde, ebitda: listing.ebitda, inventory_value: null, ffe_value: null } : null,
   )

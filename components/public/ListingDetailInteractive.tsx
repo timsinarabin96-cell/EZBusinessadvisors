@@ -339,6 +339,14 @@ export default function ListingDetailInteractive({ listing, agencyLegalName }: {
                 <div style={{ marginTop: 14 }}>
                   <SbaCalculator askingPrice={listing.asking_price} />
                 </div>
+                {/* Full confidential package (statements, tax returns, exact identity) is
+                    still released through the qualification/NDA flow — headline figures
+                    above are public, the deep package is not. */}
+                {listing.show_financials !== true && (
+                  <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid #ece8dc' }}>
+                    <NdaFinancialsGate listing={listing} askingPrice={listing.asking_price} agencyLegalName={agencyLegalName} />
+                  </div>
+                )}
               </>
             ) : (
               <>
