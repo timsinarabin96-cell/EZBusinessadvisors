@@ -18,7 +18,7 @@ import CommandPalette from '@/components/layout/CommandPalette'
 import { supabase } from '@/lib/supabase/client'
 import { fetchBrokerBrandContext, fontCss } from '@/lib/branding'
 import { resolvePortalRole } from '@/lib/authRouting'
-import { NAV, navForRole, roleRank, type NavRole, type NavItem } from '@/components/layout/navConfig'
+import { NAV, navForRole, type NavRole, type NavItem } from '@/components/layout/navConfig'
 
 const RECENT_KEY = 'concord-recent-nav'
 

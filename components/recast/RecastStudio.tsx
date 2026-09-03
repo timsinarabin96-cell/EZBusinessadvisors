@@ -7,22 +7,21 @@
 
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   RecastInput, RecastResult, RecastEntityType, ENTITY_TYPES,
   ADD_BACK_CATEGORIES, AddBack, AddBackCategory, YearFinancials,
-  recastFinancials, fmt$, fmt$K,
-} from '@/lib/recast'
+  recastFinancials, fmt$K} from '@/lib/recast'
 import { UploadedFinancialDoc, uploadFinancialDocument, extractFinancialDocument } from '@/lib/recastDocs'
-import MoneyInput, { formatWithCommas } from '@/components/ui/MoneyInput'
+import MoneyInput from '@/components/ui/MoneyInput'
 import { formatMoneyInput, moneyChange } from '@/lib/moneyInput'
 import { fetchListings, Listing } from '@/lib/listings'
 import { saveRecastProject } from '@/lib/recast'
 import { exportRecastToPdf } from '@/lib/pdfExport'
 import { fetchUserAgencyContext } from '@/lib/agencies'
 import { useToast } from '@/components/ui/Toast'
-import { LoadingState, Card, CardHeader, EmptyState, Badge } from '@/components/ui'
+import { LoadingState, Card, CardHeader, Badge } from '@/components/ui'
 import RecastReport from './RecastReport'
 
 const CURRENT_YEAR = new Date().getFullYear()

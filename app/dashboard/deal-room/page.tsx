@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import AppShell from '@/components/layout/AppShell'
-import { LoadingState } from '@/components/ui'
+
 import { fetchPipelineDeals } from '@/lib/pipeline'
 import { PageHero, EmptyState } from '@/components/ui/premium'
 

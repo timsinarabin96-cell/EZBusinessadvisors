@@ -8,7 +8,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Badge } from '@/components/ui'
+
 
 /**
  * TrainingSlides — presentation mode for a lesson. Splits the lesson body

@@ -21,8 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   uploadFinancialFiles, deleteFinancialFile, fetchFinancialFiles, fetchDealOptions,
-  getAccessToken, fileKindOf, FILE_ICON, FILE_COLOR, formatBytes, type FinancialDoc,
-} from '@/lib/financialFiles'
+  getAccessToken, fileKindOf, FILE_ICON, formatBytes, type FinancialDoc} from '@/lib/financialFiles'
 import { detectUniversalDocTypeClient, UNIVERSAL_TYPE_SHORT_LABELS } from '@/lib/financialExtractor'
 import { useToast } from '@/components/ui/Toast'
 import DocOpenLink from '@/components/financial/DocOpenLink'

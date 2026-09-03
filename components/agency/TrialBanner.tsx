@@ -17,9 +17,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import {
-  getMyTrialState, enforceLimits, statusFromAgency, FEATURE_MATRIX,
-  type TrialState, type UsageLimits, type FeatureKey,
-} from '@/lib/trial'
+   enforceLimits, statusFromAgency, FEATURE_MATRIX,
+  type TrialState, type UsageLimits, type FeatureKey} from '@/lib/trial'
 import { fetchUserAgencyContext, type Agency } from '@/lib/agencies'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 

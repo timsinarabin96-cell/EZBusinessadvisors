@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Card, CardHeader, LoadingState } from '@/components/ui'
+import {  LoadingState } from '@/components/ui'
 import { StatCard } from '@/components/ui/premium'
 import { useToast } from '@/components/ui/Toast'
 import { fetchListings, fmtMoneyCompact } from '@/lib/listings'

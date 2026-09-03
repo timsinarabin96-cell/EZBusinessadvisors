@@ -13,12 +13,11 @@ import {
   buildRecordExtractionPrompt,
   fallbackExtractRecord,
   buildTeaserPrompt,
-  fallbackTeaser,
+
   runAudit,
   valuationFromMultiples,
   sbaEligibility,
-  type BuildStep,
-} from '@/lib/oneShotDeal'
+  type BuildStep } from '@/lib/oneShotDeal'
 import { withRetry } from '@/lib/aiRetry'
 import { sendEmail } from '@/lib/email'
 

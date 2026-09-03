@@ -14,7 +14,7 @@
 // =============================================================================
 
 import { useState } from 'react'
-import Link from 'next/link'
+
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 
 interface SearchResults {

@@ -7,7 +7,7 @@
 
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
-import Link from 'next/link'
+
 import PocketListingsClient from '@/components/public/PocketListingsClient'
 
 export const dynamic = 'force-dynamic'

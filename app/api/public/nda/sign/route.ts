@@ -10,7 +10,7 @@ import crypto from 'crypto'
 import { createServerClient } from '@/lib/supabase/server'
 import { generateNdaProfilePdf } from '@/lib/buyerFormPdf.server'
 import { FF_BUCKET } from '@/lib/storageBuckets'
-import { computeVisitorIntentScore, visitorRecencyWeight } from '@/lib/visitorIntent'
+import { computeVisitorIntentScore } from '@/lib/visitorIntent'
 import {rateLimitAsync } from '@/lib/rateLimit'
 
 // ---------------------------------------------------------------------------

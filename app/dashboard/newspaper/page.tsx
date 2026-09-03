@@ -12,9 +12,8 @@ import AppShell from '@/components/layout/AppShell'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import {
   fetchEditions, createEdition, publishEdition, deleteEdition,
-  fetchArticles, fetchSubscriptions, fetchDeliveryLog,
-  type NewEdition, type Article, type Subscription,
-} from '@/lib/newspaper'
+  fetchArticles, fetchSubscriptions, 
+  type NewEdition, type Article, type Subscription} from '@/lib/newspaper'
 import { PageHero, EmptyState } from '@/components/ui/premium'
 
 export default function NewspaperPage() {

@@ -11,7 +11,7 @@
 // single day-grouped timeline so the calendar answers "what do I do today?".
 // =============================================================================
 
-import { fetchAppointments, type Appointment } from '@/lib/appointments'
+import { type Appointment } from '@/lib/appointments'
 import { getAgencyContext } from '@/lib/agencyContext'
 import { getStoredAccessToken } from '@/lib/authToken'
 

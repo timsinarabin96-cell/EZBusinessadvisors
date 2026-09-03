@@ -16,7 +16,7 @@ import MatchedBuyersModal from '@/components/leads/MatchedBuyersModal'
 import UsageLimitPrompt from '@/components/ui/UsageLimitPrompt'
 import { useToast } from '@/components/ui/Toast'
 import MoneyInput from '@/components/ui/MoneyInput'
-import { getStoredAccessToken, authHeaders } from '@/lib/authToken'
+
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import GrammarCheckButton from './GrammarCheckButton'
 import SuggestionInput from './SuggestionInput'
@@ -817,7 +817,7 @@ function AiPhotoStudio({ businessName, industry, subIndustry, location, descript
     try {
       const res = await authenticatedFetch('/api/listings/ai-photos', {
         method: 'POST',
-        headers: { 'content-type': 'application/json',  },
+        headers: { 'content-type': 'application/json', },
         body: JSON.stringify({ listingId: listingId || undefined, styleId, count: 4, prompt: prompt.trim() || undefined }),
       })
       const json = await res.json()
@@ -1082,7 +1082,7 @@ function PublicSection({ form, setValue }: SectionProps) {
     try {
       const res = await authenticatedFetch('/api/advisor/interview', {
         method: 'POST',
-        headers: { 'content-type': 'application/json',  },
+        headers: { 'content-type': 'application/json', },
         body: JSON.stringify({ notes: context, mode: 'seed', publicOnly: true }),
       })
       const j = await res.json().catch(() => ({}))

@@ -15,7 +15,7 @@
 import { useEffect, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { Card, CardHeader, LoadingState } from '@/components/ui'
-import { StatCard, SectionTitle } from '@/components/ui/premium'
+import { StatCard } from '@/components/ui/premium'
 import { fmtMoney } from '@/lib/listings'
 import { supabase } from '@/lib/supabase/client'
 

@@ -10,7 +10,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
 import { PLANS, subscribeToTier } from '@/lib/billing'
 import { BUYER_PASS_PLANS, subscribeToBuyerPass } from '@/lib/buyerPass'
-import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, VALUATION_PRICE_CENTS, LAUNCH_KIT_PRICE_CENTS, LAUNCH_KIT, OWNER_LISTING_PLANS, FRANCHISE_MONTHLY_CENTS } from '@/lib/pricing'
+import { LICENSE_SETUP_CENTS, LICENSE_MONTHLY_CENTS, VERIFIED_REVENUE_PRICE_CENTS, FINANCIAL_INTELLIGENCE_CENTS, LAUNCH_KIT_PRICE_CENTS, LAUNCH_KIT, OWNER_LISTING_PLANS, FRANCHISE_MONTHLY_CENTS } from '@/lib/pricing'
 import { FEATURED_SLOT_OPTIONS, activateFeaturedSlot } from '@/lib/featuredSlots'
 import { createCheckoutSession, stripeConfigured, demoModeAllowed, demoBlockedError } from '@/lib/stripeCheckout'
 

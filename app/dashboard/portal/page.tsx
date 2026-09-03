@@ -9,7 +9,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import AppShell from '@/components/layout/AppShell'
-import { Card, CardHeader, LoadingState } from '@/components/ui'
+import { Card, CardHeader } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'
 import { fetchClientAccess, grantClientAccess, revokeClientAccess, type ClientAccess } from '@/lib/clientPortal'
 import { supabase } from '@/lib/supabase/client'

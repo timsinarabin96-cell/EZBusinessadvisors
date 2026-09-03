@@ -10,7 +10,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createUpload, fetchModules, type TrainingModule } from '@/lib/training'
-import { Card, CardHeader, LoadingState, EmptyState, Badge } from '@/components/ui'
+import { Card, CardHeader, LoadingState, EmptyState } from '@/components/ui'
 
 // Matches the broker-id stub used by TrainingDashboard / TrainingModule so
 // uploads are attributed to the same local profile.

@@ -10,7 +10,7 @@ import { fetchMarketplaceStats, fetchAllIndustries, fetchPublicFeed } from '@/li
 import { getPublicAgencyContext } from '@/lib/publicAgency'
 import CountUpStat from '@/components/public/CountUpStat'
 import MarketplaceSearch from '@/components/public/MarketplaceSearch'
-import CategoryCards, { BUSINESS_CATEGORIES } from '@/components/public/CategoryCards'
+import CategoryCards from '@/components/public/CategoryCards'
 
 // /marketplace — public marketplace home hub. Premium 3D-style landing:
 // 3D logo hero + glassmorphism search with live suggestions + animated stats

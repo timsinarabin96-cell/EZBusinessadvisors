@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import JSZip from 'jszip'
-import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest } from '@/lib/supabase/auth'
 import { canAccessDealRoom } from '@/lib/dataRoomServer'
 
 export const runtime = 'nodejs'

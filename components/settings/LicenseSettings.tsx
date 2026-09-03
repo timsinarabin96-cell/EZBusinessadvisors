@@ -15,7 +15,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { checkAgentLicense, getMyLicense, ProfileLicense, LicenseCheck } from '@/lib/compliance'
+import { checkAgentLicense, getMyLicense, LicenseCheck } from '@/lib/compliance'
 
 const CARD = {
   background: 'var(--cream)', border: '1px solid var(--line)', borderRadius: 10, padding: 22,

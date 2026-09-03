@@ -15,7 +15,7 @@
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase/client'
+
 import { useToast } from '@/components/ui/Toast'
 import { fetchUserAgencyContext } from '@/lib/agencies'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'

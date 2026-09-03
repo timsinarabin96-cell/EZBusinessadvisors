@@ -8,7 +8,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { qualifyBuyer, LEVEL_LABELS, type UnderwritingResult } from '@/lib/underwritingCore.ts'
+import { qualifyBuyer, type UnderwritingResult } from '@/lib/underwritingCore.ts'
 import { CREDIT_OPTIONS, LEVEL_COLORS, saveUnderwritingLead } from '@/lib/underwriting'
 
 /**

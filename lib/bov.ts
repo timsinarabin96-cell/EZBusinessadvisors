@@ -7,7 +7,7 @@
 
 import { supabase } from '@/lib/supabase/client'
 import type { Listing } from '@/lib/listings'
-import { bandForIndustry, matchIndustry } from '@/lib/marketMultiplesCore.ts'
+import { bandForIndustry } from '@/lib/marketMultiplesCore.ts'
 import { resolveNormalizedEarnings, latestYoYRevenue } from '@/lib/normalizedEarnings.ts'
 import type { RecastResult } from '@/lib/recast.ts'
 

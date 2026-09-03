@@ -17,7 +17,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { passwordIssue, PASSWORD_POLICY } from '@/lib/emailVerification'
+import { passwordIssue } from '@/lib/emailVerification'
 
 type Persona = 'owner' | 'buyer'
 

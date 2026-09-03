@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
-import { listTemplates, saveTemplate, deleteTemplate, sendTemplate, seedTemplates } from '@/lib/emailTemplates'
+import { listTemplates, saveTemplate, deleteTemplate, seedTemplates } from '@/lib/emailTemplates'
 
 export const runtime = 'nodejs'
 

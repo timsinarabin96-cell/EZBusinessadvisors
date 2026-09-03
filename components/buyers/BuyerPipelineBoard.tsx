@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
-import { STAGE_META, heatBand, BUYER_STAGES, type BuyerStage } from '@/lib/buyerPipelineCore'
+import { STAGE_META, heatBand, type BuyerStage } from '@/lib/buyerPipelineCore'
 
 // =============================================================================
 // BuyerPipelineBoard — the buyer CRM kanban for a listing.
@@ -76,7 +76,7 @@ export default function BuyerPipelineBoard({ listingId, onBuyersChange }: { list
     try {
       const res = await authenticatedFetch('/api/buyers/pipeline', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json',  },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ buyerListId: b.id, listingId, toStage: next }),
       })
       const j = await res.json()
@@ -95,7 +95,7 @@ export default function BuyerPipelineBoard({ listingId, onBuyersChange }: { list
     try {
       const res = await authenticatedFetch('/api/buyers/pipeline', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json',  },
+        headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ action: 'nqa', listingId, buyerListId: b.id, answers: nqa }),
       })
       const j = await res.json()

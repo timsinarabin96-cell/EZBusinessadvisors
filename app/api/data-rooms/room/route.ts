@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateProfileRequest, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest } from '@/lib/supabase/auth'
 import {
   ensureDataRoom, snapshotRoom, logActivity, kindFromMime,
   visibleAccessLevels, canAccessDealRoom, type RoomAccessLevel, type RoomRole,

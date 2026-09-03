@@ -10,12 +10,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Listing, fetchListings, updateListing, deleteListing, restoreListing, fmtMoney, LISTING_STATUSES } from '@/lib/listings'
+import { Listing, fetchListings, updateListing, restoreListing, fmtMoney, LISTING_STATUSES } from '@/lib/listings'
 import { listingImageFor } from '@/lib/stockImages'
 import { useToast } from '@/components/ui/Toast'
 import { LoadingState, EmptyState, Card, Badge } from '@/components/ui'
-import { queueAutoPosts } from '@/lib/services/social'
-import { supabase } from '@/lib/supabase/client'
+
+
 import StaleListingPanel from '@/components/listings/StaleListingPanel'
 import ParkedDraftsPanel from '@/components/listings/ParkedDraftsPanel'
 import DeleteListingModal from '@/components/listings/DeleteListingModal'
@@ -242,7 +242,7 @@ export default function ListingsDashboard() {
   )
 }
 
-function FilterPill({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {  return (
+function FilterPill({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) { return (
     <button
       onClick={onClick}
       style={{

@@ -8,10 +8,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
+import { StepShell, stepField, stepBtn } from '@/components/listings/StepShell'
 import { fetchBuyers, addBuyer, updateBuyer, completeStep, recordLOI } from '@/lib/workflow'
 import BuyerPipelineBoard from '@/components/buyers/BuyerPipelineBoard'
-import StatusBadge from '@/components/listings/StatusBadge'
+
 
 // ---------------------------------------------------------------------------
 // Step 9 — Buyer Management: NDAs, financial qualification, primary buyer.

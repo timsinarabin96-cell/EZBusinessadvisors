@@ -15,7 +15,7 @@ import {
   PROFESSIONAL_LABELS, PROFESSIONAL_TYPES,
   type DealProfessional, type ProfessionalType,
 } from '@/lib/professionals'
-import { createInviteToken } from '@/lib/invites'
+
 import { getStoredAccessToken } from '@/lib/authToken'
 import ReferralPanel from '@/components/listing/ReferralPanel'
 

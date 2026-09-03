@@ -7,7 +7,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useToast } from '@/components/ui/Toast'
 import { authenticatedFetch } from '@/lib/authenticatedFetch'
 import { AI_PHOTO_STYLES, type GeneratedAiImage } from '@/lib/aiPhotos'

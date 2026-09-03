@@ -24,8 +24,8 @@ import {
   CLAW_TEAL,
   CLAW_BODY,
   CLAW_MUTED,
-  CLAW_ROW_A,
-  CLAW_ROW_B,
+
+
   type DocAgency,
   type ClawFonts,
   registerClawFonts,
@@ -38,8 +38,7 @@ import {
   clawTable,
   type ClawTableCol,
   clawCover,
-  type ClawAssets,
-} from '@/lib/pdfOpenClaw'
+  type ClawAssets} from '@/lib/pdfOpenClaw'
 
 export interface PdfOpts {
   returnBytes?: boolean

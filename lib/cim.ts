@@ -7,9 +7,9 @@
 
 import { supabase } from '@/lib/supabase/client'
 import type { Listing } from '@/lib/listings'
-import { bandForIndustry, matchIndustry, type MarketBand } from '@/lib/marketMultiplesCore.ts'
+import { bandForIndustry, type MarketBand } from '@/lib/marketMultiplesCore.ts'
 import type { RecastResult } from '@/lib/recast.ts'
-import { resolveNormalizedEarnings, latestYoYRevenue, latestSdeMargin } from '@/lib/normalizedEarnings.ts'
+import { resolveNormalizedEarnings, latestYoYRevenue } from '@/lib/normalizedEarnings.ts'
 
 // ---------------------------------------------------------------------------
 // CIM (Confidential Information Memorandum) generator — 25+ section,

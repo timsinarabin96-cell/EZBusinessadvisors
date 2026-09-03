@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/supabase/server'
 import { validationErrorJson } from '@/lib/friendlyValidation'
-import { authenticateProfileRequest, canManageAgency, forbiddenResponse, unauthorizedResponse } from '@/lib/supabase/auth'
+import { authenticateProfileRequest,  unauthorizedResponse } from '@/lib/supabase/auth'
 import { submitAgentApplication } from '@/lib/hiring'
 
 export const runtime = 'nodejs'

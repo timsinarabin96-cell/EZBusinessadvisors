@@ -8,7 +8,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { StepShell, stepField, stepLabel, stepBtn } from '@/components/listings/StepShell'
+import { StepShell,  stepBtn } from '@/components/listings/StepShell'
 import { publishListing, completeStep } from '@/lib/workflow'
 import { fetchListing } from '@/lib/listings'
 import { fetchListingReadiness } from '@/lib/listingReadiness'

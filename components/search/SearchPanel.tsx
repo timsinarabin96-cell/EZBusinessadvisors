@@ -15,15 +15,14 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+
 import Link from 'next/link'
 import { formatWithCommas } from '@/components/ui/MoneyInput'
 import {
-  searchAll, fetchIndustries, fetchSavedSearches, saveSearch, deleteSavedSearch, logSearch,
+  searchAll, fetchSavedSearches, saveSearch, deleteSavedSearch, logSearch,
   SCOPE_STATUSES,
-  type SearchFilter, type SearchScope, type SearchResults, type SavedSearch,
-} from '@/lib/search'
-import { Card, CardHeader, LoadingState } from '@/components/ui'
+  type SearchFilter, type SearchScope, type SearchResults, type SavedSearch} from '@/lib/search'
+import { Card, CardHeader } from '@/components/ui'
 import { useToast } from '@/components/ui/Toast'
 
 const KIND_ICON: Record<string, string> = { listing: '🏢', deal: '🤝', lead: '🎯', document: '📄' }

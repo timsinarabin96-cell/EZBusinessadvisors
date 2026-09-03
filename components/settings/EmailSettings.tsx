@@ -7,7 +7,7 @@
 
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Card, CardHeader } from '@/components/ui'
 import { ToastProvider, useToast } from '@/components/ui/Toast'

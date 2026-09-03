@@ -14,9 +14,8 @@
 
 import { useRef, useState } from 'react'
 import {
-  uploadFinancialFiles, UploadProgress, fileKindOf, FILE_ICON, FILE_COLOR,
-  formatBytes,
-} from '@/lib/financialFiles'
+  uploadFinancialFiles, UploadProgress, fileKindOf, FILE_ICON, 
+  formatBytes} from '@/lib/financialFiles'
 
 interface Props {
   parentId: string

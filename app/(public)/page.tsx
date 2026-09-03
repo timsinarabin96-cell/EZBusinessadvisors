@@ -7,7 +7,7 @@
 
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+
 import type { SoldListing, PublicMarketplaceListing } from '@/lib/marketplace'
 import { fetchFeaturedListings, fetchMarketplaceStats, fetchAllIndustries, fetchSoldListings } from '@/lib/marketplace'
 import { buildSoldCompsReport } from '@/lib/soldComps'

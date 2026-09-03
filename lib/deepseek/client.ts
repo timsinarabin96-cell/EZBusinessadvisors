@@ -7,7 +7,7 @@
 
 import type { AgentContextPayload } from '@/types/ai'
 import type { InternalMessage } from '@/lib/claude/client'
-import { withRetry, errorStatus } from '@/lib/aiRetry'
+import { withRetry } from '@/lib/aiRetry'
 
 export class DeepSeekConfigError extends Error {
   constructor() {

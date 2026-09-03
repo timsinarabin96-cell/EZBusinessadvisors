@@ -32,7 +32,7 @@
 
 import { createServerClient } from '@/lib/supabase/server'
 import type { Listing } from '@/lib/listings'
-import { recastFinancials, attachRecastAnalysis, type RecastResult, type RecastInput, type YearFinancials } from '@/lib/recast'
+import { attachRecastAnalysis, type RecastResult, type RecastInput, type YearFinancials } from '@/lib/recast'
 import { runReconciliationLoop, type ReconciliationOutcome } from '@/lib/reconciliationFollowup'
 import { generateBovContent } from '@/lib/bov'
 import { enrichBovWithClaude } from '@/lib/bovClaude'
@@ -42,12 +42,11 @@ import { generateBliContent } from '@/lib/bli'
 import { exportRecastToPdf, exportBovToPdf, exportCimToPdf, exportBliToPdf } from '@/lib/pdfExport'
 import {
   buildFinancialHistory,
-  computeFinancialMetrics,
+
   extractFinancialCsv,
   groupUploadedDocs,
-  type ExtractedFinancialRow,
-} from '@/lib/financialExtractor'
-import { FF_BUCKET, DOCS_BUCKET } from '@/lib/storageBuckets'
+  type ExtractedFinancialRow} from '@/lib/financialExtractor'
+import { DOCS_BUCKET } from '@/lib/storageBuckets'
 import type { FinancialStatus, FinancialDoc } from '@/lib/financialFiles'
 import { complete, isClaudeConfigured } from '@/lib/claude/client'
 import type {
