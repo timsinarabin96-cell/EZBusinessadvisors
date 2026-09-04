@@ -49,7 +49,7 @@ Status legend: ✅ Verified done · ⏳ In progress · ⚠️ Open gap · 🔲 N
 |---|---|---|
 | Photo studio API (FAL) | ✅ **VERIFIED WORKING today** | Live call `fal.run/fal-ai/flux-pro/v1.1` with project `FAL_KEY` → HTTP 200, image generated in ~6.8s. Key live in `.env.local` + Vercel prod. Punchlist's "Photo API key — Not started" row is now CLOSED. |
 | Twilio SMS outbound (A2P) | ❌ **BLOCKED — carrier filtering** | Two live test sends (broker `+17177067457` + alt `+17174613193`) both came back **undelivered, Twilio error 30034**. Cause: US long-code → mobile requires **A2P 10DLC campaign registration** (brand + campaign in Twilio console). This is now the confirmed reason broker alerts never arrived. SMS webhook/inbound side still works; outbound needs boss's Twilio console action. |
-| ValuTrax | ⚠️ Cancellation emailed 09-04 | Sent 15:53Z to info@bbpinc.com + sam@bbpinc.com; subscription was still active (charged Aug 10, renews Sep 10). Await written confirmation. |
+| ValuTrax | ✅ **CANCELLED — written confirmation received 09-04** | Sam Mohlenhoff (sam@bbpinc.com) replied 16:01Z: "We have cancelled the subscription for you. You will not be charged again." + formal "Subscription Expired" notice 15:57Z (info@bbpinc.com). Cancellation email sent 15:53Z. **CLOSED — no Sep 10 charge.** |
 | Stripe LIVE keys | 🔴 Still `sk_test` | Vercel prod + `.env.local` both test; no `sk_live` on box. Boss to paste `sk_live_…` + live webhook secret. |
 
 ### Closed since last punchlist refresh (Sep 1–3, all committed/verified)
