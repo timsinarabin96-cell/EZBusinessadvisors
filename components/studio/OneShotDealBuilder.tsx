@@ -412,8 +412,23 @@ export default function OneShotDealBuilder() {
               </div>
               <IntelligentListingForm
                 onDraftCreated={(id) => {
+                  // Manual entry is self-contained: the form already tracks
+                  // createdListingId internally and persists via UPDATE after
+                  // the first create. DO NOT loadDeal() here — loadDeal flips
+                  // phase to 'deal', which unmounts this form (losing its
+                  // createdListingId) and remounts it fresh on the draft
+                  // return-to-intake path. That made every subsequent autosave
+                  // create a NEW listing (duplicate drafts) and reset the
+                  // wizard to section 1 mid-entry. Just sync the URL so the
+                  // draft stays deep-linkable; the form keeps updating it.
                   setListingId(id)
-                  loadDeal(id)
+                  try {
+                    const u = new URL(window.location.href)
+                    if (u.searchParams.get('listing') !== id) {
+                      u.searchParams.set('listing', id)
+                      window.history.replaceState(null, '', u.toString())
+                    }
+                  } catch { /* best-effort */ }
                 }}
               />
             </div>
