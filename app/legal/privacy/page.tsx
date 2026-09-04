@@ -9,12 +9,12 @@ import LegalDocument from '@/components/legal/LegalDocument'
 
 export default function PrivacyPage() {
   return (
-    <LegalDocument title="Privacy Policy" updated="July 31, 2026">
+    <LegalDocument title="Privacy Policy" updated="September 4, 2026">
       <p>
-        This Privacy Policy explains how Concord Deal Platform (&quot;we,&quot; &quot;us,&quot; &quot;our&quot;)
-        collects, uses, and protects your personal information when you use the Concord Deal
-        Platform (the &quot;Platform&quot;). We are committed to safeguarding your data, including the
-        confidential financial information we handle on your behalf.
+        This Privacy Policy explains how EZ Business Advisors LLC, operating the Concord Deal
+        Platform (&quot;we,&quot; &quot;us,&quot; &quot;our&quot;) collects, uses, and protects your personal information when
+        you use the Concord Deal Platform (the &quot;Platform&quot;). We are committed to safeguarding your
+        data, including the confidential financial information we handle on your behalf.
       </p>
 
       <h2>1. Information We Collect</h2>

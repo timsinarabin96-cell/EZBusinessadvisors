@@ -9,10 +9,10 @@ import LegalDocument from '@/components/legal/LegalDocument'
 
 export default function TermsPage() {
   return (
-    <LegalDocument title="Terms of Service" updated="July 31, 2026">
+    <LegalDocument title="Terms of Service" updated="September 4, 2026">
       <p>
         These Terms of Service govern your access to and use of the Concord Deal Platform
-        (the &quot;Platform&quot;), a business brokerage platform operated by Concord Deal Platform
+        (the &quot;Platform&quot;), a business brokerage platform operated by EZ Business Advisors LLC
         (&quot;we,&quot; &quot;us,&quot; &quot;our&quot;). By creating an account or using the Platform, you agree to be
         bound by these Terms.
       </p>
@@ -166,9 +166,9 @@ export default function TermsPage() {
 
       <h2>10. Governing Law</h2>
       <p>
-        These Terms are governed by the laws of the State of North Carolina, without regard to its
-        conflict-of-laws principles. Any disputes shall be resolved in the state or federal courts
-        located in Charlotte, North Carolina.
+        These Terms are governed by the laws of the Commonwealth of Pennsylvania, without regard
+        to its conflict-of-laws principles. Any disputes shall be resolved in the state or federal
+        courts located in Harrisburg, Pennsylvania.
       </p>
 
       <h2>11. Changes to These Terms</h2>

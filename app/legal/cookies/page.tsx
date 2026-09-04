@@ -9,9 +9,10 @@ import LegalDocument from '@/components/legal/LegalDocument'
 
 export default function CookiesPage() {
   return (
-    <LegalDocument title="Cookie Policy" updated="July 31, 2026">
+    <LegalDocument title="Cookie Policy" updated="September 4, 2026">
       <p>
-        This Cookie Policy explains how Concord Deal Platform (&quot;we,&quot; &quot;us&quot;,&quot;our&quot;) uses cookies
+        This Cookie Policy explains how EZ Business Advisors LLC, operating the Concord Deal
+        Platform (&quot;we,&quot; &quot;us&quot;,&quot;our&quot;) uses cookies
         and similar technologies when you use the Concord Deal Platform (the &quot;Platform&quot;).
         It works together with our Privacy Policy.
       </p>

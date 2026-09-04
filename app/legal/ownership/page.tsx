@@ -14,13 +14,13 @@ import LegalDocument from '@/components/legal/LegalDocument'
 
 export default function OwnershipPage() {
   return (
-    <LegalDocument title="Ownership & Copyright" updated="August 26, 2026">
+    <LegalDocument title="Ownership & Copyright" updated="September 4, 2026">
       <h2>1. Legal Owner</h2>
       <p>
         The Concord Deal Platform (including its source code, database schema, design, brand assets,
         documentation, and all original content — collectively the &quot;Platform&quot;) is the exclusive
-        property of <strong>Rabin Timsina</strong>, operating as EZ Business Advisors. Rabin Timsina
-        is the sole legal owner of the Platform.
+        property of <strong>EZ Business Advisors LLC</strong>, owned by Rabin Timsina.
+        EZ Business Advisors LLC is the sole legal owner of the Platform.
       </p>
 
       <h2>2. Copyright</h2>
