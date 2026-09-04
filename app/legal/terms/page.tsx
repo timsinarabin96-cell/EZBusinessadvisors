@@ -150,6 +150,20 @@ export default function TermsPage() {
         any time.
       </p>
 
+      <h2>9a. Payments, Fees &amp; Refunds</h2>
+      <p>
+        Paid plans, listing upgrades, and the CRM Platform license are billed through our payment
+        processor (Stripe) using the payment method you provide. Fees are stated at checkout and
+        are exclusive of applicable taxes, which we may add where required by law.
+      </p>
+      <ul>
+        <li>One-time setup fees (including the CRM Platform license setup fee) are charged when you complete checkout.</li>
+        <li>Recurring platform fees are billed monthly in advance until you cancel.</li>
+        <li>You may cancel a recurring subscription at any time; access continues until the end of the paid period and will not renew.</li>
+        <li>Refunds are issued at our discretion, consistent with applicable consumer law. Because platform setup, data configuration, and deliverable generation begin immediately after checkout, one-time fees are generally non-refundable once the service or deliverables have been provided.</li>
+        <li>If a recurring charge fails, we may suspend the associated services until the balance is settled.</li>
+      </ul>
+
       <h2>10. Governing Law</h2>
       <p>
         These Terms are governed by the laws of the State of North Carolina, without regard to its
