@@ -110,7 +110,7 @@ export function parseHighlights(value: string): string[] {
 export function buildListingInsert(input: IntelligentListingInput) {
   return {
     business_name: input.business_name.trim(),
-    headline: input.headline.trim() || null,
+    headline: input.headline.trim() || '',
     industry: input.industry.trim() || null,
     sub_industry: input.sub_industry.trim() || null,
     location_general: input.location_general.trim() || null,
