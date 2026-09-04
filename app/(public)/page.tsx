@@ -139,8 +139,8 @@ export default async function HomePage() {
             </div>
 
             <div style={{ marginTop: 30, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-              <Link href="/marketplace/listings" className="cta-glow">Browse All Listings →</Link>
-              <Link href="/marketplace/sell" className="cta-ghost-dark">Get a Free Valuation</Link>
+              <Link href="/marketplace/sell" className="cta-glow">Get a Free Valuation →</Link>
+              <Link href="/marketplace/listings" className="cta-ghost-dark">Browse All Listings</Link>
             </div>
           </div>
 
@@ -316,8 +316,8 @@ export default async function HomePage() {
           Whether you're buying your next business or selling the one you've built — start with a free, confidential conversation.
         </p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/marketplace/listings" style={ctaGold}>Browse Listings</Link>
-          <Link href="/marketplace/sell" style={ctaGhost}>Get a Free Valuation</Link>
+          <Link href="/marketplace/sell" style={ctaGold}>Get a Free Valuation →</Link>
+          <Link href="/marketplace/listings" style={ctaGhost}>Browse Listings</Link>
         </div>
       </section>
 
