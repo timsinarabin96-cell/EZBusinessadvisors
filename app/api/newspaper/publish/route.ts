@@ -44,10 +44,21 @@ export async function POST(req: NextRequest) {
   // BUYERS ONLY — sellers/internal/agent audiences are never mailed the weekly.
   const { data: subs } = await SVC.from('newspaper_subscriptions').select('*').eq('status', 'active').eq('audience', 'buyer')
 
+  // Idempotency guard: never re-email an edition that was already delivered.
+  // A published edition can be re-delivered (button clicked twice, retries,
+  // cron + manual overlap) — delivery_log is the source of truth.
+  const { data: deliveredRows } = await SVC.from('newspaper_delivery_log')
+    .select('email')
+    .eq('edition_id', editionId)
+    .eq('audience', 'buyer')
+  const delivered = new Set((deliveredRows || []).map((r) => (r.email || '').toLowerCase()))
+  const pending = (subs || []).filter((sub) => !delivered.has((sub.email || '').toLowerCase()))
+  const alreadyDelivered = (subs || []).length - pending.length
+
   const subject = `Concord Weekly — ${edition.issue_label || ''}`
 
   let sent = 0, failed = 0
-  for (const sub of (subs || [])) {
+  for (const sub of pending) {
     // Ensure a persisted unsubscribe token before rendering (legacy rows may
     // have NULL tokens → empty links). Same guarantee as the weekly cron.
     let token = sub.token
@@ -73,5 +84,5 @@ export async function POST(req: NextRequest) {
     sent++
   }
 
-  return NextResponse.json({ ok: true, sent, failed, total: (subs || []).length })
+  return NextResponse.json({ ok: true, sent, failed, total: pending.length, alreadyDelivered })
 }

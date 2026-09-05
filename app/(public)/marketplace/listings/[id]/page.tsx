@@ -21,6 +21,9 @@ import ListingMarketContextPanel from '@/components/public/ListingMarketContextP
 import { fetchPublicListingMeta } from '@/lib/publicListingMeta'
 import { fetchListingMarketContext } from '@/lib/listingMarketContext'
 import { safeJsonLd } from '@/lib/safeJsonLd'
+import DealAlertsSignup from '@/components/public/DealAlertsSignup'
+import { fetchAllIndustries } from '@/lib/marketplace'
+import { getPublicAgencyContext } from '@/lib/publicAgency'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,6 +80,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     location_general: listing.location_general,
     established_year: listing.established_year,
   })
+
+  // Public Deal Alerts capture — same industry feed the alerts page uses.
+  const agencyCtx = await getPublicAgencyContext()
+  const industries = await fetchAllIndustries(agencyCtx?.scope || null).catch(() => [])
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -135,6 +142,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       </div>
       <DealProfessionalsPanel listing={listing} />
       <SimilarListings listing={listing} />
+      <section style={{ maxWidth: 900, margin: '34px auto 0' }}>
+        <DealAlertsSignup industries={industries} />
+      </section>
     </div>
   )
 }

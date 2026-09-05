@@ -17,6 +17,7 @@ import SoldCompsTicker from '@/components/public/SoldCompsTicker'
 import CountUpStat from '@/components/public/CountUpStat'
 import { SponsoredSlot } from '@/components/public/SponsoredSlot'
 import NewsletterSignup from '@/components/public/NewsletterSignup'
+import DealAlertsSignup from '@/components/public/DealAlertsSignup'
 import { LoadingState } from '@/components/ui'
 import { fmt$ } from '@/lib/recast'
 import { listingImageFor } from '@/lib/stockImages'
@@ -145,6 +146,16 @@ export default async function ListingsPage({ searchParams = {} }: PageProps) {
         <SearchListingsClient initialResults={results} initialIndustries={industries} initialStats={stats} agencyScope={scope} />
       </Suspense>
       <CategoryCards industries={industries} limit={12} title="Browse by business type" subtitle="Color-coded categories — pick one to explore vetted businesses for sale" />
+      <section style={{ background: '#f7f6f2', padding: '44px 24px' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+            <span style={{ fontSize: 18 }}>🔔</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#1a1a2e', letterSpacing: '.08em', textTransform: 'uppercase' }}>Deal Alerts</span>
+            <span style={{ flex: 1, height: 1, background: '#e5e0d3' }} />
+          </div>
+          <DealAlertsSignup industries={industries} />
+        </div>
+      </section>
       <section style={{ background: '#1a1a2e', padding: '26px 24px', marginTop: 0 }}>
         <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ flex: '1 1 340px', maxWidth: 560 }}>
