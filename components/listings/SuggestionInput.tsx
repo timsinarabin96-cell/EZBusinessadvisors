@@ -32,6 +32,8 @@ export default function SuggestionInput({
   const [options, setOptions] = useState<string[]>([])
   const [open, setOpen] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const stillFocused = () => document.activeElement === inputRef.current
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current)
@@ -43,7 +45,10 @@ export default function SuggestionInput({
         const data = await res.json()
         const list = (data.suggestions || []).map((s: any) => (typeof s === 'string' ? s : s.display)).filter(Boolean)
         setOptions(list)
-        setOpen(list.length > 0)
+        // Only auto-open while the user is still in this field — a late fetch
+        // resolving after blur must not pop the dropdown open again (it
+        // rendered as ghost duplicate rows under the filled field).
+        if (stillFocused()) setOpen(list.length > 0)
       } catch {
         setOptions([])
         setOpen(false)
@@ -55,6 +60,7 @@ export default function SuggestionInput({
   return (
     <div style={{ position: 'relative' }}>
       <input
+        ref={inputRef}
         className="input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
