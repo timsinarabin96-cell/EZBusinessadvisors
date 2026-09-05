@@ -56,8 +56,13 @@ export interface UnifiedLead {
   created_at?: string | null
   source?: string | null
   listing_id?: string | null
+  agency_id?: string | null
   // Buyer-lead enrichment (financials + desired business type)
+  // NOTE (2026-09-05): imports (BizBuySell etc.) write the ask into
+  // `industry_interest` — `desired_business_type` is often NULL. Matching
+  // must read BOTH fields or real buyer demand silently never matches.
   desired_business_type?: string | null
+  industry_interest?: string | null
   budget_range?: string | null
   funds_available?: number | null
   financing_method?: string | null
@@ -95,6 +100,9 @@ export async function fetchAllLeads(): Promise<UnifiedLead[]> {
         kind: 'buyer', id: r.id, business_name: null, email: r.email,
         phone: r.phone, status: r.status || 'new', created_at: r.created_at,
         source: r.source || null, listing_id: r.listing_id || null,
+        agency_id: r.agency_id || null,
+        desired_business_type: r.desired_business_type || null,
+        industry_interest: normalizeIndustryInterest(r.industry_interest, r.industries_interest),
         newsletter_opt_in: !!r.newsletter_opt_in,
       })
     }
@@ -119,11 +127,23 @@ export const BUSINESS_TYPES = [
   'Transportation / Logistics', 'E-commerce', 'Other',
 ]
 
-export async function fetchBuyerLeads(): Promise<UnifiedLead[]> {
-  const { data, error } = await supabase
-    .from('buyer_leads')
-    .select('*')
-    .order('created_at', { ascending: false })
+/** Combine industry_interest + industries_interest[] into one searchable string. */
+export function normalizeIndustryInterest(single?: unknown, list?: unknown): string | null {
+  const parts: string[] = []
+  if (typeof single === 'string' && single.trim()) parts.push(single.trim())
+  if (Array.isArray(list)) list.filter((x): x is string => typeof x === 'string' && !!x.trim()).forEach((x) => parts.push(x.trim()))
+  else if (typeof list === 'string' && list.trim()) parts.push(list.trim())
+  return parts.length ? parts.join(', ') : null
+}
+
+/**
+ * Fetch buyer leads. Optional agencyId scopes to ONE agency so a sold/
+ * white-label CRM never sees another brokerage's buyer demand.
+ */
+export async function fetchBuyerLeads(agencyId?: string | null): Promise<UnifiedLead[]> {
+  let query = supabase.from('buyer_leads').select('*')
+  if (agencyId) query = query.eq('agency_id', agencyId)
+  const { data, error } = await query.order('created_at', { ascending: false })
   if (error) {
     console.error('fetchBuyerLeads error:', error)
     return []
@@ -131,8 +151,10 @@ export async function fetchBuyerLeads(): Promise<UnifiedLead[]> {
   return (data || []).map((r) => ({
     kind: 'buyer' as LeadKind, id: r.id, business_name: null,
     email: r.email, phone: r.phone, status: r.status || 'new', created_at: r.created_at,
-    source: r.source || null,
+    source: r.source || null, listing_id: r.listing_id || null,
+    agency_id: r.agency_id || null,
     desired_business_type: r.desired_business_type || null,
+    industry_interest: normalizeIndustryInterest(r.industry_interest, r.industries_interest),
     budget_range: r.budget_range || null,
     funds_available: r.funds_available ?? null,
     financing_method: r.financing_method || null,
@@ -171,10 +193,32 @@ function typesOverlap(a?: string | null, b?: string | null): boolean {
   return ta.some((x) => tb.includes(x))
 }
 
-export async function matchBuyerLeads(listingIndustry?: string | null): Promise<UnifiedLead[]> {
-  const leads = await fetchBuyerLeads()
+/**
+ * Match buyer leads to a listing industry. Reads desired_business_type AND
+ * industry_interest (imports write the ask there). Agency-scoped when
+ * agencyId is provided.
+ */
+export async function matchBuyerLeads(listingIndustry?: string | null, agencyId?: string | null): Promise<UnifiedLead[]> {
+  const leads = await fetchBuyerLeads(agencyId)
   if (!listingIndustry) return []
-  return leads.filter((l) => typesOverlap(l.desired_business_type, listingIndustry))
+  return leads.filter((l) => {
+    const haystack = [l.desired_business_type, l.industry_interest].filter(Boolean).join(' | ')
+    return typesOverlap(haystack, listingIndustry)
+  })
+}
+
+/** Attach a buyer lead to a specific listing (or detach with null). */
+export async function attachBuyerLeadToListing(leadId: string, listingId: string | null): Promise<void> {
+  const { error } = await supabase.from('buyer_leads').update({ listing_id: listingId }).eq('id', leadId)
+  if (error) {
+    console.error('attachBuyerLeadToListing error:', error)
+    throw new Error(error.message || 'Failed to link lead to listing')
+  }
+  await addLeadActivity(
+    leadId,
+    'listing',
+    listingId ? `Linked to listing ${listingId.slice(0, 8)}` : 'Removed listing link'
+  )
 }
 
 export async function createBuyerLead(input: {

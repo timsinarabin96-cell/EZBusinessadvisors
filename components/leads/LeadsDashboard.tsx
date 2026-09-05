@@ -12,6 +12,7 @@ import {
   UnifiedLead, LeadKind, LeadStatus, LEAD_STATUSES, statusMeta,
   fetchAllLeads, createLead, updateLead, deleteLead, convertLeadToDeal,
   fetchLeadActivities, addLeadActivity, LeadActivity, initials, mergeLeads,
+  attachBuyerLeadToListing,
 } from '@/lib/leads2'
 import { findDuplicateGroups, findCrossKindPairs } from '@/lib/leadDedup'
 import type { DupGroup } from '@/lib/leadDedup'
@@ -497,6 +498,43 @@ export default function LeadsDashboard({ initialQuery = '' }: { initialQuery?: s
                 <button className="btn btn-ghost" onClick={() => { setEditing(selected); setShowForm(true) }}>Edit</button>
                 <button className="btn btn-danger" onClick={() => handleDelete(selected)}>Delete</button>
               </div>
+
+              {/* Link buyer lead to a listing (BizBuySell suggestions workflow) */}
+              {selected.kind === 'buyer' && (
+                <div style={{ marginBottom: 20 }}>
+                  <div className="section-title" style={{ marginBottom: 8 }}>Link to a listing</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <select
+                      className="select"
+                      style={{ flex: '1 1 200px' }}
+                      value={selected.listing_id || ''}
+                      onChange={async (e) => {
+                        const listingId = e.target.value || null
+                        const prev = selected.listing_id || null
+                        setSelected({ ...selected, listing_id: listingId })
+                        try {
+                          await attachBuyerLeadToListing(selected.id, listingId)
+                          await load()
+                          toast(listingId ? 'Buyer linked to listing ✓' : 'Listing link removed', 'success')
+                        } catch (err: any) {
+                          toast(err.message || 'Link failed', 'error')
+                          setSelected({ ...selected, listing_id: prev })
+                        }
+                      }}
+                    >
+                      <option value="">— No listing —</option>
+                      {listings.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.business_name || 'Untitled listing'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 6, lineHeight: 1.5 }}>
+                    Attach this buyer to the listing they're interested in — they'll appear on that listing's Suggested Buyers panel and in buyer-match alerts.
+                  </div>
+                </div>
+              )}
 
               {/* Unified timeline — calls / emails / SMS / notes / status in one feed */}
               <div className="section-title" style={{ marginBottom: 10 }}>Timeline</div>

@@ -18,6 +18,7 @@ import ListingPhotosPicker from '@/components/studio/ListingPhotosPicker'
 import LegalDocsCard from '@/components/studio/LegalDocsCard'
 import Step9BuyerManagement from '@/components/listings/Step9BuyerManagement'
 import Step10DealClosing from '@/components/listings/Step10DealClosing'
+import SuggestedBuyersPanel from '@/components/leads/SuggestedBuyersPanel'
 import IntelligentListingForm from '@/components/listings/IntelligentListingForm'
 
 // =============================================================================
@@ -824,6 +825,8 @@ export default function OneShotDealBuilder() {
                   )}
                 </div>
               </div>
+
+              {listing?.id && <SuggestedBuyersPanel listingId={listing.id} />}
             </div>
 
             {/* RIGHT RAIL */}
