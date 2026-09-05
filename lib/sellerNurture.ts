@@ -37,6 +37,15 @@ const svc =
     ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
     : null
 
+// ---------------------------------------------------------------------------
+// TEST-MODE DRY-RUN GUARD (mirrors lib/nurture.ts)
+// The seller-nurture cron must NOT send during platform testing. It stays fully
+// dormant until NURTURE_ENABLED=true AND real delivery keys are configured.
+// ---------------------------------------------------------------------------
+const NURTURE_ENABLED = process.env.NURTURE_ENABLED === 'true'
+const DELIVERY_READY =
+  !!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY || !!process.env.EMAIL_GRAPH_REFRESH_TOKEN
+
 const HOUR = 60 * 60 * 1000
 const DAY = 24 * HOUR
 
@@ -257,7 +266,8 @@ export function decideNurture(
 // ---------------------------------------------------------------------------
 // Runner — one pass over all active paid seller listings.
 // ---------------------------------------------------------------------------
-export async function runSellerNurture(): Promise<{ processed: number; emailed: number; flagged: number; completed: number }> {
+export async function runSellerNurture(): Promise<{ processed: number; emailed: number; flagged: number; completed: number; dryRun?: boolean }> {
+  if (!NURTURE_ENABLED || !DELIVERY_READY) return { processed: 0, emailed: 0, flagged: 0, completed: 0, dryRun: true }
   if (!svc) return { processed: 0, emailed: 0, flagged: 0, completed: 0 }
   let processed = 0, emailed = 0, flagged = 0, completed = 0
 
