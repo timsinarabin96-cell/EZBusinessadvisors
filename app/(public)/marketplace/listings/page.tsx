@@ -30,6 +30,7 @@ export const metadata: Metadata = {
     title: 'Businesses for Sale | Concord Deal Platform',
     description: 'Vetted, cash-flowing businesses for sale. Sign an NDA to unlock full financials.',
     url: '/marketplace/listings',
+    images: ['/og-default.png'],
   },
 }
 

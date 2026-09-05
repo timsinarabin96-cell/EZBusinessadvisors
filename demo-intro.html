@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: radial-gradient(1200px 700px at 30% 20%, #16233f 0%, #0e1628 45%, #0a101d 100%);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stage { width: 1280px; height: 820px; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .logo-card { animation: fadeUp 1.6s ease both; }
+  .logo-card img { display: block; margin: 0 auto; max-width: 520px; }
+  .brand-line { text-align: center; margin-top: 18px; letter-spacing: .32em; font-size: 15px; color: #c9a84c; text-transform: uppercase; animation: fadeUp 1.6s .25s ease both; }
+  .welcome { text-align: center; margin-top: 44px; }
+  .welcome h1 { font-size: 46px; font-weight: 400; letter-spacing: .02em; animation: fadeUp 1.4s .6s ease both; }
+  .welcome h1 em { color: #c9a84c; font-style: normal; }
+  .welcome p { margin-top: 12px; color: #9fb0d0; font-size: 18px; letter-spacing: .14em; text-transform: uppercase; animation: fadeUp 1.4s .8s ease both; }
+  .highlights { margin-top: 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 46px; width: 980px; }
+  .hl { display: flex; align-items: center; gap: 14px; font-size: 19px; color: #e8edf7; opacity: 0; font-family: 'Helvetica Neue', Arial, sans-serif; font-weight: 500; }
+  .hl .dot { width: 10px; height: 10px; border-radius: 50%; background: #c9a84c; box-shadow: 0 0 12px rgba(201,168,76,.8); flex: none; }
+  .hl:nth-child(1) { animation: fadeUp .9s 1.5s ease forwards; }
+  .hl:nth-child(2) { animation: fadeUp .9s 1.9s ease forwards; }
+  .hl:nth-child(3) { animation: fadeUp .9s 2.3s ease forwards; }
+  .hl:nth-child(4) { animation: fadeUp .9s 2.7s ease forwards; }
+  .hl:nth-child(5) { animation: fadeUp .9s 3.1s ease forwards; }
+  .hl:nth-child(6) { animation: fadeUp .9s 3.5s ease forwards; }
+  .hl:nth-child(7) { animation: fadeUp .9s 3.9s ease forwards; }
+  .hl:nth-child(8) { animation: fadeUp .9s 4.3s ease forwards; }
+  .cta { margin-top: 60px; font-size: 22px; color: #c9a84c; letter-spacing: .18em; text-transform: uppercase; opacity: 0; animation: fadeUp 1.2s 5s ease forwards; font-family: 'Helvetica Neue', Arial, sans-serif; }
+  .foot { position: absolute; bottom: 26px; width: 100%; text-align: center; color: #56627e; font-size: 12.5px; letter-spacing: .22em; text-transform: uppercase; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="logo-card"><img src="https://concorddeal.com/branding/ez-logo-horizontal.jpg" alt="EZ Business Advisors"></div>
+  <div class="brand-line">Concord Deal Platform — Confidential Business Brokerage</div>
+  <div class="welcome">
+    <h1>Welcome to Your <em>Complete Platform</em></h1>
+    <p>A full working walkthrough — from listing to closing</p>
+  </div>
+  <div class="highlights">
+    <div class="hl"><span class="dot"></span>Public marketplace &amp; buyer experience</div>
+    <div class="hl"><span class="dot"></span>Create a listing — step by step, real data</div>
+    <div class="hl"><span class="dot"></span>Deal pipeline: LOI → diligence → closing</div>
+    <div class="hl"><span class="dot"></span>Buyer leads, NDA flow &amp; verification</div>
+    <div class="hl"><span class="dot"></span>Calendar, communications &amp; reminders</div>
+    <div class="hl"><span class="dot"></span>Marketing, newspaper &amp; store</div>
+    <div class="hl"><span class="dot"></span>AI Deal Autopilot &amp; listing advisor</div>
+    <div class="hl"><span class="dot"></span>Finance, team, agency &amp; admin</div>
+  </div>
+  <div class="cta">Watch me run the entire platform →</div>
+  <div class="foot">EZ Business Advisors LLC · concorddeal.com</div>
+</div>
+</body>
+</html>

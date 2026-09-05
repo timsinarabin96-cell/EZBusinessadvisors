@@ -124,13 +124,14 @@ export async function fetchInventoryForDigest(svc: any): Promise<InventoryListin
 /** Aggregate, identity-free counts for Market News + Deals Closed sections. */
 export async function fetchMarketAggregates(svc: any): Promise<{ newListings: number; closedDeals: number; closedSummaries: { title: string; amount: number | null; status: string }[] }> {
   const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString()
-  const [{ data: newListings }, { data: deals }] = await Promise.all([
-    svc.from('listings').select('id', { count: 'exact', head: true }).eq('status', 'active').gte('created_at', weekAgo),
+  const [newListingsRes, { data: deals }] = await Promise.all([
+    svc.from('public_listings').select('id', { count: 'exact', head: true }).eq('published', true).gte('created_at', weekAgo),
     svc.from('deals').select('title, status, purchase_price, updated_at').eq('status', 'closed').order('updated_at', { ascending: false }).limit(6),
   ])
   const dealsRows = (deals || []) as any[]
+  const newListings = (newListingsRes as any)?.count ?? (newListingsRes as any)?.data?.length ?? 0
   return {
-    newListings: (newListings as any)?.length ?? 0,
+    newListings,
     closedDeals: dealsRows.length,
     closedSummaries: dealsRows.map((d) => ({ title: d.title ? 'Business acquisition' : 'Business acquisition', amount: d.purchase_price ?? null, status: d.status })),
   }
