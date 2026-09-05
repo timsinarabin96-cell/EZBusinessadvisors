@@ -78,7 +78,8 @@ export async function generateDailyBrief(agencyId: string): Promise<DailyBriefSu
       .limit(20),
     svc
       .from('listing_nda_signatures')
-      .select('buyer_name, buyer_email, created_at, listings(business_name)')
+      .select('buyer_name, buyer_email, created_at, listings!inner(agency_id, business_name)')
+      .eq('listings.agency_id', agencyId)
       .gte('created_at', sinceMidnight)
       .order('created_at', { ascending: false })
       .limit(20),
