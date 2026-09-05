@@ -27,6 +27,17 @@ const svc =
     ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
     : null
 
+// ---------------------------------------------------------------------------
+// TEST-MODE DRY-RUN GUARD
+// Drips stay fully dormant until EXPLICITLY enabled: NURTURE_ENABLED=true AND
+// real delivery keys configured (SMTP/RESEND/Graph — see lib/email.ts). During
+// platform testing no recipient advances and nothing is queued, so test
+// contacts can never receive a drip by accident when keys are added later.
+// ---------------------------------------------------------------------------
+const NURTURE_ENABLED = process.env.NURTURE_ENABLED === 'true'
+const DELIVERY_READY =
+  !!process.env.SMTP_HOST || !!process.env.RESEND_API_KEY || !!process.env.EMAIL_GRAPH_REFRESH_TOKEN
+
 // --- Types ------------------------------------------------------------------
 export type NurtureAudience = 'buyer' | 'seller'
 export type RecipientStatus = 'active' | 'completed' | 'paused'
@@ -156,7 +167,8 @@ export async function enroll(
  * = now + 4 days) or becomes 'completed' when the sequence is exhausted.
  * Never throws - a failing recipient is skipped.
  */
-export async function advanceDueRecipients(agencyId: string): Promise<{ advanced: number; completed: number }> {
+export async function advanceDueRecipients(agencyId: string): Promise<{ advanced: number; completed: number; dryRun?: boolean }> {
+  if (!NURTURE_ENABLED || !DELIVERY_READY) return { advanced: 0, completed: 0, dryRun: true }
   if (!svc || !agencyId) return { advanced: 0, completed: 0 }
 
   const { data: sequences } = await svc.from('nurture_sequences').select('*').eq('agency_id', agencyId)
