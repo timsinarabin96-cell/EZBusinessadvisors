@@ -39,3 +39,23 @@ is meant to be live, it needs policies. Confirm before launch whether it's used.
 1. If `certified_brokers` is a real feature, add owner/admin policies.
 2. Live verification after next deploy: query `pg_policies` vs table list via the
    Supabase SQL editor — static sweep can't see tables created outside the repo.
+
+## LIVE VERIFICATION — 2026-09-05 (Management API, real DB)
+
+Queried `pg_class` + `pg_policy` directly against the live Supabase project
+(202 tables in `public`):
+
+- **RLS DISABLED: 0** — every table has RLS on. ✅
+- **RLS on, zero policies (deny-all): 16** — all server-side-only tables where
+  deny-all is the *correct* posture (no client ever reads them directly):
+  `auto_generation_logs`, `bbs_syncs`, `financial_extraction_logs`, `invoices`,
+  `listing_nda_signatures`, `onboarding_steps`, `onboarding_tasks`,
+  `phone_verifications`, `recast_projects`, `schema_migrations`,
+  `social_analytics`, `social_connections`, `subscription_history`,
+  `subscriptions`, `team_invites`, `webhook_events`.
+
+Note: `certified_brokers` (flagged in the static pass) HAS policies in the live
+DB — static corpus scan was missing a policy file that's actually deployed.
+`listing_nda_signatures` being deny-all confirms the dailyBrief leak fix matters:
+it is only reachable via service role, which is exactly why that query needed the
+agency filter.
