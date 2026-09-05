@@ -44,8 +44,17 @@ export async function fetchEditions(): Promise<NewEdition[]> {
 /** Create a new draft edition, auto-generating articles from live data. */
 export async function createEdition(): Promise<string | null> {
   try {
+    // One-edition-per-week guard: never create a second draft for the same
+    // issue label (duplicate drafts/published issues came from double-runs).
+    const label = nowLabel()
+    const { data: existing } = await supabase
+      .from('newspaper_editions')
+      .select('id')
+      .eq('issue_label', label)
+      .limit(1)
+    if (existing && existing.length > 0) return existing[0].id
     const { data, error } = await supabase.from('newspaper_editions').insert({
-      title: 'Concord Weekly', issue_label: nowLabel(), status: 'draft',
+      title: 'Concord Weekly', issue_label: label, status: 'draft',
     }).select().single()
     if (error || !data) return null
     await autoGenerateArticles(data.id)

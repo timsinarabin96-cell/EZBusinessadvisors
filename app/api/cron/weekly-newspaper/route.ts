@@ -37,10 +37,27 @@ export async function POST(req: Request) {
   }
   const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
 
+  // ── 0. One-edition-per-week guard ─────────────────────────────────────────
+  // If an edition for this week already exists (draft OR published), never
+  // create a duplicate — earlier double-runs published the same issue 2-3x.
+  const label = nowLabel()
+  const { data: existing } = await svc
+    .from('newspaper_editions')
+    .select('id, issue_label, status')
+    .eq('issue_label', label)
+    .limit(1)
+  if (existing && existing.length > 0) {
+    return NextResponse.json({
+      ok: true,
+      skipped: 'duplicate',
+      message: `Edition "${label}" already exists (${existing[0].status}) — nothing created.`,
+    })
+  }
+
   // ── 1. Create draft edition ────────────────────────────────────────────────
   const { data: edition, error: createErr } = await svc
     .from('newspaper_editions')
-    .insert({ title: 'Concord Weekly', issue_label: nowLabel(), status: 'draft' })
+    .insert({ title: 'Concord Weekly', issue_label: label, status: 'draft' })
     .select()
     .single()
   if (createErr || !edition) {
